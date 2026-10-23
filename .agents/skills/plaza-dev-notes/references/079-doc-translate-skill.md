@@ -26,7 +26,7 @@
 - `traceExport.ts`：`traceFilePath(runId,'pdf')` → `traces/<runId>.translation.pdf`；`RunRecord.files.pdf?: string`。
 - `web/server/index.ts:1172` `captureWorkspacePdfReport()`：终态/超时/断连三处捕获（与 `captureWorkspaceHtmlReport` 并列调用）；校验逻辑在 `web/server/lib/pdfReport.ts:21`，要求普通文件、≤64MB、`pdfinfo` 页数>0（5 秒超时），拒绝符号链接。`index.ts:1116` 在本轮执行前记录 inode/size/mtime/ctime 指纹，捕获时拒绝未改变的上一轮译文，避免追问/失败时交付旧文件；拷贝进 traces、记 `record.files.pdf`。
 - 终态 done（`web/server/index.ts:1468`）：有工件时 `content` 保留模型最终说明；无工件时保留模型原因并追加"译文未生成：…"，不以通用文案覆盖缺输入/不支持等原因。`reportUrl` 与 HTML 报告共用 `/api/reports/:runId`；`ExperiencePage.vue:404` 将译文最终说明作为权威正文，`ReportOutput.vue:14` 用 `artifactName` 展示"查看/下载译文 PDF"。
-- `handleHtmlReport`：html 工件优先，否则 pdf 分支（`application/pdf`、inline 预览；`/download` 强制 attachment，文件名 `<taskTitle>.pdf`，回落 `译文.pdf`）。
+- `handleHtmlReport`（`web/server/index.ts:492`）：html 工件优先，否则 pdf 分支（`application/pdf`、inline 预览；`/download` 或 `?download=1` 强制 attachment）。2026-10-23 文件名修正：`pdfReport.ts:9` 从本轮上传的原文 PDF 生成 `<原文件名去扩展名>-译文.pdf`；续译没有新附件时，取同会话/同技能、不晚于该运行的最近一次 PDF 附件，避免后来上传的文件反向改变旧记录命名。无原文名才用显式 `taskTitle`，再回落 `译文.pdf`，**不使用 promptDigest**。旧记录直接按已有 attachments 解析，无需迁移。预览与下载均带 `filename`/RFC 5987 `filename*`，并编码单引号/括号等字符，PDF 阅读器内下载也使用同一名称。
 - 前端：`ExperiencePage` 历史恢复 `reportUrl` 判断 `files.html || files.pdf`；`RunDetailPage` 原始数据区补"译文 PDF"链接；`runsMock.ts` files 类型加 `pdf`。
 
 ### 附件上传实装（前端此前是禁用占位）
@@ -50,6 +50,7 @@
 - **否决 weasyprint/无头 Chrome 生成 PDF**：本机都可 pip/即用，但 HTML→PDF 需要另一套排版规范；TeX 对分栏/纸张/数学式的表达是声明式的，与"宏结构对齐"的语义一一对应。
 - **reportUrl 复用而非新路由**：前端零协议改动是最大收益；代价是 `/api/reports` 语义从"HTML 报告"泛化为"运行交付物"（doc 注释已改）。
 - 校验口径只做工件有效性与本轮更新检查：内容质量（翻译好坏、结构是否真对齐）由技能流程负责，服务端不重排版式判断。否决"文件存在就复用"：会把上一轮译文误认为失败轮次的新结果。否决真实失败后自动展示演示：会掩盖未加载技能、编译错误等实际不可用原因。
+- 下载文件名确定性取附件元数据，不由模型猜测，也不把对话摘要当文档标题；因此直接聊天和表单的默认文件名一致。代价是暂不在默认文件名中追加目标语言；未来若需要，应使用显式语言字段，而不是解析任意用户指令。
 
 ## 后续扩展路线
 
@@ -67,5 +68,6 @@
 - 2026-10-23 真实验证：原后端进程启动于 10 月 20 日，`/api/skills` 仅 6 项、不含翻译；重启后为 7 项且 `doc-translate.installed=true`。真实浏览器通过专用表单上传 2 页英文 A4 PDF 并提交（运行 `20261023-144638-fykb`），DeepSeek/Pi 在 plaza-sandbox 下完成翻译与两遍 XeLaTeX 编译，生成 A4 中文 PDF；页面真实标记、内联链接、历史恢复均通过。预览和 `/download` 实测 200/application/pdf，下载 attachment 文件名含原文标题与目标语言；提取译文核对标题、列表、参数、产品标识符、参考文献通过。另一真实 API 上传运行亦成功；具体产物以 traces 为准，不把样本文档质量外推至所有输入。
 - `node --test web/src/composables/useChatApi.test.mjs web/server/lib/pdfReport.test.mjs web/server/lib/htmlReport.test.ts`：21 过 0 挂；新增覆盖 SSE 错误/回调抛错/断流/HTTP 错误、PDF 缺失/无效/超大/符号链接/上一轮工件。`npm run build` 通过。
 - 浏览器异常回归（拦截 chat、实际 upload）：general 换翻译后上传 sessionId 与提交 sessionId 一致，SSE 错误及 HTTP 400 原因持续可见，无演示回落/伪工件链接；缺 PDF 的表单提交被阻止。低权用户生成的 `.tex/.pdf/.log` 属主为 plaza-sandbox，已关闭原沙箱编译待验证项。
+- 2026-10-23 下载命名回归：用户记录原文 `endtoend.pdf`、摘要“请翻译一下这个文档”，复现原下载名误用摘要；修正后 inline、`/download`、`?download=1` 三条路径均返回 `endtoend-译文.pdf`，原 HTML 下载头保持一致。原文/续译/历史时间边界/无附件回落/中文及标点命名检查通过，现有 PDF 工件回归 4 项通过；Chrome 原生下载建议名已核对。
 - **待验证**：6MB 上限、20 分钟超时和长文档分批翻译的完整性；复杂双栏/公式/跨页表格的真实翻译质量；目标语言所需字体覆盖。OCR 仍未实现。
 - 运维事实（2026-10-20 首跑、2026-10-23 再次实证）：**新增技能只改 skills.ts 不热加载，正在运行的后端仍是旧注册表**——/api/chat 对新 skill 400「缺少或未知的 skill」，而 /api/upload 照常成功。旧前端还会回落演示；2026-10-23 起真实失败直接显示错误。上线新技能的固定动作=重启后端 + 前端硬刷新；只改 `PLAZA_ENV=prod` 不会加载新代码或修复执行链路。

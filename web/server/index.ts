@@ -48,7 +48,7 @@ import {
   type SidecarExtract,
 } from './lib/reportMeta.ts'
 import { PiRunner, resolvePiCli, piModelRef } from './lib/piRunner.ts'
-import { readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
+import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -490,7 +490,8 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
 /** GET /api/reports/:runId：返回运行产生的独立交付物——HTML 报告（HTML_REPORT_SKILLS）
     或译文 PDF（PDF_REPORT_SKILLS，doc-translate）。inline 预览与 ?download=1 下载同路由。 */
 function handleHtmlReport(req: any, res: any, runId: string, forceDownload = false) {
-  const record = readIndex().find(r => r.runId === runId)
+  const records = readIndex()
+  const record = records.find(r => r.runId === runId)
   /* done 事件先于异步 appendIndex 到达，直接按 runId 回退查找可避免用户点击瞬间竞态。 */
   const htmlFile = record?.files.html ?? traceFilePath(runId, 'html')
   const pdfFile = record?.files.pdf ?? traceFilePath(runId, 'pdf')
@@ -516,13 +517,12 @@ function handleHtmlReport(req: any, res: any, runId: string, forceDownload = fal
   }
   if (existsSync(pdfFile)) {
     const data = readFileSync(pdfFile)
-    const title = cleanTitle(record?.taskTitle || record?.promptDigest) || '译文'
+    const filename = pdfDownloadFilename(record, records)
+    const encodedFilename = encodeURIComponent(filename).replace(/['()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
     res.writeHead(200, {
       'Content-Type': 'application/pdf',
       'Content-Length': data.length,
-      'Content-Disposition': download
-        ? `attachment; filename="translation.pdf"; filename*=UTF-8''${encodeURIComponent(title)}.pdf`
-        : 'inline',
+      'Content-Disposition': `${download ? 'attachment' : 'inline'}; filename="translation.pdf"; filename*=UTF-8''${encodedFilename}`,
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
       'Content-Security-Policy': "default-src 'none'; base-uri 'none'; form-action 'none'",

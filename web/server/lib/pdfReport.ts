@@ -1,8 +1,26 @@
 import { spawnSync } from 'node:child_process'
 import { lstatSync, realpathSync } from 'node:fs'
 import { join } from 'node:path'
+import type { RunRecord } from './traceExport.ts'
 
 export const MAX_PDF_REPORT_BYTES = 64 * 1024 * 1024
+
+/** 下载名独立于对话摘要；续译沿用本轮之前最近一次上传的原文名。 */
+export function pdfDownloadFilename(record?: RunRecord, history: readonly RunRecord[] = []): string {
+  const sourcePdf = (run?: RunRecord) => run?.attachments?.find(name => /\.pdf$/i.test(name))
+  let source = sourcePdf(record)
+  if (!source && record?.clientSessionId) {
+    const previous = history
+      .filter(run => run.clientSessionId === record.clientSessionId && run.skill === record.skill && run.ts <= record.ts && sourcePdf(run))
+      .sort((a, b) => b.ts.localeCompare(a.ts))[0]
+    source = sourcePdf(previous)
+  }
+  const rawTitle = source
+    ? `${source.split(/[\\/]/).pop()!.replace(/\.pdf$/i, '')}-译文`
+    : record?.taskTitle?.replace(/\.pdf$/i, '') || '译文'
+  const title = rawTitle.replace(/[\\/:*?"<>|\u0000-\u001f\u007f]/g, '-').replace(/\s+/g, ' ').trim()
+  return `${Array.from(title).slice(0, 100).join('').replace(/[. ]+$/, '') || '译文'}.pdf`
+}
 
 /** 记录本轮开始前的工件，避免把上一轮译文交付成新结果。 */
 export function workspacePdfFingerprint(workspaceDir: string): string | undefined {
