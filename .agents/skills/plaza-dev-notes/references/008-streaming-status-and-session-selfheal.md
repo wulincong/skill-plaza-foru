@@ -32,6 +32,12 @@
 
 - `web/server/lib/zcodeRunner.ts:68-73`：`session/event` 的 `payload.error` → `{kind:'error', message:'zcode 会话错误：…'}`，前端立即看到失败原因而不是空转到超时。
 
+### 浏览器 SSE 错误上抛（2026-10-23）
+
+- 已实现：`web/src/composables/useChatApi.ts:96` 把 JSON 解码与 `onEvent` 回调分开，catch 只处理解码失败；此前回调为 `error` 抛出的异常也被误当作坏 JSON 吞掉。有效 `error` 事件必定抛出原因，流结束前未收到 `done` 视为提前断连；finally 取消并释放 reader。
+- `ExperiencePage.vue` 的 `runReal` 保留已输出正文并追加失败原因，结束工具进度；真实请求失败不再转成演示消息。否决"失败后自动回落演示以保证页面可用"：掩盖服务/技能/模型错误，用户容易把示例当成真实执行，079 已实证。
+- 验证：`node --test web/src/composables/useChatApi.test.mjs` 5 过 0 挂（分片/坏 JSON、SSE error、回调异常、部分正文后断流、HTTP 拒绝）；浏览器拦截 SSE/HTTP 错误确认真实原因可见、没有演示结果。协议字段保持不变；后续如需自动重试，须显式保留失败状态和附件会话。
+
 ### 在线运行首包与等待计时（2026-09-23 回填）
 
 - `web/server/index.ts:440-483`：SSE 建立后调用 `flushHeaders()`，在会话创建和模型首个 delta 前立即发送 `started(runId, startedAt)` 与 `status(initializing)`；运行记录仍由 `RunRecorder` 独立落盘，不向 `/api/runs` 暴露临时状态。

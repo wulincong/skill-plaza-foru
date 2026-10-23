@@ -93,23 +93,36 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
   const reader = response.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ''
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
-    let idx: number
-    while ((idx = buffer.indexOf('\n\n')) >= 0) {
-      const chunk = buffer.slice(0, idx)
-      buffer = buffer.slice(idx + 2)
-      for (const line of chunk.split('\n')) {
-        if (!line.startsWith('data: ')) continue
-        try {
-          onEvent(JSON.parse(line.slice(6)) as ChatEvent)
-        } catch {
-          /* 跳过无法解析的行 */
+  let completed = false
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let idx: number
+      while ((idx = buffer.indexOf('\n\n')) >= 0) {
+        const chunk = buffer.slice(0, idx)
+        buffer = buffer.slice(idx + 2)
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue
+          let event: ChatEvent
+          try {
+            event = JSON.parse(line.slice(6)) as ChatEvent
+          } catch {
+            /* 跳过无法解析的行 */
+            continue
+          }
+          /* 只捕获 JSON 解析错误，不能吞掉调用方抛出的真实运行错误。 */
+          onEvent(event)
+          if (event.type === 'error') throw new Error(event.message)
+          if (event.type === 'done') completed = true
         }
       }
     }
+    if (!completed) throw new Error('运行连接提前断开，未收到完成结果，请重试。')
+  } finally {
+    await reader.cancel().catch(() => {})
+    reader.releaseLock()
   }
 }
 

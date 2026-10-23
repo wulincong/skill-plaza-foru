@@ -3,20 +3,19 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { bySlug, catOf, SKILLS, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
 import { checkHealth, streamChat, type ChatAttachment, type ChatEvent } from '../composables/useChatApi'
 import { takePendingFormTask } from '../composables/pendingTask'
+import { uploadFile, validateUploadFile, formatSize, type UploadedFile } from '../composables/useUpload'
 import { fetchRunDetail, fetchRuns, runReportUrl, setConversationArchived, deleteConversation } from '../api/runsApi'
 import { OUTCOME_LABEL, type RunListItem } from '../data/runsMock'
 import type { ReportChart as ReportChartData } from '../data/runsMock'
 import Icon from '../components/Icon.vue'
 import ReportOutput from '../components/ReportOutput.vue'
 import ToolCallGroup from '../components/ToolCallGroup.vue'
-import { useCopy } from '../composables/useCopy'
 import { toast } from '../composables/toast'
 
 /* 在线对话：广场的唯一对话与运行呈现面。
    后端就绪时真实流式运行（Pi + DeepSeek）：默认通用智能体，$ 挂载技能；
    「任务配置」表单页提交的任务也交接到这里运行。
    历史展示服务端运行记录（/api/runs），后端未启动时回落为演示摘要输出。 */
-const { copy } = useCopy()
 
 interface Msg {
   role: 'user' | 'ai'
@@ -58,6 +57,11 @@ const DEMOS: Demo[] = [
     question: '构造一批客服领域的训练样本并做质检',
     reply: `【演示输出 · 训练样本构造与标注质检】\n\n■ 样本构造\n· 四类划分：指令跟随 / 事实问答 / 拒答 / 边界探索\n· 本批生成 200 条候选样本，机器质检通过率 86%\n\n■ 质检说明\n· 候选结果 ≠ 专家确认，全部样本待人工抽检\n· 全程保留来源与谱系，可追溯\n\n——以上为演示摘要。完整样本集与质检台账请在本地 AI 工具中运行获得。`,
   },
+  {
+    slug: 'doc-translate',
+    question: '把这份英文 PDF 文档全文翻译成中文',
+    reply: '请连接运行服务，上传一份带文本层的 PDF，并说明目标语言。翻译完成后会提供译文 PDF 的查看和下载链接。',
+  },
 ]
 
 const FALLBACK = `这个问题需要在本地 AI 工具中调用对应的 SKILL 来完成。\n\n在线对话页展示的是各 SKILL 的结果形态（可点击上方示例问题查看）。要获得完整结果：\n\n1. 回到 智能体广场，找到匹配的 SKILL\n2. 复制安装提示词，发送给你的 AI 工具\n3. 用最小输入示例开始第一次运行`
@@ -66,6 +70,11 @@ const textarea = ref('')
 const textareaEl = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const messages = ref<Msg[]>([])
+/* 附件（真实运行）：上传到会话沙箱 uploads/，随下一条消息发送；
+   已上传文件属于当前技能绑定的沙箱目录，技能切换/新对话即失效（见 pickSkill/newChat） */
+const pendingAttachments = ref<UploadedFile[]>([])
+const attachUploading = ref(false)
+const attachInputEl = ref<HTMLInputElement | null>(null)
 /* 当前对话 id（后端会话与技能绑定的 key）；null = 下一条消息开新会话 */
 const currentConvId = ref<number | null>(null)
 const streamTimer: { value: ReturnType<typeof setInterval> | null } = { value: null }
@@ -233,8 +242,55 @@ function toggleSkillMenu() {
   skillMenu.value = true
   textareaEl.value?.focus()
 }
+/* ---------- 附件：上传到会话沙箱，随下一条消息发送 ---------- */
+function triggerAttach() {
+  if (!apiReady.value) {
+    toast('演示环境不支持附件，请启动本地后端后使用')
+    return
+  }
+  attachInputEl.value?.click()
+}
+async function onAttachPicked(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = Array.from(input.files ?? [])
+  input.value = ''
+  if (sending.value || attachUploading.value) return
+  if (pendingAttachments.value.length >= 5) { toast('最多同时附 5 个文件'); return }
+  for (const file of files.slice(0, 5 - pendingAttachments.value.length)) {
+    const invalid = validateUploadFile(file)
+    if (invalid) {
+      toast(`${file.name}：${invalid}`)
+      continue
+    }
+    attachUploading.value = true
+    try {
+      /* 上传必须落进运行将使用的沙箱目录：已有会话直接复用；首条上传前先起对话骨架 */
+      if (currentConvId.value === null) currentConvId.value = Date.now()
+      const key = `pi:${currentConvId.value}`
+      /* 在上传前完成技能绑定；否则 send() 换技能时会丢掉刚上传文件的会话。 */
+      const requested = activeSkill.value?.slug ?? GENERAL_SKILL_ID
+      const bound = convSlugs.get(currentConvId.value)
+      if (bound !== undefined && bound !== requested) convSessions.delete(key)
+      convSlugs.set(currentConvId.value, requested)
+      const uploaded = await uploadFile(file, convSessions.get(key))
+      if (key !== `pi:${currentConvId.value}` || requested !== (activeSkill.value?.slug ?? GENERAL_SKILL_ID)) return
+      convSessions.set(key, uploaded.sessionId)
+      pendingAttachments.value.push(uploaded)
+    } catch (exc) {
+      toast(exc instanceof Error ? exc.message : '附件上传失败')
+    } finally {
+      attachUploading.value = false
+    }
+  }
+}
+function removeAttachment(index: number) {
+  pendingAttachments.value.splice(index, 1)
+}
+
 function pickSkill(skill: Skill) {
   activeSkill.value = skill
+  /* 附件落在旧技能绑定的沙箱目录，换技能后旧会话可能被弃用，一并清空 */
+  pendingAttachments.value = []
   /* 移除触发选择的 $token（经 $ 钮呼出时没有 token，只挂载技能） */
   const el = textareaEl.value
   if (el) {
@@ -253,6 +309,7 @@ function pickSkill(skill: Skill) {
 }
 function clearSkill() {
   activeSkill.value = undefined
+  pendingAttachments.value = []
   textareaEl.value?.focus()
 }
 function onTextareaKeydown(event: KeyboardEvent) {
@@ -294,6 +351,7 @@ function newChat() {
   currentConvId.value = null
   messages.value = []
   textarea.value = ''
+  pendingAttachments.value = []
 }
 
 /* ---------- 演示输出：逐字打字机效果（后端未就绪时） ---------- */
@@ -343,7 +401,7 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       msg.text += event.delta
       scrollTop()
     } else if (event.type === 'done') {
-      if (!msg.text && event.content) msg.text = event.content
+      if ((!msg.text || msg.skill?.slug === 'doc-translate') && event.content) msg.text = event.content
       msg.charts = event.charts ?? []
       msg.reportUrl = event.reportUrl
     } else if (event.type === 'error') {
@@ -372,17 +430,9 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
     })
     msg.done = true
   } catch (error) {
-    if (!msg.text) {
-      /* 一字未出就失败：回落到演示输出，保证页面可用 */
-      msg.real = false
-      msg.charts = undefined
-      msg.reportUrl = undefined
-      progressEvents.value = []
-      toast(error instanceof Error ? error.message : '真实运行失败，已切换为演示输出')
-      const demo = skill ? DEMOS.find(d => d.slug === skill.slug) : undefined
-      typeInto(msg, demo ? demo.reply : FALLBACK)
-      return
-    }
+    const reason = error instanceof Error ? error.message : '请求失败，请稍后重试。'
+    msg.text += `${msg.text ? '\n\n' : ''}本次运行失败：${reason}`
+    for (const item of progressEvents.value) if (item.state === 'active') item.state = 'failed'
     msg.done = true
   } finally {
     endRun()
@@ -390,14 +440,24 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
   }
 }
 
-function send(raw?: string) {
+async function send(raw?: string) {
   const text = (raw ?? textarea.value).trim()
-  if (!text || sending.value) return
+  if (!text || sending.value || attachUploading.value) return
+
+  /* 翻译依赖附件与真实服务：离线时保留输入，重试时重新探测连接。 */
+  if (activeSkill.value?.slug === 'doc-translate' && !apiReady.value) {
+    sending.value = true
+    try { await probeApi() } finally { sending.value = false }
+    if (!apiReady.value) { toast('翻译服务未连接，请启动后端后重试。'); return }
+  }
 
   if (currentConvId.value === null) currentConvId.value = Date.now()
   skillMenu.value = false
 
-  messages.value.push({ role: 'user', text, done: true })
+  /* 附件随本条消息一次性消费；上屏文本附文件名便于回看 */
+  const attachments = pendingAttachments.value.splice(0)
+  const shownText = attachments.length ? `${text}\n[附件] ${attachments.map(a => a.name).join('、')}` : text
+  messages.value.push({ role: 'user', text: shownText, done: true })
   textarea.value = ''
   sending.value = true
   runStatus.value = ''
@@ -417,7 +477,9 @@ function send(raw?: string) {
         convSlugs.set(convId, requested)
       }
     }
-    void runReal(text, requested, skill)
+    void runReal(text, requested, skill, attachments.length
+      ? { attachments: attachments.map(a => ({ name: a.name, path: a.path })) }
+      : undefined)
     return
   }
   const demo = skill ? DEMOS.find(d => d.slug === skill.slug) : undefined
@@ -445,6 +507,13 @@ function consumePendingFormTask() {
   if (task.sessionId) convSessions.set(`pi:${currentConvId.value}`, task.sessionId)
 
   if (!apiReady.value) {
+    if (task.slug === 'doc-translate') {
+      const msg = startAiMsg(skill, true)
+      msg.text = '翻译服务未连接，请启动后端后重新提交。'
+      msg.done = true
+      sending.value = false
+      return
+    }
     const demo = skill ? DEMOS.find(d => d.slug === skill.slug) : undefined
     typeInto(startAiMsg(skill, false), demo ? demo.reply : FALLBACK)
     return
@@ -460,10 +529,6 @@ function fill(slug: string) {
     activeSkill.value = bySlug.get(slug)
     textareaEl.value?.focus()
   }
-}
-function copyInstall(slug: string) {
-  const skill = bySlug.get(slug)
-  if (skill) copy(skill.installPrompt, '安装提示词已复制')
 }
 const skillTitle = (slug: string) => bySlug.get(slug)?.name ?? ''
 const skillCat = (slug: string) => { const s = bySlug.get(slug); return s ? catOf(s.categoryId).name : '' }
@@ -676,7 +741,7 @@ async function selectHistory(group: HistoryGroup) {
     if (!result.live || !(result.conversation ?? []).length) throw new Error('empty')
     const detail: HistoryDetail = {
       conversation: result.conversation ?? [],
-      reportUrl: result.item?.files?.html ? runReportUrl(run.runId) : undefined,
+      reportUrl: (result.item?.files?.html || result.item?.files?.pdf) ? runReportUrl(run.runId) : undefined,
     }
     historyDetails[run.runId] = detail
     restore(detail)
@@ -916,13 +981,8 @@ onBeforeUnmount(() => {
                 <ToolCallGroup v-if="msg === progressOwner && progressEvents.length" :items="progressEvents" :prose-started="proseStarted" />
                 <ToolCallGroup v-else-if="msg.tools?.length" :items="historyToolItems(msg)" :prose-started="true" />
                 <ReportOutput :text="msg.text" :charts="msg.charts" :report-url="msg.reportUrl"
+                  :artifact-name="msg.skill?.slug === 'doc-translate' ? '译文 PDF' : undefined"
                   :html-mode="msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
-                <div v-if="msg.done && msg.skill" class="exp-ai-actions">
-                  <button type="button" class="exp-act exp-act-primary" @click="copyInstall(msg.skill.slug)">
-                    <Icon name="copy" :size="14" />复制安装提示词
-                  </button>
-                  <RouterLink class="exp-act" :to="`/skill/${msg.skill.slug}`">查看详情<Icon name="arrow" :size="14" /></RouterLink>
-                </div>
                 <p v-if="msg.done && !msg.real" class="exp-ai-note">演示输出仅展示结果形态，完整产物请在本地 AI 工具中运行获得。</p>
                 <p v-else-if="msg.done" class="exp-ai-note">{{ msg.skill ? '以上为 SKILL 真实运行输出' : '以上为通用智能体真实输出' }}（pi · {{ apiModel || '本地 Agent' }}）。</p>
               </div>
@@ -954,6 +1014,17 @@ onBeforeUnmount(() => {
               </div>
               <p v-if="skillMatches.length === 0" class="exp-skill-empty">没有匹配的 SKILL，试试其他关键词</p>
             </div>
+            <div v-if="pendingAttachments.length || attachUploading" class="exp-attach-row">
+              <span v-for="(a, i) in pendingAttachments" :key="a.path" class="exp-attach-chip">
+                <Icon name="file" :size="13" />
+                <span class="exp-attach-name">{{ a.name }}</span>
+                <small>{{ formatSize(a.size) }}</small>
+                <button type="button" class="exp-attach-x" :aria-label="`移除附件 ${a.name}`" @click="removeAttachment(i)">
+                  <Icon name="x" :size="11" />
+                </button>
+              </span>
+              <span v-if="attachUploading" class="exp-attach-chip is-busy">上传中…</span>
+            </div>
             <textarea
               ref="textareaEl"
               v-model="textarea"
@@ -978,9 +1049,23 @@ onBeforeUnmount(() => {
                   <Icon name="x" :size="11" />
                 </button>
               </span>
-              <span class="exp-attach" title="演示环境不支持附件">
+              <input
+                ref="attachInputEl"
+                type="file"
+                class="exp-attach-input"
+                multiple
+                accept=".pdf,.docx,.doc,.md,.txt"
+                @change="onAttachPicked"
+              />
+              <button
+                type="button"
+                class="exp-attach-btn"
+                :title="apiReady ? '上传附件（PDF / DOCX / DOC / MD / TXT，单个 ≤ 6MB）' : '演示环境不支持附件'"
+                :disabled="!apiReady || sending || attachUploading"
+                @click="triggerAttach"
+              >
                 <Icon name="paperclip" :size="16" />
-              </span>
+              </button>
               <span class="exp-agent">
                 <span class="exp-model">
                   <button type="button" class="exp-model-btn" :aria-expanded="modelOpen" aria-haspopup="menu" @click.stop="modelOpen = !modelOpen">
@@ -1002,7 +1087,7 @@ onBeforeUnmount(() => {
                 <span class="exp-agent-dot" aria-hidden="true">·</span>
                 <span class="exp-agent-label" :class="{ 'is-real': apiReady }">{{ apiReady ? (apiModel || '在线 Agent') : '演示' }}</span>
               </span>
-              <button type="button" class="exp-send" :disabled="!textarea.trim() || sending" aria-label="发送" @click="send()">
+              <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || attachUploading" aria-label="发送" @click="send()">
                 <Icon name="arrow-up" :size="16" />
               </button>
             </div>

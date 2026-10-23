@@ -130,6 +130,9 @@ function toggleOption(fieldId: string, option: string) {
 }
 
 function buildTaskTitle(): string {
+  if (skill.value.slug === 'doc-translate') {
+    return `${uploads.value[0]?.name.replace(/\.pdf$/i, '') ?? '文档'} · ${String(form.targetLanguage ?? '').trim()}译文`
+  }
   const goal = String(form.goal ?? '').trim()
   const task = String(form.task ?? '').trim()
   if (skill.value.slug === 'career-guidance' && goal && task) {
@@ -151,9 +154,11 @@ function buildPrompt(): string {
     `使用 $${skill.value.identifier} 完成以下任务：`,
     ...lines,
     ...(fileList ? [`- 已上传附件（随任务提供）：${fileList}`] : []),
-    `- 参考知识库（前端 Mock 演示，本次运行未实际接入）：${picked.length ? picked.join('、') : '未选择'}`,
+    ...(config.value.knowledge.length ? [`- 参考知识库（前端 Mock 演示，本次运行未实际接入）：${picked.length ? picked.join('、') : '未选择'}`] : []),
     '',
-    '请先复述任务边界与缺失信息，再按该 SKILL 的方法推进。',
+    skill.value.slug === 'doc-translate'
+      ? '请按所选范围翻译上传的 PDF；范围留空时翻译全文。生成译文 PDF 后只简短说明译文语言、页数和未覆盖项。'
+      : '请先复述任务边界与缺失信息，再按该 SKILL 的方法推进。',
   ].join('\n')
 }
 
@@ -171,6 +176,8 @@ async function onPickFile(event: Event) {
   if (uploads.value.length >= MAX_UPLOADS) { toast(`最多同时附 ${MAX_UPLOADS} 个文件`); return }
   const invalid = validateUploadFile(file)
   if (invalid) { toast(invalid); return }
+  const required = config.value.requiredUpload
+  if (required && !file.name.toLowerCase().endsWith(required.accept)) { toast(`请上传${required.label}`); return }
   if (apiState.value !== 'ready') { toast('需要先启动本地服务'); return }
   const key = sessionKey(skill.value.slug)
   uploading.value = true
@@ -243,6 +250,11 @@ function run() {
   if (uploading.value) return
   if (missingField.value) {
     toast(`请先填写「${missingField.value.label}」`)
+    return
+  }
+  const required = config.value.requiredUpload
+  if (required && !uploads.value.some(item => item.name.toLowerCase().endsWith(required.accept))) {
+    toast(`请先上传${required.label}`)
     return
   }
   stashPendingFormTask({
@@ -443,7 +455,7 @@ onMounted(() => {
         </main>
 
         <aside class="use-side">
-          <section class="use-side-card use-knowledge">
+          <section v-if="config.knowledge.length" class="use-side-card use-knowledge">
             <header class="use-side-head">
               <div>
                 <span>知识库</span>
@@ -475,7 +487,7 @@ onMounted(() => {
           <section class="use-side-card use-run">
             <div class="use-run-progress">
               <span>已完成 {{ completed }} / {{ requiredFields.length }} 项必填信息</span>
-              <b>已选 {{ knowledge.length }} 个知识库</b>
+              <b v-if="config.knowledge.length">已选 {{ knowledge.length }} 个知识库</b>
             </div>
             <div class="use-track" role="progressbar" aria-label="任务信息完成度"
               aria-valuemin="0" aria-valuemax="100" :aria-valuenow="percent"><i :style="{ width: percent + '%' }"></i></div>

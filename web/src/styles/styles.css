@@ -1165,19 +1165,6 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
   content: ''; width: 6px; height: 6px; border-radius: 50%;
   background: var(--sk-blue); animation: sk-pulse 1.2s ease-in-out infinite;
 }
-.exp-ai-actions { display: flex; gap: 8px; margin-top: 12px; }
-.exp-act {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 32px; padding: 0 14px; border-radius: var(--r-full);
-  border: 1px solid var(--sk-line); background: var(--surface-card);
-  font: inherit; font-size: 12.5px; color: var(--sk-ink-2); cursor: pointer; text-decoration: none;
-  transition: border-color var(--dur-fast) var(--sk-ease), color var(--dur-fast) var(--sk-ease),
-              background var(--dur-fast) var(--sk-ease), transform .15s var(--sk-spring);
-}
-.exp-act:hover { border-color: var(--sk-ink-4); color: var(--sk-ink-1); }
-.exp-act:active { transform: scale(.97); }
-.exp-act-primary { background: var(--sk-btn); border-color: var(--sk-btn); color: var(--sk-btn-on); }
-.exp-act-primary:hover { background: var(--sk-btn-hover); border-color: var(--sk-btn-hover); color: var(--sk-btn-on); }
 .exp-ai-note { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: var(--sk-ink-4); }
 
 /* ---- 输入区：白卡容器 + 黑色圆形发送钮 ---- */
@@ -1256,11 +1243,31 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
 }
 .exp-skill-x:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
 
-.exp-attach {
+/* 附件上传：隐藏 file input + 回形针按钮 + 待发送附件 chips（doc-translate 等技能用） */
+.exp-attach-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.exp-attach-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 32px; height: 32px; border: none; border-radius: 50%;
-  color: var(--sk-ink-4); cursor: not-allowed;
+  color: var(--sk-ink-3); cursor: pointer;
+  transition: background var(--dur-fast) var(--sk-ease), color var(--dur-fast) var(--sk-ease);
 }
+.exp-attach-btn:hover:not(:disabled) { background: var(--sk-fill-hover); color: var(--sk-ink-1); }
+.exp-attach-btn:disabled { color: var(--sk-ink-4); cursor: not-allowed; }
+.exp-attach-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 8px; }
+.exp-attach-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 280px; padding: 3px 6px 3px 9px; border-radius: 8px;
+  background: var(--sk-fill-hover); font-size: 12px; color: var(--sk-ink-2);
+}
+.exp-attach-chip.is-busy { color: var(--sk-ink-3); padding: 3px 9px; }
+.exp-attach-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.exp-attach-chip small { color: var(--sk-ink-4); }
+.exp-attach-x {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border: none; border-radius: 50%;
+  background: none; color: inherit; cursor: pointer; opacity: .6;
+}
+.exp-attach-x:hover { opacity: 1; background: color-mix(in srgb, currentColor 16%, transparent); }
 .exp-agent { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sk-ink-3); }
 .exp-agent-dot { color: var(--sk-ink-4); }
 .exp-agent-label.is-real { color: var(--sk-green); font-weight: 500; }

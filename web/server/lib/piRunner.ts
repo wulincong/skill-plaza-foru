@@ -78,6 +78,17 @@ export function piThinkingLevel(): string {
   return raw
 }
 
+/* 低权沙箱（手记 078）：PI_SANDBOX_USER 设置时经 sudo 以该系统用户运行 pi，
+   使其写权限被文件系统限制在 workspace 内。要求 PI_CLI 为绝对路径并指向
+   sudoers 白名单的包装脚本（scripts/setup-pi-sandbox.sh 一次性配置：
+   /opt/plaza-runtime/bin/pi-sandbox，env_keep 透传 DEEPSEEK_API_KEY）。
+   未设置时行为不变（开发机以当前用户直跑）。 */
+export function piSandboxPrefix(): string[] | null {
+  loadLocalEnv()
+  const user = process.env.PI_SANDBOX_USER?.trim()
+  return user ? ['-n', '-u', user] : null
+}
+
 /* pi usage → 统一 UsageSummary（cost.total 为该次调用的美元花费） */
 function numberOrUndefined(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
@@ -516,7 +527,12 @@ export class PiRunner extends AgentRunner {
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
-    const channel = new JsonlChannel(this.cli, args, { cwd: workspaceDir })
+    /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
+       （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
+    const sudo = piSandboxPrefix()
+    const channel = sudo
+      ? new JsonlChannel('sudo', [...sudo, this.cli, ...args], { cwd: workspaceDir })
+      : new JsonlChannel(this.cli, args, { cwd: workspaceDir })
     this.sessions.set(sid, {
       channel,
       workspaceDir,

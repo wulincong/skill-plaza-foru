@@ -11,8 +11,10 @@ const props = defineProps<{
   streaming?: boolean
   reportUrl?: string
   htmlMode?: boolean
+  artifactName?: string
 }>()
 
+const artifactName = computed(() => props.artifactName || '报告')
 const isHtml = computed(() => props.htmlMode || /^\s*(?:<!doctype\s+html|<html[\s>])/i.test(props.text))
 const isRawHtml = computed(() => /^\s*(?:<!doctype\s+html|<html[\s>])/i.test(props.text))
 const htmlStatus = computed(() => {
@@ -28,18 +30,18 @@ const htmlStatus = computed(() => {
   <p v-if="isHtml" class="report-ready">
     {{ htmlStatus }}
     <template v-if="reportUrl">
-      <a class="report-open" :href="reportUrl" target="_blank" rel="noopener">点击查看具体报告</a>
+      <a class="report-open" :href="reportUrl" target="_blank" rel="noopener">查看{{ artifactName }}</a>
       <a class="report-download" :href="`${reportUrl}/download`" download>
-        <Icon name="download" :size="13" />下载报告
+        <Icon name="download" :size="13" />下载{{ artifactName }}
       </a>
     </template>
   </p>
   <MarkdownView v-else :text="text" :streaming="streaming" />
   <!-- 报告链接与正文解耦：非 html 模式的技能运行只要带回 reportUrl 也内联可开可下载 -->
   <p v-if="!isHtml && reportUrl" class="report-ready">
-    <a class="report-open" :href="reportUrl" target="_blank" rel="noopener">点击查看具体报告</a>
+    <a class="report-open" :href="reportUrl" target="_blank" rel="noopener">查看{{ artifactName }}</a>
     <a class="report-download" :href="`${reportUrl}/download`" download>
-      <Icon name="download" :size="13" />下载报告
+      <Icon name="download" :size="13" />下载{{ artifactName }}
     </a>
   </p>
   <div v-if="!isHtml && charts?.length" class="use-report-charts">

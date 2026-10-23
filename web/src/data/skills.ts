@@ -137,6 +137,41 @@ export const SKILLS: Skill[] = [
     repositoryLabel: 'Lntanohuang/skill-plaza-foru（本仓库内置技能）',
   },
   {
+    slug: 'doc-translate',
+    name: '文档翻译',
+    identifier: 'doc-translate',
+    categoryId: 'teaching',
+    audiences: ['teacher', 'manager', 'student'],
+    summary: '把上传的 PDF 文档全文翻译为目标语言，用 XeLaTeX 重排为对齐原文宏观结构（纸张、单双栏、章节层级）的 PDF 译文。',
+    tags: ['文档翻译', 'PDF 重排', 'XeLaTeX'],
+    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
+    preconditions: 'PDF 文档（文本层可提取）+ 目标语言',
+    outputs: [
+      '对齐原文宏观结构的译文 PDF（workspace/translation.pdf）',
+      '全文术语一致的章节级翻译',
+      '简短完成说明（页数与结构对齐情况）',
+    ],
+    dependencies: [
+      'poppler（pdftotext / pdfinfo，系统安装）',
+      'XeLaTeX + xeCJK + 中文字体（WenQuanYi，系统安装）',
+    ],
+    limitations: [
+      '只对齐宏观结构（纸张、单双栏、标题层级），不逐像素复刻原版式。',
+      '扫描件（无文本层）与加密 PDF 不支持，运行时如实告知。',
+      '图片不重绘，以题注译文占位；上传单文件上限 6MB。',
+    ],
+    installation: [
+      '随技能广场主仓库分发（.agents/skills/doc-translate/ 目录）。',
+      '安装时保留 SKILL.md、references 和 scripts 等配套文件。',
+    ],
+    installPrompt:
+      '请从 https://github.com/Lntanohuang/skill-plaza-foru 获取 .agents/skills/doc-translate 目录并安装 doc-translate SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
+    minimalInput:
+      '使用 $doc-translate，上传一份 PDF 文档并翻译为中文（示例：上传英文课件 PDF，要求全文翻译成中文）。',
+    repository: 'https://github.com/Lntanohuang/skill-plaza-foru',
+    repositoryLabel: 'Lntanohuang/skill-plaza-foru（本仓库内置技能）',
+  },
+  {
     slug: 'classroom-assistant',
     name: '课堂助教',
     identifier: 'classroom-assistant',

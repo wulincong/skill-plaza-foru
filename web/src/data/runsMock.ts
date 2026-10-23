@@ -86,7 +86,7 @@ export interface RunListItem {
     }
   }
   /** 原始文件路径（真实数据才有；演示数据无） */
-  files?: { events?: string; trace?: string; report?: string; html?: string }
+  files?: { events?: string; trace?: string; report?: string; html?: string; pdf?: string }
 }
 
 export interface RunToolPart {

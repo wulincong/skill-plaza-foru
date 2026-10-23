@@ -54,11 +54,34 @@ export interface UseTaskConfig {
   /** 进入页面时自动带入 example 作为默认值（方便直接运行测试） */
   autoFillExample?: boolean
   knowledge: KnowledgeItem[]
-  /** 可选附件上传位（当前仅就业指导声明简历上传） */
+  /** 附件上传位；requiredUpload 声明运行前必须上传的文件类型。 */
   uploads?: UploadField[]
+  requiredUpload?: { accept: string; label: string }
 }
 
 export const USE_TASK_CONFIGS: UseTaskConfig[] = [
+  {
+    slug: 'doc-translate',
+    eyebrow: '文档翻译工作台',
+    lead: '上传 PDF 并指定目标语言，翻译后可查看和下载译文 PDF。',
+    output: '保留原文纸张、分栏和标题层级的译文 PDF',
+    sections: [
+      {
+        number: '01',
+        title: '设置翻译要求',
+        description: '支持带文本层的 PDF；扫描件与加密文档暂不支持。',
+        fields: [
+          { id: 'targetLanguage', label: '目标语言', type: 'text', required: true, placeholder: '例如：简体中文、英语、日语' },
+          { id: 'scope', label: '翻译范围', type: 'text', placeholder: '留空翻译全文；也可填写第 2–5 页' },
+          { id: 'terms', label: '术语与补充要求', type: 'textarea', span: 'full', placeholder: '例如：保留产品名称和代码；指定专业术语译法' },
+        ],
+      },
+    ],
+    example: { targetLanguage: '简体中文', scope: '全文', terms: '' },
+    uploads: [{ id: 'sourcePdf', label: '上传原文 PDF（必填）', accept: '.pdf', help: '单个文件 ≤6MB；图片以翻译后的题注占位。' }],
+    requiredUpload: { accept: '.pdf', label: '原文 PDF' },
+    knowledge: [],
+  },
   {
     slug: 'industry-education-report',
     eyebrow: '产业研究工作台',

@@ -299,6 +299,7 @@ const envRows = computed(() => {
             <div v-if="live && item.files" class="rd-files">
               <span class="rd-files-label">原始数据：</span>
               <a v-if="item.files.html" :href="runReportUrl(runId)">HTML 报告</a>
+              <a v-if="item.files.pdf" :href="runReportUrl(runId)" download>译文 PDF</a>
               <a v-if="item.files.events" :href="runFileUrl(runId, 'events')" download>events.jsonl</a>
               <a v-if="item.files.trace" :href="runFileUrl(runId, 'trace')" download>trace.json</a>
               <a v-if="item.files.trace" :href="runFileUrl(runId, 'md')" download>trace.md</a>

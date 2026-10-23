@@ -196,7 +196,7 @@ export interface RunRecord {
     /** career-guidance HTML figure/heatmap structural check. */
     html?: HtmlReportValidation
   }
-  files: { events?: string; trace?: string; report?: string; html?: string }
+  files: { events?: string; trace?: string; report?: string; html?: string; pdf?: string }
 }
 
 /** 时间可读 id：YYYYMMDD-HHMMSS-xxxx；prefix 用于区分用途（runId 无前缀，会话 id 传 'sess-'） */
@@ -230,10 +230,11 @@ export function rewriteIndex(records: RunRecord[]): void {
   writeFileSync(join(TRACES_DIR, 'index.jsonl'), records.map(r => JSON.stringify(r) + '\n').join(''))
 }
 
-export function traceFilePath(runId: string, kind: 'events' | 'trace' | 'report' | 'html'): string {
+export function traceFilePath(runId: string, kind: 'events' | 'trace' | 'report' | 'html' | 'pdf'): string {
   if (kind === 'events') return join(TRACES_DIR, `${runId}.events.jsonl`)
   if (kind === 'report') return join(TRACES_DIR, `${runId}.report.json`)
   if (kind === 'html') return join(TRACES_DIR, `${runId}.report.html`)
+  if (kind === 'pdf') return join(TRACES_DIR, `${runId}.translation.pdf`)
   return join(TRACES_DIR, `${runId}.json`)
 }
 

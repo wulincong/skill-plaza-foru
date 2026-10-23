@@ -173,10 +173,22 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '证据分级仅用于内部研判，不得出现在报告展示层；薪资只给区间并写口径，' +
     '趋势不得使用岗位库月度聚合计数，只能标公开来源或推断，不编造增长率或市场规模。完整报告以 HTML 写入 workspace/report.html，' +
     '最终回复只保留短状态。',
+  'doc-translate':
+    '你正在按 doc-translate SKILL 工作。把用户上传的 PDF 文档全文翻译为目标语言，' +
+    '用 XeLaTeX 重排为对齐原文宏观结构（纸张尺寸、单双栏、标题层级）的 PDF 译文，不追求逐像素版式复刻。' +
+    '先用 detect-layout.mjs 探测纸张与分栏并判定扫描件；扫描件（无文本层）如实告知不支持并终止，不猜测原文。' +
+    '翻译按章节分块、段落与原文一一对应，术语全文一致；转义与编译排错遵循技能 references。' +
+    '译文 PDF 必须写入 workspace/translation.pdf（固定路径与文件名，服务端按此捕获交付），' +
+    '写入后只做 pdfinfo 存在性检查；最终回复只输出简短完成说明（目标语言、页数、结构对齐情况、未覆盖项），' +
+    '不要把译文全文贴进回复。编译失败时如实说明原因，明确译文未生成，不得伪造链接。',
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'tech-forecast'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'tech-forecast', 'doc-translate'])
+
+/** 产出 workspace/translation.pdf 的技能集合（终态捕获/校验/下载与 HTML 报告同构，
+    见 index.ts captureWorkspacePdfReport 与 /api/reports 路由 pdf 分支） */
+export const PDF_REPORT_SKILLS = new Set(['doc-translate'])
 
 /** 广场技能清单条目（GET /api/skills 返回形状） */
 export interface PlazaSkillInfo {

@@ -8,7 +8,7 @@
    ============================================================ */
 
 import { createServer } from 'node:http'
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -38,7 +38,7 @@ import {
 } from './lib/htmlReport.ts'
 import { serverEnv } from './lib/agentEnv.ts'
 import { loadLocalEnv } from './lib/env.ts'
-import { SKILL_PROMPTS, INSTALLED_SKILLS, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, listPlazaSkills } from './lib/skills.ts'
+import { SKILL_PROMPTS, INSTALLED_SKILLS, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills } from './lib/skills.ts'
 import {
   extractSidecar,
   validateMeta,
@@ -48,6 +48,7 @@ import {
   type SidecarExtract,
 } from './lib/reportMeta.ts'
 import { PiRunner, resolvePiCli, piModelRef } from './lib/piRunner.ts'
+import { readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -145,6 +146,10 @@ function sandboxAgentsMd(): string {
 function workspaceDirFor(clientSessionId: string): string {
   const dir = join(__dirname, 'workspace', clientSessionId)
   mkdirSync(dir, { recursive: true })
+  /* 078：pi 可能以低权用户运行（PI_SANDBOX_USER），会话目录须组可写。
+     组由 workspace 根的 setgid 继承（plaza-run）；显式 chmod 而非依赖
+     服务器进程 umask。 */
+  try { chmodSync(dir, 0o2775) } catch { /* 非 POSIX 文件系统时忽略 */ }
   writeFileSync(join(dir, 'AGENTS.md'), sandboxAgentsMd())
   return dir
 }
@@ -482,31 +487,50 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
   sendJson(res, 404, { error: '接口不存在。' })
 }
 
-/** GET /api/reports/:runId：返回就业指导 Agent 直接生成的独立 HTML 报告。 */
+/** GET /api/reports/:runId：返回运行产生的独立交付物——HTML 报告（HTML_REPORT_SKILLS）
+    或译文 PDF（PDF_REPORT_SKILLS，doc-translate）。inline 预览与 ?download=1 下载同路由。 */
 function handleHtmlReport(req: any, res: any, runId: string, forceDownload = false) {
   const record = readIndex().find(r => r.runId === runId)
   /* done 事件先于异步 appendIndex 到达，直接按 runId 回退查找可避免用户点击瞬间竞态。 */
-  const file = record?.files.html ?? traceFilePath(runId, 'html')
-  if (!file || !existsSync(file)) {
-    sendJson(res, 404, { error: 'HTML 报告不存在。' })
-    return
-  }
-  const data = readFileSync(file)
+  const htmlFile = record?.files.html ?? traceFilePath(runId, 'html')
+  const pdfFile = record?.files.pdf ?? traceFilePath(runId, 'pdf')
   const query = new URL(req.url || '/', 'http://localhost').searchParams
   const download = forceDownload || query.get('download') === '1'
-  const title = (record?.taskTitle || record?.promptDigest || '就业指导报告')
-    .replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 100) || '就业指导报告'
-  res.writeHead(200, {
-    'Content-Type': 'text/html; charset=utf-8',
-    'Content-Length': data.length,
-    'Content-Disposition': download
-      ? `attachment; filename="report.html"; filename*=UTF-8''${encodeURIComponent(title)}.html`
-      : 'inline',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff',
-    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'; script-src 'none'; object-src 'none'",
-  })
-  res.end(data)
+  const cleanTitle = (raw: string) =>
+    (raw || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 100)
+  if (existsSync(htmlFile)) {
+    const data = readFileSync(htmlFile)
+    const title = cleanTitle(record?.taskTitle || record?.promptDigest) || '就业指导报告'
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Content-Length': data.length,
+      'Content-Disposition': download
+        ? `attachment; filename="report.html"; filename*=UTF-8''${encodeURIComponent(title)}.html`
+        : 'inline',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:; base-uri 'none'; form-action 'none'; script-src 'none'; object-src 'none'",
+    })
+    res.end(data)
+    return
+  }
+  if (existsSync(pdfFile)) {
+    const data = readFileSync(pdfFile)
+    const title = cleanTitle(record?.taskTitle || record?.promptDigest) || '译文'
+    res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Length': data.length,
+      'Content-Disposition': download
+        ? `attachment; filename="translation.pdf"; filename*=UTF-8''${encodeURIComponent(title)}.pdf`
+        : 'inline',
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; base-uri 'none'; form-action 'none'",
+    })
+    res.end(data)
+    return
+  }
+  sendJson(res, 404, { error: '报告不存在。' })
 }
 
 /** POST /api/upload：{ sessionId?, filename, dataBase64 } → 文件落会话沙箱 uploads/ 目录。
@@ -1085,6 +1109,13 @@ async function runChatTurn(res: any, params: TurnParams) {
   let htmlReportFile: string | undefined
   let htmlReportValidation: HtmlReportValidation | undefined
   let htmlReportError: string | undefined
+  /* 译文 PDF（doc-translate 等 PDF_REPORT_SKILLS）与 HTML 报告同构的终态工件：
+     固定读 workspace/translation.pdf，校验通过后拷贝进 traces 目录 */
+  let pdfReportFile: string | undefined
+  let pdfReportError: string | undefined
+  const previousPdfFingerprint = PDF_REPORT_SKILLS.has(skill)
+    ? workspacePdfFingerprint(entry?.workspaceDir ?? join(__dirname, 'workspace', clientSessionId))
+    : undefined
 
   /** Copy a validated report into the run-owned trace directory. */
   const saveHtmlReport = (reportHtml: string, source: string): boolean => {
@@ -1135,11 +1166,37 @@ async function runChatTurn(res: any, params: TurnParams) {
     return saveHtmlReport(report.html, 'workspace/report.html')
   }
 
+  /** 译文 PDF 捕获（doc-translate）：读固定路径 workspace/translation.pdf，
+      pdfinfo 校验页数后拷贝进 traces；校验口径只看存在性与可解析性，
+      内容质量由技能自身的编译与校验步骤负责。 */
+  const captureWorkspacePdfReport = (): boolean => {
+    if (!PDF_REPORT_SKILLS.has(skill) || pdfReportFile || !entry?.workspaceDir) return Boolean(pdfReportFile)
+    const report = readWorkspacePdfReport(entry.workspaceDir, previousPdfFingerprint)
+    if (!report.found) {
+      pdfReportError = report.error
+      if (report.error) recorder.note({ pdfReportError, pdfReportSource: 'workspace/translation.pdf' })
+      return false
+    }
+    try {
+      const target = traceFilePath(runId, 'pdf')
+      copyFileSync(report.file, target)
+      pdfReportFile = target
+      pdfReportError = undefined
+      recorder.note({ pdfReport: { pages: report.pages, bytes: report.bytes }, pdfReportSource: 'workspace/translation.pdf' })
+      return true
+    } catch (exc: any) {
+      pdfReportError = exc?.message ?? String(exc)
+      recorder.note({ pdfReportError, pdfReportSource: 'workspace/translation.pdf' })
+      return false
+    }
+  }
+
   const finalizeRun = (outcome: RunOutcome) => {
     if (runFinalized) return
     /* A timeout/abort can happen after the Agent flushed report.html but
        before its terminal event. Capture it before writing the run record. */
     captureWorkspaceHtmlReport()
+    captureWorkspacePdfReport()
     runFinalized = true
     const durationMs = Date.now() - startedAt
     const tokenUsage = currentTokenUsage()
@@ -1169,6 +1226,7 @@ async function runChatTurn(res: any, params: TurnParams) {
     }
     if (htmlReportValidation) record.report = { ...(record.report ?? {}), html: htmlReportValidation }
     if (htmlReportFile) record.files.html = htmlReportFile
+    if (pdfReportFile) record.files.pdf = pdfReportFile
     void (async () => {
       try {
         if (entry?.engineSessionId) {
@@ -1261,12 +1319,13 @@ async function runChatTurn(res: any, params: TurnParams) {
 
   timeout = setTimeout(() => {
     if (entry) runner.stop(entry.engineSessionId)
-    const recovered = captureWorkspaceHtmlReport()
-    if (recovered) {
-      /* A recovered report is a usable result; do not send error first because
+    const recoveredHtml = captureWorkspaceHtmlReport()
+    const recoveredPdf = captureWorkspacePdfReport()
+    if (recoveredHtml || recoveredPdf) {
+      /* A recovered artifact is a usable result; do not send error first because
          the browser treats error as terminal and would discard the link. */
       wire.done({
-        content: '报告已生成，但本次任务已超时。',
+        content: recoveredPdf && !recoveredHtml ? '译文已生成，但本次任务已超时。' : '报告已生成，但本次任务已超时。',
         resultType: 'timeout',
         runId,
         reportUrl: `/api/reports/${encodeURIComponent(runId)}`,
@@ -1290,6 +1349,7 @@ async function runChatTurn(res: any, params: TurnParams) {
       /* The browser has already disconnected; only persist any report that was
          flushed before the abort. A future history lookup can recover it. */
       captureWorkspaceHtmlReport()
+      captureWorkspacePdfReport()
       finalizeRun('aborted')
       cleanup()
     }
@@ -1390,27 +1450,36 @@ async function runChatTurn(res: any, params: TurnParams) {
           const legacyReport = normalizeLegacyHtmlDocument(finalText)
           if (legacyReport) saveHtmlReport(legacyReport, 'terminal-legacy-html')
         }
+        const workspacePdf = captureWorkspacePdfReport()
         const reportFailure = htmlReportError
           ? `报告未生成：${htmlReportError}`
           : '报告未生成：未找到有效的 workspace/report.html，且最终回复未包含可转换内容。'
+        const pdfFailure = pdfReportError
+          ? `译文未生成：${pdfReportError}`
+          : '译文未生成：未找到有效的 workspace/translation.pdf。'
         /* HTML_REPORT_SKILLS 泛化重构漏定义的局部布尔（wlc 分支终态 ReferenceError 修复） */
         const isHtmlReportSkill = HTML_REPORT_SKILLS.has(skill)
+        const isPdfReportSkill = PDF_REPORT_SKILLS.has(skill)
         wire.done({
           content: isHtmlReportSkill
             ? htmlReportFile
               ? ''
               : reportFailure
-            : finalText,
+            : isPdfReportSkill
+              ? pdfReportFile
+                ? finalText
+                : `${finalText}${finalText ? '\n\n' : ''}${pdfFailure}`
+              : finalText,
           resultType: ev.resultType,
           charts: checkedCharts,
           runId,
-          reportUrl: htmlReportFile ? `/api/reports/${encodeURIComponent(runId)}` : undefined,
+          reportUrl: htmlReportFile || pdfReportFile || workspacePdf ? `/api/reports/${encodeURIComponent(runId)}` : undefined,
           usage: ev.usage ?? lastUsage,
-          failure: isHtmlReportSkill && !htmlReportFile,
+          failure: (isHtmlReportSkill && !htmlReportFile) || (isPdfReportSkill && !pdfReportFile),
         })
         const finalOutcome: RunOutcome = clientGone
           ? 'aborted'
-          : isHtmlReportSkill && !htmlReportFile
+          : (isHtmlReportSkill && !htmlReportFile) || (isPdfReportSkill && !pdfReportFile)
             ? 'error'
             : 'success'
         finalizeRun(finalOutcome)
