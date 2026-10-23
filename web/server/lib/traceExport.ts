@@ -144,6 +144,8 @@ export interface RunRecord {
   skill: string
   /** 用户可读的运行标题；旧记录缺省时回退到 promptDigest。 */
   taskTitle?: string
+  /** 用户原始输入（注入技能/附件说明之前），用于历史对话恢复；旧记录缺省。 */
+  userMessage?: string
   promptDigest: string
   outcome: RunOutcome
   durationMs: number

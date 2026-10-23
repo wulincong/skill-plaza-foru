@@ -74,6 +74,10 @@ openai 流式（ai-interview）content 仅 1 帧纯最终答复、英文过渡�
 7. ⬜ 公网部署后 career-guidance 成功路径（reportUrl 帧 + 报告链接可打开）待用户执行。
 8. 2026-10-15 升级静态验证：`npx tsc --noEmit`（针对 `server/index.ts` + `server/lib/piRunner.ts`）无新增错误（仅存 `charts: checkedCharts` 一处与本改动无关的既有错误，源自工作区未提交的 htmlReport.ts 改动）；帧序与 `docs/openai-stream-upgrade.md` §二 表逐条对照一致。线上抓包回归待跑。
 
+## 2026-10-23 补注：plaza 同步采用消息级分流
+
+[080](080-conversation-source-and-process.md) 将已有消息缓冲定性同步用于 plaza：过程说明经现有 status/thinking/message 进入默认折叠区，text 只承载最终答复；这是用户要求的展示语义调整，替代本记录旧的“plaza 逐字节不变”约定。OpenAI 帧格式与分流行为未改变，真实工具任务回归通过。
+
 ## 后续扩展路线
 
 - ~~附件接入~~：已实现（2026-10-13）——`/v1` 接受与 plaza 同规的 `attachments`（`{name, path}`，path 为 /api/upload 相对路径；沙箱防穿越/5 个上限/md-txt 内联在共享核心，入口只做透传）。

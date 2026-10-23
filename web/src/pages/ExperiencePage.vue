@@ -28,6 +28,7 @@ interface Msg {
   reportUrl?: string
   /** 历史恢复的 AI 消息携带的工具调用摘要（名称+成败+起止耗时，030 边界内） */
   tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>
+  process?: string[]
 }
 
 interface Demo { slug: string; question: string; reply: string }
@@ -392,6 +393,10 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       elapsedMs.value = Math.max(0, Date.now() - event.startedAt)
       runStatus.value = '正在思考…'
     } else if (event.type === 'status') {
+      if (event.phase === 'thinking' && event.message) {
+        msg.process ??= []
+        msg.process.push(event.message)
+      }
       handleProgressStatus(event)
       if (event.phase === 'tool') runStatus.value = `正在${toolProgress(event.tool).title}…`
       else if (event.phase === 'text') runStatus.value = ''
@@ -401,7 +406,7 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       msg.text += event.delta
       scrollTop()
     } else if (event.type === 'done') {
-      if ((!msg.text || msg.skill?.slug === 'doc-translate') && event.content) msg.text = event.content
+      if (event.content) msg.text = event.content
       msg.charts = event.charts ?? []
       msg.reportUrl = event.reportUrl
     } else if (event.type === 'error') {
@@ -435,6 +440,9 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
     for (const item of progressEvents.value) if (item.state === 'active') item.state = 'failed'
     msg.done = true
   } finally {
+    msg.tools = progressEvents.value.map(item => ({
+      tool: item.tool ?? '', failed: item.state === 'failed', startedAt: item.startedAt, endedAt: item.finishedAt,
+    }))
     endRun()
     if (msg.done) sending.value = false
   }
@@ -559,7 +567,7 @@ interface HistoryGroup {
 }
 
 interface HistoryDetail {
-  conversation: Array<{ role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }> }>
+  conversation: Array<{ role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>; process?: string[] }>
   /** 该对话生成的 HTML 报告（内联在最后一条 AI 消息上，与实时对话一致） */
   reportUrl?: string
 }
@@ -723,7 +731,7 @@ async function selectHistory(group: HistoryGroup) {
     detail.conversation.forEach((turn, i) => { if (turn.role === 'assistant') lastAi = i })
     messages.value = detail.conversation.map((turn, i) => turn.role === 'user'
       ? { role: 'user', text: turn.text, done: true }
-      : { role: 'ai', text: turn.text, skill, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, tools: turn.tools })
+      : { role: 'ai', text: turn.text, skill, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, tools: turn.tools, process: turn.process })
     progressOwner.value = null
     progressEvents.value = []
     scrollTop()
@@ -978,8 +986,8 @@ onBeforeUnmount(() => {
                   <span v-if="!msg.done && runStatus" class="exp-run-status">{{ runStatus }} · {{ formatElapsed(elapsedMs) }}</span>
                   <span v-else-if="msg.done" class="exp-demo-tag" :class="{ 'is-real': msg.real }">{{ msg.real ? '真实运行' : '演示输出' }}</span>
                 </div>
-                <ToolCallGroup v-if="msg === progressOwner && progressEvents.length" :items="progressEvents" :prose-started="proseStarted" />
-                <ToolCallGroup v-else-if="msg.tools?.length" :items="historyToolItems(msg)" :prose-started="true" />
+                <ToolCallGroup v-if="msg === progressOwner && (progressEvents.length || msg.process?.length)" :items="progressEvents" :notes="msg.process" :running="!msg.done" :prose-started="proseStarted" />
+                <ToolCallGroup v-else-if="msg.tools?.length || msg.process?.length" :items="historyToolItems(msg)" :notes="msg.process" :prose-started="true" />
                 <ReportOutput :text="msg.text" :charts="msg.charts" :report-url="msg.reportUrl"
                   :artifact-name="msg.skill?.slug === 'doc-translate' ? '译文 PDF' : undefined"
                   :html-mode="msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />

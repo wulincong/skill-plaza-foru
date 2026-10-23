@@ -24,9 +24,9 @@
 ### 译文 PDF 交付协议（复用 HTML 报告管道，前端零协议改动）
 
 - `traceExport.ts`：`traceFilePath(runId,'pdf')` → `traces/<runId>.translation.pdf`；`RunRecord.files.pdf?: string`。
-- `web/server/index.ts:1172` `captureWorkspacePdfReport()`：终态/超时/断连三处捕获（与 `captureWorkspaceHtmlReport` 并列调用）；校验逻辑在 `web/server/lib/pdfReport.ts:21`，要求普通文件、≤64MB、`pdfinfo` 页数>0（5 秒超时），拒绝符号链接。`index.ts:1116` 在本轮执行前记录 inode/size/mtime/ctime 指纹，捕获时拒绝未改变的上一轮译文，避免追问/失败时交付旧文件；拷贝进 traces、记 `record.files.pdf`。
-- 终态 done（`web/server/index.ts:1468`）：有工件时 `content` 保留模型最终说明；无工件时保留模型原因并追加"译文未生成：…"，不以通用文案覆盖缺输入/不支持等原因。`reportUrl` 与 HTML 报告共用 `/api/reports/:runId`；`ExperiencePage.vue:404` 将译文最终说明作为权威正文，`ReportOutput.vue:14` 用 `artifactName` 展示"查看/下载译文 PDF"。
-- `handleHtmlReport`（`web/server/index.ts:492`）：html 工件优先，否则 pdf 分支（`application/pdf`、inline 预览；`/download` 或 `?download=1` 强制 attachment）。2026-10-23 文件名修正：`pdfReport.ts:9` 从本轮上传的原文 PDF 生成 `<原文件名去扩展名>-译文.pdf`；续译没有新附件时，取同会话/同技能、不晚于该运行的最近一次 PDF 附件，避免后来上传的文件反向改变旧记录命名。无原文名才用显式 `taskTitle`，再回落 `译文.pdf`，**不使用 promptDigest**。旧记录直接按已有 attachments 解析，无需迁移。预览与下载均带 `filename`/RFC 5987 `filename*`，并编码单引号/括号等字符，PDF 阅读器内下载也使用同一名称。
+- `web/server/index.ts:1102` `captureWorkspacePdfReport()`：终态/超时/断连三处捕获（与 `captureWorkspaceHtmlReport` 并列调用）；校验逻辑在 `web/server/lib/pdfReport.ts:39`，要求普通文件、≤64MB、`pdfinfo` 页数>0（5 秒超时），拒绝符号链接。`index.ts:1046` 在本轮执行前记录 inode/size/mtime/ctime 指纹，捕获时拒绝未改变的上一轮译文，避免追问/失败时交付旧文件；拷贝进 traces、记 `record.files.pdf`。
+- 终态 done（`web/server/index.ts:1399`）：有工件时 `content` 保留模型最终说明；无工件时保留模型原因并追加"译文未生成：…"，不以通用文案覆盖缺输入/不支持等原因。`reportUrl` 与 HTML 报告共用 `/api/reports/:runId`；`ExperiencePage.vue:404` 将译文最终说明作为权威正文，`ReportOutput.vue:14` 用 `artifactName` 展示"查看/下载译文 PDF"。
+- `handleHtmlReport`（`web/server/index.ts:420`）：html 工件优先，否则 pdf 分支（`application/pdf`、inline 预览；`/download` 或 `?download=1` 强制 attachment）。2026-10-23 文件名修正：`pdfReport.ts:9` 从本轮上传的原文 PDF 生成 `<原文件名去扩展名>-译文.pdf`；续译没有新附件时，取同会话/同技能、不晚于该运行的最近一次 PDF 附件，避免后来上传的文件反向改变旧记录命名。无原文名才用显式 `taskTitle`，再回落 `译文.pdf`，**不使用 promptDigest**。旧记录直接按已有 attachments 解析，无需迁移。预览与下载均带 `filename`/RFC 5987 `filename*`，并编码单引号/括号等字符，PDF 阅读器内下载也使用同一名称。
 - 前端：`ExperiencePage` 历史恢复 `reportUrl` 判断 `files.html || files.pdf`；`RunDetailPage` 原始数据区补"译文 PDF"链接；`runsMock.ts` files 类型加 `pdf`。
 
 ### 附件上传实装（前端此前是禁用占位）

@@ -1,6 +1,7 @@
 # 071 · 历史对话补回工具调用摘要
 
 - 状态：已实现（2026-10-16。构建通过；curl 验证 conversation 携带工具摘要；无头浏览器验证历史对话渲染折叠工具组、展开行、无命令/SQL/路径泄露。同日晚补注：工具耗时已记录进 trace 并在历史还原，见文末）。
+- 2026-10-23：每轮全部工具改为挂在该轮唯一的最终回答上，中间可见叙述进入 `process` 并与工具一起默认折叠，不再分别挂首条/末条 AI 消息。协议与验证见 [080](080-conversation-source-and-process.md)。
 - 补注（2026-10-16 晚）：原「历史工具行无耗时」的限制已消除——PiRunner 运行时捕获每个工具的起止时间并写入 trace 导出（工具 part 新增 `startedAt`/`endedAt` epoch ms），conversation.tools 透传，前端 `historyToolItems` 映射为 ProgressItem 的 `startedAt`/`finishedAt`：历史组恢复每行耗时与组头真实总时长（首个开始→最后结束的墙钟时间），与实时运行完全同构。计时实现：`toolcall_start` 通知不带调用 id，按 `轮次:contentIndex` 键建档（轮次 = message_end 计数），`toolcall_end` 带 callID 补 `id:callID` 别名，`exportTrace` 按 part.callID 取用；disposeSession 清理。旧 trace 无计时字段时优雅降级（不显示时长，不伪造）。实测：新运行（20261016-173844）历史组头「已完成 2 步 · 共 2.9s」、行「执行数据处理 · 507ms / 288ms」。
 - 动机：用户发现实时对话有「工具调用」组（折叠行 + 明细），从历史重新打开同一对话后工具信息消失——070 的 conversation 只含文本轮次，工具 parts 被排除。历史应与实时对话同构。
 

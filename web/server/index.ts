@@ -50,6 +50,7 @@ import {
 import { PiRunner, resolvePiCli, piModelRef } from './lib/piRunner.ts'
 import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
+import { deriveConversation } from './lib/conversation.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -287,84 +288,6 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
   return wrappers.sort((a, b) => b.prefix.length - a.prefix.length)
 }
 
-/** 权威 trace → 用户可读对话：剥离技能系统提示/逐轮契约重申（首轮注入与会话
-    重建都会出现），reasoning 不进对话视图；工具调用降级为「名称+成败」摘要
-    （030 边界：参数/命令/路径不出服务端），聚合到所在轮次的首条 AI 消息上。 */
-function deriveConversation(skill: string, trace: unknown): Array<{ role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean }> }> {
-  const messages = (trace as any)?.messages
-  if (!Array.isArray(messages)) return []
-  const wrappers = promptWrappers(skill)
-  const strip = (text: string): string => {
-    for (const w of wrappers) {
-      if (text.startsWith(w.prefix) && text.endsWith(w.suffix)) {
-        return text.slice(w.prefix.length, text.length - w.suffix.length).trim()
-      }
-    }
-    /* pi 把 /skill:x 展开为完整技能文档后写入 trace（sentinel 前缀对不上）：
-       按 </skill> 边界剥离展开文档，再剥 buildPrompt 追加的契约/侧车后缀。 */
-    let body = text
-    if (body.startsWith('<skill ')) {
-      const close = body.indexOf('</skill>')
-      if (close >= 0) body = body.slice(close + '</skill>'.length).replace(/^\s+/, '')
-    }
-    for (const w of wrappers) {
-      if (w.suffix && body.endsWith(w.suffix)) {
-        body = body.slice(0, body.length - w.suffix.length)
-        break
-      }
-    }
-    return body.trim()
-  }
-  type Turn = { role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean }> }
-  const turns: Turn[] = []
-  /* 一个用户轮次内的工具调用聚合为该轮首条 AI 消息的 tools（对齐实时对话的单组形态） */
-  let pendingTools: Array<{ tool: string; failed: boolean }> = []
-  let placed = true
-  for (const m of messages) {
-    const parts = Array.isArray(m?.parts) ? m.parts : []
-    const text = parts
-      .filter((p: any) => p?.type === 'text')
-      .map((p: any) => String(p.text ?? ''))
-      .join('')
-      .trim()
-    if (m.role === 'user') {
-      const stripped = strip(text)
-      if (stripped) {
-        turns.push({ role: 'user', text: stripped })
-        pendingTools = []
-        placed = false
-      }
-      continue
-    }
-    if (m.role !== 'assistant') continue
-    for (const p of parts) {
-      if (p?.type === 'tool') pendingTools.push({
-        tool: String(p.tool ?? ''),
-        failed: p?.state?.status === 'error',
-        startedAt: typeof p?.startedAt === 'number' ? p.startedAt : undefined,
-        endedAt: typeof p?.endedAt === 'number' ? p.endedAt : undefined,
-      })
-    }
-    if (!text) continue
-    const turn: Turn = { role: 'assistant', text }
-    if (!placed && pendingTools.length) {
-      turn.tools = pendingTools
-      pendingTools = []
-      placed = true
-    }
-    turns.push(turn)
-  }
-  /* 末轮只有工具没有正文（如中途失败）：并入该轮最后一条 AI 消息 */
-  if (pendingTools.length) {
-    for (let i = turns.length - 1; i >= 0; i--) {
-      if (turns[i].role === 'assistant') {
-        turns[i].tools = [...(turns[i].tools ?? []), ...pendingTools]
-        break
-      }
-    }
-  }
-  return turns
-}
 
 function handleRunsApi(req: any, res: any, seg: string[]) {
   /* 会话级操作：归档标记与删除按 clientSessionId 匹配整段对话
@@ -429,7 +352,8 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
   }
 
   const runId = seg[2]
-  const record = readIndex().find(r => r.runId === runId)
+  const records = readIndex()
+  const record = records.find(r => r.runId === runId)
   if (!record) {
     sendJson(res, 404, { error: '运行记录不存在。' })
     return
@@ -443,7 +367,11 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
     } catch {
       /* 文件损坏按无详情处理 */
     }
-    sendJson(res, 200, { item: record, trace, conversation: deriveConversation(record.skill, trace) })
+    const originalMessages = records
+      .filter(run => run.clientSessionId === record.clientSessionId && run.engineSessionId === record.engineSessionId && run.ts <= record.ts)
+      .sort((a, b) => a.ts.localeCompare(b.ts))
+      .map(run => ({ text: run.userMessage, attachments: run.attachments }))
+    sendJson(res, 200, { item: record, trace, conversation: deriveConversation(trace, promptWrappers(record.skill), originalMessages) })
     return
   }
 
@@ -815,7 +743,10 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
   let msgBuf = ''
   const flushMessageText = (narration: boolean) => {
     if (!msgBuf) return
-    frame(narration ? { reasoning_content: msgBuf } : { content: msgBuf })
+    if (protocol === 'plaza') {
+      if (narration) sse({ type: 'status', phase: 'thinking', state: 'completed', message: msgBuf })
+      else sse({ type: 'text', delta: msgBuf })
+    } else frame(narration ? { reasoning_content: msgBuf } : { content: msgBuf })
     msgBuf = ''
   }
 
@@ -910,24 +841,21 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
       if (protocol === 'openai' && stream) frame({ reasoning_content: delta })
     },
     textDelta(delta: string) {
-      if (protocol === 'plaza') sse({ type: 'text', delta })
-      else if (stream) msgBuf += delta /* 消息级定性前缓冲，不立即外发 */
+      if (isSse) msgBuf += delta /* 消息级定性前缓冲，不把过程叙述混入回答。 */
     },
     status(ev: { phase: string; state?: string; chars?: number; tool?: string; id?: string }) {
+      if (ev.phase === 'message') {
+        if (isSse) {
+          if (ev.state === 'start') flushMessageText(true)
+          else if (ev.state === 'end') flushMessageText(ev.tool !== 'final')
+        }
+        return
+      }
       if (protocol === 'plaza') {
-        /* message 边界是 openai wire 内部定性信号，不进广场协议 */
-        if (ev.phase !== 'message')
-          sse({ type: 'status', phase: ev.phase, state: ev.state, chars: ev.chars, tool: ev.tool, id: ev.id })
+        sse({ type: 'status', phase: ev.phase, state: ev.state, chars: ev.chars, tool: ev.tool, id: ev.id })
         return
       }
       if (!stream) return
-      if (ev.phase === 'message') {
-        /* start：上一条消息 end 丢失时的兜底，残余缓冲按叙述处理；
-           end：piRunner 定性结果在 tool 字段，非 'final' 一律按叙述（宁漏勿泄） */
-        if (ev.state === 'start') flushMessageText(true)
-        else if (ev.state === 'end') flushMessageText(ev.tool !== 'final')
-        return
-      }
       if (ev.phase !== 'tool') return
       toolStatus(ev)
     },
@@ -936,6 +864,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
     },
     done(p: WireDonePayload) {
       if (protocol === 'plaza') {
+        flushMessageText(false)
         sse({
           type: 'done',
           content: p.content,
@@ -971,6 +900,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
       }
     },
     error(message: string) {
+      msgBuf = ''
       if (protocol === 'plaza') {
         sse({ type: 'error', message })
       } else if (stream) {
@@ -1215,6 +1145,7 @@ async function runChatTurn(res: any, params: TurnParams) {
       engineSessionId: entry?.engineSessionId,
       skill,
       taskTitle: taskTitle || undefined,
+      userMessage: digestSource,
       promptDigest,
       outcome,
       durationMs,

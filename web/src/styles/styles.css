@@ -1862,6 +1862,8 @@ a.runs-row:hover { background: var(--surface-sunken); color: var(--ink-body); }
 .tool-group-chev { margin-left: auto; flex-shrink: 0; color: var(--sk-ink-4); transition: transform .25s var(--sk-ease); }
 .tool-group.is-open .tool-group-chev { transform: rotate(180deg); }
 .tool-group-body { max-height: 264px; overflow-y: auto; border-top: 1px solid var(--sk-line); scrollbar-width: thin; }
+.tool-process-notes { padding: 8px 12px; color: var(--sk-ink-3); font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+.tool-process-notes p { margin: 4px 0; white-space: pre-wrap; }
 .tool-row + .tool-row { border-top: 1px solid color-mix(in srgb, var(--sk-line) 60%, transparent); }
 .tool-row-line { display: flex; width: 100%; align-items: center; gap: 8px; min-height: 36px; padding: 4px 12px; font-size: 12px; }
 .tool-row-icon { color: var(--sk-ink-4); flex-shrink: 0; }

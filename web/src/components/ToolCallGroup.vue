@@ -4,7 +4,7 @@ import Icon from './Icon.vue'
 
 /* 消费方（ExperiencePage）的 ProgressItem 结构一致：只携带安全文案，
    工具参数、SQL、路径等敏感细节不进入前端 DOM（手记 030 约定）。
-   面板只登记真实发生的工具调用；思考/写正文不占行。 */
+   工具行只登记真实调用；notes 展示面向用户的过程说明，不包含原始 reasoning。 */
 export interface ToolProgressItem {
   id: string
   phase: 'thinking' | 'tool' | 'writing' | 'system'
@@ -20,10 +20,12 @@ const props = withDefaults(defineProps<{
   items: ToolProgressItem[]
   /* 正文开始流式输出时置 true：组自动折叠为摘要行 */
   proseStarted?: boolean
-}>(), { proseStarted: false })
+  notes?: string[]
+  running?: boolean
+}>(), { proseStarted: false, running: false })
 
-/* 历史恢复时以折叠态进场（proseStarted 初始即 true），实时对话则首字到达再折叠 */
-const open = ref(!props.proseStarted)
+/* 实时与历史都默认折叠，用户可主动展开查看执行过程。 */
+const open = ref(false)
 const bodyEl = ref<HTMLElement | null>(null)
 
 watch(() => props.proseStarted, v => { if (v) open.value = false })
@@ -36,7 +38,7 @@ watch(() => props.items.length, async () => {
 })
 
 const doneCount = computed(() => props.items.filter(i => i.state !== 'active').length)
-const allDone = computed(() => props.items.length > 0 && doneCount.value === props.items.length)
+const allDone = computed(() => !props.running && doneCount.value === props.items.length)
 /* trace 导出不带工具耗时：没有计时数据的组不显示「共 Xs」，不伪造 */
 const hasTiming = computed(() => props.items.some(i => i.finishedAt != null))
 const totalMs = computed(() => {
@@ -62,11 +64,11 @@ function fmt(ms: number): string {
   <div class="tool-group" :class="{ 'is-open': open }">
     <button type="button" class="tool-group-head" :aria-expanded="open" @click="open = !open">
       <Icon name="wrench" :size="14" class="tool-group-wrench" />
-      <span class="tool-group-title">工具调用</span>
+      <span class="tool-group-title">{{ notes?.length ? '工具调用与执行过程' : '工具调用' }}</span>
       <span class="tool-group-status" :class="{ 'is-running': !allDone }">
         <template v-if="allDone">
           <Icon name="check" :size="11" class="tool-status-ok" />
-          已完成 {{ items.length }} 步<template v-if="hasTiming"> · 共 {{ fmt(totalMs) }}</template>，点击查看
+          <template v-if="items.length">已完成 {{ items.length }} 步</template><template v-else>执行结束</template><template v-if="hasTiming"> · 共 {{ fmt(totalMs) }}</template>，点击查看
         </template>
         <template v-else>
           <Icon name="loader" :size="11" class="tool-status-spin" />
@@ -76,6 +78,9 @@ function fmt(ms: number): string {
       <Icon name="chev-down" :size="14" class="tool-group-chev" />
     </button>
     <div v-show="open" ref="bodyEl" class="tool-group-body">
+      <div v-if="notes?.length" class="tool-process-notes">
+        <p v-for="(note, index) in notes" :key="index">{{ note }}</p>
+      </div>
       <div v-for="item in items" :key="item.id" class="tool-row" :class="`is-${item.state}`">
         <div class="tool-row-line">
           <Icon :name="PHASE_ICON[item.phase] ?? 'terminal'" :size="13" class="tool-row-icon" />
