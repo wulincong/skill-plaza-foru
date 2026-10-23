@@ -78,7 +78,7 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
       },
     ],
     example: { targetLanguage: '简体中文', scope: '全文', terms: '' },
-    uploads: [{ id: 'sourcePdf', label: '上传原文 PDF（必填）', accept: '.pdf', help: '单个文件 ≤6MB；图片以翻译后的题注占位。' }],
+    uploads: [{ id: 'sourcePdf', label: '上传原文 PDF（必填）', accept: '.pdf', help: '单个文件 ≤6MB；保留原图并翻译图注，图内文字保持原样。' }],
     requiredUpload: { accept: '.pdf', label: '原文 PDF' },
     knowledge: [],
   },

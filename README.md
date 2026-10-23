@@ -54,7 +54,7 @@ npm run dev
 
 ### 使用文档翻译
 
-打开 `#/use/doc-translate`，填写目标语言并上传带文本层的 PDF（单文件 ≤6MB），提交后在在线对话查看进度，完成后点击“查看译文 PDF”或“下载译文 PDF”；也可在在线对话用 `$doc-translate` 挂载技能并上传 PDF。需要系统已安装 `pdfinfo`、`pdftotext`、XeLaTeX、xeCJK 和中文字体。当前不支持扫描件 OCR 或加密文档，图片以翻译后的题注占位，版式只保留纸张/分栏/标题等宏观结构。
+打开 `#/use/doc-translate`，填写目标语言并上传带文本层的 PDF（单文件 ≤6MB），提交后在在线对话查看进度，完成后点击“查看译文 PDF”或“下载译文 PDF”；也可在在线对话用 `$doc-translate` 挂载技能并上传 PDF。需要系统已安装 poppler（`pdfinfo`、`pdftotext`、`pdftohtml`、`pdftoppm`）、XeLaTeX（含 graphicx/xeCJK）和中文字体。默认保留原图并翻译图注，位图提取后嵌入、矢量图裁切引用原 PDF，图内文字保持原样。版式保留纸张/分栏/标题等宏观结构；当前不支持扫描件 OCR 或加密文档。
 
 新增技能或修改后端后须重启 `npm run server` 并刷新前端；`GET /api/skills` 中应包含 `doc-translate` 且 `installed:true`。`PLAZA_ENV` 只控制测试默认值，真实翻译依赖后端实际加载技能；运行失败会显示原因，不会自动替换为演示译文。
 

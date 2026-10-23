@@ -142,23 +142,24 @@ export const SKILLS: Skill[] = [
     identifier: 'doc-translate',
     categoryId: 'teaching',
     audiences: ['teacher', 'manager', 'student'],
-    summary: '把上传的 PDF 文档全文翻译为目标语言，用 XeLaTeX 重排为对齐原文宏观结构（纸张、单双栏、章节层级）的 PDF 译文。',
+    summary: '把 PDF 全文翻译为目标语言，保留原图并翻译图注，重排为对齐原文纸张、分栏和章节层级的译文 PDF。',
     tags: ['文档翻译', 'PDF 重排', 'XeLaTeX'],
     compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
     preconditions: 'PDF 文档（文本层可提取）+ 目标语言',
     outputs: [
       '对齐原文宏观结构的译文 PDF（workspace/translation.pdf）',
       '全文术语一致的章节级翻译',
+      '保留原图、翻译图注并插回对应章节',
       '简短完成说明（页数与结构对齐情况）',
     ],
     dependencies: [
-      'poppler（pdftotext / pdfinfo，系统安装）',
+      'poppler（pdftotext / pdfinfo / pdftohtml / pdftoppm，系统安装）',
       'XeLaTeX + xeCJK + 中文字体（WenQuanYi，系统安装）',
     ],
     limitations: [
       '只对齐宏观结构（纸张、单双栏、标题层级），不逐像素复刻原版式。',
       '扫描件（无文本层）与加密 PDF 不支持，运行时如实告知。',
-      '图片不重绘，以题注译文占位；上传单文件上限 6MB。',
+      '图内文字保持原样；图片位置随译文重排，上传单文件上限 6MB。',
     ],
     installation: [
       '随技能广场主仓库分发（.agents/skills/doc-translate/ 目录）。',

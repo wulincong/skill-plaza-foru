@@ -23,6 +23,7 @@
 ```latex
 \documentclass[11pt, a4paper]{article}   % 双栏时加 twocolumn；纸张按映射表
 \usepackage{geometry}
+\usepackage{graphicx}                     % 保留原图，含原 PDF 区域裁切引用
 \usepackage{xeCJK}                        % 目标语言含中文时必需；纯西文目标可省略
 \setCJKmainfont{WenQuanYi Zen Hei}
 \usepackage{longtable}                    % 有跨页表格时
@@ -40,6 +41,7 @@
 
 - 中→英方向（目标语言无中文）：去掉 `xeCJK` 两行即可，西文用默认 Latin Modern。
 - 双栏文档中需要跨栏的标题/摘要：`\twocolumn[\begin{@twocolumnfalse} ... \end{@twocolumnfalse}]` 或直接接受 `\maketitle` 的跨栏行为。
+- 原图引用、图注翻译和矢量图裁切见 [figure-preservation.md](figure-preservation.md)；图片按栏宽缩放，只有跨栏图使用 `figure*`。
 
 ## 特殊字符转义表（写 .tex 前逐项核对）
 

@@ -14,6 +14,7 @@
 - `scripts/detect-layout.mjs`：`pdfinfo`（页数/纸张）+ `pdftotext -bbox-layout`（分栏）+ 纯文本量（扫描件线索）→ 单行 JSON。**分栏判别按"行中心点 vs 页宽中线"归类**（两侧各 ≥4 行且居中行 ≤20% 判双栏页，多数表决）——不能按行端点判：LaTeX `columnsep` 仅约 10pt，左栏行右端点可越过"中线-14pt"类阈值（实测踩过）；文本行 <8 的页（封面/插图页）不参与表决。
 - `references/latex-rebuild.md`：纸张/分栏选项映射（**标准纸必须用纸名选项**，`paperwidth=612pt` 实测引入约 2pt 偏差）、模板骨架（xeCJK + WenQuanYi Zen Hei）、特殊字符转义表、排错表（缺字形黑框→数学模式等）。
 - `references/structure-detection.md`：脚本字段、判别依据与校正方法。
+- 2026-10-23 起默认保留原图并翻译图注，替代首版题注占位；位图提取、矢量区域引用及素材清单见 [081-doc-translate-original-figures.md](081-doc-translate-original-figures.md)。最终 PDF 交付协议不变。
 
 ### 注册（`web/server/lib/skills.ts`）
 
