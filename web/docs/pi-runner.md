@@ -20,7 +20,8 @@ pi --mode rpc \
    --model openai-codex/gpt-6-astra \        # PI_MODEL 可覆盖，格式 provider/model
    --session-dir <workspace>/.pi-sessions \  # 会话文件落沙箱，兼作权威 trace 来源
    -n <短id> \
-   --no-extensions \                         # 无头运行裁掉扩展发现
+   --no-extensions \                         # 关闭扩展自动发现
+   [--extension <repo>/web/server/pi/youcai.js] # provider=youcai 时显式加载
    [--skill <repo>/.agents/skills/<slug>]    # 已安装技能（SKILL.md 格式两边通用）
 ```
 
@@ -71,6 +72,33 @@ pi --mode rpc \
 DeepSeek key 走 pi 自己的读取顺序（环境变量 `DEEPSEEK_API_KEY` 等）。后端 spawn 的 pi
 继承 server 进程环境——**启动后端的 shell 必须 export**，或写入 `web/.env`（随 loadLocalEnv
 进环境）。自检：`pi auth check --provider deepseek` / `npm run detect:cli`。
+
+### 自部署 youcai（无需 API Key）
+
+在 `web/.env` 选择模型并重启后端，新会话即使用该服务：
+
+```dotenv
+PI_MODEL=youcai/youcai
+PI_THINKING=off
+# 可选，服务迁移时覆盖；必须包含 /v1：
+#YOUCAI_BASE_URL=https://u496025-7845e5610890.bjb2.seetacloud.com:8443/v1
+```
+
+`PiRunner` 只在 provider 为 `youcai` 时显式加载 `server/pi/youcai.js`，
+不需要改全局 `~/.pi/agent/models.json`，也不需要给沙箱用户配置凭据。
+自部署接口使用 Pi 内置 `openai-completions` 转换，实际请求路径为
+`/v1/chat/completions`。Pi / SDK 的非空 key 检查使用内部占位值，
+请求钩子在发送前移除 `Authorization`，不会把占位值或其他 provider 的密钥发给服务。
+
+模型上下文为 `/v1/models` 实测的 262144 token；项目输出上限为 8192 token，
+当前登记文本输入。自部署 token 费率记 0，不包含 GPU / 云主机费用。
+`PI_THINKING=off` 通过 Qwen `chat_template_kwargs.enable_thinking=false` 关闭思考；
+其余档位开启思考，档位不对应不同推理预算。未配置时仍遵循原有 medium 默认值。
+采用 `PI_SANDBOX_USER` 的部署请将 `YOUCAI_BASE_URL` 覆盖值写在 `web/.env` 中，
+扩展在沙箱内从同一文件读取，不扩展 sudo 的环境变量透传白名单。
+
+自检：`npm run detect:cli`；认证隔离回归：
+`node --test server/pi/youcai.test.mjs`（在 `web/` 目录执行）。
 
 ## 已安装技能
 

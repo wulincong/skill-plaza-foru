@@ -11,6 +11,7 @@
 import { randomUUID } from 'node:crypto'
 import { accessSync, constants, writeFileSync } from 'node:fs'
 import { join, delimiter } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { AgentRunner, JsonlChannel, type EngineName } from './runner.ts'
 import type {
   AgentEnvInfo,
@@ -516,7 +517,7 @@ export class PiRunner extends AgentRunner {
       /* 会话文件落在沙箱内，兼作权威 trace 来源 */
       '--session-dir', join(workspaceDir, '.pi-sessions'),
       '-n', sid.slice(0, 8),
-      /* 无头运行不需要扩展发现，裁掉固定上下文开销 */
+      /* 关闭扩展自动发现；自部署 provider 仅按需显式加载 */
       '--no-extensions',
       /* 关闭 AGENTS.md/CLAUDE.md 目录链发现：沙箱 cwd 在仓库内，pi 会沿父目录
          把仓库根的开发 AGENTS.md（开发手记强制读写等工程约定）收进用户运行
@@ -526,6 +527,9 @@ export class PiRunner extends AgentRunner {
          resolvePromptInput）；会话 AGENTS.md 由 workspaceDirFor 建目录时生成 */
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
+    if (this.model.provider === 'youcai') {
+      args.push('--extension', fileURLToPath(new URL('../pi/youcai.js', import.meta.url)))
+    }
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */

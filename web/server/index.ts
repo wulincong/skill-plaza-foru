@@ -1462,7 +1462,9 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`执行引擎：${DEFAULT_ENGINE}（模型通过 PI_MODEL 配置）`)
   const version = runner.envInfo().agentVersion
   console.log(`- pi：可用 · ${runner.describe()}${version ? ` · v${version}` : ''}`)
-  console.log('pi 凭据：模型 key 需在启动服务的 shell 环境中（如 DEEPSEEK_API_KEY），或写入 web/.env。')
+  console.log(runner.modelInfo().provider === 'youcai'
+    ? 'pi 凭据：youcai 无需 API Key（请求不发送 Authorization）。'
+    : 'pi 凭据：模型 key 需在启动服务的 shell 环境中（如 DEEPSEEK_API_KEY），或写入 web/.env。')
   console.log(`trace 记录：${TRACES_DIR}`)
 })
 

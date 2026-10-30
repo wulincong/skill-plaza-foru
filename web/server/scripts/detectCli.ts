@@ -24,5 +24,11 @@ if (!pi) {
 const model = piModelRef()
 console.log(`- 结果：${mark(true)} 找到 ${pi}`)
 console.log(`- PI_MODEL：${model.provider}/${model.modelId}`)
-console.log(`- DEEPSEEK_API_KEY（或 pi auth 里的凭据）：${mark(Boolean(process.env.DEEPSEEK_API_KEY))} ${process.env.DEEPSEEK_API_KEY ? '已在环境中' : '未在当前环境（确认启动后端的 shell 或 pi auth）'}`)
+if (model.provider === 'youcai') {
+  console.log('- youcai：无需 API Key；PiRunner 显式加载仓库 provider，不发送 Authorization。')
+} else if (model.provider === 'deepseek') {
+  console.log(`- DEEPSEEK_API_KEY（或 pi auth 里的凭据）：${mark(Boolean(process.env.DEEPSEEK_API_KEY))} ${process.env.DEEPSEEK_API_KEY ? '已在环境中' : '未在当前环境（确认启动后端的 shell 或 pi auth）'}`)
+} else {
+  console.log('- 凭据：使用所选 provider 对应的环境变量或 pi auth 配置。')
+}
 console.log('\n可用引擎：pi')

@@ -1,0 +1,42 @@
+# 082 · 自部署 youcai 模型接入
+
+**状态**：已实现（2026-10-30；真实无密钥服务、低权 Pi 读写工具、项目 HTTP/SSE、实际出站请求头和思考开关验证通过，18 项回归与构建通过）。长报告质量、上下文溢出、取消及图像输入仍待专项验证。
+
+## 动机
+
+用户提供自部署模型 `youcai` 和服务文档地址，明确无需 API Key。现有项目通过 Pi RPC 运行，且部署为 `sudo -u plaza-sandbox`；仅设置 OpenAI 客户端环境变量无法在 Pi catalog 中登记新模型，修改开发用户的全局模型配置也不会自动作用于低权用户。
+
+## 约定细节
+
+- 模型路由仍使用 `PI_MODEL=provider/model`；本次为 `youcai/youcai`。`web/server/lib/piRunner.ts:530` 仅在 provider 为 `youcai` 时显式传 `--extension <repo>/web/server/pi/youcai.js`。保留 `--no-extensions` 的自动发现关闭行为和 075/078 的上下文、低权用户边界。
+- `web/server/pi/youcai.js:5` 注册 `youcai`，API 类型为 `openai-completions`，复用 Pi 的消息转换、流式、工具结果、usage、取消机制；没有引入第二个模型执行引擎。
+- 默认 `baseUrl` 为 `https://u496025-7845e5610890.bjb2.seetacloud.com:8443/v1`，请求路径为 `/v1/chat/completions`。可用 `YOUCAI_BASE_URL` 覆盖（`web/server/pi/youcai.js:9`）；值须包含 `/v1`，从 `web/.env` 读取时保持外部环境优先。低权部署将覆盖值放在 `web/.env`，不增加 sudo 环境透传项。
+- Pi / OpenAI SDK 要求非空 API Key，内部使用非凭据占位值 `unused`（`web/server/pi/youcai.js:12`）。`authHeader: false` 本身不会阻止 SDK 默认 Bearer 头，因此还通过 `before_provider_headers` 将所有大小写形式的 Authorization 显式设为 `null`（`:31`）。仅作用于 `ctx.model.provider === 'youcai'`，切换其他 provider 时保留其认证头。
+- `/v1/models` 无认证请求实测返回 `id=youcai`、`owned_by=vllm`、`root=./qwen3.5-27b-gptq-int4-vl`、`max_model_len=262144`。登记上下文 262144，输出上限 8192 为本项目保守配置，不声称这是服务的最大输出能力；当前仅登记文本输入（`:18-23`）。
+- `compat.thinkingFormat='qwen-chat-template'`（`:25`）：Pi 将 `PI_THINKING=off` 转为 `chat_template_kwargs.enable_thinking=false`，其余允许档位开启思考，档位不表示不同推理预算。未覆盖时保留项目 medium 默认。
+- 自部署 token 费率登记为 0，表示无第三方 token 账单，不涵盖 GPU/云主机费用。模型与上下文信息继续通过原有 trace 和 usage 字段传递。
+- 配置与运维说明：`web/.env.example:34`、`web/docs/pi-runner.md:76`。`web/server/scripts/detectCli.ts:27` 对 youcai 显示无需 Key；`web/server/index.ts:1465` 的启动日志同步区分认证方式。本机忽略的 `web/.env` 已将 `PI_MODEL` 切为 `youcai/youcai`，原 provider 凭据保留。
+
+## 成本与取舍
+
+- 选择按需加载的仓库 provider，使普通用户和低权 Pi 共用同一代码，且不修改 `~/.pi`、`/opt` 或 sudoers。否决修改全局 `models.json` / `PI_AGENT_DIR`：它们需要同步两个用户的目录，并容易影响既有认证与设置。
+- 否决重写 OpenAI SDK 客户端或直连模型替代 Pi：会重复实现工具循环、会话、流式和 trace。扩展只声明模型与认证差异。
+- 使用 Pi 已安装版本提供的 `qwen-chat-template` 与请求头钩子；本机低权运行时 v0.87.1 已实测。旧版 Pi 若不支持这些接口需先验证/升级，不将兼容性推定为已完成。
+- 服务地址与上下文元数据是当前部署快照；迁移地址用配置覆盖，换模型/上下文需重新核实。图像能力不依据目录名推定为已经验证。
+
+## 验证
+
+- 无认证 `curl`：`/openapi.json` 返回 200；`/v1/models` 返回 youcai 与上述元数据；普通 Chat Completions 返回 `youcai-ok`，SSE 返回文本、usage、`[DONE]`；自动工具选择返回 `ping({text:'tool-ok'})`。
+- `PI_THINKING=off node /tmp/plaza-youcai-probe.mjs`：通过项目 `PiRunner` 和实际 sudo 包装脚本运行，写入并读回 `youcai-probe.txt`，最终回复 `youcai-tool-ok`，trace 记录 2 次工具调用、provider/model=youcai、上下文 262144。该脚本为本次临时探针，非仓库接口。
+- `node /tmp/plaza-youcai-wire-probe.mjs`：实际 Pi 请求发往本机模拟 HTTP 服务，off/medium 两档均不含 Authorization，思考开关分别为 false/true。该临时探针覆盖 SDK 层，避免只凭扩展注册对象判断请求头。
+- `npm run detect:cli`：显示低权包装脚本与 `PI_MODEL=youcai/youcai`，无需 Key。
+- 项目后端 `/api/health` 回报 `youcai (youcai · pi)`；`POST /api/chat` 的 general 请求以默认 medium 思考完成 started→session→thinking→text→usage→done，最终 `youcai-api-ok`。运行标识以 trace 为准，不为单次测试另立运行记录主题。
+- `node --test web/server/pi/youcai.test.mjs web/server/lib/conversation.test.mjs web/server/lib/pdfReport.test.mjs web/server/lib/docFigures.test.mjs`：18 项通过；认证隔离 3 项覆盖大小写头移除、切换 provider 和迁移地址覆盖。
+- `cd web && npm run build`：通过。服务端另用 Node 语法检查覆盖最终入口改动。
+
+## 后续扩展路线
+
+- 用真实业务长报告核对内容质量、工具稳定性、延迟与输出上限，再决定是否提高 maxTokens。
+- 如需图像能力，先验证普通图片与工具返回图片，再登记 `image` 输入。
+- 专项验证取消、上下文溢出、断流与自动重试；复用 Pi 已有实现不等于这些场景已对当前部署实测。
+- 需要更多自部署模型时再提取通用 provider 配置，不因单个服务预建动态模型管理系统。
