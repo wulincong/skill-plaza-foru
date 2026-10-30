@@ -182,10 +182,15 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '译文 PDF 必须写入 workspace/translation.pdf（固定路径与文件名，服务端按此捕获交付），' +
     '写入后只做 pdfinfo 存在性检查；最终回复只输出简短完成说明（目标语言、页数、结构对齐情况、未覆盖项），' +
     '不要把译文全文贴进回复。编译失败时如实说明原因，明确译文未生成，不得伪造链接。',
+  'wechat-report':
+    '你正在按 wechat-report SKILL 工作。围绕用户指定地区、行业与读者生成微信公众号人才需求报告。' +
+    '按技能约定在会话 workspace 的独立副本运行，先形成可审阅大纲，再按确认后的内容生成图文、文章与证据核查表。' +
+    '数据库未配置时说明需要的配置；只在用户明确要求演示时使用并标明样例数据，不冒充实时统计。' +
+    '默认只生成本地文件；推送公众号草稿需要用户明确要求与真实配置，不自动群发或发布。',
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'tech-forecast', 'doc-translate'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'tech-forecast', 'doc-translate', 'wechat-report'])
 
 /** 产出 workspace/translation.pdf 的技能集合（终态捕获/校验/下载与 HTML 报告同构，
     见 index.ts captureWorkspacePdfReport 与 /api/reports 路由 pdf 分支） */

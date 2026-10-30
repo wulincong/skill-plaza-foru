@@ -313,6 +313,25 @@ export const SKILLS: Skill[] = [
     repository: 'https://github.com/Lntanohuang/training-data-qa-skill',
     repositoryLabel: 'Lntanohuang/training-data-qa-skill',
   },
+  {
+    slug: 'wechat-report',
+    name: '微信公众号报告',
+    identifier: 'wechat-report',
+    categoryId: 'industry',
+    audiences: ['manager', 'teacher', 'data'],
+    summary: '把地区与行业的岗位数据整理为公众号报告大纲、图文页面、文章和证据核查表。',
+    tags: ['公众号图文', '人才需求', '产业报告'],
+    compatibility: ['Codex', 'Pi'],
+    preconditions: '地区、行业、目标读者与可用数据',
+    outputs: ['可审阅的报告大纲', '报告分屏图片与长图', '公众号文章 Markdown / HTML', '证据核查表 XLSX'],
+    dependencies: ['Python 3、PyMySQL、Pillow、openpyxl', 'Edge / Chrome / Chromium（渲染图片）', '数据库连接配置（真实数据）；公众号账号配置（推送草稿时）'],
+    limitations: ['未配置数据库时仅可使用明确标注的离线示例。', '大纲确认后生成图文；推送草稿需要明确要求，不自动群发或发布。'],
+    installation: ['获取仓库中的完整 wechat-report 目录。', '按 references/project-installation.md 配置依赖，在会话副本中运行。'],
+    installPrompt: '请从 https://github.com/MJL629/Official-Account-Skill 安装 wechat-report，保留 scripts、references、assets、example 和岗位字典，并检查依赖。',
+    minimalInput: '使用 $wechat-report，为广东省人工智能产业拟一份公众号报告大纲，读者是院校管理者；先说明所需数据。',
+    repository: 'https://github.com/MJL629/Official-Account-Skill',
+    repositoryLabel: 'MJL629/Official-Account-Skill',
+  },
 ]
 
 /* 智能体矩阵（T01–T24 规划清单）已移除：广场卡片改为跟随后端可运行技能清单

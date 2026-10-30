@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 083）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 084）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -50,6 +50,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现（探针会话验证；kill 链与技能全链路待观察） | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
 | 079 | doc-translate：PDF 翻译/交付、专用表单、附件会话绑定、真实失败呈现与工件更新校验 | 已实现（真实浏览器全链路/低权 XeLaTeX/下载/历史恢复/21 项回归通过；长文档待验证） | [079-doc-translate-skill.md](references/079-doc-translate-skill.md) |
 | 081 | doc-translate 原图保留：位图素材清单、原 PDF 矢量裁切引用、图注翻译 | 已实现（4 项素材回归/构建/真实 Pi 图文翻译与下载通过） | [081-doc-translate-original-figures.md](references/081-doc-translate-original-figures.md) |
+| 083 | wechat-report：公众号报告技能安装、Linux 工具链与无表单对话入口 | 已实现（真实低权 Pi/浏览器/离线工具链、12 项回归与构建通过） | [083-wechat-report-skill.md](references/083-wechat-report-skill.md) |
 
 ### 报告输出协议（就业指导）
 

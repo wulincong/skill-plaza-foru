@@ -9,6 +9,7 @@ import DetailPage from '../pages/DetailPage.vue'
 import GuidePage from '../pages/GuidePage.vue'
 import MissingPage from '../pages/MissingPage.vue'
 import { bySlug } from '../data/skills'
+import { configOf } from '../data/useTaskConfigs'
 
 /* 兼容旧地址：/catalog → /skills */
 const routes = [
@@ -28,6 +29,14 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior: () => ({ top: 0 }),
+})
+
+/* 已注册但没有任务表单的技能直接进入对话，避免回落到其他技能的表单。 */
+router.beforeEach(to => {
+  const slug = typeof to.params.slug === 'string' ? to.params.slug : ''
+  if (to.name === 'use' && bySlug.has(slug) && !configOf(slug)) {
+    return { name: 'experience', query: { ...to.query, skill: slug } }
+  }
 })
 
 router.afterEach(to => {

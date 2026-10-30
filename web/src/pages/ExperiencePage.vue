@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { bySlug, catOf, SKILLS, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
 import { checkHealth, streamChat, type ChatAttachment, type ChatEvent } from '../composables/useChatApi'
 import { takePendingFormTask } from '../composables/pendingTask'
@@ -862,6 +863,14 @@ async function refreshHistoryAfterRun() {
   }
   liveDismissed.value = true
 }
+
+/* 无表单技能的广场入口：只挂载技能，任务仍由用户在对话中输入。 */
+const route = useRoute()
+watch(() => route.query.skill, (slug) => {
+  if (typeof slug !== 'string') return
+  const skill = bySlug.get(slug)
+  if (skill) pickSkill(skill)
+}, { immediate: true })
 
 onMounted(async () => {
   document.addEventListener('click', onDocClick)

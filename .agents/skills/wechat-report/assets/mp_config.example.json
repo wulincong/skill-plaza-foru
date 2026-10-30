@@ -1,0 +1,4 @@
+{
+  "appid": "在这里填公众号 AppID（mp.weixin.qq.com 设置与开发-基本配置）",
+  "secret": "在这里填公众号 AppSecret"
+}

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { bySlug, catOf, audOf, FEATURES } from '../data/skills'
+import { configOf } from '../data/useTaskConfigs'
 import Icon from '../components/Icon.vue'
 import Codebox from '../components/Codebox.vue'
 import FeaturePreview from '../components/FeaturePreview.vue'
@@ -48,7 +49,7 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
           <RouterLink class="btn btn-primary" :to="{ name: 'use', params: { slug: skill.slug } }">
             在线运行这个 SKILL<Icon name="arrow" :size="15" />
           </RouterLink>
-          <span class="detail-actions-note">在本页配置任务并运行；需要完整工具能力时再安装到你的 AI 工具。</span>
+          <span class="detail-actions-note">{{ configOf(skill.slug) ? '配置任务后运行，也可在在线对话中选择此技能。' : '进入在线对话，说明任务要求即可使用此技能。' }}</span>
         </div>
         <div class="meta-row">
           <div class="meta-item"><span class="meta-k">运行环境</span><span class="meta-v">{{ skill.compatibility.join(' / ') }}</span></div>

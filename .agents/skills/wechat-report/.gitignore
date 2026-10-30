@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+db_config.json
+scripts/db_config.json
+assets/mp_config.json
+.mp_token.json
+/report_data.json
+output/
+output_robotics/
