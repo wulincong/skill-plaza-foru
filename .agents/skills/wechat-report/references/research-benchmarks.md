@@ -49,7 +49,7 @@ BBC 风格规则（render_report 落地）：条形永远排序；直接标注�
 |---|---|---|
 | 声明意图、延迟外观：内容是语义树，渲染决定样子 | Quarto | outline 即语义文档；renderer 只管版式 |
 | 图表/章节自动编号与交叉引用 | Quarto | 渲染器自动 图N/表N |
-| 报告即代码：SQL+Markdown，可 diff 可复现 | Evidence | fetch_data.py（SQL留档）+ outline.json（可审阅可编辑）+ 快照 |
+| 报告即代码：SQL+Markdown，可 diff 可复现 | Evidence | talent-data-query 的实际 evidence（内部留档）+ outline.json（可审阅可编辑）+ 快照 |
 | Agent-ready：AGENTS.md 约定 | Evidence | SKILL.md 即操作约定 |
 | 数据快照在构建期生成 | Observable | output/snapshots/ |
 

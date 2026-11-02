@@ -24,7 +24,8 @@
       1242
     ],
     "days": 365,
-    "generated_at": "2026-09-22 11:02:45"
+    "generated_at": "2026-09-22 11:02:45",
+    "demo": true
   },
   "total": {
     "positions": 14303,
@@ -1795,48 +1796,6 @@
       "industry_name": "人工智能",
       "days": 365
     },
-    "queries": [
-      {
-        "sql": "SELECT a.city, p.name, p.position_type, p.education, p.experience, p.type, CAST(p.min_salary AS SIGNED), CAST(p.max_salary AS SIGNED), p.description FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市'))",
-        "rows": 14303,
-        "seconds": 84.8
-      },
-      {
-        "sql": "SELECT COUNT(DISTINCT p.company_archive_id) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市'))",
-        "rows": 1,
-        "seconds": 69.9
-      },
-      {
-        "sql": "SELECT a.city, COUNT(*) c FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY a.city",
-        "rows": 21,
-        "seconds": 71.2
-      },
-      {
-        "sql": "SELECT p.education, COUNT(*) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.education",
-        "rows": 8,
-        "seconds": 77.3
-      },
-      {
-        "sql": "SELECT p.experience, COUNT(*) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.experience",
-        "rows": 8,
-        "seconds": 77.8
-      },
-      {
-        "sql": "SELECT p.type, COUNT(*) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.type",
-        "rows": 3,
-        "seconds": 78.7
-      },
-      {
-        "sql": "SELECT p.education, p.experience, COUNT(*) c FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.education, p.experience",
-        "rows": 53,
-        "seconds": 78.4
-      },
-      {
-        "sql": "SELECT DATE_FORMAT(p.update_time, '%Y-%m') ym, COUNT(*) c FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND (p.position_type LIKE '%,31,%' OR p.position_type LIKE '%,230,%' OR p.position_type LIKE '%,231,%' OR p.position_type LIKE '%,232,%' OR p.position_type LIKE '%,233,%' OR p.position_type LIKE '%,234,%' OR p.position_type LIKE '%,235,%' OR p.position_type LIKE '%,236,%' OR p.position_type LIKE '%,237,%' OR p.position_type LIKE '%,238,%' OR p.position_type LIKE '%,239,%' OR p.position_type LIKE '%,240,%' OR p.position_type LIKE '%,241,%' OR p.position_type LIKE '%,242,%' OR p.position_type LIKE '%,243,%' OR p.position_type LIKE '%,244,%' OR p.position_type LIKE '%,245,%' OR p.position_type LIKE '%,1242,%') AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY ym ORDER BY ym",
-        "rows": 12,
-        "seconds": 75.3
-      }
-    ],
     "checks": [
       {
         "name": "城市: Python聚合 = SQL聚合",

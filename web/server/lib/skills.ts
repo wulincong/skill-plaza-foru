@@ -185,12 +185,15 @@ export const SKILL_PROMPTS: Record<string, string> = {
   'wechat-report':
     '你正在按 wechat-report SKILL 工作。围绕用户指定地区、行业与读者生成微信公众号人才需求报告。' +
     '按技能约定在会话 workspace 的独立副本运行，先形成可审阅大纲，再按确认后的内容生成图文、文章与证据核查表。' +
-    '数据库未配置时说明需要的配置；只在用户明确要求演示时使用并标明样例数据，不冒充实时统计。' +
+    '真实统计统一依赖 talent-data-query，调用共享工具及报告适配器，不自行连接数据库或编写SQL；只在用户明确要求演示时使用并标明样例数据。' +
     '默认只生成本地文件；推送公众号草稿需要用户明确要求与真实配置，不自动群发或发布。',
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
 export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'tech-forecast', 'doc-translate', 'wechat-report'])
+
+/** 数据依赖不切换主会话，也不产生额外广场卡片。 */
+export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {'wechat-report':'talent-data-query'}
 
 /** 产出 workspace/translation.pdf 的技能集合（终态捕获/校验/下载与 HTML 报告同构，
     见 index.ts captureWorkspacePdfReport 与 /api/reports 路由 pdf 分支） */

@@ -1,0 +1,88 @@
+{
+  "schema": "wechat-report-plan/1",
+  "filters": {
+    "region": {
+      "level": "city",
+      "province": "广东省",
+      "name": "广州市"
+    },
+    "industries": [
+      {
+        "id": "19"
+      }
+    ],
+    "education": [
+      "DAZHUAN",
+      "GAOZHI"
+    ]
+  },
+  "sections": [
+    "overview",
+    "geography",
+    "requirements",
+    "salary",
+    "vocational",
+    "tracks",
+    "city_tracks",
+    "lq",
+    "track_salary",
+    "skills",
+    "track_skills"
+  ],
+  "analysis": {
+    "tracks": [
+      {
+        "key": "algo",
+        "label": "算法与感知",
+        "titleAny": [
+          "算法",
+          "感知",
+          "SLAM"
+        ]
+      },
+      {
+        "key": "electrical",
+        "label": "电子与电控",
+        "titleAny": [
+          "电子",
+          "电气",
+          "电控"
+        ]
+      },
+      {
+        "key": "operation",
+        "label": "运行与维护",
+        "titleAny": [
+          "飞手",
+          "运维",
+          "驾驶"
+        ]
+      },
+      {
+        "key": "production",
+        "label": "生产与制造",
+        "titleAny": [
+          "生产",
+          "装配",
+          "制造"
+        ]
+      }
+    ],
+    "skills": [
+      "Python",
+      "C++",
+      "无人机",
+      "飞控",
+      "嵌入式",
+      "PLC",
+      "CAD",
+      "ROS"
+    ]
+  },
+  "execution": {
+    "freshness": "live",
+    "timeoutMs": 180000,
+    "deadlineMs": 360000
+  },
+  "audience": "院校管理者"
+}

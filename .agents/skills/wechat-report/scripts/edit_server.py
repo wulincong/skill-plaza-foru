@@ -31,7 +31,6 @@ EDITABLE = {
     'assets/themes.json': ('配置资产', '改色后重跑 render_report.py --theme 对应名'),
     'output/outline/report_outline.json': ('当次产出', '改完跑 render_report.py'),
     'output/article/article.md': ('当次产出', '直接可用的公众号文案'),
-    'position_type_dict.json': ('高级（大文件）', '行业类目字典，一般不改'),
 }
 
 PAGE = u"""<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -197,13 +196,9 @@ class Handler(BaseHTTPRequestHandler):
         if not p:
             return self._send(403, '{"ok":false,"msg":"forbidden"}',
                               'application/json')
-        bak = p + '.bak'
-        if os.path.exists(p):
-            import shutil
-            shutil.copyfile(p, bak)
         with open(p, 'w', encoding='utf-8', newline='') as f:
             f.write(payload.get('content', ''))
-        return self._send(200, '{"ok":true,"bak":"created"}',
+        return self._send(200, '{"ok":true}',
                           'application/json')
 
 

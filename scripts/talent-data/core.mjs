@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const VERSION = 'talent-query-engine/1.1.0'
+export const VERSION = 'talent-query-engine/1.2.0'
 export class QueryError extends Error {
   constructor(code, message, details = {}) { super(message); this.code = code; this.details = details }
 }
@@ -50,9 +50,41 @@ export const METRICS = {
   'salary.summary': { kind: 'summary', unit: 'K_CNY/month', description: '区间中点均值与 P25/P50/P75/P90' },
   'salary.distribution': { kind: 'distribution', unit: 'job_records', description: '有效薪资区间中点分箱' },
   'data_quality.summary': { kind: 'summary', unit: 'job_records', description: '按需统计地址/省市/企业/名称/来源缺失量，并读取样本最大平台更新时间' },
+  'track.distribution': {kind:'distribution',unit:'job_records',analysis:true,description:'显式有序规则互斥归类，含未分类'},
+  'city_track.cross': {kind:'cross',unit:'job_records',analysis:true,dimensions:['city'],description:'城市×同一互斥方向的完整频数'},
+  'track_salary.summary': {kind:'distribution',unit:'K_CNY/month',analysis:true,description:'同一方向及薪酬策略的分组摘要'},
+  'skills.distribution': {kind:'distribution',unit:'job_records',analysis:true,description:'描述中显式技能词的岗位提及计数，不返回描述'},
+  'track_skills.cross': {kind:'cross',unit:'job_records',analysis:true,description:'方向×技能提及计数，保留全岗位和有效描述分母'},
 }
 export const DIMENSIONS = { education: 'p.education', experience: 'p.experience', jobType: 'p.type', source: 'p.data_source', city: 'a.city', province: 'a.province', title: 'p.name' }
-export const LIMITS = { cohorts: 4, metrics: 14, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
+export const LIMITS = { cohorts: 4, metrics: 19, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
+
+function analysisPolicy(raw,metrics) {
+  const a=object(raw??{},['tracks','skills'],'analysis'),out={}
+  if(a.tracks!==undefined) {
+    if(!Array.isArray(a.tracks)||!a.tracks.length||a.tracks.length>12)fail('INVALID_REQUEST','analysis.tracks 需要1–12个有序方向规则')
+    out.tracks=a.tracks.map(g=>{
+      object(g,['key','label','titleAny','roleIds'],'方向规则')
+      const key=textValue(g.key,40,'方向 key')
+      if(!/^[a-zA-Z0-9_-]+$/.test(key)||key.toLowerCase()==='__other__')fail('INVALID_REQUEST','方向 key 无效或保留')
+      const titleAny=terms(g.titleAny,'方向名称词'),roleIds=g.roleIds??[]
+      if(!Array.isArray(roleIds)||roleIds.length>40||roleIds.some(id=>!/^\d{1,10}$/.test(String(id))||Number(id)<1||Number(id)>2147483647))fail('INVALID_REQUEST','方向 roleIds 必须为最多40个有效岗位类型ID')
+      if(!titleAny.length&&!roleIds.length)fail('INVALID_REQUEST','方向规则必须声明 titleAny 或 roleIds')
+      return {key,label:textValue(g.label,60,'方向 label'),titleAny,roleIds:[...new Set(roleIds.map(String))].sort()}
+    })
+    if(new Set(out.tracks.map(g=>g.key.toLowerCase())).size!==out.tracks.length)fail('INVALID_REQUEST','方向 key 不得重复（忽略大小写）')
+    if(new Set(out.tracks.map(g=>g.label)).size!==out.tracks.length)fail('INVALID_REQUEST','方向 label 不得重复')
+    if(out.tracks.some(g=>g.label==='未分类'))fail('INVALID_REQUEST','未分类为保留方向名称')
+  }
+  if(a.skills!==undefined) {
+    if(!Array.isArray(a.skills)||!a.skills.length||a.skills.length>60)fail('INVALID_REQUEST','analysis.skills 需要1–60个技能词')
+    out.skills=a.skills.map(v=>textValue(v,60,'技能词'))
+    if(new Set(out.skills.map(v=>v.toLowerCase())).size!==out.skills.length)fail('INVALID_REQUEST','技能词不能重复（忽略大小写）')
+  }
+  if(metrics.some(m=>['track.distribution','city_track.cross','track_salary.summary','track_skills.cross'].includes(m))&&!out.tracks)fail('INVALID_REQUEST','方向指标需要显式 analysis.tracks')
+  if(metrics.some(m=>['skills.distribution','track_skills.cross'].includes(m))&&!out.skills)fail('INVALID_REQUEST','技能指标需要显式 analysis.skills')
+  return Object.keys(out).length?out:undefined
+}
 
 function selectors(raw = [], label) {
   if (!Array.isArray(raw) || raw.length > 8) fail('INVALID_REQUEST', `${label} 最多 8 项`)
@@ -65,7 +97,7 @@ function selectors(raw = [], label) {
   }).sort((a,b) => canonical(a).localeCompare(canonical(b)))
 }
 export function validateRequest(raw) {
-  object(raw, ['schema', 'sourceId', 'cohorts', 'metrics', 'policies', 'execution', 'output'], 'request')
+  object(raw, ['schema', 'sourceId', 'cohorts', 'metrics', 'policies', 'execution', 'output','analysis'], 'request')
   if (raw.schema !== 'talent-query/1') fail('INVALID_REQUEST', 'schema 必须为 talent-query/1')
   if (raw.sourceId !== undefined && raw.sourceId !== 'talent-main') fail('UNSUPPORTED', '仅支持 talent-main 数据源')
   if (!Array.isArray(raw.cohorts) || !raw.cohorts.length || raw.cohorts.length > LIMITS.cohorts) fail('INVALID_REQUEST', 'cohorts 必须有 1–4 个样本组')
@@ -99,6 +131,7 @@ export function validateRequest(raw) {
   })
   if (new Set(cohorts.map(c=>c.id)).size !== cohorts.length) fail('INVALID_REQUEST', 'cohort.id 不得重复')
   if (!Array.isArray(raw.metrics) || !raw.metrics.length || raw.metrics.length > LIMITS.metrics || raw.metrics.some(m => typeof m !== 'string' || !Object.hasOwn(METRICS,m))) fail('UNSUPPORTED', 'metrics 含不支持的指标，请调用 capabilities')
+  const analysis=analysisPolicy(raw.analysis,raw.metrics)
   const policies = object(raw.policies ?? {}, ['salary', 'consistency'], 'policies')
   if (policies.salary !== undefined && policies.salary !== 'salary-policy/1') fail('UNSUPPORTED', '仅支持 salary-policy/1')
   if (policies.consistency !== undefined && policies.consistency !== 'consistent-read') fail('UNSUPPORTED', '仅支持同连接一致性只读事务')
@@ -110,15 +143,15 @@ export function validateRequest(raw) {
   const output = object(raw.output ?? {}, ['previewRows', 'topN', 'exports'], 'output')
   const exports = output.exports ?? []
   if (!Array.isArray(exports) || exports.length > 3 || exports.some(v => !['json','csv','markdown'].includes(v))) fail('INVALID_REQUEST', 'exports 支持 json/csv/markdown')
-  return { schema: 'talent-query/1', sourceId: 'talent-main', cohorts, metrics: [...new Set(raw.metrics)].sort(), policies: { salary: 'salary-policy/1', consistency: 'consistent-read' }, execution: { freshness, deadlineMs: integer(execution.deadlineMs ?? 240000, 1000, LIMITS.deadlineMs, 'deadlineMs'), timeoutMs: integer(execution.timeoutMs ?? 120000, 1000, LIMITS.timeoutMs, 'timeoutMs'), maxAgeMs: integer(execution.maxAgeMs ?? 900000, 0, 900000, 'maxAgeMs'), ...(execution.snapshotId ? {snapshotId:execution.snapshotId}: {}) }, output: { previewRows: integer(output.previewRows ?? 10, 0, 20, 'previewRows'), topN: integer(output.topN ?? 20, 1, 100, 'topN'), exports: [...new Set(exports)] } }
+  return { schema: 'talent-query/1', sourceId: 'talent-main', cohorts, ...(analysis?{analysis}:{}), metrics: [...new Set(raw.metrics)].sort(), policies: { salary: 'salary-policy/1', consistency: 'consistent-read' }, execution: { freshness, deadlineMs: integer(execution.deadlineMs ?? 240000, 1000, LIMITS.deadlineMs, 'deadlineMs'), timeoutMs: integer(execution.timeoutMs ?? 120000, 1000, LIMITS.timeoutMs, 'timeoutMs'), maxAgeMs: integer(execution.maxAgeMs ?? 900000, 0, 900000, 'maxAgeMs'), ...(execution.snapshotId ? {snapshotId:execution.snapshotId}: {}) }, output: { previewRows: integer(output.previewRows ?? 10, 0, 20, 'previewRows'), topN: integer(output.topN ?? 20, 1, 100, 'topN'), exports: [...new Set(exports)] } }
 }
 
 // UTF-8 hex literals have no quote/backslash SQL-mode ambiguity. LIKE wildcards are literal by default.
 export const sqlString = value => `CONVERT(X'${Buffer.from(String(value),'utf8').toString('hex')}' USING utf8mb4)`
 export const likeTerm = value => sqlString(`%${value.replaceAll('!','!!').replaceAll('%','!%').replaceAll('_','!_')}%`)
 export function semanticRequest(request,engine=VERSION) {
-  return { schema: request.schema, sourceId: request.sourceId, cohorts: request.cohorts, metrics: request.metrics, policies: request.policies, topN: request.output.topN, engine }
+  return { schema: request.schema, sourceId: request.sourceId, cohorts: request.cohorts, metrics: request.metrics, policies: request.policies, topN: request.output.topN, engine, ...(request.analysis?{analysis:request.analysis}:{}) }
 }
 export function capabilities() {
-  return { schema: 'talent-capabilities/1', engine: VERSION, sourceIds: ['talent-main'], operations: ['capabilities','resolve','plan','query','inspect','export'], filters: ['region','title.any','title.all','title.exclude','industries','roles','education','experience','jobType','updatedAt','state'], metrics: METRICS, enums: ENUMS, limits: LIMITS, policies: ['cohort-policy/1','category-policy/1','salary-policy/1'], unsupported: ['专业关联（P1）','岗位描述/技能文本（P1）','岗位真实发布时间趋势','就业率/市场总量','任意SQL'], defaultFreshness: 'cache-ok', maxCacheAgeMs: 900000 }
+  return { schema: 'talent-capabilities/1', engine: VERSION, sourceIds: ['talent-main'], operations: ['capabilities','resolve','plan','query','inspect','export'], filters: ['region','title.any','title.all','title.exclude','industries','roles','education','experience','jobType','updatedAt','state'], analysis:{tracks:'1–12个有序titleAny/roleIds规则，首个命中；未分类独立',skills:'1–60个显式词；不区分大小写的子串岗位计数'}, metrics: METRICS, enums: ENUMS, limits: LIMITS, policies: ['cohort-policy/1','category-policy/1','salary-policy/1'], unsupported: ['专业关联（P1）','岗位真实发布时间趋势','就业率/市场总量','任意SQL'], defaultFreshness: 'cache-ok', maxCacheAgeMs: 900000 }
 }

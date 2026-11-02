@@ -12,9 +12,12 @@ render_report.py — 把 report_outline.json（人工确认后的文案脚本）
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
+from bound_report import load_data, verify_outline, digest
 
 from PIL import Image
 
@@ -817,7 +820,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
 <script src="%(ech)s"></script>
 <script>%(js)s</script>
 </body></html>""" % {
-        'css': CSS, 'H': SCREEN_H, 'chapter': chapter,
+        'css': CSS, 'H': est_screen_height(s), 'chapter': chapter,
         'subtitle': ('<div class="subtitle">%s</div>' % s['subtitle'])
                     if s.get('subtitle') else '',
         'body': '\n'.join(body_parts), 'org': org, 'dots': dots,
@@ -826,12 +829,30 @@ def render_screen(s, idx, total, org, scale, meta=None):
     return html, est_screen_height(s)
 
 
+_VIEWPORT_OVERHEAD = None
+
+
 def shoot(html_path, png_path, w, h, scale):
+    global _VIEWPORT_OVERHEAD
     if not EDGE:
         raise RuntimeError('未找到 Edge / Chrome / Chromium；请设置 WECHAT_REPORT_BROWSER')
+    if _VIEWPORT_OVERHEAD is None:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', dir=Path(png_path).parent, delete=False) as f:
+            f.write("<body><script>document.body.textContent='VIEWPORT_HEIGHT='+innerHeight</script>")
+            probe_file = Path(f.name)
+        try:
+            probe = subprocess.run([EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars',
+                '--window-size=943,1000', '--dump-dom', probe_file.resolve().as_uri()],
+                capture_output=True, text=True, timeout=30, check=True)
+        finally:
+            probe_file.unlink(missing_ok=True)
+        match = re.search(r'VIEWPORT_HEIGHT=(\d+)', probe.stdout)
+        if not match:
+            raise RuntimeError('无法测量浏览器截图视口')
+        _VIEWPORT_OVERHEAD = max(0, 1000-int(match.group(1)))
     cmd = [EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars',
            '--force-device-scale-factor=%d' % scale,
-           '--window-size=%d,%d' % (w, h),
+           '--window-size=%d,%d' % (w, h+_VIEWPORT_OVERHEAD),
            '--default-background-color=FFFFFFFF',
            '--virtual-time-budget=6000',
            '--screenshot=%s' % png_path,
@@ -839,6 +860,12 @@ def shoot(html_path, png_path, w, h, scale):
     subprocess.run(cmd, capture_output=True, timeout=120, check=True)
     if not os.path.exists(png_path):
         raise RuntimeError('截图失败: %s' % png_path)
+    # Chrome's CLI window includes decorations; keep exactly the CSS content size.
+    with Image.open(png_path) as image:
+        if image.width != w*scale or image.height < h*scale:
+            raise RuntimeError('截图尺寸与预期不一致')
+        cropped = image.crop((0, 0, w*scale, h*scale))
+    cropped.save(png_path)
 
 
 def main():
@@ -851,6 +878,8 @@ def main():
                     help='1=与原文一致(943px宽)；2=高清(1886px宽，公众号里字号'
                          '会显得只有原文一半)')
     ap.add_argument('--no-stitch', action='store_true')
+    ap.add_argument('--data', default=os.path.join(BASE, 'report_data.json'))
+    ap.add_argument('--demo', action='store_true')
     ap.add_argument('--theme', default='zhengwu',
                     help='配色主题（assets/themes.json 的键名）：'
                          'zhengwu政务藏青/deep_purple深空紫/bamboo青竹绿/'
@@ -862,6 +891,9 @@ def main():
 
     with open(args.outline, 'r', encoding='utf-8') as f:
         ol = json.load(f)
+    data, binding = load_data(args.data, args.demo)
+    if binding:
+        verify_outline(data, binding, ol)
 
     screens = ol['screens']
     total = len(screens)
@@ -914,6 +946,8 @@ def main():
 
     with open(os.path.join(args.outdir, 'manifest.json'), 'w', encoding='utf-8') as f:
         json.dump({'pages': manifest, 'title': ol['title'],
+                   'outline_sha256': digest(Path(args.outline).read_bytes()),
+                   'source_content_hash': ol.get('source_content_hash'),
                    'generated_at': ol.get('generated_at')}, f,
                   ensure_ascii=False, indent=2)
     print('完成：%s' % args.outdir)

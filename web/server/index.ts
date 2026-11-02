@@ -38,7 +38,7 @@ import {
 } from './lib/htmlReport.ts'
 import { serverEnv } from './lib/agentEnv.ts'
 import { loadLocalEnv } from './lib/env.ts'
-import { SKILL_PROMPTS, INSTALLED_SKILLS, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills } from './lib/skills.ts'
+import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills } from './lib/skills.ts'
 import {
   extractSidecar,
   validateMeta,
@@ -134,12 +134,13 @@ function sandboxAgentsMd(): string {
       '可用 queryId：cohort-summary、education-distribution、experience-distribution、salary-distribution、title-top、source-distribution、city-distribution。',
       '中国目标地区的城市热点图先读取工作区 .agents/skills/chart-visualization/resources/regions/registry.json 选择已注册省份，再调用 city-distribution；固定筛选条件必须与城市岗位统计一致，未注册省份标记未评估，当前优先使用省内范围。',
       `多个独立查询使用 \`node "${CAREER_MARKET_QUERY_TOOL}" --parallel '<JSON数组>'\`，工具内部最多并发 2 个查询；单查询默认 120 秒、最长 180 秒。工具会在批次开始时选择兼容的 MySQL 客户端并复用。`,
-      '涉及具体城市、岗位、实习/应届或学历门槛的问题，必须优先调用该工具；查询结果用于 report-meta 的 sources/metrics/charts，查询失败时把原因写入开发侧 gaps/risks。',
+      '未迁移到共享查询的业务技能，涉及具体城市、岗位、实习/应届或学历门槛的问题优先调用兼容白名单；查询结果用于 report-meta 的 sources/metrics/charts，查询失败时把原因写入开发侧 gaps/risks。',
       '',
       '## 共享人才数据查询',
       '',
       `需要通用地域/产业/岗位筛选或多个样本组时，先读允许访问的共享 Skill 文档：${TALENT_DATA_QUERY_SKILL}，以及其 references/ 内按需引用的文件。当前业务 Skill 保持生效，不切换会话。`,
       `受信入口：\`node "${TALENT_DATA_QUERY_TOOL}" capabilities\`；在当前工作区写 request.json 后执行 \`node "${TALENT_DATA_QUERY_TOOL}" query --request request.json\`。支持 resolve、plan、inspect、export；不得传原始 SQL、读取数据库密码或改写项目工程文件。`,
+      `已迁移数据依赖：${Object.entries(SKILL_DATA_DEPENDENCIES).map(([skill, dependency]) => skill + ' → ' + dependency).join('；')}。这些技能统一通过共享工具取数，不走兼容白名单或独立数据库连接。`,
       '共享工具将 result.json、summary.md、内部 evidence.json 与 manifest.json 保存到当前工作区 data/，stdout 只提供摘要/预览。用完整结果的分母、metricId 和 contentHash 生成业务分析与图表；不将内部 SQL 证据放进公开产物。',
       '默认允许最长15分钟同条件结果复用，明确要求重新查询时使用 live；引用原始 dataReadAt，不能把查询日期或平台更新时间称为岗位真实发布日期。专业关联、技能文本等能力以 capabilities 为准。',
       '原有报告 Skill 的 queryId 调用保持兼容；离线报告技能继续遵守其禁库契约，不因工具可用而擅自改为实时模式。',

@@ -255,7 +255,8 @@ def check_colored(png):
     W, H = im.size
     px = im.load()
     cnt = 0
-    for y in range(int(H * 0.3), int(H * 0.85), 3):
+    # Short charts may start near the top; exclude the chapter header and edge bar.
+    for y in range(int(H * 0.12), int(H * 0.92), 3):
         for x in range(60, min(890, W), 3):
             r, g, b = px[x, y]
             if max(r, g, b) - min(r, g, b) > 28:
@@ -283,11 +284,14 @@ def main():
     with open(args.outline, 'r', encoding='utf-8') as f:
         ol = json.load(f)
     results = []
-    all_ok = True
+    all_ok = bool(ol.get('screens'))
     for i, s in enumerate(ol.get('screens', [])):
         png = os.path.join(args.report_dir, 'pages', 'page_%02d.png' % i)
         if not os.path.exists(png):
+            results.append({'page': i, 'screen': s.get('title', ''), 'check': '图片存在性', 'pass': False, 'detail': '缺少本次图片'})
+            all_ok = False
             continue
+        results.append({'page': i, 'screen': s.get('title', ''), 'check': '图片存在性', 'pass': True, 'detail': '存在'})
         charts = [s.get(k) for k in ('chart', 'chart2', 'chartA', 'chartB')]
         charts = [c for c in charts if c]
         if not charts:

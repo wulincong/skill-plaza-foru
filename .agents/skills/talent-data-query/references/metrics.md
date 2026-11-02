@@ -28,4 +28,6 @@ salary-policy/1 要求两端为严格数值（最多六位小数），0 < min <=
 
 每个指标有稳定 name、样本内 metricId、metricVersion、cohortFingerprint、method 和实际 evidenceIds；contentHash 绑定筛选、值、方法与质量，不绑定临时文件路径。两组对比输出第二组减第一组；占比差单位为百分点，薪酬差仍为 K/月。
 
-首期薪酬采用固定分箱 `<3 / 3–6 / 6–10 / 10–15 / 15–25 / 25K+`，不接受自定义分箱或按城市/岗位分组的薪酬摘要；可用独立 cohort 实现同口径城市/岗位对比。新分箱、专业、多标签分布与 LQ 后续扩展时须新增能力并验收。
+薪酬采用固定分箱 `<3 / 3–6 / 6–10 / 10–15 / 15–25 / 25K+`，不接受自定义分箱；可通过独立 cohort 实现同口径城市/岗位对比，也可通过显式方向规则请求 track_salary.summary。新分箱、专业与多标签分布需新增能力并验收；LQ可从完整城市×方向频数按有版本的公式派生。
+
+1.2 扩展五项指标：track.distribution、city_track.cross、track_salary.summary、skills.distribution、track_skills.cross，见 [analysis.md](analysis.md)。分方向薪酬已支持，方向来自显式首个命中规则，不能把它当成官方产业细分。每组最多五条基础/交叉/方向/技能/薪酬聚合即可供完整报告使用；不请求来源/标题排名时避免额外扫描。新模块仍按 cohort 独立执行，不声称一次 CLI 等于一次扫描。

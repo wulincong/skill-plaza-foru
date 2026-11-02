@@ -75,7 +75,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 084 | 通用人才数据分析：真实库能力、地域/产业/专业/岗位语义筛选与证据绑定 | 设计中（真实库连通/表结构/有限专业映射已验证，协议与改造未实现） | [084-general-talent-analysis-skill-design.md](references/084-general-talent-analysis-skill-design.md) |
 | 085 | 共享人才数据库查询 Skill：跨技能取数现状、功能/结果协议、缓存与查询优化 | 首期已实现（30 项测试/真实库/构建通过；业务迁移与低权 Pi 验收待做） | [085-shared-talent-data-query-skill-design.md](references/085-shared-talent-data-query-skill-design.md) |
 | 086 | 人才统计查询优化：按需质量字段、产业候选优先、四组计数合并与真实基准 | 已实现（39 项测试、20+5 请求与20项同快照核验通过；源库索引待评估） | [086-talent-statistics-query-optimization.md](references/086-talent-statistics-query-optimization.md) |
-| 087 | 报告智能体接入共享人才查询：按章节请求、兼容适配、证据绑定与迁移验收 | 设计方案，待实现（基础请求/6条SQL编译验证；业务代码与低权接入未改） | [087-report-query-skill-integration.md](references/087-report-query-skill-integration.md) |
+| 087 | 报告智能体接入共享人才查询：按章节请求、兼容适配、证据绑定与迁移验收 | 已实现（57项测试、真实取数与17页报告通过；低权Pi在线待验） | [087-report-query-skill-integration.md](references/087-report-query-skill-integration.md) |
 
 ### 图表与区域资源
 

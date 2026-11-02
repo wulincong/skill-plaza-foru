@@ -1,43 +1,37 @@
 # 项目安装与运行
 
-来源：<https://github.com/MJL629/Official-Account-Skill> 的 `wechat-report/`，固定提交 `286cee93072e1b8e8539a88b80487967440a2f74`（2026-10-30）。保留完整脚本、参考文档、图表资源与两份上游示例数据；示例不代表当前数据库查询结果。
+本技能使用共享人才查询工具取数，Python 仅负责报告、图片和核查工作簿。Node ≥20 与 MySQL 客户端属于 talent-data-query 的部署依赖；连接配置只由共享工具读取。
 
-本地适配：补充技能 frontmatter、Python 依赖清单、Linux 浏览器与中文字体支持，修正数据库配置的保存位置及横向柱状图模板参数顺序，并在广场注册对话入口。不注册任务表单，也不套用现有 HTML/PDF 报告的固定文件协议。
+## 安装与工作副本
 
-## 安装依赖（开发者执行一次）
+开发者在技能目录创建 Linux .venv 并安装 requirements.txt；报告使用已安装的 Pillow、openpyxl，以及系统 Chrome/Chromium。浏览器可通过 WECHAT_REPORT_BROWSER 指定。
 
-在技能安装目录执行：
+将本次加载的技能目录作为 SKILL_DIR。首次执行只复制 scripts、references、example 和必要资产到会话的 wechat-report/；不要复制 .venv、历史输出或真实微信配置。资产白名单：brand.json、themes.json、curriculum_map.json、echarts.min.js、mp_config.example.json。已有副本沿用，避免覆盖用户编辑。
 
-```bash
-/usr/bin/python3 -m venv .venv
-.venv/bin/python -m pip install -r requirements.txt
-```
+Node 收集入口使用安装目录绝对路径，避免复制后丢失共享依赖定位；或通过 TALENT_DATA_QUERY_CLI/--query-cli 指定部署提供的共享入口。执行 cwd 为会话工作副本，所有请求、结果和输出留在本次会话。
 
-运行时使用安装目录 `.venv/bin/python` 的绝对路径，避免沙箱 PATH 与开发环境的 Python 不一致。图片渲染自动查找 Edge、Chrome 或 Chromium，也可用 `WECHAT_REPORT_BROWSER` 指定浏览器可执行文件。
+## 真实数据流程
 
-## 每个会话的工作副本
+在工作副本写 plan.json，示例见 [data-aggregation.md](data-aggregation.md)，然后：
 
-Pi 的当前目录是本次会话 workspace。将**本次加载的 SKILL.md 所在目录**作为 `SKILL_DIR`，不要猜路径。首次执行时，只把 `scripts/`、`assets/`、`references/`、`example/`、`position_type_dict.json` 复制到当前目录的 `wechat-report/`；不要复制 `.venv/`、历史输出或真实密钥文件。后续轮次沿用该副本，避免覆盖用户编辑的大纲。
+~~~bash
+node "$SKILL_DIR/scripts/collect_data.mjs" --plan plan.json
+"$SKILL_DIR/.venv/bin/python" scripts/gen_outline.py
+"$SKILL_DIR/.venv/bin/python" scripts/verify_data.py --stage data
+# 用户确认大纲后
+"$SKILL_DIR/.venv/bin/python" scripts/render_report.py
+"$SKILL_DIR/.venv/bin/python" scripts/build_article.py
+"$SKILL_DIR/.venv/bin/python" scripts/verify_data.py --stage final
+"$SKILL_DIR/.venv/bin/python" scripts/evidence_sheet.py
+"$SKILL_DIR/.venv/bin/python" scripts/pack_delivery.py
+~~~
 
-例如把 `SKILL_DIR` 替换为本次加载的真实绝对目录后：
+collect_data 也接受 --result 指向本会话已保存且可核验的 talent-result/1，适配时不查库。已保存的数据不依赖15分钟查询缓存；刷新需重新收集并生成新大纲。
 
-```bash
-mkdir ./wechat-report
-cp -R "$SKILL_DIR/scripts" "$SKILL_DIR/assets" "$SKILL_DIR/references" \
-  "$SKILL_DIR/example" "$SKILL_DIR/position_type_dict.json" ./wechat-report/
-cd ./wechat-report
-```
+输出 report_data.json、report_binding.json、data/ 下共享原工件、output/outline、output/report、output/article。内部核查表位于 output/internal/，不进入公开ZIP。不存在独立数据库配置或交互式连接设置流程；共享工具不可用时说明错误，不回退样例。
 
-所有后续脚本均在副本中运行，解释器仍使用 `"$SKILL_DIR/.venv/bin/python"`。
+## 演示与公众号
 
-## 数据与交付
+用户明确要求演示时，将 example/report_data.json 复制到工作副本的 report_data.json，生成大纲、渲染、文章、校验和核查表时显式传 --demo。演示不证明真实查询通过，当前公开打包入口仅接受真实绑定结果。
 
-- 真实岗位查询需要副本根目录的 `db_config.json`（host/port/user/password/database/charset）；由用户或部署者通过本地配置提供，`scripts/db_setup.py` 可交互验证并保存。**不从示例复制连接信息，不回显密码。**本次安装没有创建数据库或公众号凭据。
-- 用户明确要离线演示时，将 `example/report_data.json` 复制为副本根目录的 `report_data.json`，运行 `scripts/gen_outline.py`。先呈现 `output/outline/outline.md` 供确认。
-- 大纲确认后，运行 `scripts/render_report.py`、`scripts/build_article.py` 与 `scripts/evidence_sheet.py`，按上游 `verify_data.py` / `render_check.py` 规则核验。示例验证只说明工具可运行，不证明真实岗位数据或报告质量。
-- `output/report/` 包含分屏 PNG、长图与 manifest，`output/article/` 包含 Markdown/HTML，`output/evidence_核查表.xlsx` 是核查表。当前项目没有为该技能增加图片/ZIP 下载协议，回复真实生成的文件位置，不伪造下载链接。
-- `assets/mp_config.example.json` 仅是模板。推送草稿需要用户明确要求，并在副本配置真实的 `assets/mp_config.json`、账号权限和 IP 白名单；本次安装未做微信接口调用。
-
-## 使用入口
-
-在线对话选择 `$wechat-report`，或从广场点击“在线运行”，直接进入已挂载该技能的对话。最小输入：`使用 $wechat-report，为广东省人工智能产业拟一份公众号报告大纲，读者是院校管理者；先说明所需数据。`
+公众号推送仍由用户明确要求，使用本地 assets/mp_config.json；默认不运行网络发布。此改造不新增网页图片/ZIP下载路由，回复实际工件位置。

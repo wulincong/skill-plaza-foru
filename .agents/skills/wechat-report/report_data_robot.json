@@ -5,7 +5,8 @@
     "name_kw": "机器人",
     "industry_ids": [],
     "days": 365,
-    "generated_at": "2026-09-21 18:33:54"
+    "generated_at": "2026-09-21 18:33:54",
+    "demo": true
   },
   "total": {
     "positions": 2392,
@@ -1612,48 +1613,6 @@
       "industry_name": "机器人",
       "days": 365
     },
-    "queries": [
-      {
-        "sql": "SELECT a.city, p.name, p.position_type, p.education, p.experience, p.type, CAST(p.min_salary AS SIGNED), CAST(p.max_salary AS SIGNED), p.description FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市'))",
-        "rows": 2392,
-        "seconds": 43.0
-      },
-      {
-        "sql": "SELECT COUNT(DISTINCT p.company_archive_id) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市'))",
-        "rows": 1,
-        "seconds": 31.8
-      },
-      {
-        "sql": "SELECT a.city, COUNT(*) c FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY a.city",
-        "rows": 21,
-        "seconds": 31.7
-      },
-      {
-        "sql": "SELECT p.education, COUNT(*) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.education",
-        "rows": 8,
-        "seconds": 35.7
-      },
-      {
-        "sql": "SELECT p.experience, COUNT(*) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.experience",
-        "rows": 8,
-        "seconds": 36.9
-      },
-      {
-        "sql": "SELECT p.type, COUNT(*) FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.type",
-        "rows": 4,
-        "seconds": 36.3
-      },
-      {
-        "sql": "SELECT p.education, p.experience, COUNT(*) c FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY p.education, p.experience",
-        "rows": 50,
-        "seconds": 37.6
-      },
-      {
-        "sql": "SELECT DATE_FORMAT(p.update_time, '%Y-%m') ym, COUNT(*) c FROM c_company_position p JOIN c_company_address a ON p.company_address_id = a.id WHERE p.publish_state='PUBLISHING' AND p.deleted=b'0'  AND p.update_time >= DATE_SUB(NOW(), INTERVAL 365 DAY) AND p.name LIKE '%机器人%' AND (a.province LIKE '%广东%' OR a.city IN ('广州市','深圳市','东莞市','佛山市','珠海市','惠州市','中山市','江门市','汕头市','湛江市','肇庆市','揭阳市','茂名市','梅州市','清远市','韶关市','潮州市','河源市','汕尾市','阳江市','云浮市')) GROUP BY ym ORDER BY ym",
-        "rows": 9,
-        "seconds": 36.3
-      }
-    ],
     "checks": [
       {
         "name": "城市: Python聚合 = SQL聚合",

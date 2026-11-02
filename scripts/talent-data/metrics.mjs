@@ -1,5 +1,6 @@
 import { METRICS, ENUMS, VERSION, hash, fail, semanticRequest, now } from './core.mjs'
 import { cityCode, provinceEntity, normalizeGeography } from './entities.mjs'
+import {analysisMetrics} from './analysis.mjs'
 
 const round=(value,places=6)=>Number(value.toFixed(places))
 const count=value=>{
@@ -92,6 +93,7 @@ export function buildResult(request,plan,execution) {
       if(!ok)salary=null
     }
     cohorts.push({...cohort,unit:'job_records',positions:total,sourceLatestUpdateAt:base?.latestUpdate??null,addressBasis:'企业关联地址，未核验为真实工作地',missingAddressN:base?.missingAddress!==undefined?count(base.missingAddress):null})
+    const analytical=analysisMetrics(request,cohort,logs,total,salaryStatistics,checks)
     for(const name of request.metrics) {
       const def=METRICS[name]
       const metric={metricId:`${id}/${name}`,name,metricVersion:1,cohortId:id,cohortFingerprint:cohort.fingerprint,kind:def.kind,unit:def.unit,status:'failed',denominator:total,denominatorDefinition:'当前样本组内在招且未删除的去重岗位记录数',method:'cohort-policy/1; category-policy/1',evidenceIds:baseLog?[baseLog.id]:[]}
@@ -105,7 +107,7 @@ export function buildResult(request,plan,execution) {
           available=true
         }
       }
-      if((def.dimensions || ['education','experience','jobType'].includes(def.dimension))&&cubeValid) {
+      if(!def.analysis&&(def.dimensions || ['education','experience','jobType'].includes(def.dimension))&&cubeValid) {
         const dimensions=def.dimensions??[def.dimension]
         const contextDimensions=dimensions.includes('city')?[...new Set([...dimensions,'province'])]:dimensions
         const rows=aggregate(cubeLog.rows.map(row=>normalizeGeography(row,cohort.resolved.region)),contextDimensions)
@@ -138,8 +140,10 @@ export function buildResult(request,plan,execution) {
         else Object.assign(metric,{rows:salary.distribution,denominator:salary.validN,denominatorDefinition:'当前样本组中满足 salary-policy/1 的有效薪资记录数',totalCount:salary.validN,otherCount:0,completeDistribution:true})
         available=true
       }
-      metric.status=available?(total===0?'empty':name.startsWith('salary.')&&!salary.validN?'unavailable':'complete'):'failed'
-      if(metric.status==='failed'||metric.status==='unavailable')errors.push({code:metric.status==='unavailable'?'NO_VALID_SALARY':execution.error?.code??'VALIDATION_FAILED',metricIds:[metric.metricId],message:metric.status==='unavailable'?'样本有岗位但没有有效薪资':execution.error?.message??'指标结果缺失或校验未通过',retryable:false})
+      if(analytical.has(name)){Object.assign(metric,analytical.get(name));available=true}
+      const noDescription=['skills.distribution','track_skills.cross'].includes(name)&&metric.describedN===0&&total>0
+      metric.status=available?(total===0?'empty':noDescription||name.startsWith('salary.')&&!salary.validN?'unavailable':'complete'):'failed'
+      if(metric.status==='failed'||metric.status==='unavailable')errors.push({code:metric.status==='unavailable'?(noDescription?'NO_VALID_DESCRIPTION':'NO_VALID_SALARY'):execution.error?.code??'VALIDATION_FAILED',metricIds:[metric.metricId],message:metric.status==='unavailable'?(noDescription?'样本有岗位但没有有效描述':'样本有岗位但没有有效薪资'):execution.error?.message??'指标结果缺失或校验未通过',retryable:false})
       metrics.push(metric)
     }
   }

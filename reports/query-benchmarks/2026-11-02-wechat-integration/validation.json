@@ -1,0 +1,262 @@
+{
+  "schema": "wechat-query-integration-validation/1",
+  "engine": "talent-query-engine/1.2.0",
+  "filters": [
+    {
+      "id": "all",
+      "filters": {
+        "region": {
+          "level": "city",
+          "name": "广州市",
+          "province": "广东省"
+        },
+        "title": {
+          "any": [],
+          "all": [],
+          "exclude": []
+        },
+        "industries": [
+          {
+            "id": "19",
+            "includeDescendants": true
+          }
+        ],
+        "roles": [],
+        "state": "publishing",
+        "education": [
+          "DAZHUAN",
+          "GAOZHI"
+        ],
+        "experience": [],
+        "jobType": []
+      },
+      "positions": 319
+    },
+    {
+      "id": "vocational",
+      "filters": {
+        "region": {
+          "level": "city",
+          "name": "广州市",
+          "province": "广东省"
+        },
+        "title": {
+          "any": [],
+          "all": [],
+          "exclude": []
+        },
+        "industries": [
+          {
+            "id": "19",
+            "includeDescendants": true
+          }
+        ],
+        "roles": [],
+        "state": "publishing",
+        "education": [
+          "DAZHUAN",
+          "GAOZHI"
+        ],
+        "experience": [
+          "BUXIAN",
+          "GRADUATING",
+          "LESS_THAN_1",
+          "ON_CAMPUS"
+        ],
+        "jobType": []
+      },
+      "positions": 88
+    }
+  ],
+  "requestMetrics": [
+    "city.distribution",
+    "city_education.cross",
+    "city_track.cross",
+    "companies.count",
+    "data_quality.summary",
+    "education.distribution",
+    "education_experience.cross",
+    "experience.distribution",
+    "jobType.distribution",
+    "positions.count",
+    "salary.distribution",
+    "salary.summary",
+    "skills.distribution",
+    "track.distribution",
+    "track_salary.summary",
+    "track_skills.cross"
+  ],
+  "analysis": {
+    "tracks": [
+      {
+        "key": "algo",
+        "label": "算法与感知",
+        "titleAny": [
+          "SLAM",
+          "感知",
+          "算法"
+        ],
+        "roleIds": []
+      },
+      {
+        "key": "electrical",
+        "label": "电子与电控",
+        "titleAny": [
+          "电子",
+          "电控",
+          "电气"
+        ],
+        "roleIds": []
+      },
+      {
+        "key": "operation",
+        "label": "运行与维护",
+        "titleAny": [
+          "运维",
+          "飞手",
+          "驾驶"
+        ],
+        "roleIds": []
+      },
+      {
+        "key": "production",
+        "label": "生产与制造",
+        "titleAny": [
+          "制造",
+          "生产",
+          "装配"
+        ],
+        "roleIds": []
+      }
+    ],
+    "skills": [
+      "Python",
+      "C++",
+      "无人机",
+      "飞控",
+      "嵌入式",
+      "PLC",
+      "CAD",
+      "ROS"
+    ]
+  },
+  "sourceReadTime": "2026-11-02 09:52:40.153379",
+  "dataReadAt": "2026-11-02T09:52:48.068Z",
+  "sourceContentHash": "e7c5da8b71a5c58333eb4671ab2847050446a6af6f657684c090991717cae476",
+  "originalCollectionMs": 17518,
+  "sqlBatchMs": 14858,
+  "queryCount": 10,
+  "resultMetricCount": 32,
+  "qualityAllPass": true,
+  "coverage": [
+    {
+      "section": "overview",
+      "status": "complete"
+    },
+    {
+      "section": "geography",
+      "status": "complete"
+    },
+    {
+      "section": "requirements",
+      "status": "complete"
+    },
+    {
+      "section": "salary",
+      "status": "complete"
+    },
+    {
+      "section": "vocational",
+      "status": "complete"
+    },
+    {
+      "section": "tracks",
+      "status": "complete"
+    },
+    {
+      "section": "city_tracks",
+      "status": "complete"
+    },
+    {
+      "section": "lq",
+      "status": "complete"
+    },
+    {
+      "section": "track_salary",
+      "status": "complete"
+    },
+    {
+      "section": "skills",
+      "status": "complete"
+    },
+    {
+      "section": "track_skills",
+      "status": "complete"
+    }
+  ],
+  "finalCodeSourceProof": {
+    "sqlIdentical": 10,
+    "contentHashVerified": "e7c5da8b71a5c58333eb4671ab2847050446a6af6f657684c090991717cae476",
+    "status": "complete",
+    "allPass": true
+  },
+  "reportPages": 17,
+  "renderAllPass": true,
+  "renderChecks": 31,
+  "pipeline": [
+    {
+      "step": "/home/wlc/project/skill-plaza-foru/.agents/skills/wechat-report/scripts/collect_data.mjs --result data/tq-404822b3-8327-443c-9edf-540052936555/result.json --query-cli /home/wlc/project/skill-plaza-foru/scripts/talent-data-query.mjs",
+      "exitCode": 0,
+      "wallMs": 105
+    },
+    {
+      "step": "/tmp/wechat-live-integration-FCLLkh/scripts/gen_outline.py",
+      "exitCode": 0,
+      "wallMs": 57
+    },
+    {
+      "step": "/tmp/wechat-live-integration-FCLLkh/scripts/verify_data.py --stage data",
+      "exitCode": 0,
+      "wallMs": 54
+    },
+    {
+      "step": "/tmp/wechat-live-integration-FCLLkh/scripts/render_report.py",
+      "exitCode": 0,
+      "wallMs": 9162
+    },
+    {
+      "step": "build_article.py",
+      "exitCode": 0,
+      "wallMs": 55
+    },
+    {
+      "step": "/tmp/wechat-live-integration-FCLLkh/scripts/verify_data.py --stage final",
+      "exitCode": 0,
+      "wallMs": 535
+    },
+    {
+      "step": "evidence_sheet.py",
+      "exitCode": 0,
+      "wallMs": 154
+    },
+    {
+      "step": "pack_delivery.py",
+      "exitCode": 0,
+      "wallMs": 118
+    }
+  ],
+  "raw": "raw/session",
+  "limitations": [
+    "单个小范围真实只读样本，不是省域性能承诺",
+    "开发用户执行；低权Pi在线链路未验证",
+    "像素检查是既有启发式，热力图使用了定向探针兜底；不等同逐格OCR",
+    "未调用微信接口、未改源库DDL、未重启服务"
+  ],
+  "automatedTests": {
+    "passed": 57,
+    "failed": 0,
+    "command": "node --test scripts/talent-data/*.test.mjs"
+  },
+  "webBuild": "passed",
+  "skillValidation": "passed"
+}

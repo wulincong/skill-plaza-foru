@@ -1,4 +1,5 @@
 import { DIMENSIONS, METRICS, sqlString, likeTerm, canonical, hash } from './core.mjs'
+import {trackExpression,skillFields} from './analysis.mjs'
 
 function localPredicates(cohort) {
   const {filters:f,resolved:r}=cohort
@@ -88,7 +89,7 @@ export function buildPlan(request,cohorts) {
     if(fused.has(cohort.id))continue
     const base=cohortWhere(cohort,{needsAddress:needsAddress(request,cohort),industryFirst:useIndustryCandidates(cohort)}),prefix=cohort.id
     jobs.push({id:`${prefix}:base`,cohortId:prefix,kind:'base',fields:Object.keys(baseFields(request)),sql:`SELECT ${jsonRow(baseFields(request))} ${base}`})
-    const dimensions=[...new Set(request.metrics.flatMap(m=>METRICS[m].dimensions??(METRICS[m].dimension&&['education','experience','jobType'].includes(METRICS[m].dimension)?[METRICS[m].dimension]:[])))].sort()
+    const dimensions=[...new Set(request.metrics.filter(m=>!METRICS[m].analysis).flatMap(m=>METRICS[m].dimensions??(METRICS[m].dimension&&['education','experience','jobType'].includes(METRICS[m].dimension)?[METRICS[m].dimension]:[])))].sort()
     if(dimensions.includes('city')&&!dimensions.includes('province'))dimensions.push('province')
     if(dimensions.length) {
       const columns=Object.fromEntries(dimensions.map(d=>[d,clean(DIMENSIONS[d])]))
@@ -104,9 +105,19 @@ export function buildPlan(request,cohorts) {
       const grouping=Object.values(fields).join(',')
       jobs.push({id:`${prefix}:${dimension}`,cohortId:prefix,kind:'dimension',dimension,sql:`SELECT ${jsonRow({...fields,count:'COUNT(*)'})} ${base} AND ${expression} IS NOT NULL GROUP BY ${grouping} ORDER BY COUNT(*) DESC,${grouping} ASC LIMIT ${limit}`})
     }
-    if(request.metrics.some(m=>m.startsWith('salary.'))) {
+    if(request.metrics.some(m=>['track.distribution','city_track.cross'].includes(m))) {
+      const fields={track:trackExpression(request),...(request.metrics.includes('city_track.cross')?{province:clean('a.province'),city:clean('a.city')}:{})}
+      jobs.push({id:`${prefix}:tracks`,cohortId:prefix,kind:'tracks',sql:`SELECT ${jsonRow({...fields,count:'COUNT(*)'})} ${base} GROUP BY ${Object.values(fields).join(',')} LIMIT 40001`})
+    }
+    if(request.metrics.some(m=>['skills.distribution','track_skills.cross'].includes(m))) {
+      const track=request.metrics.includes('track_skills.cross')?trackExpression(request):sqlString('__other__')
+      const hits=`JSON_OBJECT(${Object.entries(skillFields(request)).map(([w,s])=>`${sqlString(w)},${s}`).join(',')})`
+      jobs.push({id:`${prefix}:skills`,cohortId:prefix,kind:'skills',sql:`SELECT ${jsonRow({track,count:'COUNT(*)',describedN:"COALESCE(SUM(NULLIF(TRIM(p.description),'') IS NOT NULL),0)",hits})} ${base} GROUP BY ${track}`})
+    }
+    if(request.metrics.some(m=>m.startsWith('salary.')||m==='track_salary.summary')) {
       const {status,mid}=salaryParts()
-      jobs.push({id:`${prefix}:salary`,cohortId:prefix,kind:'salary',sql:`SELECT ${jsonRow({status,mid:`CASE WHEN (${status})='valid' THEN ${mid} ELSE NULL END`,count:'COUNT(*)'})} ${base} GROUP BY ${status},CASE WHEN (${status})='valid' THEN ${mid} ELSE NULL END LIMIT 40001`})
+      const track=request.metrics.includes('track_salary.summary')?{track:trackExpression(request)}:{}
+      jobs.push({id:`${prefix}:salary`,cohortId:prefix,kind:'salary',sql:`SELECT ${jsonRow({...track,status,mid:`CASE WHEN (${status})='valid' THEN ${mid} ELSE NULL END`,count:'COUNT(*)'})} ${base} GROUP BY ${Object.values(track).map(v=>v+',').join('')}${status},CASE WHEN (${status})='valid' THEN ${mid} ELSE NULL END LIMIT 40001`})
     }
   }
   return {jobs,cohorts,description:'同连接一致性只读统计；按需字段与地址关联；无更新时间窗口时产业候选优先；同产业纯计数组条件聚合',cost:jobs.some(j=>/LIKE|EXISTS|industry_candidates/.test(j.sql))?'heavy-filter':'aggregate',queryCount:jobs.length,logicalCohortCount:cohorts.length}
