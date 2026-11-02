@@ -1,0 +1,70 @@
+{
+  "engine": "talent-query-engine/1.1.0",
+  "status": "complete",
+  "dataReadAt": "2026-11-02T09:02:03.630Z",
+  "sourceLatestUpdateAt": "2026-07-28 11:52:07.000000",
+  "positions": 319,
+  "metrics": [
+    {
+      "name": "city.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "city_education.cross",
+      "status": "complete"
+    },
+    {
+      "name": "companies.count",
+      "status": "complete"
+    },
+    {
+      "name": "data_quality.summary",
+      "status": "complete"
+    },
+    {
+      "name": "education.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "education_experience.cross",
+      "status": "complete"
+    },
+    {
+      "name": "experience.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "jobType.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "positions.count",
+      "status": "complete"
+    },
+    {
+      "name": "province.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "salary.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "salary.summary",
+      "status": "complete"
+    },
+    {
+      "name": "source.distribution",
+      "status": "complete"
+    },
+    {
+      "name": "title.top",
+      "status": "complete"
+    }
+  ],
+  "dataQualityEvaluated": true,
+  "allPass": true,
+  "sqlCount": 5,
+  "contentHash": "62c2db67ec19aa6de878e9883497eae06398bc9e9f1f820a427492ef78fcd2fe",
+  "rawResult": "raw/statistics-smoke-1793610117493/data/tq-441c9955-fe6f-4eb1-92e7-b3ca0b2e57a2/result.json"
+}

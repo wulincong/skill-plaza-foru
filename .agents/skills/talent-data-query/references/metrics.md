@@ -6,6 +6,7 @@
 |---|---|
 | positions.count | 样本内去重岗位主键记录数 |
 | companies.count | 非空且非 0 的企业 ID 去重数；missingN 表示企业 ID 缺失的岗位记录数 |
+| data_quality.summary | 按需计算企业 ID、地址关联、省、市、岗位名与来源缺失数，以及样本内最大平台更新时间；各项可能重叠，不能相加为缺失总人数 |
 | education.distribution | 原始学历枚举；保留缺失、未知，不合并学历不限与缺失 |
 | experience.distribution | 在校、应届、不限、年限上界桶；LESS_THAN_3 是 3 年以内，不解释为 1–3 年 |
 | jobType.distribution | 社招、校招、实习、兼职等原始招聘类型；与经验标签及名称“实习”分开 |
@@ -22,6 +23,8 @@
 salary-policy/1 要求两端为严格数值（最多六位小数），0 < min <= max <= 100 K/月；区分 missing、non_numeric、non_positive、reversed、above_cap。原始有效小数保留，不先转整数；超过上限被剔除不代表这些岗位不存在。中点频数用于加权均值和分位数，分位数线性插值 h=(n-1)*p，最后展示舍入到六位小数。薪酬为招聘声明区间中点，不是实际收入。
 
 低基数联合分组必须与基础总量对账；薪资有效量+排除量必须等于总量。计数使用可安全表示的整数，share 范围 0–1。未知/失败值不填 0；全部缺薪资返回 unavailable/null。
+
+默认统计只计算所需字段。`positions.count` 的 missingN=0 表示岗位主键计数本身无缺失，不代表地区等属性完整；未请求质量指标时 `cohorts[].missingAddressN`、`freshness.sourceLatestUpdateAt` 为 null，`quality.dataQualityEvaluated=false`。`quality.allPass` 表示请求指标校验通过，不代表已评估所有源字段质量。地域分布等指标仍计算自身所需的缺失量；需要完整缺失率时增加 `data_quality.summary`，用各项缺失数除以同组 positions/denominator。
 
 每个指标有稳定 name、样本内 metricId、metricVersion、cohortFingerprint、method 和实际 evidenceIds；contentHash 绑定筛选、值、方法与质量，不绑定临时文件路径。两组对比输出第二组减第一组；占比差单位为百分点，薪酬差仍为 K/月。
 

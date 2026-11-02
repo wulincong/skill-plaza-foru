@@ -1,8 +1,8 @@
 # 数据域与语义
 
 - 岗位：c_company_position；默认 publish_state=PUBLISHING、deleted=0。统计单位是岗位主键记录；重复平台抓取与同一企业多个职位不自动合并。
-- 地域：company_address_id → c_company_address.id，按 province/city；全国统计使用 LEFT JOIN 保留缺失地址。缺失地址不能归属特定省市。省份别名采用有版本的静态映射，市名在真实地址表解析；未识别省份/城市不回退全国。
-- 产业：c_position_chain（deleted=0）关联 c_industry_chain_info；树按 pid 在小字典中展开。EXISTS 限制岗位集合，避免一岗多链重复计数；不同产业组仍可能重叠，组间占比不能相加。
+- 地域：company_address_id → c_company_address.id，按 province/city；全国统计不剔除缺失地址，纯计数省略地址关联，需要地域分布或地址质量时用 LEFT JOIN。缺失地址不能归属特定省市。省份别名采用有版本的静态映射，市名在真实地址表解析；未识别省份/城市不回退全国。
+- 产业：c_position_chain（deleted=0）关联 c_industry_chain_info；树按 pid 在小字典中展开。默认先去重关系中的 position_id 再关联岗位，带更新时间窗口时使用 EXISTS 限制集合，两者都避免一岗多链重复计数；不同产业组仍可能重叠，组间占比不能相加。
 - 岗位类型：c_position_type；主表 position_type 是逗号包围的 ID 串，以完整 token 匹配，避免 15 命中 115。与产业树是两个命名空间。一个岗位可有多类型；首期支持筛选，不输出虚构的互斥岗位类型分布。
 - 名称：title.any/all/exclude 是岗位名检索，不能声称覆盖整个产业。当前中文 FULLTEXT 召回与 LIKE 不等价，因此不为提速替换谓词。
 - 专业：已发现专业库与有效专业—岗位类型关系，但首期尚未提供经过完整验收的专业查询；不能把专业名称直接当岗位词，不能使用未经验证的派生“匹配率”。

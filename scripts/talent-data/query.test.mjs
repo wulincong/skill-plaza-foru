@@ -19,7 +19,7 @@ const base=(n=4)=>({count:n,latestUpdate:'2026-10-31 12:00:00',missingCompany:n?
 const cube=()=>[{education:'BENKE',experience:'LESS_THAN_3',jobType:'SHEZHAO',count:3},{education:null,experience:'BUXIAN',jobType:'SHIXI',count:1}]
 const salary=()=>[{status:'valid',mid:6.5,count:3},{status:'missing',mid:null,count:1}]
 function execution(plan,overrides={}) {
-  return {startedAt:new Date().toISOString(),dataReadAt:new Date().toISOString(),sourceReadTime:'2026-11-02 00:00:00',elapsedMs:3,returnedBytes:200,logs:plan.jobs.map(j=>({...j,completed:true,elapsedMs:1,rows:j.kind==='base'?[base()]:j.kind==='salary'?salary():j.kind==='cube'?cube():[{[j.dimension]:'sample',count:4}]})),...overrides}
+  return {startedAt:new Date().toISOString(),dataReadAt:new Date().toISOString(),sourceReadTime:'2026-11-02 00:00:00',elapsedMs:3,returnedBytes:200,logs:plan.jobs.map(j=>({...j,completed:true,elapsedMs:1,rows:j.kind==='cohort-counts'?[{counts:Object.fromEntries(j.cohortIds.map(id=>[id,4]))}]:j.kind==='base'?[Object.fromEntries((j.fields??Object.keys(base())).map(key=>[key,base()[key]]))]:j.kind==='salary'?salary():j.kind==='cube'?cube():[{[j.dimension]:'sample',count:4}]})),...overrides}
 }
 async function temporary(t) {const dir=await mkdtemp(join(tmpdir(),'talent-query-test-'));t.after(()=>rm(dir,{recursive:true,force:true}));return dir}
 class FakeAdapter {
@@ -258,7 +258,7 @@ test('cache age is measured from original data read, not cache file creation',as
 })
 test('known empty cohorts still have a valid zero count difference',()=>{
   const r=validateRequest(request(['positions.count'],{cohorts:[{id:'a',filters:{region:{level:'national'}}},{id:'b',filters:{region:{level:'national'}}}]})),plan=buildPlan(r,resolveCohorts(r)),e=execution(plan)
-  e.logs.find(j=>j.id==='b:base').rows=[base(0)]
+  e.logs.find(j=>j.kind==='cohort-counts').rows[0].counts.b=0
   const result=buildResult(r,plan,e)
   assert.equal(result.comparisons[0].value,-4)
 })

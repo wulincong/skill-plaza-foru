@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const VERSION = 'talent-query-engine/1.0.0'
+export const VERSION = 'talent-query-engine/1.1.0'
 export class QueryError extends Error {
   constructor(code, message, details = {}) { super(message); this.code = code; this.details = details }
 }
@@ -49,9 +49,10 @@ export const METRICS = {
   'city_education.cross': { kind: 'cross', unit: 'job_records', dimensions: ['city', 'education'], description: '城市×学历交叉频数' },
   'salary.summary': { kind: 'summary', unit: 'K_CNY/month', description: '区间中点均值与 P25/P50/P75/P90' },
   'salary.distribution': { kind: 'distribution', unit: 'job_records', description: '有效薪资区间中点分箱' },
+  'data_quality.summary': { kind: 'summary', unit: 'job_records', description: '按需统计地址/省市/企业/名称/来源缺失量，并读取样本最大平台更新时间' },
 }
 export const DIMENSIONS = { education: 'p.education', experience: 'p.experience', jobType: 'p.type', source: 'p.data_source', city: 'a.city', province: 'a.province', title: 'p.name' }
-export const LIMITS = { cohorts: 4, metrics: 13, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
+export const LIMITS = { cohorts: 4, metrics: 14, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
 
 function selectors(raw = [], label) {
   if (!Array.isArray(raw) || raw.length > 8) fail('INVALID_REQUEST', `${label} 最多 8 项`)
@@ -115,8 +116,8 @@ export function validateRequest(raw) {
 // UTF-8 hex literals have no quote/backslash SQL-mode ambiguity. LIKE wildcards are literal by default.
 export const sqlString = value => `CONVERT(X'${Buffer.from(String(value),'utf8').toString('hex')}' USING utf8mb4)`
 export const likeTerm = value => sqlString(`%${value.replaceAll('!','!!').replaceAll('%','!%').replaceAll('_','!_')}%`)
-export function semanticRequest(request) {
-  return { schema: request.schema, sourceId: request.sourceId, cohorts: request.cohorts, metrics: request.metrics, policies: request.policies, topN: request.output.topN, engine: VERSION }
+export function semanticRequest(request,engine=VERSION) {
+  return { schema: request.schema, sourceId: request.sourceId, cohorts: request.cohorts, metrics: request.metrics, policies: request.policies, topN: request.output.topN, engine }
 }
 export function capabilities() {
   return { schema: 'talent-capabilities/1', engine: VERSION, sourceIds: ['talent-main'], operations: ['capabilities','resolve','plan','query','inspect','export'], filters: ['region','title.any','title.all','title.exclude','industries','roles','education','experience','jobType','updatedAt','state'], metrics: METRICS, enums: ENUMS, limits: LIMITS, policies: ['cohort-policy/1','category-policy/1','salary-policy/1'], unsupported: ['专业关联（P1）','岗位描述/技能文本（P1）','岗位真实发布时间趋势','就业率/市场总量','任意SQL'], defaultFreshness: 'cache-ok', maxCacheAgeMs: 900000 }

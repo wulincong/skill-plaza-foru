@@ -1,0 +1,53 @@
+{
+  "schema": "talent-industry-benchmark-mapping/1",
+  "source": "c_industry_chain_info",
+  "resolvedAt": "2026-11-02T07:46:29.247Z",
+  "includeDescendants": true,
+  "industries": [
+    {
+      "label": "智慧交通",
+      "dictionaryName": "智慧交通",
+      "id": "16764",
+      "level": 0,
+      "descendantCount": 101,
+      "selectedNodeCount": 102,
+      "dictionaryVersion": "840bfe874b91a9fef4f997d8d23f014927ed8904b5e7e3d326267a4a64a785e0"
+    },
+    {
+      "label": "机器人",
+      "dictionaryName": "机器人",
+      "id": "15",
+      "level": 0,
+      "descendantCount": 119,
+      "selectedNodeCount": 120,
+      "dictionaryVersion": "840bfe874b91a9fef4f997d8d23f014927ed8904b5e7e3d326267a4a64a785e0"
+    },
+    {
+      "label": "低空经济",
+      "dictionaryName": "低空经济",
+      "id": "19",
+      "level": 0,
+      "descendantCount": 76,
+      "selectedNodeCount": 77,
+      "dictionaryVersion": "840bfe874b91a9fef4f997d8d23f014927ed8904b5e7e3d326267a4a64a785e0"
+    },
+    {
+      "label": "新能源",
+      "dictionaryName": "新能源产业",
+      "id": "44",
+      "level": 0,
+      "descendantCount": 204,
+      "selectedNodeCount": 205,
+      "dictionaryVersion": "840bfe874b91a9fef4f997d8d23f014927ed8904b5e7e3d326267a4a64a785e0"
+    },
+    {
+      "label": "生物医药",
+      "dictionaryName": "生物医药",
+      "id": "39",
+      "level": 0,
+      "descendantCount": 112,
+      "selectedNodeCount": 113,
+      "dictionaryVersion": "840bfe874b91a9fef4f997d8d23f014927ed8904b5e7e3d326267a4a64a785e0"
+    }
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "schema": "talent-query-batch-benchmark/1",
+  "runId": "2026-11-02T08-53-17.330Z-1dc3e457",
+  "protocol": {
+    "sequential": true,
+    "measurementsPerCase": 1,
+    "applicationResultCache": "bypassed (live)",
+    "mysqlBufferPool": "not reset",
+    "timeoutPerSqlMs": 180000,
+    "deadlinePerRequestMs": 240000,
+    "primaryTiming": "CLI start to process close, monotonic clock",
+    "secondaryTiming": "MysqlAdapter whole batch duration including connection/transfer; not pure server SQL duration",
+    "queryUnit": "one business request; every case uses positions.count and compiles to one statistical SELECT"
+  },
+  "results": [
+    {
+      "id": "B1",
+      "industry": "智慧交通",
+      "startedAt": "2026-11-02T08:53:17.331Z",
+      "finishedAt": "2026-11-02T08:53:20.097Z",
+      "wallMs": 2702,
+      "sqlBatchMs": 2321,
+      "sqlCount": 1,
+      "logicalCohortCount": 4,
+      "sourceReadTime": "2026-11-02 08:53:17.521562",
+      "counts": {
+        "Q01": 35976,
+        "Q02": 3976,
+        "Q03": 198,
+        "Q04": 23
+      },
+      "rawResult": "raw/2026-11-02T08-53-17.330Z-1dc3e457/B1/data/tq-518abd0b-cfe1-4e17-9da4-82ee87b64b0c/result.json",
+      "contentHash": "3282f715d944ff08747b97f662bc1f7e8dfc8a8a742e5fc2f6de58f9a3f383b4",
+      "sqlFile": "sql/B1.sql"
+    },
+    {
+      "id": "B2",
+      "industry": "机器人",
+      "startedAt": "2026-11-02T08:53:20.101Z",
+      "finishedAt": "2026-11-02T08:53:27.165Z",
+      "wallMs": 7004,
+      "sqlBatchMs": 6602,
+      "sqlCount": 1,
+      "logicalCohortCount": 4,
+      "sourceReadTime": "2026-11-02 08:53:20.287946",
+      "counts": {
+        "Q05": 125377,
+        "Q06": 21854,
+        "Q07": 1288,
+        "Q08": 243
+      },
+      "rawResult": "raw/2026-11-02T08-53-17.330Z-1dc3e457/B2/data/tq-f46970e5-4671-4aeb-b3d7-2004f0e8df6a/result.json",
+      "contentHash": "1f790b4cdec1cd84b9ccef75c2f105eb79e0ef3ce47a94710361f6a0a005e0d6",
+      "sqlFile": "sql/B2.sql"
+    },
+    {
+      "id": "B3",
+      "industry": "低空经济",
+      "startedAt": "2026-11-02T08:53:27.172Z",
+      "finishedAt": "2026-11-02T08:53:28.310Z",
+      "wallMs": 1080,
+      "sqlBatchMs": 697,
+      "sqlCount": 1,
+      "logicalCohortCount": 4,
+      "sourceReadTime": "2026-11-02 08:53:27.364137",
+      "counts": {
+        "Q09": 10560,
+        "Q10": 2299,
+        "Q11": 319,
+        "Q12": 32
+      },
+      "rawResult": "raw/2026-11-02T08-53-17.330Z-1dc3e457/B3/data/tq-fcf50371-e963-4b7b-954f-abe2323ae09d/result.json",
+      "contentHash": "06592b70a3cb627bd6520f522ca999ed932f7fd8f90821bca76b0cb21189eeb4",
+      "sqlFile": "sql/B3.sql"
+    },
+    {
+      "id": "B4",
+      "industry": "新能源",
+      "startedAt": "2026-11-02T08:53:28.311Z",
+      "finishedAt": "2026-11-02T08:53:33.069Z",
+      "wallMs": 4693,
+      "sqlBatchMs": 4314,
+      "sqlCount": 1,
+      "logicalCohortCount": 4,
+      "sourceReadTime": "2026-11-02 08:53:28.506452",
+      "counts": {
+        "Q13": 91676,
+        "Q14": 15139,
+        "Q15": 974,
+        "Q16": 37
+      },
+      "rawResult": "raw/2026-11-02T08-53-17.330Z-1dc3e457/B4/data/tq-f21bc8e0-4b56-4014-a39b-af3c37cd8e6e/result.json",
+      "contentHash": "a53b8bc6d2d34090c286b5fb0bbae1c55d3b5c305b82179b1a4ade57e4980e8a",
+      "sqlFile": "sql/B4.sql"
+    },
+    {
+      "id": "B5",
+      "industry": "生物医药",
+      "startedAt": "2026-11-02T08:53:33.070Z",
+      "finishedAt": "2026-11-02T08:53:42.900Z",
+      "wallMs": 9759,
+      "sqlBatchMs": 9366,
+      "sqlCount": 1,
+      "logicalCohortCount": 4,
+      "sourceReadTime": "2026-11-02 08:53:33.257075",
+      "counts": {
+        "Q17": 273360,
+        "Q18": 28375,
+        "Q19": 3169,
+        "Q20": 53
+      },
+      "rawResult": "raw/2026-11-02T08-53-17.330Z-1dc3e457/B5/data/tq-e87e83c5-8f8e-4c3a-ba50-3f9ce281ea8a/result.json",
+      "contentHash": "b63caa40350e0317f44c265a7f6837383c6ad7f695a262e045cace80ed5f06f6",
+      "sqlFile": "sql/B5.sql"
+    }
+  ],
+  "summary": {
+    "requests": 5,
+    "answers": 20,
+    "totalWallMs": 25238,
+    "totalSqlBatchMs": 23300
+  }
+}

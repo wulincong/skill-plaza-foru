@@ -1,0 +1,884 @@
+{
+  "schema": "talent-query-benchmark-suite/1",
+  "createdAt": "2026-11-02T08:50:35.890427+00:00",
+  "engine": "talent-query-engine/1.1.0",
+  "protocol": {
+    "sequential": true,
+    "measurementsPerCase": 1,
+    "applicationResultCache": "bypassed (live)",
+    "mysqlBufferPool": "not reset",
+    "timeoutPerSqlMs": 180000,
+    "deadlinePerRequestMs": 240000,
+    "primaryTiming": "CLI start to process close, monotonic clock",
+    "secondaryTiming": "MysqlAdapter whole batch duration including connection/transfer; not pure server SQL duration",
+    "queryUnit": "one business request; every case uses positions.count and compiles to one statistical SELECT"
+  },
+  "cases": [
+    {
+      "id": "Q01",
+      "industry": "智慧交通",
+      "industryId": "16764",
+      "variant": "national",
+      "label": "智慧交通：全国在招岗位总数",
+      "question": "全国在招岗位中，属于智慧交通产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "national"
+              },
+              "industries": [
+                {
+                  "id": "16764",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q02",
+      "industry": "智慧交通",
+      "industryId": "16764",
+      "variant": "guangdong",
+      "label": "智慧交通：广东省在招岗位总数",
+      "question": "广东省在招岗位中，属于智慧交通产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "province",
+                "name": "广东省"
+              },
+              "industries": [
+                {
+                  "id": "16764",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q03",
+      "industry": "智慧交通",
+      "industryId": "16764",
+      "variant": "guangzhou_college",
+      "label": "智慧交通：广州市明确要求大专/高职的在招岗位数",
+      "question": "广州市明确要求大专/高职的在招岗位中，属于智慧交通产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "广州市"
+              },
+              "industries": [
+                {
+                  "id": "16764",
+                  "includeDescendants": true
+                }
+              ],
+              "education": [
+                "DAZHUAN",
+                "GAOZHI"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q04",
+      "industry": "智慧交通",
+      "industryId": "16764",
+      "variant": "shenzhen_graduate",
+      "label": "智慧交通：深圳市经验标注应届生/在校生的在招岗位数",
+      "question": "深圳市经验标注应届生/在校生的在招岗位中，属于智慧交通产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "深圳市"
+              },
+              "industries": [
+                {
+                  "id": "16764",
+                  "includeDescendants": true
+                }
+              ],
+              "experience": [
+                "GRADUATING",
+                "ON_CAMPUS"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q05",
+      "industry": "机器人",
+      "industryId": "15",
+      "variant": "national",
+      "label": "机器人：全国在招岗位总数",
+      "question": "全国在招岗位中，属于机器人产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "national"
+              },
+              "industries": [
+                {
+                  "id": "15",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q06",
+      "industry": "机器人",
+      "industryId": "15",
+      "variant": "guangdong",
+      "label": "机器人：广东省在招岗位总数",
+      "question": "广东省在招岗位中，属于机器人产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "province",
+                "name": "广东省"
+              },
+              "industries": [
+                {
+                  "id": "15",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q07",
+      "industry": "机器人",
+      "industryId": "15",
+      "variant": "guangzhou_college",
+      "label": "机器人：广州市明确要求大专/高职的在招岗位数",
+      "question": "广州市明确要求大专/高职的在招岗位中，属于机器人产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "广州市"
+              },
+              "industries": [
+                {
+                  "id": "15",
+                  "includeDescendants": true
+                }
+              ],
+              "education": [
+                "DAZHUAN",
+                "GAOZHI"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q08",
+      "industry": "机器人",
+      "industryId": "15",
+      "variant": "shenzhen_graduate",
+      "label": "机器人：深圳市经验标注应届生/在校生的在招岗位数",
+      "question": "深圳市经验标注应届生/在校生的在招岗位中，属于机器人产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "深圳市"
+              },
+              "industries": [
+                {
+                  "id": "15",
+                  "includeDescendants": true
+                }
+              ],
+              "experience": [
+                "GRADUATING",
+                "ON_CAMPUS"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q09",
+      "industry": "低空经济",
+      "industryId": "19",
+      "variant": "national",
+      "label": "低空经济：全国在招岗位总数",
+      "question": "全国在招岗位中，属于低空经济产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "national"
+              },
+              "industries": [
+                {
+                  "id": "19",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q10",
+      "industry": "低空经济",
+      "industryId": "19",
+      "variant": "guangdong",
+      "label": "低空经济：广东省在招岗位总数",
+      "question": "广东省在招岗位中，属于低空经济产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "province",
+                "name": "广东省"
+              },
+              "industries": [
+                {
+                  "id": "19",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q11",
+      "industry": "低空经济",
+      "industryId": "19",
+      "variant": "guangzhou_college",
+      "label": "低空经济：广州市明确要求大专/高职的在招岗位数",
+      "question": "广州市明确要求大专/高职的在招岗位中，属于低空经济产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "广州市"
+              },
+              "industries": [
+                {
+                  "id": "19",
+                  "includeDescendants": true
+                }
+              ],
+              "education": [
+                "DAZHUAN",
+                "GAOZHI"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q12",
+      "industry": "低空经济",
+      "industryId": "19",
+      "variant": "shenzhen_graduate",
+      "label": "低空经济：深圳市经验标注应届生/在校生的在招岗位数",
+      "question": "深圳市经验标注应届生/在校生的在招岗位中，属于低空经济产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "深圳市"
+              },
+              "industries": [
+                {
+                  "id": "19",
+                  "includeDescendants": true
+                }
+              ],
+              "experience": [
+                "GRADUATING",
+                "ON_CAMPUS"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q13",
+      "industry": "新能源",
+      "industryId": "44",
+      "variant": "national",
+      "label": "新能源：全国在招岗位总数",
+      "question": "全国在招岗位中，属于新能源产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "national"
+              },
+              "industries": [
+                {
+                  "id": "44",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q14",
+      "industry": "新能源",
+      "industryId": "44",
+      "variant": "guangdong",
+      "label": "新能源：广东省在招岗位总数",
+      "question": "广东省在招岗位中，属于新能源产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "province",
+                "name": "广东省"
+              },
+              "industries": [
+                {
+                  "id": "44",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q15",
+      "industry": "新能源",
+      "industryId": "44",
+      "variant": "guangzhou_college",
+      "label": "新能源：广州市明确要求大专/高职的在招岗位数",
+      "question": "广州市明确要求大专/高职的在招岗位中，属于新能源产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "广州市"
+              },
+              "industries": [
+                {
+                  "id": "44",
+                  "includeDescendants": true
+                }
+              ],
+              "education": [
+                "DAZHUAN",
+                "GAOZHI"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q16",
+      "industry": "新能源",
+      "industryId": "44",
+      "variant": "shenzhen_graduate",
+      "label": "新能源：深圳市经验标注应届生/在校生的在招岗位数",
+      "question": "深圳市经验标注应届生/在校生的在招岗位中，属于新能源产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "深圳市"
+              },
+              "industries": [
+                {
+                  "id": "44",
+                  "includeDescendants": true
+                }
+              ],
+              "experience": [
+                "GRADUATING",
+                "ON_CAMPUS"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q17",
+      "industry": "生物医药",
+      "industryId": "39",
+      "variant": "national",
+      "label": "生物医药：全国在招岗位总数",
+      "question": "全国在招岗位中，属于生物医药产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "national"
+              },
+              "industries": [
+                {
+                  "id": "39",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q18",
+      "industry": "生物医药",
+      "industryId": "39",
+      "variant": "guangdong",
+      "label": "生物医药：广东省在招岗位总数",
+      "question": "广东省在招岗位中，属于生物医药产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "province",
+                "name": "广东省"
+              },
+              "industries": [
+                {
+                  "id": "39",
+                  "includeDescendants": true
+                }
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q19",
+      "industry": "生物医药",
+      "industryId": "39",
+      "variant": "guangzhou_college",
+      "label": "生物医药：广州市明确要求大专/高职的在招岗位数",
+      "question": "广州市明确要求大专/高职的在招岗位中，属于生物医药产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "广州市"
+              },
+              "industries": [
+                {
+                  "id": "39",
+                  "includeDescendants": true
+                }
+              ],
+              "education": [
+                "DAZHUAN",
+                "GAOZHI"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    },
+    {
+      "id": "Q20",
+      "industry": "生物医药",
+      "industryId": "39",
+      "variant": "shenzhen_graduate",
+      "label": "生物医药：深圳市经验标注应届生/在校生的在招岗位数",
+      "question": "深圳市经验标注应届生/在校生的在招岗位中，属于生物医药产业的岗位记录有多少条？",
+      "request": {
+        "schema": "talent-query/1",
+        "sourceId": "talent-main",
+        "cohorts": [
+          {
+            "id": "target",
+            "filters": {
+              "region": {
+                "level": "city",
+                "province": "广东省",
+                "name": "深圳市"
+              },
+              "industries": [
+                {
+                  "id": "39",
+                  "includeDescendants": true
+                }
+              ],
+              "experience": [
+                "GRADUATING",
+                "ON_CAMPUS"
+              ],
+              "state": "publishing"
+            }
+          }
+        ],
+        "metrics": [
+          "positions.count"
+        ],
+        "execution": {
+          "freshness": "live",
+          "timeoutMs": 180000,
+          "deadlineMs": 240000
+        },
+        "output": {
+          "previewRows": 0
+        }
+      }
+    }
+  ],
+  "baseline": "../2026-11-02-five-industries/results.json"
+}

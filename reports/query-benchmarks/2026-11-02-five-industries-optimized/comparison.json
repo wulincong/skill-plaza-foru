@@ -1,0 +1,293 @@
+{
+  "schema": "talent-query-benchmark-comparison/1",
+  "baseline": {
+    "requests": 20,
+    "totalMs": 1518752,
+    "meanMs": 75937.6,
+    "min": {
+      "id": "Q12",
+      "ms": 41754
+    },
+    "max": {
+      "id": "Q17",
+      "ms": 99322
+    }
+  },
+  "optimized": {
+    "requests": 20,
+    "totalMs": 133118,
+    "meanMs": 6655.9,
+    "min": {
+      "id": "Q12",
+      "ms": 495
+    },
+    "max": {
+      "id": "Q06",
+      "ms": 13434
+    }
+  },
+  "merged": {
+    "requests": 5,
+    "totalMs": 25238,
+    "meanMs": 5047.6,
+    "min": {
+      "id": "B3",
+      "ms": 1080
+    },
+    "max": {
+      "id": "B5",
+      "ms": 9759
+    }
+  },
+  "independentSpeedup": 11.409065641010232,
+  "independentTimeReduction": 0.9123504034891806,
+  "mergedSpeedupAgainstBaseline": 60.17719312148348,
+  "mergedSpeedupAgainstIndependent": 5.274506696251684,
+  "mergedAmortizedMsPerAnswer": 1261.9,
+  "baselineCountMatches": 17,
+  "batchCountMatches": 20,
+  "sameSnapshotChecks": 20,
+  "sameSnapshotAllPass": true,
+  "comparisons": [
+    {
+      "id": "Q01",
+      "industry": "智慧交通",
+      "label": "智慧交通：全国在招岗位总数",
+      "baselinePositions": 34835,
+      "optimizedPositions": 35976,
+      "delta": 1141,
+      "baselineWallMs": 90011,
+      "optimizedWallMs": 4975,
+      "speedup": 18.092663316582914,
+      "batchMatches": true
+    },
+    {
+      "id": "Q02",
+      "industry": "智慧交通",
+      "label": "智慧交通：广东省在招岗位总数",
+      "baselinePositions": 3947,
+      "optimizedPositions": 3976,
+      "delta": 29,
+      "baselineWallMs": 94105,
+      "optimizedWallMs": 4501,
+      "speedup": 20.90757609420129,
+      "batchMatches": true
+    },
+    {
+      "id": "Q03",
+      "industry": "智慧交通",
+      "label": "智慧交通：广州市明确要求大专/高职的在招岗位数",
+      "baselinePositions": 197,
+      "optimizedPositions": 198,
+      "delta": 1,
+      "baselineWallMs": 74671,
+      "optimizedWallMs": 6355,
+      "speedup": 11.749960660896932,
+      "batchMatches": true
+    },
+    {
+      "id": "Q04",
+      "industry": "智慧交通",
+      "label": "智慧交通：深圳市经验标注应届生/在校生的在招岗位数",
+      "baselinePositions": 23,
+      "optimizedPositions": 23,
+      "delta": 0,
+      "baselineWallMs": 47460,
+      "optimizedWallMs": 5560,
+      "speedup": 8.535971223021583,
+      "batchMatches": true
+    },
+    {
+      "id": "Q05",
+      "industry": "机器人",
+      "label": "机器人：全国在招岗位总数",
+      "baselinePositions": 125377,
+      "optimizedPositions": 125377,
+      "delta": 0,
+      "baselineWallMs": 93657,
+      "optimizedWallMs": 11048,
+      "speedup": 8.477280955829109,
+      "batchMatches": true
+    },
+    {
+      "id": "Q06",
+      "industry": "机器人",
+      "label": "机器人：广东省在招岗位总数",
+      "baselinePositions": 21854,
+      "optimizedPositions": 21854,
+      "delta": 0,
+      "baselineWallMs": 95550,
+      "optimizedWallMs": 13434,
+      "speedup": 7.1125502456453775,
+      "batchMatches": true
+    },
+    {
+      "id": "Q07",
+      "industry": "机器人",
+      "label": "机器人：广州市明确要求大专/高职的在招岗位数",
+      "baselinePositions": 1288,
+      "optimizedPositions": 1288,
+      "delta": 0,
+      "baselineWallMs": 69437,
+      "optimizedWallMs": 11250,
+      "speedup": 6.172177777777778,
+      "batchMatches": true
+    },
+    {
+      "id": "Q08",
+      "industry": "机器人",
+      "label": "机器人：深圳市经验标注应届生/在校生的在招岗位数",
+      "baselinePositions": 243,
+      "optimizedPositions": 243,
+      "delta": 0,
+      "baselineWallMs": 44374,
+      "optimizedWallMs": 10171,
+      "speedup": 4.362796185232524,
+      "batchMatches": true
+    },
+    {
+      "id": "Q09",
+      "industry": "低空经济",
+      "label": "低空经济：全国在招岗位总数",
+      "baselinePositions": 10560,
+      "optimizedPositions": 10560,
+      "delta": 0,
+      "baselineWallMs": 88774,
+      "optimizedWallMs": 790,
+      "speedup": 112.37215189873417,
+      "batchMatches": true
+    },
+    {
+      "id": "Q10",
+      "industry": "低空经济",
+      "label": "低空经济：广东省在招岗位总数",
+      "baselinePositions": 2299,
+      "optimizedPositions": 2299,
+      "delta": 0,
+      "baselineWallMs": 98117,
+      "optimizedWallMs": 781,
+      "speedup": 125.62996158770807,
+      "batchMatches": true
+    },
+    {
+      "id": "Q11",
+      "industry": "低空经济",
+      "label": "低空经济：广州市明确要求大专/高职的在招岗位数",
+      "baselinePositions": 319,
+      "optimizedPositions": 319,
+      "delta": 0,
+      "baselineWallMs": 64302,
+      "optimizedWallMs": 683,
+      "speedup": 94.14641288433383,
+      "batchMatches": true
+    },
+    {
+      "id": "Q12",
+      "industry": "低空经济",
+      "label": "低空经济：深圳市经验标注应届生/在校生的在招岗位数",
+      "baselinePositions": 32,
+      "optimizedPositions": 32,
+      "delta": 0,
+      "baselineWallMs": 41754,
+      "optimizedWallMs": 495,
+      "speedup": 84.35151515151514,
+      "batchMatches": true
+    },
+    {
+      "id": "Q13",
+      "industry": "新能源",
+      "label": "新能源：全国在招岗位总数",
+      "baselinePositions": 91676,
+      "optimizedPositions": 91676,
+      "delta": 0,
+      "baselineWallMs": 88748,
+      "optimizedWallMs": 4515,
+      "speedup": 19.6562569213732,
+      "batchMatches": true
+    },
+    {
+      "id": "Q14",
+      "industry": "新能源",
+      "label": "新能源：广东省在招岗位总数",
+      "baselinePositions": 15139,
+      "optimizedPositions": 15139,
+      "delta": 0,
+      "baselineWallMs": 95816,
+      "optimizedWallMs": 5466,
+      "speedup": 17.529454811562385,
+      "batchMatches": true
+    },
+    {
+      "id": "Q15",
+      "industry": "新能源",
+      "label": "新能源：广州市明确要求大专/高职的在招岗位数",
+      "baselinePositions": 974,
+      "optimizedPositions": 974,
+      "delta": 0,
+      "baselineWallMs": 70676,
+      "optimizedWallMs": 4701,
+      "speedup": 15.034248032333545,
+      "batchMatches": true
+    },
+    {
+      "id": "Q16",
+      "industry": "新能源",
+      "label": "新能源：深圳市经验标注应届生/在校生的在招岗位数",
+      "baselinePositions": 37,
+      "optimizedPositions": 37,
+      "delta": 0,
+      "baselineWallMs": 45768,
+      "optimizedWallMs": 4633,
+      "speedup": 9.878696309086985,
+      "batchMatches": true
+    },
+    {
+      "id": "Q17",
+      "industry": "生物医药",
+      "label": "生物医药：全国在招岗位总数",
+      "baselinePositions": 273360,
+      "optimizedPositions": 273360,
+      "delta": 0,
+      "baselineWallMs": 99322,
+      "optimizedWallMs": 10156,
+      "speedup": 9.779637652619142,
+      "batchMatches": true
+    },
+    {
+      "id": "Q18",
+      "industry": "生物医药",
+      "label": "生物医药：广东省在招岗位总数",
+      "baselinePositions": 28375,
+      "optimizedPositions": 28375,
+      "delta": 0,
+      "baselineWallMs": 98092,
+      "optimizedWallMs": 12635,
+      "speedup": 7.763514048278592,
+      "batchMatches": true
+    },
+    {
+      "id": "Q19",
+      "industry": "生物医药",
+      "label": "生物医药：广州市明确要求大专/高职的在招岗位数",
+      "baselinePositions": 3169,
+      "optimizedPositions": 3169,
+      "delta": 0,
+      "baselineWallMs": 70503,
+      "optimizedWallMs": 12568,
+      "speedup": 5.609723106301718,
+      "batchMatches": true
+    },
+    {
+      "id": "Q20",
+      "industry": "生物医药",
+      "label": "生物医药：深圳市经验标注应届生/在校生的在招岗位数",
+      "baselinePositions": 53,
+      "optimizedPositions": 53,
+      "delta": 0,
+      "baselineWallMs": 47615,
+      "optimizedWallMs": 8401,
+      "speedup": 5.667777645518391,
+      "batchMatches": true
+    }
+  ]
+}

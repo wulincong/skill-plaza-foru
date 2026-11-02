@@ -1,0 +1,193 @@
+{
+  "schema": "talent-query-parity/1",
+  "runId": "2026-11-02T08-58-48.236Z-908e5210",
+  "consistency": "one repeatable-read read-only transaction per industry",
+  "results": [
+    {
+      "industry": "智慧交通",
+      "sourceReadTime": "2026-11-02 08:58:48.410370",
+      "completeTransaction": true,
+      "wallMs": 19775,
+      "checks": [
+        {
+          "id": "Q01",
+          "referenceDistinct": 35976,
+          "fused": 35976,
+          "individual": 35976,
+          "pass": true
+        },
+        {
+          "id": "Q02",
+          "referenceDistinct": 3976,
+          "fused": 3976,
+          "individual": 3976,
+          "pass": true
+        },
+        {
+          "id": "Q03",
+          "referenceDistinct": 198,
+          "fused": 198,
+          "individual": 198,
+          "pass": true
+        },
+        {
+          "id": "Q04",
+          "referenceDistinct": 23,
+          "fused": 23,
+          "individual": 23,
+          "pass": true
+        }
+      ],
+      "sqlFile": "sql/B1-parity.sql"
+    },
+    {
+      "industry": "机器人",
+      "sourceReadTime": "2026-11-02 08:59:08.337291",
+      "completeTransaction": true,
+      "wallMs": 61947,
+      "checks": [
+        {
+          "id": "Q05",
+          "referenceDistinct": 125377,
+          "fused": 125377,
+          "individual": 125377,
+          "pass": true
+        },
+        {
+          "id": "Q06",
+          "referenceDistinct": 21854,
+          "fused": 21854,
+          "individual": 21854,
+          "pass": true
+        },
+        {
+          "id": "Q07",
+          "referenceDistinct": 1288,
+          "fused": 1288,
+          "individual": 1288,
+          "pass": true
+        },
+        {
+          "id": "Q08",
+          "referenceDistinct": 243,
+          "fused": 243,
+          "individual": 243,
+          "pass": true
+        }
+      ],
+      "sqlFile": "sql/B2-parity.sql"
+    },
+    {
+      "industry": "低空经济",
+      "sourceReadTime": "2026-11-02 09:00:10.418599",
+      "completeTransaction": true,
+      "wallMs": 9814,
+      "checks": [
+        {
+          "id": "Q09",
+          "referenceDistinct": 10560,
+          "fused": 10560,
+          "individual": 10560,
+          "pass": true
+        },
+        {
+          "id": "Q10",
+          "referenceDistinct": 2299,
+          "fused": 2299,
+          "individual": 2299,
+          "pass": true
+        },
+        {
+          "id": "Q11",
+          "referenceDistinct": 319,
+          "fused": 319,
+          "individual": 319,
+          "pass": true
+        },
+        {
+          "id": "Q12",
+          "referenceDistinct": 32,
+          "fused": 32,
+          "individual": 32,
+          "pass": true
+        }
+      ],
+      "sqlFile": "sql/B3-parity.sql"
+    },
+    {
+      "industry": "新能源",
+      "sourceReadTime": "2026-11-02 09:00:20.375657",
+      "completeTransaction": true,
+      "wallMs": 42659,
+      "checks": [
+        {
+          "id": "Q13",
+          "referenceDistinct": 91676,
+          "fused": 91676,
+          "individual": 91676,
+          "pass": true
+        },
+        {
+          "id": "Q14",
+          "referenceDistinct": 15139,
+          "fused": 15139,
+          "individual": 15139,
+          "pass": true
+        },
+        {
+          "id": "Q15",
+          "referenceDistinct": 974,
+          "fused": 974,
+          "individual": 974,
+          "pass": true
+        },
+        {
+          "id": "Q16",
+          "referenceDistinct": 37,
+          "fused": 37,
+          "individual": 37,
+          "pass": true
+        }
+      ],
+      "sqlFile": "sql/B4-parity.sql"
+    },
+    {
+      "industry": "生物医药",
+      "sourceReadTime": "2026-11-02 09:01:03.169807",
+      "completeTransaction": true,
+      "wallMs": 58485,
+      "checks": [
+        {
+          "id": "Q17",
+          "referenceDistinct": 273360,
+          "fused": 273360,
+          "individual": 273360,
+          "pass": true
+        },
+        {
+          "id": "Q18",
+          "referenceDistinct": 28375,
+          "fused": 28375,
+          "individual": 28375,
+          "pass": true
+        },
+        {
+          "id": "Q19",
+          "referenceDistinct": 3169,
+          "fused": 3169,
+          "individual": 3169,
+          "pass": true
+        },
+        {
+          "id": "Q20",
+          "referenceDistinct": 53,
+          "fused": 53,
+          "individual": 53,
+          "pass": true
+        }
+      ],
+      "sqlFile": "sql/B5-parity.sql"
+    }
+  ],
+  "allPass": true
+}

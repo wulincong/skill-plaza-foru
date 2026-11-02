@@ -25,6 +25,10 @@
 
 多地区对比增加 cohort，给每组独立 id 和完整 filters，最多四组；两组时返回可比较指标的确定性差值。不会自动复用上一组的地域或岗位条件。
 
+只求数量时将 metrics 设为 `["positions.count"]`。共同的产业子树、岗位类型、名称、时间条件和状态相同，只有地域、学历、经验或招聘类型不同的样本组，自动合并为一条条件聚合 SQL。各组保持独立条件与分母；不从省域/全国数量推算城市数量。不满足合并条件时独立查询。
+
+无平台更新时间窗口的产业筛选先在产业关系表去重岗位 ID，再关联岗位；带时间窗口保留原有查询路径供优化器选择。全国纯计数省略地址关联和额外质量统计；地域过滤仍使用相同的企业关联地址与省市别名。此策略不改变筛选口径，也不保证每种条件都同样快。
+
 ## filters
 
 | 字段 | 形式与含义 |
@@ -58,7 +62,9 @@ stdout 返回 talent-preview/1：总体状态、规范化/实际筛选、指标�
 
 city/province/title 的 TOP N 返回 totalCount、displayedCount、otherCount、missingN；rows[].share 使用完整样本分母，范围 0–1。previewTruncated 只表示 stdout 裁剪。统计分组超过行数/字节预算将失败或部分完成，不把计算截断伪装为全量。
 
-executedAt 是原任务时间，dataReadAt 是原统计事务的客户端观察时间，servedAt 是本次返回时间；sourceReadTime 是数据库时钟原值；sourceLatestUpdateAt 是本次样本内平台更新时间最大值，源时区未换算。命中缓存不将 dataReadAt 改成今天。consistency.completeTransaction 指示整个批次是否完成。
+executedAt 是原任务时间，dataReadAt 是原统计事务的客户端观察时间，servedAt 是本次返回时间；sourceReadTime 是数据库时钟原值；sourceLatestUpdateAt 仅在请求 `data_quality.summary` 时计算样本内平台更新时间最大值，源时区未换算，否则为 null。命中缓存不将 dataReadAt 改成今天。consistency.completeTransaction 指示整个批次是否完成。
+
+`execution.queryCount` 是实际统计 SQL 条数，`logicalCohortCount` 是样本组数；合并的四个指标可共同引用同一个真实 evidenceId。`sqlBatchMs` 包含建连、查询与传输；逐语句日志 elapsedMs 受 mysql stdout 缓冲影响，不能当作可靠的服务端计时。引擎版本参与缓存键；升级后不复用旧版本统计缓存，已有结果仍按其记录的引擎版本验证指纹。
 
 退出码 complete/empty=0、partial=3、需澄清/修正=2、failed=1。始终检查结构化状态及逐指标 status；无岗位为 empty，没有有效薪资为 unavailable，未识别地域为 needs_clarification，查询超时不是 0 岗位。失败结果不缓存为可复用统计。
 

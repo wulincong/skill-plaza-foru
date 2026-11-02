@@ -59,17 +59,27 @@ export function salaryStatistics(rows) {
 export function buildResult(request,plan,execution) {
   const metrics=[],checks=[],errors=[],cohorts=[]
   const logs=new Map(execution.logs.filter(log=>log.completed).map(log=>[log.id,log]))
+  const bases=new Map(plan.cohorts.map(c=>[c.id,logs.get(`${c.id}:base`)]))
+  for(const job of plan.jobs.filter(j=>j.kind==='cohort-counts')) {
+    const log=logs.get(job.id)
+    if(!log)continue
+    const values=log.rows.length===1?log.rows[0].counts:null
+    if(!values||typeof values!=='object'||Object.keys(values).length!==job.cohortIds.length||job.cohortIds.some(id=>!Object.hasOwn(values,id)))fail('INVALID_DB_VALUE','合并计数缺少完整样本组')
+    for(const id of job.cohortIds)bases.set(id,{...log,rows:[{count:count(values[id])}]})
+  }
   for(const cohort of plan.cohorts) {
-    const id=cohort.id,baseLog=logs.get(`${id}:base`),cubeLog=logs.get(`${id}:cube`),salaryLog=logs.get(`${id}:salary`)
+    const id=cohort.id,baseLog=bases.get(id),cubeLog=logs.get(`${id}:cube`),salaryLog=logs.get(`${id}:salary`)
     let base=baseLog?.rows[0],total=null,cubeValid=false,salary=null
     if(baseLog && baseLog.rows.length!==1)fail('INVALID_DB_VALUE','基础统计返回行数错误')
     if(base) {
       total=count(base.count)
+      const expected=plan.jobs.find(job=>job.id===baseLog.id)?.fields??['count']
+      if(expected.some(field=>base[field]===undefined))fail('INVALID_DB_VALUE','基础统计缺少请求字段')
       for(const field of ['missingCompany','missingAddress','missing_city','missing_province','missing_title','missing_source']) {
-        if(count(base[field])>total) fail('INVALID_DB_VALUE','缺失量超过样本基数')
+        if(base[field]!==undefined&&count(base[field])>total) fail('INVALID_DB_VALUE','缺失量超过样本基数')
       }
       if(base.companies!==undefined&&count(base.companies)>total-count(base.missingCompany))fail('INVALID_DB_VALUE','企业数超过有效记录数')
-      checks.push({id:`${id}:base`,pass:true,description:'基础计数与缺失量非负且不超过样本基数'})
+      checks.push({id:`${id}:base`,pass:true,description:'基础计数及按需返回的缺失量非负、范围有效'})
     }
     if(cubeLog&&base) {
       cubeValid=sum(cubeLog.rows)===total
@@ -81,13 +91,20 @@ export function buildResult(request,plan,execution) {
       checks.push({id:`${id}:salary-total`,pass:ok,expected:total,actual:salary.validN+salary.excludedN})
       if(!ok)salary=null
     }
-    cohorts.push({...cohort,unit:'job_records',positions:total,sourceLatestUpdateAt:base?.latestUpdate??null,addressBasis:'企业关联地址，未核验为真实工作地',missingAddressN:base?count(base.missingAddress):null})
+    cohorts.push({...cohort,unit:'job_records',positions:total,sourceLatestUpdateAt:base?.latestUpdate??null,addressBasis:'企业关联地址，未核验为真实工作地',missingAddressN:base?.missingAddress!==undefined?count(base.missingAddress):null})
     for(const name of request.metrics) {
       const def=METRICS[name]
       const metric={metricId:`${id}/${name}`,name,metricVersion:1,cohortId:id,cohortFingerprint:cohort.fingerprint,kind:def.kind,unit:def.unit,status:'failed',denominator:total,denominatorDefinition:'当前样本组内在招且未删除的去重岗位记录数',method:'cohort-policy/1; category-policy/1',evidenceIds:baseLog?[baseLog.id]:[]}
       let available=false
       if(base&&name==='positions.count') {Object.assign(metric,{value:total,numerator:total,missingN:0});available=true}
       if(base&&name==='companies.count') {Object.assign(metric,{value:count(base.companies),missingN:count(base.missingCompany),method:'不同非空有效企业 ID 的去重数；不等同岗位数'});available=true}
+      if(base&&name==='data_quality.summary') {
+        const fields=['missingCompany','missingAddress','missing_city','missing_province','missing_title','missing_source']
+        if(fields.every(field=>base[field]!==undefined)&&Object.hasOwn(base,'latestUpdate')) {
+          Object.assign(metric,{value:Object.fromEntries(fields.map(field=>[field,count(base[field])])),sourceLatestUpdateAt:base.latestUpdate,method:'显式请求的字段完整性统计；地址无法关联时省市字段计为缺失，缺失项可能重叠'})
+          available=true
+        }
+      }
       if((def.dimensions || ['education','experience','jobType'].includes(def.dimension))&&cubeValid) {
         const dimensions=def.dimensions??[def.dimension]
         const contextDimensions=dimensions.includes('city')?[...new Set([...dimensions,'province'])]:dimensions
@@ -148,11 +165,14 @@ export function buildResult(request,plan,execution) {
     }
   }
   const result={schema:'talent-result/1',engine:VERSION,status,request,cohorts,metrics,comparisons,quality:{checks,allPass:checks.length>0&&checks.every(c=>c.pass)&&!failed.length&&!execution.error},freshness:{executedAt:execution.startedAt,dataReadAt:execution.dataReadAt,servedAt:now(),mode:'live',cacheAgeMs:0,sourceReadTime:execution.sourceReadTime,sourceLatestUpdateAt:cohorts.map(c=>c.sourceLatestUpdateAt).filter(Boolean).sort().at(-1)??null,sourceTimestampMeaning:'当前样本内平台记录更新时间最大值；源时区未换算；非职位发布时间'},consistency:{level:'repeatable-read-read-only',singleConnection:true,sourceReadTime:execution.sourceReadTime,completeTransaction:!execution.error},execution:{queryCount:execution.logs.length,sqlBatchMs:execution.elapsedMs,returnedBytes:execution.returnedBytes},errors}
+  result.quality.dataQualityEvaluated=request.metrics.includes('data_quality.summary')&&metrics.filter(m=>m.name==='data_quality.summary').every(m=>['complete','empty'].includes(m.status))
+  result.execution.logicalCohortCount=plan.cohorts.length
+  if(!request.metrics.includes('data_quality.summary'))result.freshness.sourceTimestampMeaning='本次未请求平台最大更新时间统计；dataReadAt 为统计读取时间，不是职位发布时间'
   result.contentHash=resultContentHash(result)
   return result
 }
 export function resultContentHash(result) {
-  return hash({schema:result.schema,engine:result.engine,status:result.status,request:semanticRequest(result.request),cohorts:result.cohorts,metrics:result.metrics,comparisons:result.comparisons,quality:result.quality})
+  return hash({schema:result.schema,engine:result.engine,status:result.status,request:semanticRequest(result.request,result.engine),cohorts:result.cohorts,metrics:result.metrics,comparisons:result.comparisons,quality:result.quality})
 }
 export function summaryMarkdown(result) {
   const lines=['# 人才数据库查询结果','',`状态：${result.status}；统计读取时间：${result.freshness.dataReadAt??'未完成'}；数据模式：${result.freshness.mode}。`,'','统计对象为平台岗位记录；地域按企业关联地址；平台更新时间不等于职位发布时间。','']

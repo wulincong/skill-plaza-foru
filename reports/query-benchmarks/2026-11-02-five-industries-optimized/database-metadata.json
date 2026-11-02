@@ -1,0 +1,358 @@
+{
+  "observedAt": "2026-11-02T08:53:11.902205+00:00",
+  "tableRowsMeaning": "InnoDB optimizer estimates, not exact COUNT(*)",
+  "tables": {
+    "ok": true,
+    "sql": "SELECT TABLE_NAME,ENGINE,TABLE_ROWS,DATA_LENGTH,INDEX_LENGTH FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('c_company_position','c_company_address','c_position_chain')",
+    "elapsedMs": 42,
+    "columns": [
+      "TABLE_NAME",
+      "ENGINE",
+      "TABLE_ROWS",
+      "DATA_LENGTH",
+      "INDEX_LENGTH"
+    ],
+    "rowCount": 3,
+    "totalRows": 3,
+    "truncated": false,
+    "rows": [
+      {
+        "TABLE_NAME": "c_company_address",
+        "ENGINE": "InnoDB",
+        "TABLE_ROWS": "4209173",
+        "DATA_LENGTH": "739246080",
+        "INDEX_LENGTH": "681558016"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "ENGINE": "InnoDB",
+        "TABLE_ROWS": "13965605",
+        "DATA_LENGTH": "16712204288",
+        "INDEX_LENGTH": "5096636416"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "ENGINE": "InnoDB",
+        "TABLE_ROWS": "24435871",
+        "DATA_LENGTH": "1298137088",
+        "INDEX_LENGTH": "3186245632"
+      }
+    ]
+  },
+  "indexes": {
+    "ok": true,
+    "sql": "SELECT TABLE_NAME,INDEX_NAME,NON_UNIQUE,SEQ_IN_INDEX,COLUMN_NAME,CARDINALITY,INDEX_TYPE FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('c_company_position','c_company_address','c_position_chain') ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX",
+    "elapsedMs": 35,
+    "columns": [
+      "TABLE_NAME",
+      "INDEX_NAME",
+      "NON_UNIQUE",
+      "SEQ_IN_INDEX",
+      "COLUMN_NAME",
+      "CARDINALITY",
+      "INDEX_TYPE"
+    ],
+    "rowCount": 33,
+    "totalRows": 33,
+    "truncated": false,
+    "rows": [
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "a",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "company_id",
+        "CARDINALITY": "4209173",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "idx_address_province_company_city",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "province",
+        "CARDINALITY": "3822",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "idx_address_province_company_city",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "deleted",
+        "CARDINALITY": "4061",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "idx_address_province_company_city",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "3",
+        "COLUMN_NAME": "company_id",
+        "CARDINALITY": "4209173",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "idx_address_province_company_city",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "4",
+        "COLUMN_NAME": "city",
+        "CARDINALITY": "4061382",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "idx_ca_company_deleted",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "company_id",
+        "CARDINALITY": "4209173",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "idx_ca_company_deleted",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "deleted",
+        "CARDINALITY": "4209173",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "location_key",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "city",
+        "CARDINALITY": "12628",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "location_key",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "district",
+        "CARDINALITY": "20836",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_address",
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": "0",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "id",
+        "CARDINALITY": "4166369",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "cid",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "company_archive_id",
+        "CARDINALITY": "3535976",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "fh1",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "company_archive_id",
+        "CARDINALITY": "3824717",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "fh1",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "publish_state",
+        "CARDINALITY": "3142470",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "fh1",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "3",
+        "COLUMN_NAME": "deleted",
+        "CARDINALITY": "3792229",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "fh1",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "4",
+        "COLUMN_NAME": "company_address_id",
+        "CARDINALITY": "3933995",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "ft_position_name",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "name",
+        "CARDINALITY": "13965605",
+        "INDEX_TYPE": "FULLTEXT"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "idx_create_user",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "create_user",
+        "CARDINALITY": "3829912",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "idx_position_company_deleted",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "company_archive_id",
+        "CARDINALITY": "3211731",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "idx_position_company_deleted",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "deleted",
+        "CARDINALITY": "3568011",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "position_group_id_index",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "position_group_id",
+        "CARDINALITY": "1",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": "0",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "id",
+        "CARDINALITY": "13465665",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "publish_state_index",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "publish_state",
+        "CARDINALITY": "1",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "tj1",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "company_archive_id",
+        "CARDINALITY": "3796108",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "tj1",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "update_time",
+        "CARDINALITY": "8970614",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_company_position",
+        "INDEX_NAME": "update_time",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "update_time",
+        "CARDINALITY": "686322",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "a",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "position_id",
+        "CARDINALITY": "14563081",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "chain_id",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "industry_chain_id",
+        "CARDINALITY": "27427",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "idx_chain_pos",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "industry_chain_id",
+        "CARDINALITY": "44317",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "idx_chain_pos",
+        "NON_UNIQUE": "1",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "position_id",
+        "CARDINALITY": "24435872",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "only",
+        "NON_UNIQUE": "0",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "position_id",
+        "CARDINALITY": "14300238",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "only",
+        "NON_UNIQUE": "0",
+        "SEQ_IN_INDEX": "2",
+        "COLUMN_NAME": "industry_chain_id",
+        "CARDINALITY": "24435872",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "only",
+        "NON_UNIQUE": "0",
+        "SEQ_IN_INDEX": "3",
+        "COLUMN_NAME": "deleted",
+        "CARDINALITY": "24435872",
+        "INDEX_TYPE": "BTREE"
+      },
+      {
+        "TABLE_NAME": "c_position_chain",
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": "0",
+        "SEQ_IN_INDEX": "1",
+        "COLUMN_NAME": "id",
+        "CARDINALITY": "23486020",
+        "INDEX_TYPE": "BTREE"
+      }
+    ]
+  }
+}

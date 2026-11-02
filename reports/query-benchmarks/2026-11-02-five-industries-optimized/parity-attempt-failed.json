@@ -1,0 +1,19 @@
+{
+  "schema": "talent-query-parity-failure/1",
+  "runId": "2026-11-02T08-53-17.330Z-1dc3e457",
+  "recordedAt": "2026-11-02T08:58:48.205Z",
+  "industry": "智慧交通",
+  "purpose": "extra correctness verification, excluded from performance benchmark",
+  "referencePlan": "legacy EXISTS with four conditional counts",
+  "timeoutPerStatementMs": 180000,
+  "status": "failed",
+  "error": {
+    "code": "QUERY_TIMEOUT",
+    "message": "数据库查询超出预算",
+    "retryable": false
+  },
+  "sourceReadTime": null,
+  "counts": null,
+  "sqlFile": "sql/B1-parity-timeout.sql",
+  "nextMethod": "direct relation JOIN with COUNT(DISTINCT p.id), same-snapshot comparison"
+}

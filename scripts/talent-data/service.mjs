@@ -32,7 +32,7 @@ async function resolvedPlan(request,ctx,deadlineAt) {
 export async function planQuery(raw,options={}) {
   const request=validateRequest(raw),ctx=await context(options),deadlineAt=Date.now()+Math.min(30000,request.execution.deadlineMs)
   const {plan}=await resolvedPlan(request,ctx,deadlineAt)
-  return {schema:'talent-plan/1',request,cohorts:plan.cohorts,cost:plan.cost,queryCount:plan.queryCount,jobs:plan.jobs.map(j=>({id:j.id,kind:j.kind,dimensions:j.dimensions??[j.dimension].filter(Boolean)})),description:plan.description,executesAggregates:false}
+  return {schema:'talent-plan/1',request,cohorts:plan.cohorts,cost:plan.cost,queryCount:plan.queryCount,logicalCohortCount:plan.logicalCohortCount,jobs:plan.jobs.map(j=>({id:j.id,kind:j.kind,...(j.cohortIds?{cohortIds:j.cohortIds}:{}),dimensions:j.dimensions??[j.dimension].filter(Boolean)})),description:plan.description,executesAggregates:false}
 }
 export async function resolveEntity(kind,name,options={}) {
   const ctx=await context(options),resolver=new EntityResolver({...ctx,deadlineAt:Date.now()+15000})
