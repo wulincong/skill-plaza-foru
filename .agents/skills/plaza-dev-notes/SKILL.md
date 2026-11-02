@@ -73,7 +73,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 016 | 查询客户端执行：native_password 回落、批次预探测、受控并行（原 016+020） | 已实现（2026-09-28 实测通过） | [016-career-query-client-execution.md](references/016-career-query-client-execution.md) |
 | 017 | 索引与检索实测：EXPLAIN 与 FULLTEXT 试验（原 017+018+019） | 实测完成，结论长期有效 | [017-career-query-index-experiments.md](references/017-career-query-index-experiments.md) |
 | 084 | 通用人才数据分析：真实库能力、地域/产业/专业/岗位语义筛选与证据绑定 | 设计中（真实库连通/表结构/有限专业映射已验证，协议与改造未实现） | [084-general-talent-analysis-skill-design.md](references/084-general-talent-analysis-skill-design.md) |
-| 085 | 共享人才数据库查询 Skill：跨技能取数现状、功能/结果协议、缓存与查询优化 | 设计中（现有行为/真实索引与 EXPLAIN 已核验，新 Skill 和执行层待实现） | [085-shared-talent-data-query-skill-design.md](references/085-shared-talent-data-query-skill-design.md) |
+| 085 | 共享人才数据库查询 Skill：跨技能取数现状、功能/结果协议、缓存与查询优化 | 首期已实现（30 项测试/真实库/构建通过；业务迁移与低权 Pi 验收待做） | [085-shared-talent-data-query-skill-design.md](references/085-shared-talent-data-query-skill-design.md) |
 
 ### 图表与区域资源
 

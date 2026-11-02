@@ -22,12 +22,9 @@
    ============================================================ */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
 import { isAuthPluginError, mysqlBinCandidates } from './mysql-client.mjs'
-
-const HERE = dirname(fileURLToPath(import.meta.url))
+import { readMysqlConfig } from './mysql-config.mjs'
 
 const USAGE = `用法：node scripts/mysql-query.mjs [选项] "SQL" | --file 文件
 选项：--format json|table  输出格式（默认 json）
@@ -68,20 +65,7 @@ function parseArgs(argv) {
 
 /* --- 配置：进程环境优先，缺的键从 web/.env 补齐 --- */
 function config() {
-  const cfg = {}
-  for (const k of CFG_KEYS) if (process.env[k] !== undefined) cfg[k] = process.env[k]
-  if (CFG_KEYS.every((k) => cfg[k] !== undefined)) return cfg
-  const envFile = join(HERE, '../web/.env')
-  if (existsSync(envFile)) {
-    for (const line of readFileSync(envFile, 'utf8').split('\n')) {
-      const m = /^\s*(MYSQL_[A-Z_]+)\s*=\s*(.*?)\s*$/.exec(line)
-      if (!m) continue
-      let v = m[2].trim()
-      if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
-      if (cfg[m[1]] === undefined) cfg[m[1]] = v
-    }
-  }
-  return cfg
+  return readMysqlConfig({ required: false })
 }
 
 /* --- 只读守卫（防呆，非安全边界）：注释清洗后单条 + 白名单首关键字 --- */

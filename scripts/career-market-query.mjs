@@ -3,16 +3,16 @@
  * 岗位市场白名单查询工具：Agent 只能选择 queryId 并填写 JSON 参数。
  * 原始 SQL 不从命令行进入；并行批次受控，避免重查询同时压垮岗位库。
  */
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { isAuthPluginError, mysqlBinCandidates } from './mysql-client.mjs'
+import { readMysqlConfig } from './mysql-config.mjs'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const QUERY_DIR = join(HERE, 'career-market-queries')
 const QUERY_IDS = new Set(['cohort-summary', 'education-distribution', 'experience-distribution', 'salary-distribution', 'title-top', 'source-distribution', 'city-distribution'])
-const CFG_KEYS = ['MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE']
 const DEFAULT_TIMEOUT_MS = 120_000
 const MAX_TIMEOUT_MS = 180_000
 const MAX_PARALLEL = 2
@@ -23,18 +23,7 @@ function usage() {
 }
 
 function config() {
-  const cfg = {}
-  for (const k of CFG_KEYS) if (process.env[k] !== undefined) cfg[k] = process.env[k]
-  const envFile = join(HERE, '../web/.env')
-  if (existsSync(envFile)) {
-    for (const line of readFileSync(envFile, 'utf8').split('\n')) {
-      const m = /^\s*(MYSQL_[A-Z_]+)\s*=\s*(.*?)\s*$/.exec(line)
-      if (m && cfg[m[1]] === undefined) cfg[m[1]] = m[2].replace(/^['"]|['"]$/g, '')
-    }
-  }
-  const missing = CFG_KEYS.filter(k => k !== 'MYSQL_PORT' && !cfg[k])
-  if (missing.length) throw new Error(`缺少数据库配置：${missing.join('/')}`)
-  return cfg
+  return readMysqlConfig()
 }
 
 function sqlQuote(value) {
