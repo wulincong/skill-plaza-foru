@@ -13,6 +13,18 @@ SVG_NS = {"s": "http://www.w3.org/2000/svg"}
 
 
 class ChartExamples(unittest.TestCase):
+    def test_bar_widths_against_printed_axis(self):
+        html = (ROOT / "examples/bar-chart.html").read_text()
+        svg = ET.fromstring(re.search(r"<svg\b.*?</svg>", html, re.S)[0])
+        axis = svg.find(".//s:g[@text-anchor='middle']", SVG_NS)
+        ticks = {int(t.text): float(t.get("x")) for t in axis if t.text.isdigit()}
+        bars = svg.findall(".//s:rect", SVG_NS)
+        self.assertEqual(len(bars), 2)
+        for bar, expected in zip(bars, [6, 4]):
+            x, width = float(bar.get("x")), float(bar.get("width"))
+            self.assertEqual(x, ticks[0])
+            self.assertEqual(x + width, ticks[expected])
+
     def test_documented_city_totals(self):
         doc = (ROOT / "references/heatmap-chart.md").read_text(encoding="utf-8")
         example = json.loads(doc.split("```json\n", 1)[1].split("\n```", 1)[0])

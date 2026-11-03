@@ -1,0 +1,177 @@
+{
+  "schema": "figure/1",
+  "id": "F_SENSOR",
+  "lang": "en",
+  "width_mm": 183,
+  "panel_height_mm": 52,
+  "columns": 2,
+  "title": "Sensor calibration across conditions",
+  "caption": "Different measurements answer four questions about calibration, error, reproducibility and uncertainty.",
+  "source": "Synthetic bench measurements for illustration. Intervals in panel d are supplied example bounds.",
+  "datasets": {
+    "bench": [
+      {
+        "reference": 1,
+        "signal": 1.2,
+        "error": 0.2
+      },
+      {
+        "reference": 1.5,
+        "signal": 1.4,
+        "error": -0.1
+      },
+      {
+        "reference": 2,
+        "signal": 2.2,
+        "error": 0.2
+      },
+      {
+        "reference": 2.5,
+        "signal": 2.6,
+        "error": 0.1
+      },
+      {
+        "reference": 3,
+        "signal": 3.4,
+        "error": 0.4
+      },
+      {
+        "reference": 3.5,
+        "signal": 3.6,
+        "error": 0.1
+      },
+      {
+        "reference": 4,
+        "signal": 4,
+        "error": 0
+      },
+      {
+        "reference": 4.5,
+        "signal": null,
+        "error": null
+      },
+      {
+        "reference": 5,
+        "signal": 5.3,
+        "error": 0.3
+      }
+    ],
+    "map": [
+      {
+        "sensor": "S1",
+        "load": "Low",
+        "bias": -0.3
+      },
+      {
+        "sensor": "S1",
+        "load": "Mid",
+        "bias": -0.1
+      },
+      {
+        "sensor": "S1",
+        "load": "High",
+        "bias": 0.1
+      },
+      {
+        "sensor": "S2",
+        "load": "Low",
+        "bias": -0.2
+      },
+      {
+        "sensor": "S2",
+        "load": "Mid",
+        "bias": 0
+      },
+      {
+        "sensor": "S2",
+        "load": "High",
+        "bias": 0.2
+      },
+      {
+        "sensor": "S3",
+        "load": "Low",
+        "bias": null
+      },
+      {
+        "sensor": "S3",
+        "load": "Mid",
+        "bias": 0.2
+      },
+      {
+        "sensor": "S3",
+        "load": "High",
+        "bias": 0.4
+      }
+    ],
+    "fit": [
+      {
+        "sensor": "S1",
+        "bias": 0.03,
+        "low": -0.03,
+        "high": 0.09
+      },
+      {
+        "sensor": "S2",
+        "bias": 0.08,
+        "low": 0.01,
+        "high": 0.15
+      },
+      {
+        "sensor": "S3",
+        "bias": 0.11,
+        "low": null,
+        "high": null
+      }
+    ]
+  },
+  "panels": [
+    {
+      "kind": "scatter",
+      "title": "Calibration response",
+      "data": "bench",
+      "fields": {
+        "x": "reference",
+        "y": "signal"
+      },
+      "x_label": "Reference (mV)",
+      "y_label": "Signal (mV)"
+    },
+    {
+      "kind": "ecdf",
+      "title": "Error distribution",
+      "data": "bench",
+      "fields": {
+        "value": "error"
+      },
+      "x_label": "Error (mV)",
+      "y_label": "Cumulative fraction"
+    },
+    {
+      "kind": "matrix",
+      "title": "Bias by condition (mV)",
+      "data": "map",
+      "fields": {
+        "row": "sensor",
+        "column": "load",
+        "value": "bias"
+      },
+      "x_label": "Applied load",
+      "y_label": "Sensor",
+      "scale": "zero-centered"
+    },
+    {
+      "kind": "interval",
+      "title": "Estimated bias",
+      "data": "fit",
+      "fields": {
+        "group": "sensor",
+        "value": "bias",
+        "lower": "low",
+        "upper": "high"
+      },
+      "x_label": "Sensor",
+      "y_label": "Bias (mV)",
+      "method": "Supplied 95% calibration-model confidence intervals"
+    }
+  ]
+}

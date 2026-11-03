@@ -1,23 +1,36 @@
 ---
 name: chart-visualization
-description: 根据已核实的数据为报告绘制静态 HTML/SVG 图表。适用于类别比较、趋势、分布、评分和流向分析，以及有离线边界的行政区地图和城市热点图。
+description: 根据有来源的观测或汇总数据制作独立的统计图、论文多面板图和报告图块。支持配对变化、分布、相关、区间与矩阵，离线输出可编辑 SVG、PDF 和带数值表的 HTML，也可按专题规范绘制构成、流向或行政区图。
 ---
 
-# 报告图表
+# 数据图表
 
-先确认数据来源、统计范围和单位。读完[通用规则](references/common-rules.md)，按要回答的问题选择图表。
+先写出读者要做的比较，确认一行代表谁、计量单位、缺失含义和最终图宽。用用户给出的表或已经核实的数据，保留出处和筛选依据。需要匹配观测、估计不确定性时先核对研究设计。[通用规则](references/common-rules.md)
 
-| 想回答的问题 | 需要的数据 | 图表 |
+## 可复现的独立出图
+
+把原列名映射到 `figure/1`，可将多张来源表放在同一规格中。从技能目录运行下列命令，输入和输出路径也可用绝对路径。
+
+```sh
+python3 scripts/figure.py render examples/paired-recovery.json --out /tmp/recovery-figure
+python3 scripts/figure.py verify examples/paired-recovery.json --out /tmp/recovery-figure
+```
+
+输出目录须是新目录。交付矢量 PDF 或 SVG 时附上图注，网页交付可直接使用含图注和数值表的 `figure.html`。[字段、依赖与验收](references/figure-spec.md) · [中文单栏图与图注](examples/paired-recovery.html) · [矢量 PDF](examples/paired-recovery.pdf) · [英文双栏示例](examples/sensor-calibration.html)
+
+| 读者要回答的问题 | 数据前提 | 选择 |
 |---|---|---|
-| 哪类岗位更多？不同薪资档位各占多少？ | 每个类别的数量或占比 | [柱状图](references/bar-chart.md) |
-| 岗位数逐月怎样变化？ | 日期或有序区间，以及各期同口径数值 | [折线图](references/line-chart.md) |
-| 薪资集中在哪段？ | 连续数值，或带上下界的分箱统计 | [直方图](references/histogram-chart.md) |
-| 不同城市的学历构成有何差异？ | 每个城市内各学历类别的数量和组内分母 | [堆叠柱状图](references/stacked-bar-chart.md) |
-| 几项技术在哪些维度得分较高？ | 同一量表下的多维评分及评分依据 | [雷达图](references/radar-chart.md) |
-| 传统技能和哪些新技能关联最强？ | 来源、去向、每条连线的权重及其含义 | [桑基图](references/sankey-chart.md) |
-| 样本覆盖了哪些行政区？ | 地区编码、分类或指标、匹配的离线边界 | [行政区地图](references/map-chart.md) |
-| 省内哪些城市的岗位记录更集中？ | 同口径城市记录数、查询覆盖范围、离线边界 | [城市热点图](references/heatmap-chart.md) |
+| 各类别的量相差多少？指标随时间怎么变？ | 同口径汇总。趋势要有真实数值间距 | `bar`、`barh`、`line`，未观测时期显式给空值 |
+| 两个量如何共同变化？ | 同一观测单元同时测得两个数值 | `scatter`。仅有组均值时标明分析层级 |
+| 分布集中在哪里？有多少观测低于阈值？ | 原始数值。分组点图保留每个观测 | 小样本用 `distribution`。密集数据用 `ecdf` 或[直方图](references/histogram-chart.md) |
+| 同一个体如何变化？哪组变化较大？ | 组、对象 ID、两个有序条件和数值 | `paired` 看轨迹，`change-distribution` 看差值，`median-change` 看组内变化中位数及区间 |
+| 估计值有多不确定？ | 估计值、可追溯上下界、方法和区间含义 | `interval`。组间效应用经验证的组间估计及其区间 |
+| 哪些行列组合存在模式？ | 行、列、每格一个指标 | `matrix`。有意义的正负偏差可围绕零对称着色 |
 
-绘图时按通用规则生成含内联 SVG 的 HTML 图块，并核对图注、文字说明和数据。两种地图均须匹配[离线资源](resources/README.md)，目前覆盖广东、浙江的地级市。可打开[柱状图](examples/bar-chart.html)、[折线图](examples/line-chart.html)和[广东热点图](examples/java-guangdong-heatmap-no-bubbles.html)查看成品。
+多面板应分别回答不同问题。需要读者直接比较的组放在同一面板上，使其共享尺度。跨面板比较可显式复用一组数值刻度。单栏优先上下排列，双栏再尝试并排。按成品大小复核最密处、缺失标记和单位。
 
-修改热点图示例后，在本技能目录运行 `python3 scripts/check-examples.py`，核对示例汇总、逐城填色和两份成品是否一致。
+## 专题图与报告嵌入
+
+报告沿用[柱状图](references/bar-chart.md)、[折线图](references/line-chart.md)和[直方图](references/histogram-chart.md)的口径。比较互斥的组内构成用[堆叠柱](references/stacked-bar-chart.md)，同一量表上的多维评分用[雷达图](references/radar-chart.md)，有权重的来源与去向用[桑基图](references/sankey-chart.md)。这些专题指南也适用于手工生成的内联 SVG。
+
+[行政区地图](references/map-chart.md)和[城市热点图](references/heatmap-chart.md)需要匹配的[离线边界](resources/README.md)，内置范围为广东、浙江地级市。报告嵌入与无法评估时的图块见[通用规则](references/common-rules.md)。
