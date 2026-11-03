@@ -1,0 +1,929 @@
+{
+  "identity": {
+    "sql": "SELECT DATABASE() AS default_db,VERSION() AS server_version,UTC_TIMESTAMP() AS observed_utc",
+    "elapsedMs": 38,
+    "rowCount": 1,
+    "rows": [
+      {
+        "default_db": "ai_crowd_souring_extend",
+        "server_version": "5.7.43-log",
+        "observed_utc": "2026-11-03 14:40:57"
+      }
+    ]
+  },
+  "schemas": {
+    "sql": "SELECT SCHEMA_NAME AS db,DEFAULT_CHARACTER_SET_NAME AS charset,DEFAULT_COLLATION_NAME AS collation FROM information_schema.SCHEMATA ORDER BY SCHEMA_NAME",
+    "elapsedMs": 40,
+    "rowCount": 2,
+    "rows": [
+      {
+        "db": "ai_crowd_souring_extend",
+        "charset": "latin1",
+        "collation": "latin1_swedish_ci"
+      },
+      {
+        "db": "information_schema",
+        "charset": "utf8",
+        "collation": "utf8_general_ci"
+      }
+    ]
+  },
+  "counts": {
+    "sql": "SELECT (SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE()) AS n_tables,(SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()) AS n_columns,(SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND CONSTRAINT_TYPE='FOREIGN KEY') AS n_fks,(SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE()) AS n_index_columns",
+    "elapsedMs": 68,
+    "rowCount": 1,
+    "rows": [
+      {
+        "n_tables": "247",
+        "n_columns": "2846",
+        "n_fks": "5",
+        "n_index_columns": "485"
+      }
+    ]
+  },
+  "dictionary": {
+    "sql": "SELECT (SELECT COUNT(*) FROM c_industry_chain_info) AS industry_nodes,(SELECT COUNT(*) FROM c_industry_chain_info WHERE level=0) AS industry_level_zero,(SELECT COUNT(*) FROM c_position_type) AS role_nodes,(SELECT COUNT(*) FROM c_professional_library WHERE deleted=0) AS undeleted_major_entries",
+    "elapsedMs": 50,
+    "rowCount": 1,
+    "rows": [
+      {
+        "industry_nodes": "13314",
+        "industry_level_zero": "98",
+        "role_nodes": "1685",
+        "undeleted_major_entries": "4044"
+      }
+    ]
+  },
+  "registry": {
+    "sql": "SELECT COUNT(*) AS all_relation_rows, SUM(r.status=1) AS active_rows,COUNT(DISTINCT IF(r.status=1,p.id,NULL)) AS matched_major_ids,COUNT(DISTINCT IF(r.status=1,t.id,NULL)) AS matched_role_ids,SUM(r.status=1 AND p.id IS NULL) AS missing_major,SUM(r.status=1 AND t.id IS NULL) AS missing_role FROM c_professional_position_relation r LEFT JOIN c_professional_library p ON p.id=r.professional_id LEFT JOIN c_position_type t ON t.id=r.position_type_id",
+    "elapsedMs": 307,
+    "rowCount": 1,
+    "rows": [
+      {
+        "all_relation_rows": "106156",
+        "active_rows": "106156",
+        "matched_major_ids": "3575",
+        "matched_role_ids": "1397",
+        "missing_major": "0",
+        "missing_role": "0"
+      }
+    ]
+  },
+  "primary_family": {
+    "sql": "SELECT p.school_type,CAST(p.open_status AS UNSIGNED) AS open_flag,COUNT(*) AS same_name FROM c_professional_library p WHERE p.deleted=0 AND p.name='计算机科学与技术' GROUP BY p.school_type,p.open_status",
+    "elapsedMs": 38,
+    "rowCount": 2,
+    "rows": [
+      {
+        "school_type": "INDUSTRY_CHAIN",
+        "open_flag": "1",
+        "same_name": "43"
+      },
+      {
+        "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+        "open_flag": "0",
+        "same_name": "1"
+      }
+    ]
+  },
+  "relationsample": {
+    "sql": "SELECT t.id AS role_id,t.name AS role_name,t.level AS role_level FROM c_professional_position_relation r INNER JOIN c_position_type t ON t.id=r.position_type_id WHERE r.professional_id=502 AND r.status=1 GROUP BY t.id,t.name,t.level ORDER BY t.id LIMIT 5",
+    "elapsedMs": 42,
+    "rowCount": 5,
+    "rows": [
+      {
+        "role_id": "189",
+        "role_name": "Java",
+        "role_level": "3"
+      },
+      {
+        "role_id": "190",
+        "role_name": "C/C++",
+        "role_level": "3"
+      },
+      {
+        "role_id": "191",
+        "role_name": "PHP",
+        "role_level": "3"
+      },
+      {
+        "role_id": "192",
+        "role_name": "Python",
+        "role_level": "3"
+      },
+      {
+        "role_id": "193",
+        "role_name": "C#",
+        "role_level": "3"
+      }
+    ]
+  },
+  "school_types": {
+    "sql": "SELECT school_type,COUNT(*) AS entries FROM c_professional_library WHERE deleted=0 GROUP BY school_type ORDER BY school_type",
+    "elapsedMs": 44,
+    "rowCount": 6,
+    "rows": [
+      {
+        "school_type": "INDUSTRY_CHAIN",
+        "entries": "1175"
+      },
+      {
+        "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+        "entries": "469"
+      },
+      {
+        "school_type": "TECHNICIAN_SCHOOL",
+        "entries": "261"
+      },
+      {
+        "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+        "entries": "921"
+      },
+      {
+        "school_type": "UNDERGRADUATE_VOCATIONAL_EDUCATION",
+        "entries": "356"
+      },
+      {
+        "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+        "entries": "862"
+      }
+    ]
+  },
+  "demand_final": {
+    "sql": "SELECT year,COUNT(*) AS rows_n,SUM(NULLIF(TRIM(major_require),'') IS NOT NULL) AS nonblank_major,SUM(major_require LIKE '%计算机科学与技术%') AS mentions_cs,SUM(education_require='SHUOSHI') AS master_n,SUM(CASE WHEN major_require LIKE '%计算机科学与技术%' AND education_require='SHUOSHI' THEN 1 ELSE 0 END) AS mentions_cs_master,SUM(CASE WHEN TRIM(demand_num) REGEXP '^[0-9]+$' THEN 1 ELSE 0 END) AS integer_demand_n FROM c_talent_demand GROUP BY year",
+    "elapsedMs": 68,
+    "rowCount": 1,
+    "rows": [
+      {
+        "year": "2025",
+        "rows_n": "9476",
+        "nonblank_major": "2023",
+        "mentions_cs": "7",
+        "master_n": "240",
+        "mentions_cs_master": "3",
+        "integer_demand_n": "1694"
+      }
+    ]
+  },
+  "short_final": {
+    "sql": "SELECT year,COUNT(*) AS rows_n,SUM(NULLIF(TRIM(major),'') IS NOT NULL) AS nonblank_major,SUM(major LIKE '%计算机科学与技术%') AS mentions_cs,SUM(education='SHUOSHI') AS master_n,SUM(CASE WHEN major LIKE '%计算机科学与技术%' AND education='SHUOSHI' THEN 1 ELSE 0 END) AS mentions_cs_master FROM c_shortage_demand GROUP BY year",
+    "elapsedMs": 37,
+    "rowCount": 1,
+    "rows": [
+      {
+        "year": "2025",
+        "rows_n": "1354",
+        "nonblank_major": "959",
+        "mentions_cs": "69",
+        "master_n": "114",
+        "mentions_cs_master": "5"
+      }
+    ]
+  },
+  "direct_sources": {
+    "sql": "SELECT data_source AS source_marker,COUNT(*) AS records FROM c_talent_demand GROUP BY data_source ORDER BY records DESC",
+    "elapsedMs": 50,
+    "rowCount": 9,
+    "rows": [
+      {
+        "source_marker": "2025年衡水市人才需求目录",
+        "records": "5525"
+      },
+      {
+        "source_marker": "2025年邢台市44个特色产业集群人才需求目录.xlsx",
+        "records": "1703"
+      },
+      {
+        "source_marker": "2、2025年沧州市企业专业技术人才及高技能需求统计表.xlsx",
+        "records": "660"
+      },
+      {
+        "source_marker": "2025年廊坊市重点产业人才需求目录",
+        "records": "575"
+      },
+      {
+        "source_marker": "2025年张家口市人才需求目录.xlsx",
+        "records": "284"
+      },
+      {
+        "source_marker": "邯郸市2025年高端人才需求目录",
+        "records": "251"
+      },
+      {
+        "source_marker": "2025+衡水百家民企新春人才需求榜",
+        "records": "223"
+      },
+      {
+        "source_marker": "3、2025年沧州市企业高校毕业生人才需求统计表.xlsx",
+        "records": "194"
+      },
+      {
+        "source_marker": "1、2025年沧州市企业高层次人才需求统计表.xlsx",
+        "records": "61"
+      }
+    ]
+  },
+  "short_sources": {
+    "sql": "SELECT data_source AS source_marker,area_id,COUNT(*) AS records FROM c_shortage_demand GROUP BY data_source,area_id ORDER BY records DESC",
+    "elapsedMs": 39,
+    "rowCount": 5,
+    "rows": [
+      {
+        "source_marker": "2025年唐山市紧缺人才需求目录（一）完整版",
+        "area_id": "130200000000",
+        "records": "451"
+      },
+      {
+        "source_marker": "2025年唐山市紧缺人才需求目录（二）",
+        "area_id": "130200000000",
+        "records": "308"
+      },
+      {
+        "source_marker": "2025年河北省民营企业人才需求目录",
+        "area_id": "130000000000",
+        "records": "216"
+      },
+      {
+        "source_marker": "2025年雄安新区人才需求目录",
+        "area_id": "830000000000",
+        "records": "200"
+      },
+      {
+        "source_marker": "2025年河北省制造业人才需求目录",
+        "area_id": "130000000000",
+        "records": "179"
+      }
+    ]
+  },
+  "demand_edu": {
+    "sql": "SELECT education_require AS label,COUNT(*) AS records,SUM(CASE WHEN major_require LIKE '%计算机科学与技术%' THEN 1 ELSE 0 END) AS mentions_cs FROM c_talent_demand GROUP BY education_require ORDER BY records DESC",
+    "elapsedMs": 52,
+    "rowCount": 8,
+    "rows": [
+      {
+        "label": "DAZHUAN",
+        "records": "3371",
+        "mentions_cs": "1"
+      },
+      {
+        "label": "BUXIAN",
+        "records": "2449",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "BENKE",
+        "records": "2219",
+        "mentions_cs": "3"
+      },
+      {
+        "label": "ZHONGZHUAN/ZHONGJI",
+        "records": "1110",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "SHUOSHI",
+        "records": "240",
+        "mentions_cs": "3"
+      },
+      {
+        "label": "BOSHI",
+        "records": "38",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "CHUZHONGJIYIXIA",
+        "records": "27",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "GAOZHONG",
+        "records": "22",
+        "mentions_cs": "0"
+      }
+    ]
+  },
+  "short_edu": {
+    "sql": "SELECT education AS label,COUNT(*) AS records,SUM(CASE WHEN major LIKE '%计算机科学与技术%' THEN 1 ELSE 0 END) AS mentions_cs FROM c_shortage_demand GROUP BY education ORDER BY records DESC",
+    "elapsedMs": 39,
+    "rowCount": 9,
+    "rows": [
+      {
+        "label": "BENKE",
+        "records": "675",
+        "mentions_cs": "59"
+      },
+      {
+        "label": "BENKEYIXIA",
+        "records": "246",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "BUXIAN",
+        "records": "164",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "SHUOSHI",
+        "records": "114",
+        "mentions_cs": "5"
+      },
+      {
+        "label": "DAZHUAN",
+        "records": "101",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "BOSHI",
+        "records": "27",
+        "mentions_cs": "5"
+      },
+      {
+        "label": "ZHONGZHUAN/ZHONGJI",
+        "records": "15",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "GAOZHONG",
+        "records": "10",
+        "mentions_cs": "0"
+      },
+      {
+        "label": "CHUZHONGJIYIXIA",
+        "records": "2",
+        "mentions_cs": "0"
+      }
+    ]
+  },
+  "demand_company": {
+    "sql": "SELECT COUNT(*) AS records,COUNT(a.id) AS matching_archive_id,COUNT(DISTINCT d.company_id) AS distinct_keys,COUNT(DISTINCT a.id) AS matched_distinct_keys FROM c_talent_demand d LEFT JOIN c_company_archive a ON a.id=d.company_id",
+    "elapsedMs": 70,
+    "rowCount": 1,
+    "rows": [
+      {
+        "records": "9476",
+        "matching_archive_id": "9470",
+        "distinct_keys": "3545",
+        "matched_distinct_keys": "3544"
+      }
+    ]
+  },
+  "dash": {
+    "sql": "SELECT COUNT(*) AS rows_total FROM c_campus_employment_dashboard",
+    "elapsedMs": 41,
+    "rowCount": 1,
+    "rows": [
+      {
+        "rows_total": "0"
+      }
+    ]
+  },
+  "summary": {
+    "sql": "SELECT (SELECT COUNT(*) FROM c_professional_library_industrial_demand WHERE deleted=0) AS major_demand_rows,(SELECT COUNT(*) FROM c_position_area_demand_analysis WHERE deleted=0) AS area_rows,(SELECT COUNT(*) FROM c_industry_chain_report WHERE deleted=0) AS industry_report_rows",
+    "elapsedMs": 43,
+    "rowCount": 1,
+    "rows": [
+      {
+        "major_demand_rows": "3263",
+        "area_rows": "239",
+        "industry_report_rows": "19"
+      }
+    ]
+  },
+  "jobs_probe": {
+    "sql": "SELECT COUNT(*) AS sample_n,SUM(p.publish_state='PUBLISHING' AND p.deleted=0) AS active_n,COUNT(p.company_archive_id) AS nonnull_company_keys,COUNT(NULLIF(TRIM(a.city),'')) AS nonblank_linked_city,COUNT(NULLIF(TRIM(p.education),'')) AS nonblank_education,COUNT(NULLIF(TRIM(p.position_type),'')) AS nonblank_role, COUNT(NULLIF(TRIM(p.data_source),'')) AS nonblank_source FROM (SELECT id,company_address_id,company_archive_id,education,position_type,data_source,publish_state,deleted FROM c_company_position ORDER BY id DESC LIMIT 1000) p LEFT JOIN c_company_address a ON a.id=p.company_address_id",
+    "elapsedMs": 53,
+    "rowCount": 1,
+    "rows": [
+      {
+        "sample_n": "1000",
+        "active_n": "779",
+        "nonnull_company_keys": "1000",
+        "nonblank_linked_city": "1000",
+        "nonblank_education": "1000",
+        "nonblank_role": "1000",
+        "nonblank_source": "1000"
+      }
+    ]
+  },
+  "destinations": {
+    "sql": "SELECT ged_year,COUNT(*) AS registration_rows FROM c_graduate_employment_destination WHERE deleted=0 GROUP BY ged_year ORDER BY ged_year",
+    "elapsedMs": 49,
+    "rowCount": 6,
+    "rows": [
+      {
+        "ged_year": "2020",
+        "registration_rows": "1519"
+      },
+      {
+        "ged_year": "2021",
+        "registration_rows": "1519"
+      },
+      {
+        "ged_year": "2022",
+        "registration_rows": "1517"
+      },
+      {
+        "ged_year": "2023",
+        "registration_rows": "1518"
+      },
+      {
+        "ged_year": "2024",
+        "registration_rows": "1612"
+      },
+      {
+        "ged_year": "2025",
+        "registration_rows": "2243"
+      }
+    ]
+  },
+  "verification": {
+    "sql": "SELECT UTC_TIMESTAMP() AS completed_utc,DATABASE() AS db",
+    "elapsedMs": 38,
+    "rowCount": 1,
+    "rows": [
+      {
+        "completed_utc": "2026-11-03 14:43:32",
+        "db": "ai_crowd_souring_extend"
+      }
+    ]
+  },
+  "major_relation_counts": {
+    "sql": "SELECT p.id,p.code,p.school_type,p.level,p.open_status,p.deleted,COUNT(r.id) AS active_links,COUNT(DISTINCT t.id) AS matched_role_ids FROM c_professional_library p LEFT JOIN c_professional_position_relation r ON r.professional_id=p.id AND r.status=1 LEFT JOIN c_position_type t ON t.id=r.position_type_id WHERE p.name='计算机科学与技术' GROUP BY p.id,p.code,p.school_type,p.level,p.open_status,p.deleted ORDER BY p.id",
+    "rowCount": 44,
+    "rows": [
+      {
+        "id": "502",
+        "code": "80901",
+        "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+        "level": "3",
+        "open_status": 0,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "2951",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "2973",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "2978",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3015",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3026",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3056",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3188",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3199",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3253",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3266",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3270",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3298",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3315",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3317",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3351",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3396",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3473",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3502",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3510",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3529",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3544",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3556",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3589",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3596",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3684",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3708",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3773",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3783",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3818",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "3824",
+        "code": null,
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7238",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7286",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7308",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7322",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7353",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7373",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7382",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7393",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7404",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7419",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7439",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7487",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      },
+      {
+        "id": "7505",
+        "code": "",
+        "school_type": "INDUSTRY_CHAIN",
+        "level": "1",
+        "open_status": 1,
+        "deleted": 0,
+        "active_links": "30",
+        "matched_role_ids": "30"
+      }
+    ],
+    "encoding": "BIT(1) 按 0/1 展示"
+  },
+  "metadata_queries": {
+    "tables": {
+      "sql": "SELECT TABLE_NAME AS tbl,TABLE_TYPE AS typ,ENGINE AS engine,TABLE_COMMENT AS note,TABLE_ROWS AS row_est FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME",
+      "rowCount": 247,
+      "truncated": false
+    },
+    "columns": {
+      "sql": "SELECT TABLE_NAME AS tbl,ORDINAL_POSITION AS pos,COLUMN_NAME AS col,COLUMN_TYPE AS typ,IS_NULLABLE AS nullable,COLUMN_KEY AS column_key,COLUMN_COMMENT AS note,EXTRA AS extra FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME,ORDINAL_POSITION",
+      "rowCount": 2846,
+      "truncated": false
+    },
+    "indexes": {
+      "sql": "SELECT TABLE_NAME AS tbl,INDEX_NAME AS idx,NON_UNIQUE AS non_unique,SEQ_IN_INDEX AS seq,COLUMN_NAME AS col,SUB_PART AS prefix_len,INDEX_TYPE AS typ FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX",
+      "rowCount": 485,
+      "truncated": false
+    },
+    "fks": {
+      "sql": "SELECT TABLE_NAME AS tbl,CONSTRAINT_NAME AS constraint_name,COLUMN_NAME AS col,REFERENCED_TABLE_SCHEMA AS ref_schema,REFERENCED_TABLE_NAME AS ref_tbl,REFERENCED_COLUMN_NAME AS ref_col FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY TABLE_NAME,CONSTRAINT_NAME,ORDINAL_POSITION",
+      "rowCount": 15,
+      "truncated": false
+    },
+    "sys": {
+      "sql": "SELECT TABLE_NAME AS tbl FROM information_schema.TABLES WHERE TABLE_SCHEMA='information_schema' ORDER BY TABLE_NAME",
+      "rowCount": 61,
+      "truncated": false
+    },
+    "system_columns": {
+      "sql": "SELECT TABLE_NAME AS tbl,ORDINAL_POSITION AS pos,COLUMN_NAME AS col,COLUMN_TYPE AS typ FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='information_schema' ORDER BY TABLE_NAME,ORDINAL_POSITION",
+      "rowCount": 606,
+      "truncated": false
+    }
+  }
+}
