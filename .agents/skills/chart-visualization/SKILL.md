@@ -5,6 +5,8 @@ description: 根据有来源的观测或汇总数据制作独立的统计图、�
 
 # 数据图表
 
+[浏览完整图表图鉴](examples/chart-gallery.html)，或直接[查看各省地市边界](examples/chart-gallery.html#regional-boundaries)。
+
 先写出读者要做的比较，确认一行代表谁、计量单位、缺失含义和最终图宽。用用户给出的表或已经核实的数据，保留出处和筛选依据。需要匹配观测、估计不确定性时先核对研究设计。[通用规则](references/common-rules.md)
 
 ## 可复现的独立出图

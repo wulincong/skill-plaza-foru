@@ -33,4 +33,4 @@
 
 重建时使用 `python3 scripts/import-regional-boundaries.py <原始文件目录> --out <新资源目录>`。仅维护时需要 Shapely 2.1 以上、pyosmium 和 ICU 的 uconv。输入文件名和校验值在脚本 PINNED 中，内地两份 GeoPackage 使用 Zenodo 公布的 MD5，其他输入使用 SHA-256。香港 JSON、台湾转换版 GeoJSON、澳门 PBF 与完整嘉模堂区 OSM XML 的取得方式均登记在对应 manifest。脚本按共同边界做拓扑简化，修复源数据的微小自交，逐单元核对几何非空、有效与面积偏差。运行与浏览图鉴均可离线。
 
-资源变更后，用 `python3 scripts/update-region-gallery.py <图鉴HTML路径>` 在替换并校验资源后刷新图鉴已嵌入的 34 组图形和署名，可在断网状态按省、按单元检查。
+资源校验通过后，在技能目录运行 `python3 scripts/update-region-gallery.py`，即可刷新[图鉴的地市边界附录](../examples/chart-gallery.html#regional-boundaries)。也可传入其他图鉴 HTML 的路径。

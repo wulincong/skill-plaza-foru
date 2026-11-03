@@ -73,7 +73,7 @@ registry = json.loads((root / "regions/registry.json").read_text())
 packages = {r["provinceCode"]: preview(root, r) for r in registry["regions"]}
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("gallery", type=Path)
+parser.add_argument("gallery", type=Path, nargs="?", default=root.parent / "examples/chart-gallery.html")
 gallery = parser.parse_args().gallery
 payload = json.dumps(packages, ensure_ascii=False, separators=(",", ":")).replace("<", r"\u003c")
 pattern = r'(<script id="regional-geometry" type="application/json">).*?(</script>)'
