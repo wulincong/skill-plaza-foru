@@ -4,7 +4,7 @@
 
 ## 报告计划
 
-基础示例：
+基础取数示例（只演示请求格式，不等于完整研究计划；分析流程见 [research-analysis.md](research-analysis.md)）：
 
 ~~~json
 {

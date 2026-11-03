@@ -317,13 +317,14 @@ def est_screen_height(s):
     if s.get('insight'):
         h += 190
     if s.get('summary'):
-        h += 180
+        h += 100 + math.ceil(len(s['summary'].get('text', '')) / 29) * 45
     if s.get('quote'):
         h += 210
     if s.get('blocks'):
-        h += len(s['blocks']) * 200 + 170
+        h += sum(95 + math.ceil(len(text) / 35) * 42 for _, text in s['blocks']) + 170
     h += 130                        # 页脚
-    return max(1500, min(2800, h))
+    # Analysis must fit on the page; a fixed cap silently cuts longer findings.
+    return max(1500, h)
 
 
 def chart_js(cfg, el, height):

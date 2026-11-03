@@ -90,6 +90,7 @@ def main():
             files.append(('article/'+name, source))
     data.pop('provenance', None)
     outline.pop('bindings', None)
+    outline.pop('analysis', None)  # Internal research protocol; prose is already on each page.
     out = report.parent/(args.name+'.zip')
     with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
         for name, source in files:

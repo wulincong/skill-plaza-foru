@@ -30,6 +30,8 @@ def main():
         elif not outline.get('demo'):
             raise ValueError('离线样例大纲缺少演示标记')
         checks.append(('数据工件、适配和指标引用', True, '通过'))
+        if binding:
+            checks.append(('分析覆盖、比较证据与行动建议', True, '分析稿及报告正文一致；解释合理性仍需审阅'))
         for s in outline['screens']:
             visible = s.get('paragraphs', []) + [s.get('summary', {}).get('text', '')]
             if any(re.search(BANNED, t) for t in visible):

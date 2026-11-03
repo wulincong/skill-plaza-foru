@@ -1,0 +1,74 @@
+{
+  "date": "2026-11-03",
+  "status": "pass",
+  "scope": "wechat-report mandatory evidence-linked analysis before report generation",
+  "automatedTests": {
+    "command": "node --test --test-reporter=dot scripts/talent-data/*.test.mjs",
+    "passed": 63,
+    "failed": 0
+  },
+  "skillValidation": "python -B /home/wlc/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wechat-report",
+  "realSnapshot": {
+    "runId": "20261103-105417-hggy",
+    "region": "山东省",
+    "industry": "智能制造",
+    "positions": 40507,
+    "dataUnchanged": true,
+    "dataSha256": "dc1eec45d10dbe292d651019894a0f0f65d24109904ea6e6a7faafe5bd5df30b",
+    "newDatabaseQueries": 0
+  },
+  "analysis": {
+    "evidenceFindings": 42,
+    "analyzedSections": 7,
+    "crossDimensionExecutive": true,
+    "coverageGaps": [
+      {
+        "section": "tracks",
+        "status": "not_requested"
+      },
+      {
+        "section": "city_tracks",
+        "status": "not_requested"
+      },
+      {
+        "section": "lq",
+        "status": "not_requested"
+      },
+      {
+        "section": "track_salary",
+        "status": "not_requested"
+      },
+      {
+        "section": "skills",
+        "status": "not_requested"
+      },
+      {
+        "section": "track_skills",
+        "status": "not_requested"
+      }
+    ],
+    "emptyDraftBlocked": true,
+    "staleOrChangedEvidenceBlocked": true,
+    "missingAnalysisBlockedAcrossStages": true,
+    "outlineSchema": "wechat-outline/3"
+  },
+  "report": {
+    "pages": 11,
+    "bodyAndSummaryChars": 4108,
+    "sourceBindingsAndRenderCheck": "pass",
+    "articleAndPublicZip": "pass",
+    "publicZipExcludesInternalAnalysis": true,
+    "manuallyViewedPages": [
+      "学历",
+      "职教入门岗位",
+      "附录"
+    ],
+    "internalAuditWorkbook": "pass"
+  },
+  "limitations": [
+    "自动检查证明证据绑定、章节覆盖与流程完整，不证明自然语言解释必然有洞察。",
+    "本次重分析未新增岗位方向和技能统计，原样本的未请求项已披露。",
+    "未执行真实在线模型新会话验收；既有会话的脚本副本需要同步更新。",
+    "长文案页高按内容估算；本次目检通过不等于所有文案与主题均无溢出。"
+  ]
+}

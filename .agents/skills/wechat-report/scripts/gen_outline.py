@@ -7,7 +7,7 @@ from bound_report import load_data, project, CLAIMS
 BASE = Path(__file__).resolve().parent.parent
 
 
-def build_outline(data, brand, binding=None):
+def _build_skeleton(data, brand, binding=None):
     title = data['meta']['region']+data['meta']['industry']+'人才需求观察报告'
     ol = {'schema': 'wechat-outline/2', 'title': title, 'org': brand['org'],
           'generated_at': data['meta']['generated_at'], 'screens': [], 'bindings': {},
@@ -102,7 +102,7 @@ def build_outline(data, brand, binding=None):
             'text': '薪酬可辅助识别不同方向的招聘定位，实际收入仍取决于岗位职责、经验和录用条件。'}
     if data.get('subtrack'):
         chart('岗位方向结构', '按显式有序规则的互斥归类', '/subtrack')
-    if data.get('salary_by_track'):
+    if any(r.get('valid') for r in data.get('salary_by_track', [])):
         chart('方向薪酬比较', '同一薪酬规则下的方向摘要', '/salary_by_track',
               'track_salary_table', 'table', ['岗位方向', '有效薪酬记录', '中位数K/月'])
     sections = {c['section'] for c in data.get('coverage', [])}
@@ -149,7 +149,8 @@ def build_outline(data, brand, binding=None):
     blocks = [('数据来源', '优才知路平台数据库。统计单位为岗位记录，地址来自企业关联地址。'),
               ('筛选范围', scope),
               ('薪酬方法', ('两端为有效数值，最低薪酬为正且不大于最高薪酬，最高不超过100 K/月；以区间中点计算加权线性分位数。' if binding and salary else '历史样例算法；不代表当前实时薪酬统计方法。' if salary else '本次没有可用薪酬统计。')),
-              ('方向与技能', '方向采用请求中显式声明的首个命中规则；技能为描述子串提及统计，多个词可重叠。'),
+              ('方向与技能', ('方向采用显式首个命中规则。' if data.get('subtrack') else '本次未完成岗位方向统计。')+
+               ('技能为描述子串提及，多个词可重叠。' if data.get('skill_described_n') else '本次无可用技能提及统计。')),
               ('数据日期', data['meta']['generated_at']+'；该日期是统计读取日期，平台更新时间不等同职位发布时间。'),
               ('未覆盖项', '；'.join(gaps) if gaps else '本次声明的统计章节已完成。')]
     if not binding:
@@ -158,12 +159,24 @@ def build_outline(data, brand, binding=None):
     return ol
 
 
+def build_outline(data, brand, binding=None, analysis=None):
+    if binding:
+        from report_analysis import apply_analysis, validate_analysis
+        validate_analysis(data, binding, analysis)
+        return apply_analysis(_build_skeleton(data, brand, binding), data, binding, analysis)
+    return _build_skeleton(data, brand)
+
+
 def outline_to_md(ol):
     lines = ['# '+ol['title'], '', '> 请审阅数据与分析后再渲染。', '']
     for s in ol['screens']:
         lines += ['## '+s['title'], '']+s.get('paragraphs', [])
         if s.get('summary'):
             lines += ['', s['summary']['title']+'：'+s['summary']['text']]
+        if s.get('chart'):
+            chart = s['chart']
+            lines += ['', '**图表**：'+chart.get('caption', ''),
+                      '```json', json.dumps(chart, ensure_ascii=False, indent=2), '```']
         for t, text in s.get('blocks', []):
             lines += ['', '**'+t+'**：'+text]
         lines += ['']
@@ -174,11 +187,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--data', default=str(BASE/'report_data.json'))
     ap.add_argument('--out', default=str(BASE/'output/outline'))
+    ap.add_argument('--analysis', default=str(BASE/'report_analysis.json'))
     ap.add_argument('--demo', action='store_true')
     args = ap.parse_args()
     data, binding = load_data(args.data, args.demo)
     brand = json.loads((BASE/'assets/brand.json').read_text('utf-8'))
-    ol = build_outline(data, brand, binding)
+    analysis = None
+    if binding:
+        if not Path(args.analysis).is_file():
+            raise ValueError('必须先完成真实数据分析：运行 report_analysis.py，阅读证据并撰写 report_analysis.json')
+        analysis = json.loads(Path(args.analysis).read_text('utf-8'))
+    ol = build_outline(data, brand, binding, analysis)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out/'report_outline.json').write_text(json.dumps(ol, ensure_ascii=False, indent=2), 'utf-8')

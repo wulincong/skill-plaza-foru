@@ -1,0 +1,136 @@
+{
+  "schema": "wechat-analysis/1",
+  "sourceDataSha256": "dc1eec45d10dbe292d651019894a0f0f65d24109904ea6e6a7faafe5bd5df30b",
+  "sourceContentHash": "ca206da55c7cba7b123dff9579a1a19a83152d16165a5fe83b4958bf2cad9bb1",
+  "evidenceHash": "be2cae70fbf2229ec3643674a56007a3a703ae506d03e6943c4cbdf6a254b02a",
+  "executive": {
+    "findingIds": [
+      "geography.concentration",
+      "education.comparison",
+      "vocational.salary_comparison",
+      "vocational.city_comparison_1"
+    ],
+    "synthesis": "山东智能制造在招样本同时呈现地域集中、学历门槛多层次和入门岗位结构差异。总体需求较集中的城市并不必然在入门岗位中占同样份额，院校应按目标学生的条件重选合作城市和企业。学历要求较开放也不能直接解释为应届生容易进入，需要与经验交叉核查；入门池薪酬低于总体只能作为预期参照，不能解释成学历收益。当前证据足以支持分层筛选与企业核查方案，尚不足以确定专业方向和具体技术课程。"
+  },
+  "sections": [
+    {
+      "key": "geography",
+      "title": "合作布局兼顾头部城市与分散需求",
+      "findingIds": [
+        "geography.concentration",
+        "geography.gap",
+        "geography.coverage"
+      ],
+      "interpretation": "青岛在样本中领先，但靠前城市之外仍保留较多需求，不能把全省机会缩成青岛和济南的单一路径。这是企业关联地址所反映的空间分布，尚不能证明岗位实际工作地或城市产业实力；新泰与泰安同时出现也提示地址层级可能混用。",
+      "action": "先在青岛建立需求核查样本，同时在潍坊、烟台和院校所在地保留合作企业候选，分别整理岗位条件与实际工作地清单，再按学生通勤和实习成本安排走访。",
+      "validation": "向候选企业核对岗位实际工作地、在招状态与重复发布情况，并把县级地址与所属地级市的统计关系说明清楚后，再用于区域招生或合作布局。"
+    },
+    {
+      "key": "jobtype",
+      "title": "社招占主导需单独核实学生通道",
+      "findingIds": [
+        "jobtype.leading",
+        "jobtype.comparison",
+        "jobtype.category_2"
+      ],
+      "interpretation": "社招标签远多于实习标签，说明公开在招样本主要以社会招聘形式呈现；这不能推出所有社招都排斥应届生，也不能证明企业没有未公开的实习合作。直接把社招岗位总量转为学生实习容量会高估已知证据。",
+      "action": "对合作企业分别登记社招岗位是否接受应届毕业生、是否提供实习带教以及是否存在转正考核，把明确接受学生的岗位列入专门通道，其他社招岗位用于在职提升和毕业后跟踪。",
+      "validation": "以企业对学生身份和到岗时间的书面回复、带教安排和考核任务确认通道，不能仅凭招聘类型标签承诺实习名额。"
+    },
+    {
+      "key": "education",
+      "title": "学历标签多层次不等于能力门槛降低",
+      "findingIds": [
+        "education.comparison",
+        "education.category_2",
+        "education.category_3",
+        "education.category_8"
+      ],
+      "interpretation": "大专、本科和中专类别并存，提示院校需要按岗位任务区分培养出口。学历不限是招聘标签而非能力豁免；高职标签较少也可能受到大专等枚举归类影响，不能据此判断高职毕业生整体需求稀少。",
+      "action": "将合作岗位按真实学历要求和工作任务建立对照表，分别选择适合中职、高职及继续教育学生的实践任务；对标为大专或学历不限的岗位，主动向企业核实高职学历的接受范围。",
+      "validation": "抽查企业原始学历表述与平台枚举的对应关系，再核对职责、技能和经验条件，避免把学历标签当作招生专业或学生就业资格的直接依据。"
+    },
+    {
+      "key": "experience",
+      "title": "经验类别提示以任务证据衔接招聘",
+      "findingIds": [
+        "experience.leading",
+        "experience.comparison",
+        "experience.category_2"
+      ],
+      "interpretation": "样本中经验类别的分布提示，院校需要帮助学生证明岗位任务能力，而不能只展示课程名称。经验不限仍包含其他招聘条件；原始年限标签也不能直接改写成互斥的实际工作年限区间，更不能用这些类别判断企业招聘偏好的变化。",
+      "action": "在实训档案中记录任务背景、个人负责环节、验收结果和问题复盘，让企业能够核查学生做过什么；对经验要求明确的岗位先确认企业是否认可实习和真实项目经历。",
+      "validation": "用企业试做任务与面试反馈核查项目证据是否有用，保留企业对经历认定的标准，不把校内实训时长直接折算成招聘要求的工作年限。"
+    },
+    {
+      "key": "access",
+      "title": "学历开放需与经验条件同时判断",
+      "findingIds": [
+        "access.leading",
+        "access.conditional",
+        "access.combination_1",
+        "access.combination_3"
+      ],
+      "interpretation": "学历不限与经验不限的交集只是学历不限群体的一部分，说明放宽学历并不意味着同时放宽经验。大专类别内部也分布在不同经验要求下，因此只汇总学历比例会掩盖不同学生面对的进入条件。交叉表描述的是招聘条件组合，不能替代实际录用结果。",
+      "action": "就业指导和企业推荐同时使用学历与经验筛选，把没有经验的毕业生、具有实习经历的学生及在职提升人员分开匹配；保留未满足的条件并与企业逐项确认，避免以学历相符作为推荐的唯一依据。",
+      "validation": "抽核交叉组合中的岗位描述，确认经验要求是否为硬门槛、实习能否计入，并记录企业实际录用条件与平台标签的差异。"
+    },
+    {
+      "key": "salary",
+      "title": "薪酬定位同时使用中位数和分布",
+      "findingIds": [
+        "salary.quantiles",
+        "salary.modal_band",
+        "salary.coverage"
+      ],
+      "interpretation": "薪酬有效覆盖较高，使当前样本的分位描述有充分记录基础，但不消除渠道与岗位结构偏差。中间分布能帮助学生建立常见报价范围；高端报价不能代表入门岗位的通常回报，招聘区间中点也不是到手工资或实际签约收入。",
+      "action": "在求职辅导中用薪酬分位和主要档位说明报价分布，再要求学生核查目标岗位的工资构成、试用条件、工时和福利，把总体报价与个人实际录用条件分开讨论。",
+      "validation": "向企业核实固定与浮动工资、税前税后口径以及加班计入方式，并对照入门子样本与实际录用反馈调整预期，不能以总体中位数承诺毕业起薪。"
+    },
+    {
+      "key": "vocational",
+      "title": "入门岗位的城市与薪酬结构另作选择",
+      "findingIds": [
+        "vocational.size",
+        "vocational.salary_comparison",
+        "vocational.city_comparison_0",
+        "vocational.city_comparison_1",
+        "vocational.city_comparison_2"
+      ],
+      "interpretation": "入门池在薪酬和地域份额上都与总体不同：青岛的池内份额低于总体份额，潍坊则相反，说明只按全部岗位排名安排学生通道可能失准。池内与总体薪酬的差异同时混合了岗位任务和经验构成，不能解释为地区或学历的因果回报；池的筛选还包含学历和经验不限，不能直接称为应届生专属岗位。",
+      "action": "为入门岗位单独制作企业核查清单，在青岛之外同步核实潍坊和烟台的学生接受条件、工作地与薪酬构成；先按交集筛选，再通过企业确认和任务试做决定是否列入实习就业项目。",
+      "validation": "公开该岗位池包含的学历与经验规则，逐项核查实际职责、学生接受条件和薪资区间；在尚无方向和技能统计时，不据此直接新增专业或指定技术课程。"
+    }
+  ],
+  "limitations": [
+    "本分析仅使用原运行保存的山东智能制造在招记录，读取时点与筛选条件保持一致；不新增时间窗，不代表全部用人需求或实际录用结果。",
+    "岗位方向、城市与方向交叉、方向薪酬和技能组合未被原计划查询，因此当前分析不能给出具体岗位方向排名、技术能力清单或专业课程配置，应在新计划中补齐适用规则并重新取数。",
+    "城市以企业关联地址归属，县市层级可能混用；薪酬是声明区间中点，子样本与总体比较未控制职责、经验和企业构成，均不支持动态或因果推断。"
+  ],
+  "coverageGaps": [
+    {
+      "section": "tracks",
+      "status": "not_requested"
+    },
+    {
+      "section": "city_tracks",
+      "status": "not_requested"
+    },
+    {
+      "section": "lq",
+      "status": "not_requested"
+    },
+    {
+      "section": "track_salary",
+      "status": "not_requested"
+    },
+    {
+      "section": "skills",
+      "status": "not_requested"
+    },
+    {
+      "section": "track_skills",
+      "status": "not_requested"
+    }
+  ]
+}

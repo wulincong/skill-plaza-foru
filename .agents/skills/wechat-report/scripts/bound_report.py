@@ -73,6 +73,12 @@ def project(data, spec):
     value = pointer(data, spec['path'])
     op = spec.get('op', 'value')
     limit = spec.get('limit', 10)
+    if op == 'finding':
+        from report_analysis import derive_findings
+        fact = next((f for f in derive_findings(data) if f['id'] == spec.get('findingId')), None)
+        if not fact or spec.get('inputs') != {str(i): {'path': p} for i, p in enumerate(fact['paths'])}:
+            raise ValueError('分析事实的统计对象或输入字段不一致')
+        return fact['text']
     if op == 'number':
         return '未提供' if value is None else format(value, ',')
     if op == 'name_count':
@@ -138,14 +144,20 @@ def verify_outline(data, binding, outline):
         if sorted(set(expected) or {'all/positions.count'}) != sorted(spec['metricIds']):
             raise ValueError('指标引用与来源字段不一致：'+path)
     # Every quantitative paragraph/stat/chart must carry a specific projection.
+    from report_analysis import entity_labels, verify_analysis_outline
+    labels = entity_labels(data)
     for i, screen in enumerate(outline['screens']):
         for j, text in enumerate(screen.get('paragraphs', [])):
-            if re.search(r'\d', text):
+            quantitative = text
+            for label in sorted(labels, key=len, reverse=True):
+                quantitative = quantitative.replace(label, '')
+            if re.search(r'\d', quantitative):
                 ref = refs.get('/screens/%d/paragraphs/%d' % (i, j))
-                if not ref or ref.get('op') != 'claim':
+                if not ref or ref.get('op') not in ('claim', 'finding'):
                     raise ValueError('量化正文缺少类型明确的事实引用')
         for key in ('chart', 'chart2', 'chartA', 'chartB'):
             c = screen.get(key)
             if c and not any(p == '/screens/%d/%s' % (i, key) or p.startswith('/screens/%d/%s/' % (i, key)) for p in refs):
                 raise ValueError('图表缺少指标引用')
+    verify_analysis_outline(data, binding, outline)
     return True
