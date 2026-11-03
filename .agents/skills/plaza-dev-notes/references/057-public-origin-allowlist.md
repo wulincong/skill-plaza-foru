@@ -45,3 +45,21 @@
 - 若后续加域名/HTTPS 入口，继续在 `PLAZA_ALLOWED_ORIGINS` 追加即可；
   多入口公网部署时可考虑改为启动时校验 origin 合法性并打日志。
 - `.env.example` 已加模板说明（`web/.env.example` 顶部）。
+
+## 补注（2026-11-03）：公网入口的真实链路与 SSH 隧道端口
+
+排查"连不上服务器"时核实的部署拓扑，供后续运维参考：
+
+- 公网入口不是云主机上直接跑的服务，而是 **frp 内网穿透**：云主机
+  `test.deckmanager.net`（115.231.218.150，root@22 可登）跑 frps（bind 7000），
+  广场开发机（本机 wlc-Precision-3660）以 root 级 frpc
+  （`/usr/local/bin/frp/frpc.ini`）注册映射：4188→14188（前端）、8767→18767（后端），
+  另有 alist/lumi/wechat-wx-bot 等无关代理。广场服务本体在本机，云主机上没有项目目录。
+- **SSH 隧道端口是 6001**（frpc `[ssh-vision]` 127.0.0.1:22→6001），不是旧配置里的
+  6000；6000 不属于任何在册代理（frps 监听列表实测：5544/6001/6002/7000/8008/
+  8012/14188/18088/18767/26888）。6002 属另一台客户端机器（vision123-Precision-3660）。
+  本机 `~/.ssh/config` 已改为 6001，并把本机自身公钥补进 `authorized_keys`，
+  `ssh test.deckmanager.net` 端到端验证通过。其他外部电脑（authorized_keys 已在列）
+  连接时同样需把端口改为 6001。
+- 云主机 frps 日志显示持续有扫描 IP 用错误 token 尝试注册（已被 token 校验拦截）；
+  frp token 与 frpc admin 密码明文存于上述配置，属已知部署现状，本轮未改动。
