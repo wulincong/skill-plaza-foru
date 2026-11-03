@@ -182,8 +182,6 @@ def outline_to_md(ol):
         lines += ['## '+s['title'], '']
         if s.get('conclusion'):
             lines += ['**'+s['conclusion']['title']+'**：'+s['conclusion']['text'], '']
-        for c in s.get('cards') or []:
-            lines += ['**'+c.get('no', '')+'. '+c.get('title', '')+'**：'+c.get('desc', ''), '']
         lines += s.get('paragraphs', [])
         if s.get('summary'):
             lines += ['', s['summary']['title']+'：'+s['summary']['text']]

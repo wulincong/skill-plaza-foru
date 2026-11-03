@@ -172,18 +172,9 @@ def verify_outline(data, binding, outline):
     from report_analysis import entity_labels, verify_analysis_outline
     labels = entity_labels(data)
     for i, screen in enumerate(outline['screens']):
-        # Lead conclusion box and conclusion cards are narrative only; digits
-        # belong to the bound findings below them (observed labels excepted).
-        def free_text(value):
-            text = value
-            for label in sorted(labels, key=len, reverse=True):
-                text = text.replace(label, '')
-            return text
-        if screen.get('conclusion') and re.search(r'\d', free_text(screen['conclusion'].get('text', ''))):
+        # The lead conclusion box is narrative only; numbers belong to bound findings.
+        if screen.get('conclusion') and re.search(r'\d', screen['conclusion'].get('text', '')):
             raise ValueError('核心结论框包含未绑定数字')
-        for card in screen.get('cards') or []:
-            if re.search(r'\d', free_text(card.get('title', '')+card.get('desc', ''))):
-                raise ValueError('结论卡包含未绑定数字')
         for j, text in enumerate(screen.get('paragraphs', [])):
             quantitative = text
             for label in sorted(labels, key=len, reverse=True):

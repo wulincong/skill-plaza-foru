@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 095）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 094）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -80,7 +80,6 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 087 | 报告智能体接入共享人才查询：按章节请求、兼容适配、证据绑定与迁移验收 | 接入已实现（57项测试/真实取数；分析阶段后续实现见091） | [087-report-query-skill-integration.md](references/087-report-query-skill-integration.md) |
 | 091 | wechat-report：强制真实数据分析、比较证据、解释与行动建议后再生成报告 | 已实现（63项测试/真实保存结果全链路；在线模型新会话待验） | [091-wechat-evidence-led-analysis.md](references/091-wechat-evidence-led-analysis.md) |
 | 093 | wechat-report 质量轮：实测页高修截字、核心结论先行、FT 图表自动选型、纯图网页预览 | 已实现（山东真实工件全链复跑+15项集成测试通过；在线新会话待验） | [093-wechat-report-quality-round.md](references/093-wechat-report-quality-round.md) |
-| 094 | wechat-report 结论卡：wechat-analysis/2 综合判断拆分结论卡；服务器画图服务排查（无） | 已实现（山东全链复跑+15项测试通过；在线新会话待验） | [094-wechat-conclusion-cards.md](references/094-wechat-conclusion-cards.md) |
 
 ### 图表与区域资源
 

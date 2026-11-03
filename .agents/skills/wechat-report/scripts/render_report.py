@@ -318,7 +318,6 @@ def est_screen_height(s):
         h += 190
     if s.get('conclusion'):
         h += 190
-    h += 210 * len(s.get('cards') or [])
     if s.get('summary'):
         h += 100 + math.ceil(len(s['summary'].get('text', '')) / 29) * 45
     if s.get('quote'):
@@ -795,14 +794,6 @@ def render_screen(s, idx, total, org, scale, meta=None, height=None):
                           '<div class="tag">%s</div><div class="txt">%s</div></div>'
                           % (TH('accent'), s['conclusion'].get('title', '核心结论'),
                              s['conclusion'].get('text', '')))
-    # 分结论卡（核心发现页）：编号+动作短语标题+决策要点，复用摘要页结论卡样式
-    if s.get('cards'):
-        cards_html = ''.join(
-            '<div class="sumcard"><div class="no2">%s</div><div class="bd">'
-            '<div class="jt">%s</div><div class="ds">%s</div></div></div>'
-            % (c.get('no', ''), c.get('title', ''), c.get('desc', ''))
-            for c in s['cards'])
-        body_parts.insert(1 if s.get('conclusion') else 0, cards_html)
     # 章末灵活小标题总结框（橙系）
     if s.get('summary'):
         body_parts.append('<div class="sbox"><div class="st">%s</div>'

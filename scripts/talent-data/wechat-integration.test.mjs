@@ -40,7 +40,6 @@ async function analyze(f) {
   const domains=[...new Set(pack.findings.map(x=>x.section))]
   const executive=domains.slice(0,3).map(key=>pack.findings.find(x=>x.section===key).id)
   draft.executive={findingIds:executive,synthesis:'合成夹具仅检验分析与指标之间的绑定关系，类别分布与交叉结果应分别解释，不能推断真实产业发展情况。'}
-  draft.executive.conclusions=executive.map((id,i)=>({title:`分结论${'一二三四'[i]}`,text:`围绕该维度合成分布先核对样本条件与合作对象，再决定后续动作，不推断真实产业情况。`,findingIds:[id]}))
   for(const s of draft.sections) {
     s.findingIds=pack.findings.filter(x=>x.section===s.key).slice(0,5).map(x=>x.id)
     s.title=`合成样本的${s.key.replaceAll('_',' ')}结构需复核`
