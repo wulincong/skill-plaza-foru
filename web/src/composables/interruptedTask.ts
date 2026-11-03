@@ -1,5 +1,6 @@
+import { browserHeaders } from './browserHistory.ts'
 import type { ChatAttachment, ChatModelId } from './useChatApi'
-import type { RunListItem } from '../data/runsMock'
+import type { RunListItem } from '../data/runs'
 
 /** One in-flight submission per browser tab, saved before the first network request. */
 export interface ChatSubmission {
@@ -40,8 +41,8 @@ export async function interruptSubmission(task: ChatSubmission, keepalive = fals
   retryId?: string
   latest?: RunListItem
 }> {
-  const url = '/api/runs/session/' + encodeURIComponent(task.sessionId) + '/interrupt/' + encodeURIComponent(task.requestId)
-  const res = await fetch(url, { method: 'POST', keepalive })
+  const url = '/api/conversations/session/' + encodeURIComponent(task.sessionId) + '/interrupt/' + encodeURIComponent(task.requestId)
+  const res = await fetch(url, { method: 'POST', headers: browserHeaders(), keepalive })
   if (!res.ok) throw new Error('暂时无法读取任务状态。')
   return res.json()
 }

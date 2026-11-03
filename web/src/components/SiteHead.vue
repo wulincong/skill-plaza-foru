@@ -2,7 +2,6 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useSession } from '../composables/session'
-import { isRunsTabVisible } from '../plazaEnv'
 
 const route = useRoute()
 const open = ref(false)
@@ -90,7 +89,6 @@ watch(() => route.fullPath, () => { closeNav(); closeMenu() })
           <RouterLink to="/" :aria-current="route.name === 'home' ? 'page' : undefined">首页</RouterLink>
           <RouterLink to="/skills" :aria-current="route.name === 'skills' || route.name === 'detail' ? 'page' : undefined">智能体广场</RouterLink>
           <RouterLink to="/experience" :aria-current="route.name === 'experience' ? 'page' : undefined">在线对话</RouterLink>
-          <RouterLink v-if="isRunsTabVisible()" to="/runs" :aria-current="route.name === 'runs' || route.name === 'runDetail' ? 'page' : undefined">运行记录</RouterLink>
           <RouterLink to="/docs" :aria-current="route.name === 'skillDocs' ? 'page' : undefined">文档中心</RouterLink>
         </nav>
         <div class="head-tools">

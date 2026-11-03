@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { FEATURES } from '../data/skills'
+import { publishedSkills } from '../composables/catalog'
+import { FEATURES as allFeatures } from '../data/skills'
 import FeaturePreview from './FeaturePreview.vue'
 
 /* 移植原 initFeatures：左侧业务列表 + 右侧 sticky 叠卡 + 滚动联动 + 整组释放 */
+const FEATURES = allFeatures.filter(f => publishedSkills.value.some(s => s.slug === f.slug))
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
 
 const featureIndex = ref(0)
@@ -143,7 +145,7 @@ const copyStyle = computed(() =>
 </script>
 
 <template>
-  <section class="feature-sec" id="features" aria-label="产物效果预览">
+  <section v-show="FEATURES.length" class="feature-sec" id="features" aria-label="产物效果预览">
     <div class="wrap">
       <div class="feature-area" id="feature-area">
         <div ref="copyEl" class="feature-copy" :style="copyStyle">

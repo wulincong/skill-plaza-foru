@@ -3,13 +3,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Icon from '../components/Icon.vue'
 import { bySlug, GENERAL_SKILL_NAME } from '../data/skills'
-import { OUTCOME_LABEL, type RunDetail, type RunListItem, type RunPart } from '../data/runsMock'
-import { fetchRunDetail, runFileUrl, runReportUrl } from '../api/runsApi'
+import { OUTCOME_LABEL, type RunDetail, type RunListItem, type RunPart } from '../data/runs'
+import { api } from '../admin/state'
+import { runFileUrl, runReportUrl } from '../api/runsApi'
 import ReportChart from '../components/ReportChart.vue'
 
 /* 运行详情：概要 + 用量条 + 按 trace parts 原始顺序合并的运行时间线。
-   数据来自 GET /api/runs/:runId（item = 索引记录，trace = 权威导出）；
-   后端未启动时回落演示数据。 */
+   数据来自 GET /api/admin/runs/:runId（item = 索引记录，trace = 权威导出）；
+   由后台登录会话授权读取。 */
 
 const route = useRoute()
 const runId = computed(() => String(route.params.runId ?? ''))
@@ -27,10 +28,16 @@ function isHtmlReportText(text: string, role?: string): boolean {
 
 async function load() {
   loading.value = true
-  const result = await fetchRunDetail(runId.value)
-  item.value = result.item
-  trace.value = result.trace
-  live.value = result.live
+  try {
+    const result = await api<{item:RunListItem; trace?:RunDetail}>('runs/' + encodeURIComponent(runId.value))
+    item.value = result.item
+    trace.value = result.trace
+    live.value = true
+  } catch {
+    item.value = undefined
+    trace.value = undefined
+    live.value = false
+  }
   loading.value = false
 }
 onMounted(load)
@@ -304,14 +311,22 @@ const envRows = computed(() => {
               <a v-if="item.files.trace" :href="runFileUrl(runId, 'trace')" download>trace.json</a>
               <a v-if="item.files.trace" :href="runFileUrl(runId, 'md')" download>trace.md</a>
             </div>
-            <p v-else class="rd-note">演示数据不含原始文件下载；接入后端后每次运行可下载 events.jsonl / trace.json / trace.md。</p>
+
           </main>
         </div>
       </template>
 
+      <div v-else-if="item" class="adm-panel adm-form">
+        <p class="adm-kicker">RUN SUMMARY</p><h2>{{ item.taskTitle || item.promptDigest || item.runId }}</h2>
+        <p>{{ skillName }} · {{ OUTCOME_LABEL[item.outcome] }} · {{ fmtDuration(item.durationMs) }}</p><code>{{ item.runId }}</code>
+        <p>此运行没有完整的模型 trace。</p>
+        <p v-if="item.userMessage">{{ item.userMessage }}</p>
+        <p v-if="item.localReply">{{ item.localReply }}</p>
+        <a v-if="item.files?.events" class="adm-btn" :href="runFileUrl(runId,'events')" download>下载 events.jsonl</a>
+      </div>
       <div v-else class="rd-missing">
         <h1>该运行暂无详情</h1>
-        <p>索引中找不到这次运行，或该运行还没有权威导出（历史早期运行）。</p>
+        <p>运行不存在或服务暂时无法读取。</p>
         <RouterLink class="btn btn-primary" :to="{ name: 'runs' }">返回运行记录</RouterLink>
       </div>
     </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { SKILLS } from '../data/skills'
+import { publishedSkills as SKILLS } from '../composables/catalog'
 import HeroSection from '../components/HeroSection.vue'
 import FeatureStack from '../components/FeatureStack.vue'
 import SkillCard from '../components/SkillCard.vue'

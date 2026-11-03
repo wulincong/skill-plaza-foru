@@ -1,3 +1,4 @@
+import { browserHeaders } from './browserHistory.ts'
 import type { ChatQuestion } from '../../shared/chatQuestion'
 /* ============================================================
    模型对话接入（Node 后端 → pi RPC）
@@ -17,9 +18,9 @@ export interface ChatMessage {
 export type ApiState = 'checking' | 'ready' | 'offline' | 'nokey'
 export type EngineId = 'pi'
 export interface DeliveryLink { name: string; url: string }
-import type { ReportChart } from '../data/runsMock'
+import type { ReportChart } from '../data/runs'
 
-export type ChatModelId = 'deepseek-flash' | 'deepseek-pro' | 'youcai'
+export type ChatModelId = 'deepseek-flash' | 'deepseek-pro' | 'youcai' | 'deployment'
 export interface ChatModelOption { id: ChatModelId; name: string; provider: string; modelId: string }
 
 export interface HealthResult {
@@ -101,7 +102,7 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
   const { skill, model, taskTitle, messages, sessionId, attachments, onEvent, signal } = options
   const response = await fetch('/api/chat', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { ...browserHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify({ interactive: options.interactive, answerTo: options.answerTo, skill, model, taskTitle, messages, sessionId, attachments, requestId: options.requestId, resumeOf: options.resumeOf }),
     signal,
   })

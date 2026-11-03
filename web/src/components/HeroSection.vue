@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { SKILLS, catOf } from '../data/skills'
+import { publishedSkills as SKILLS } from '../composables/catalog'
+import { catOf } from '../data/skills'
 import Icon from './Icon.vue'
 
 /* 3 列 marquee 轮播恢复 + 入场：卡片先叠成一叠（带微旋转），随后依次散开成一排 */
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
 
 const viewport = ref<HTMLElement | null>(null)
-const HERO_SET = SKILLS.length
+const HERO_SET = SKILLS.value.length
 const trackCards = ref(1) // 1 组（静态回退）或 3 组（轮播）
 let heroTimer: ReturnType<typeof setInterval> | null = null
 let heroPos = 0
@@ -43,7 +44,7 @@ function setup() {
   if (heroTimer) { clearInterval(heroTimer); heroTimer = null }
   heroPos = 0
   apply(false)
-  if (marquee) heroTimer = setInterval(heroTick, 5000)
+  if (marquee && HERO_SET > 1) heroTimer = setInterval(heroTick, 5000)
 }
 
 let media: MediaQueryList | undefined
@@ -74,7 +75,7 @@ function cardVars(idx: number) {
     '--gather-jx': g.jx,
     '--gather-jy': g.jy,
     '--spread-delay': `${0.35 + idx * 0.18}s`,
-    zIndex: String(SKILLS.length - idx),
+    zIndex: String(SKILLS.value.length - idx),
   }
 }
 /* 标题逐字动画：从模糊到清晰，从左到右；🧩 作为最后一个"字符"压轴弹出 */

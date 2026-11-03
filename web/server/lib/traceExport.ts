@@ -7,14 +7,27 @@
    评测只依赖 index.jsonl 与 <runId>.json，schema 保持稳定。
    ============================================================ */
 
-import { appendFileSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
+import { appendFileSync, chmodSync, renameSync, rmSync, statSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { loadLocalEnv } from './env.ts'
 import type { ExecutionStep } from '../../shared/execution.ts'
 import type { HtmlReportValidation } from './htmlReport.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+loadLocalEnv()
 export const TRACES_DIR = process.env.TRACES_DIR || join(__dirname, '..', 'traces')
+
+// The admin API reads files as the service user. Pi never needs this directory.
+// Upgrades also protect pre-existing run files by removing directory traversal.
+export function prepareTraceDirectory() {
+  mkdirSync(TRACES_DIR, { recursive: true, mode: 0o700 })
+  if (process.platform === 'win32') return
+  if (!process.env.TRACES_DIR) chmodSync(TRACES_DIR, 0o700)
+  if (statSync(TRACES_DIR).mode & 0o077) {
+    throw new Error('请将专用 TRACES_DIR 的权限设为 0700 后启动服务')
+  }
+}
 
 export interface UsageSummary {
   inputTokens?: number
@@ -242,7 +255,12 @@ export function readIndex(): RunRecord[] {
     trace 文件保留在磁盘（删除是索引层面的，不做不可逆清理）。 */
 export function rewriteIndex(records: RunRecord[]): void {
   mkdirSync(TRACES_DIR, { recursive: true })
-  writeFileSync(join(TRACES_DIR, 'index.jsonl'), records.map(r => JSON.stringify(r) + '\n').join(''))
+  const index = join(TRACES_DIR, 'index.jsonl')
+  const temporary = index + '.' + process.pid + '.tmp'
+  try {
+    writeFileSync(temporary, records.map(r => JSON.stringify(r) + '\n').join(''))
+    renameSync(temporary, index)
+  } finally { rmSync(temporary, { force: true }) }
 }
 
 export function traceFilePath(runId: string, kind: 'events' | 'trace' | 'report' | 'html' | 'pdf'): string {

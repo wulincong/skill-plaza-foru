@@ -12,15 +12,3 @@ export const PLAZA_ENV = String(import.meta.env.PLAZA_ENV ?? '').trim().toLowerC
 
 /** 是否测试环境（演示默认值总开关） */
 export const isTestEnv = (): boolean => PLAZA_ENV === 'test'
-
-/* ------------------------------------------------------------
-   运行记录页签展示开关（web/.env 的 PLAZA_SHOW_RUNS）
-   auto（缺省）= 跟随 PLAZA_ENV：仅测试环境展示；
-   true / false = 强制开/关，覆盖环境规则。
-   ------------------------------------------------------------ */
-export const isRunsTabVisible = (): boolean => {
-  const v = String(import.meta.env.PLAZA_SHOW_RUNS ?? '').trim().toLowerCase()
-  if (v === 'true') return true
-  if (v === 'false') return false
-  return isTestEnv()
-}

@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import MarkdownView from './MarkdownView.vue'
 import ReportChart from './ReportChart.vue'
-import type { ReportChart as ReportChartData } from '../data/runsMock'
+import type { ReportChart as ReportChartData } from '../data/runs'
 
 const props = defineProps<{
   text: string

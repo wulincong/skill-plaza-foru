@@ -10,6 +10,9 @@
 import { createHash } from 'node:crypto'
 import { localReportReply, registerReport, saveQuestion } from './lib/reportLibrary.ts'
 import { needsReportFollowThrough,reportRequested,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
+import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
+import { handleAdmin } from './lib/adminApi.ts'
+import { historyPrefix, scopedSession, conversationItem } from './lib/browserHistory.ts'
 import { createServer } from 'node:http'
 import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
@@ -20,6 +23,7 @@ import {
   RunRecorder,
   traceFilePath,
   TRACES_DIR,
+  prepareTraceDirectory,
   readIndex,
   rewriteIndex,
   type RunOutcome,
@@ -68,9 +72,6 @@ loadLocalEnv()
 
 const PORT = Number(process.env.PORT || 8767)
 const DELIVERIES_DIR = process.env.DELIVERIES_DIR || join(__dirname, 'deliveries')
-const RUN_TIMEOUT_MS = 10 * 60_000
-/** 已安装真实技能的运行要读资料、做检索、跑脚本，放宽到 20 分钟（可用 RUN_TIMEOUT_MS 环境变量覆盖） */
-const RUN_TIMEOUT_MS_INSTALLED = Number(process.env.RUN_TIMEOUT_MS || 20 * 60_000)
 const HEARTBEAT_MS = 15_000
 /** openai 流式工具 active 帧压帧时长：亚秒级工具只发终态帧，长任务超时才发 active */
 const TOOL_ACTIVE_HOLD_MS = 300
@@ -93,13 +94,10 @@ if (!piCli) {
 const DEFAULT_ENGINE: EngineName = 'pi'
 const defaultModel = piModelRef()
 const runner = new PiRunner(defaultModel, piCli)
-const deepseekPro = { provider: 'deepseek', modelId: 'deepseek-v4-pro' }
-const chatModels = [
-  { id: 'deepseek-flash', name: 'DeepSeek Flash', route: { provider: 'deepseek', modelId: 'deepseek-flash' } },
-  { id: 'deepseek-pro', name: 'DeepSeek Pro', route: deepseekPro },
-  { id: 'youcai', name: '优才之路产教融合大模型', route: { provider: 'youcai', modelId: 'youcai' } },
-]
-const defaultChatModel = chatModels.find(m => m.route.provider === defaultModel.provider && m.route.modelId === defaultModel.modelId)?.id ?? 'deepseek-pro'
+prepareTraceDirectory()
+const admin = new AdminStore()
+const defaultRoute = (id: string) => models.find(model => model.id === id)!
+const deepseekPro = defaultRoute('deepseek-pro')
 
 /* ------------------------------------------------------------
    会话管理：浏览器 sessionId → 引擎会话 + 沙箱目录
@@ -108,9 +106,10 @@ const defaultChatModel = chatModels.find(m => m.route.provider === defaultModel.
 
 const sessions = new Map<
   string,
-  { engine: EngineName; engineSessionId: string; workspaceDir: string }
+  { engine: EngineName; engineSessionId: string; workspaceDir: string; runtimeRevision: number; skill: string; thinking: string }
 >()
 const activeTurns = new Set<string>()
+const exportingTurns = new Map<string, Promise<void>>()
 // Cover a late POST still buffered by a proxy when the user refreshes.
 const discardedRequests = new Set<string>()
 const requestIdPattern = /^[a-f0-9]{32}$/
@@ -198,7 +197,7 @@ function workspaceDirFor(clientSessionId: string): string {
 }
 
 /* ------------------------------------------------------------
-   HTTP：GET /api/health、POST /api/chat（SSE）、GET /api/runs*
+   HTTP：健康探测、公开对话与受认证的管理接口
    ------------------------------------------------------------ */
 
 const PRIVATE_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
@@ -263,22 +262,32 @@ const server = createServer((req, res) => {
   try { path = decodeURIComponent((req.url || '').split('?')[0]) }
   catch { sendJson(res, 400, { error: '无效的 URL。' }); return }
   const seg = path.split('/').filter(Boolean) // 如 ['api','runs',runId,'file',kind]
+  if (seg[0] === 'api' && seg[1] === 'admin') {
+    if (!originAllowed(req.headers.origin)) { sendJson(res, 403, { error: '来源未获准访问' }); return }
+    void handleAdmin(req, res, seg, admin, sendJson, readBody, handleRunsApi)
+    return
+  }
   if (req.method === 'GET' && path === '/api/health') {
+    const { settings } = admin.config
+    const current = defaultRoute(settings.defaultModel)
+    const label = current.modelId + ' (' + current.provider + ' · pi)'
+
     sendJson(res, 200, {
       ok: true,
-      model: runner.describe(),
-      chatModels: chatModels.map(({ id, name, route }) => ({ id, name, ...route })),
-      defaultChatModel,
+      model: label,
+      chatModels: settings.allowModelChoice ? models : [current],
+      defaultChatModel: current.id,
       runner: DEFAULT_ENGINE,
       // 保留数组形状兼容旧客户端，但只公布 Pi。
-      engines: [{ id: DEFAULT_ENGINE, available: true, model: runner.describe(), version: runner.envInfo().agentVersion }],
+      engines: [{ id: DEFAULT_ENGINE, available: true, model: label, version: runner.envInfo().agentVersion }],
       message: 'API 已配置',
     })
     return
   }
   if (req.method === 'GET' && path === '/api/skills') {
     /* 广场技能清单：SKILL_PROMPTS 键为可运行权威集合，名称/描述取技能文件夹 frontmatter */
-    sendJson(res, 200, { skills: listPlazaSkills() })
+    const config = admin.config
+    sendJson(res, 200, { skills: listPlazaSkills().filter(s => skillEnabled(config, s.id)) })
     return
   }
   if (req.method === 'POST' && path === '/api/chat') {
@@ -297,25 +306,22 @@ const server = createServer((req, res) => {
     handleHtmlReport(req, res, seg[2], seg.length === 4)
     return
   }
-  /* ---- 运行记录（查询 + 会话归档/删除 + 单条运行删除）---- */
-  if (seg[0] === 'api' && seg[1] === 'runs' && (
-    req.method === 'GET'
-    || (seg[2] === 'session' && (req.method === 'POST' || req.method === 'DELETE'))
-    || (req.method === 'DELETE' && seg.length === 3)
-  )) {
-    if (!originAllowed(req.headers.origin)) {
-      sendJson(res, 403, { error: '不允许跨站调用本地 API。' })
-      return
-    }
-    void handleRunsApi(req, res, seg).catch(() => sendJson(res, 500, { error: '运行记录读取失败。' }))
+  if (seg[0] === 'api' && seg[1] === 'runs') {
+    sendJson(res, 401, { error: '全站记录已迁入管理后台' })
+    return
+  }
+  if (seg[0] === 'api' && seg[1] === 'conversations') {
+    const prefix = historyPrefix(req)
+    if (!prefix || !originAllowed(req.headers.origin)) { sendJson(res, 403, { error: '缺少本浏览器的会话凭据' }); return }
+    void handleRunsApi(req, res, seg, prefix).catch(() => sendJson(res, 500, { error: '对话读取失败' }))
     return
   }
   sendJson(res, 404, { error: '接口不存在。' })
 })
 
-/** GET /api/runs（列表，?archived=1 只看归档）· /api/runs/:runId（详情，含 conversation 对话视图）
-    · /api/runs/:runId/file/:kind（下载，md 按需生成）
-    · POST /api/runs/session/:key/archive|unarchive（会话归档/恢复）· DELETE /api/runs/session/:key（删除会话） */
+/** GET /api/admin/runs（列表，?archived=1 只看归档）· /api/admin/runs/:runId（详情，含 conversation 对话视图）
+    · /api/admin/runs/:runId/file/:kind（下载，md 按需生成）
+    · POST /api/admin/runs/session/:key/archive|unarchive（会话归档/恢复）· DELETE /api/admin/runs/session/:key（删除会话） */
 
 /* ---------- 详情的对话视图：剥离技能提示词包装，只留用户可读的你问我答 ---------- */
 
@@ -336,13 +342,19 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
 }
 
 
-async function handleRunsApi(req: any, res: any, seg: string[]) {
+async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string) {
+  const owned = (r: RunRecord) => !prefix || Boolean(r.clientSessionId?.startsWith(prefix))
+  if (seg[2] === 'session' && prefix) {
+    const sessionId = scopedSession(seg[3], prefix)
+    if (!sessionId) { sendJson(res, 404, { error: '会话不存在' }); return }
+    seg[3] = sessionId
+  }
   /* 会话级操作：归档标记与删除按 clientSessionId 匹配整段对话
      （旧记录无 clientSessionId 时退化为其 runId，与前端分组口径一致）。 */
   if (seg[2] === 'session' && seg.length === 4 && req.method === 'DELETE') {
     const key = seg[3]
     const all = readIndex()
-    const kept = all.filter(r => (r.clientSessionId || r.runId) !== key)
+    const kept = all.filter(r => !owned(r) || (r.clientSessionId || r.runId) !== key)
     if (kept.length === all.length) {
       sendJson(res, 404, { error: '会话不存在。' })
       return
@@ -357,7 +369,7 @@ async function handleRunsApi(req: any, res: any, seg: string[]) {
     const all = readIndex()
     let changed = 0
     const next = all.map(r => {
-      if ((r.clientSessionId || r.runId) !== key || Boolean(r.archived) === archived) return r
+      if (!owned(r) || (r.clientSessionId || r.runId) !== key || Boolean(r.archived) === archived) return r
       changed++
       return { ...r, archived }
     })
@@ -383,7 +395,8 @@ async function handleRunsApi(req: any, res: any, seg: string[]) {
       return
     }
     const runs = readIndex().filter(run => run.clientSessionId === sessionId)
-    const latest = runs.at(-1)
+    const last = runs.at(-1)
+    const latest = prefix && last ? conversationItem(last) : last
     const retryId = createHash('sha256').update(requestId).digest('hex').slice(0, 32)
     if (runs.some(run => run.requestId === requestId || run.requestId === retryId)) {
       sendJson(res, 200, { state: 'saved', latest })
@@ -400,7 +413,7 @@ async function handleRunsApi(req: any, res: any, seg: string[]) {
   }
 
   /* 单条运行删除（运行记录页归档视图） */
-  if (seg.length === 3 && req.method === 'DELETE') {
+  if (!prefix && seg.length === 3 && req.method === 'DELETE') {
     const all = readIndex()
     const kept = all.filter(r => r.runId !== seg[2])
     if (kept.length === all.length) {
@@ -412,23 +425,27 @@ async function handleRunsApi(req: any, res: any, seg: string[]) {
     return
   }
 
+  if (req.method !== 'GET') { sendJson(res, 405, { error: '操作不支持' }); return }
   if (seg.length === 2) {
     const query = new URL(req.url, 'http://localhost').searchParams
     const limit = Math.max(1, Math.min(500, Number(query.get('limit')) || 100))
     const skill = query.get('skill') || undefined
     const outcome = query.get('outcome') || undefined
     const archivedOnly = query.get('archived') === '1'
-    const runs = readIndex()
+    const offset = Math.max(0, Math.trunc(Number(query.get('offset')) || 0))
+    const search = query.get('q')?.trim().toLowerCase()
+    const runs = readIndex().filter(owned)
       .reverse()
+      .filter(r => !search || [r.promptDigest, r.taskTitle, r.runId].some(v => v?.toLowerCase().includes(search)))
       .filter(r => (!skill || r.skill === skill) && (!outcome || r.outcome === outcome))
       .filter(r => archivedOnly ? Boolean(r.archived) : !r.archived)
-      .slice(0, limit)
-    sendJson(res, 200, { runs })
+    const page = runs.slice(offset, offset + limit)
+    sendJson(res, 200, { runs: prefix ? page.map(conversationItem) : page, total: runs.length })
     return
   }
 
   const runId = seg[2]
-  const records = readIndex()
+  const records = readIndex().filter(owned)
   const record = records.find(r => r.runId === runId)
   if (!record) {
     sendJson(res, 404, { error: '运行记录不存在。' })
@@ -457,11 +474,11 @@ async function handleRunsApi(req: any, res: any, seg: string[]) {
       const log = turn.runId && legacyLogs.get(turn.runId)
       if (log) turn.execution = await readLegacyExecution(log) ?? turn.execution
     }
-    sendJson(res, 200, { item: record, trace, conversation })
+    sendJson(res, 200, prefix ? { item: conversationItem(record), conversation } : { item: record, trace, conversation })
     return
   }
 
-  if (seg.length === 5 && seg[3] === 'file') {
+  if (!prefix && seg.length === 5 && seg[3] === 'file') {
     const kind = seg[4]
     let file: string | null = null
     let type = 'text/plain; charset=utf-8'
@@ -603,8 +620,8 @@ async function handleUpload(req: any, res: any) {
     sendJson(res, 400, { error: '文件超过 6MB 上限。' })
     return
   }
-  const clientSessionId =
-    typeof sessionId === 'string' && sessionId ? sessionId : newRunId('sess-')
+  const clientSessionId = scopedSession(sessionId || newRunId('sess-'), historyPrefix(req))
+  if (!clientSessionId) { sendJson(res, 400, { error: '会话标识无效' }); return }
   const uploadsDir = join(workspaceDirFor(clientSessionId), 'uploads')
   mkdirSync(uploadsDir, { recursive: true })
   /* 同名不覆盖：追加 -1 / -2 序号 */
@@ -682,11 +699,13 @@ async function handleOpenAiChat(req: any, res: any) {
   }
   /* 技能走独立 skill 字段；model 字段彻底释放（忽略不校验，
      预留给将来按请求选模型的扩展）。 */
+  const config = admin.config
   const { skill: skillRaw, messages, sessionId } = body || {}
+  if (sessionId != null && !scopedSession(sessionId)) { sendJson(res, 400, openAiErrorBody('会话标识无效', 'invalid_request_error')); return }
   const skill = typeof skillRaw === 'string' ? skillRaw.trim() : ''
-  if (!skill || !(skill in SKILL_PROMPTS)) {
+  if (!skillEnabled(config, skill)) {
     sendJson(res, 400, openAiErrorBody(
-      `缺少或未知的 skill：${JSON.stringify(skillRaw ?? null)}。可用值：${Object.keys(SKILL_PROMPTS).join('、')}。`,
+      `缺少或未知的 skill：${JSON.stringify(skillRaw ?? null)}。可用值：${Object.keys(SKILL_PROMPTS).filter(id => skillEnabled(config, id)).join('、')}。`,
       'invalid_request_error',
       'unknown_skill',
     ))
@@ -747,20 +766,23 @@ async function handleChat(req: any, res: any) {
     return
   }
 
-  const { skill, messages, sessionId, model } = body || {}
+  const config = admin.config
+  const { skill, messages, model } = body || {}
+  const sessionId = scopedSession(body?.sessionId || newRunId('sess-'), historyPrefix(req))
+  if (!sessionId) { sendJson(res, 400, { error: '会话标识无效' }); return }
   // Existing clients may still send the original provider alias.
   const selected = model === 'deepseek'
-    ? { route: defaultModel.provider === 'deepseek' ? defaultModel : deepseekPro }
-    : chatModels.find(choice => choice.id === model)
-  if (model !== undefined && !selected) {
-    sendJson(res, 400, { error: '未知的对话模型，请选择 DeepSeek 或优才之路产教融合大模型。' })
+    ? (defaultModel.provider === 'deepseek' ? models.find(m => m.modelId === defaultModel.modelId) : deepseekPro)
+    : models.find(choice => choice.id === model)
+  if (model !== undefined && (!selected || !config.settings.allowModelChoice && selected.id !== config.settings.defaultModel)) {
+    sendJson(res, 400, { error: '所选模型当前不可用，请刷新模型列表。' })
     return
   }
   /* taskTitle 由结构化表单生成，仅作为用户可见标题；不信任过长或带控制字符的输入。 */
   const taskTitle = typeof body?.taskTitle === 'string'
     ? body.taskTitle.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
     : ''
-  if (!skill || !(skill in SKILL_PROMPTS)) {
+  if (!skillEnabled(config, skill)) {
     sendJson(res, 400, { error: '请选择有效的 SKILL。' })
     return
   }
@@ -784,7 +806,7 @@ async function handleChat(req: any, res: any) {
   let resumeSource: RunRecord | undefined
   if (requestId !== undefined || resumeOf !== undefined || answerTo !== undefined) {
     if (typeof requestId !== 'string' || !requestIdPattern.test(requestId) ||
-        typeof sessionId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(sessionId)) {
+        typeof sessionId !== 'string' || !/^[a-zA-Z0-9_-]{1,217}$/.test(sessionId)) {
       sendJson(res, 400, { error: '任务标识无效。' })
       return
     }
@@ -816,7 +838,7 @@ async function handleChat(req: any, res: any) {
   await runChatTurn(req, res, {
     protocol: 'plaza',
     requestId, resumeSource, answerTo, interactive: body.interactive === true,
-    model: selected?.route,
+    model: selected,
     stream: true,
     skill,
     messages,
@@ -1079,6 +1101,17 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   /* 浏览器未带 sessionId 时新开一个：时间格式，兼作沙箱目录名（便于按时间定位 workspace） */
   const clientSessionId: string =
     typeof sessionId === 'string' && sessionId ? sessionId : newRunId('sess-')
+  // A non-streaming client may immediately submit the next turn after 'done'.
+  // Do not switch or dispose the Pi process until its previous trace is saved.
+  const previousExport = exportingTurns.get(clientSessionId)
+  if (previousExport) {
+    try { await previousExport } catch {
+      wire.error('上一次运行记录未能写入，请检查服务后重试。')
+      finish()
+      return
+    }
+    if (res.destroyed) return
+  }
   const existingEntry = sessions.get(clientSessionId)
   if (existingEntry && existingEntry.engine !== engine) {
     wire.error(
@@ -1092,8 +1125,23 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     finish()
     return
   }
-  const target = params.model ?? defaultModel
+  const config = admin.config
+  const target = params.model ?? defaultRoute(config.settings.defaultModel)
+  const reportThinking = skill === 'wechat-report' && target.provider === 'youcai' && config.settings.reportThinking
+  const options = {
+    skill,
+    model: target,
+    thinking: reportThinking || config.settings.thinking,
+    youcaiEndpoint: config.settings.youcaiEndpoint,
+    deepseekKey: config.keys.find(key => key.id === config.activeKey)?.secret,
+  }
+  runner.idleMs = config.settings.idleMs
   let entry = existingEntry
+  if (entry && (entry.runtimeRevision !== config.runtimeRevision || entry.skill !== skill || entry.thinking !== options.thinking)) {
+    runner.disposeSession(entry.engineSessionId)
+    sessions.delete(clientSessionId)
+    entry = undefined
+  }
   let unlisten: () => void = () => {}
   let untap: () => void = () => {}
   let cleaned = false
@@ -1368,7 +1416,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     if (htmlReportValidation) record.report = { ...(record.report ?? {}), html: htmlReportValidation }
     if (htmlReportFile) record.files.html = htmlReportFile
     if (pdfReportFile) record.files.pdf = pdfReportFile
-    return (async () => {
+    const exporting = (async () => {
       try {
         if (entry?.engineSessionId) {
           const traceFile = traceFilePath(runId, 'trace')
@@ -1448,10 +1496,14 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       recorder.note({ agentEnv })
       appendIndex(record)
     })().finally(() => {
+      exportingTurns.delete(clientSessionId)
       if (params.requestId && browserTurns.get(clientSessionId)?.requestId === params.requestId) {
         browserTurns.delete(clientSessionId)
       }
     })
+    exportingTurns.set(clientSessionId, exporting)
+    void exporting.catch(() => console.error('无法保存运行记录', runId))
+    return exporting
   }
 
   const cleanup = () => {
@@ -1486,7 +1538,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     finalizeRun('timeout')
     cleanup()
     finish()
-  }, INSTALLED_SKILLS.has(skill) ? RUN_TIMEOUT_MS_INSTALLED : RUN_TIMEOUT_MS)
+  }, INSTALLED_SKILLS.has(skill) ? config.settings.installedTimeoutMs : config.settings.timeoutMs)
 
   /* SSE 断连检测：res close 且响应未正常结束 = 客户端提前断开
      （req 的 close 在 body 读完后语义不可靠，勿用） */
@@ -1510,7 +1562,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
 
   activeTurns.add(clientSessionId)
   // Library hits and explicit draft confirmations do not need a model process.
-  if (['wechat-report', 'general'].includes(skill) && !params.resumeSource) {
+  if (skillEnabled(config, 'wechat-report') && ['wechat-report', 'general'].includes(skill) && !params.resumeSource) {
     try {
       const local = await localReportReply(clientSessionId, skill, String(latest.content), Boolean(attachmentFiles.length))
       if (cleaned || clientGone) return
@@ -1543,9 +1595,9 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   try {
     if (!entry) {
       const dir = workspaceDirFor(clientSessionId)
-      const engineSessionId = await runner.createSession(dir, { skill, model: target })
+      const engineSessionId = await runner.createSession(dir, options)
       if (cleaned) { runner.disposeSession(engineSessionId); return }
-      entry = { engine, engineSessionId, workspaceDir: dir }
+      entry = { engine, engineSessionId, workspaceDir: dir, runtimeRevision: config.runtimeRevision, skill, thinking: options.thinking }
       sessions.set(clientSessionId, entry)
       recorder.note({ created: engineSessionId, engine, workspaceDir: dir })
       wire.session(clientSessionId)
@@ -1751,7 +1803,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       if (cleaned) return
       if (!gone) throw exc
       runner.disposeSession(entry.engineSessionId)
-      const engineSessionId = await runner.createSession(entry.workspaceDir, { skill, model: target })
+      const engineSessionId = await runner.createSession(entry.workspaceDir, options)
       if (cleaned) { runner.disposeSession(engineSessionId); return }
       entry.engineSessionId = engineSessionId
       sessions.set(clientSessionId, entry)
@@ -1775,12 +1827,8 @@ server.listen(PORT, '127.0.0.1', () => {
   /* PLAZA_ENV 前后端共用（前端经 vite envPrefix 暴露）；test 时工作台带演示默认值 */
   const plazaEnv = (process.env.PLAZA_ENV || '').trim().toLowerCase() || 'prod'
   console.log(`运行环境：${plazaEnv}${plazaEnv === 'test' ? '（测试环境：工作台自动带入示例与测试简历）' : '（生产环境：不预填演示默认值）'}`)
-  console.log(`执行引擎：${DEFAULT_ENGINE}（模型通过 PI_MODEL 配置）`)
-  const version = runner.envInfo().agentVersion
-  console.log(`- pi：可用 · ${runner.describe()}${version ? ` · v${version}` : ''}`)
-  console.log(runner.modelInfo().provider === 'youcai'
-    ? 'pi 凭据：youcai 无需 API Key（请求不发送 Authorization）。'
-    : 'pi 凭据：模型 key 需在启动服务的 shell 环境中（如 DEEPSEEK_API_KEY），或写入 web/.env。')
+  const current = defaultRoute(admin.config.settings.defaultModel)
+  console.log(`执行引擎：${DEFAULT_ENGINE} · ${current.provider}/${current.modelId} · 管理入口 /admin`)
   console.log(`trace 记录：${TRACES_DIR}`)
 })
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { ECharts } from 'echarts/core'
-import type { ReportChart } from '../data/runsMock'
+import type { ReportChart } from '../data/runs'
 
 const props = defineProps<{ chart: ReportChart }>()
 const chartEl = ref<HTMLDivElement | null>(null)

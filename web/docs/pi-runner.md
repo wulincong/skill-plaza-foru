@@ -47,8 +47,8 @@ pi --mode rpc \
 `/api/health` 的 `chatModels` 和 `defaultChatModel` 供聊天输入框展示。
 `POST /api/chat` 的 `model` 可选 `deepseek-flash`（Pi 型号 `deepseek/deepseek-flash`）、
 `deepseek-pro`（`deepseek/deepseek-v4-pro`）或 `youcai`（`youcai/youcai`）。
-网页优先选中与 `PI_MODEL` 完全匹配的选项，否则初选 Pro。旧客户端仍可传
-`deepseek` 复用部署配置的 DeepSeek 型号或 Pro。省略字段时沿用 `PI_MODEL`。
+后台决定网页可选模型与默认值，首次部署取 `PI_MODEL`。旧客户端仍可传
+`deepseek` 复用部署配置的 DeepSeek 型号或 Pro。省略字段时使用当前后台默认模型。
 
 Pi 会在下一轮 prompt 前通过 RPC `set_model` 切换当前会话。
 选定模型不可用时，该轮返回错误。模型提供方的认证与服务地址由后端管理。
@@ -82,9 +82,11 @@ Pi 会在下一轮 prompt 前通过 RPC `set_model` 切换当前会话。
 
 ## 凭据
 
-DeepSeek key 走 pi 自己的读取顺序（环境变量 `DEEPSEEK_API_KEY` 等）。后端 spawn 的 pi
+选择「部署环境凭据」时，DeepSeek key 走 pi 自己的读取顺序（环境变量 `DEEPSEEK_API_KEY` 等）。后端 spawn 的 pi
 继承 server 进程环境——**启动后端的 shell 必须 export**，或写入 `web/.env`（随 loadLocalEnv
 进环境）。自检：`pi auth check --provider deepseek` / `npm run detect:cli`。
+
+选择后台保存的 DeepSeek 命名凭据时，后端为 Pi 进程提供带随机凭证的回环模型转发地址。只有服务端向固定上游发送所选 Key。切换凭据后，下轮在原工作目录重开 Pi 并恢复会话。
 
 ### 自部署 youcai（无需 API Key）
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { SKILLS, bySlug, catOf } from '../data/skills'
+import { computed, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { bySlug, catOf } from '../data/skills'
 import { configOf, type TaskField } from '../data/useTaskConfigs'
 import { checkHealth, type ApiState } from '../composables/useChatApi'
 import { formatSize, uploadDemoFile, uploadFile, validateUploadFile } from '../composables/useUpload'
@@ -15,12 +15,12 @@ import Icon from '../components/Icon.vue'
 /* 「任务配置」表单页（智能体广场二级页）：结构化任务表单 + Mock 知识库选择。
    页面只负责把任务边界写清楚；提交后把提示词、标题、附件与上传沙箱会话
    交给在线对话页（/experience）挂载技能并运行。 */
-const route = useRoute()
 const router = useRouter()
 
-const slug = computed(() => String(route.params.slug ?? ''))
-const skill = computed(() => bySlug.get(slug.value) ?? SKILLS[0])
-const config = computed(() => configOf(skill.value.slug) ?? configOf(SKILLS[0].slug)!)
+const props = defineProps<{ slug: string }>()
+const slug = computed(() => props.slug)
+const skill = computed(() => bySlug.get(slug.value)!)
+const config = computed(() => configOf(skill.value.slug)!)
 const catName = computed(() => catOf(skill.value.categoryId).name)
 
 type FormValues = Record<string, string | string[]>
@@ -293,11 +293,6 @@ const statusText = computed(() => {
 
 const engineHint = '确认 Pi 所选模型的凭据已配置（如 DEEPSEEK_API_KEY），或将其写入 web/.env 后重启服务。'
 
-onMounted(() => {
-  if (!slug.value || !configOf(slug.value)) {
-    void router.replace({ name: 'use', params: { slug: SKILLS[0].slug }, query: route.query })
-  }
-})
 </script>
 
 <template>

@@ -1,32 +1,25 @@
 import type { ChatQuestion } from '../../shared/chatQuestion'
-/* ============================================================
-   运行记录数据层
-   ------------------------------------------------------------
-   优先请求后端 /api/runs（真实 trace）；后端不可用时回落到
-   runsMock 演示数据，保证纯静态部署也能预览页面结构。
-   ============================================================ */
-
 import type { ExecutionStep } from '../../shared/execution'
-import { RUNS_MOCK, RUN_DETAILS_MOCK, type RunListItem, type RunDetail } from '../data/runsMock'
+import { browserHeaders } from '../composables/browserHistory'
+import type { RunListItem, RunDetail } from '../data/runs'
 
 export interface RunsResult {
   runs: RunListItem[]
-  /** true = 后端真实数据；false = 演示数据兜底 */
+  /** true = 后端真实数据；false = 服务不可用 */
   live: boolean
 }
 
 export async function fetchRuns(opts: { archived?: boolean } = {}): Promise<RunsResult> {
   try {
-    const url = opts.archived ? '/api/runs?limit=200&archived=1' : '/api/runs?limit=200'
-    const res = await fetch(url, { cache: 'no-store' })
+    const url = opts.archived ? '/api/conversations?limit=200&archived=1' : '/api/conversations?limit=200'
+    const res = await fetch(url, { headers: browserHeaders(), cache: 'no-store' })
     if (!res.ok) throw new Error(String(res.status))
     const data = (await res.json()) as { runs: RunListItem[] }
     /* 归档列表为空是正常态，不回落演示数据 */
-    if (!Array.isArray(data.runs) || (data.runs.length === 0 && !opts.archived)) throw new Error('empty')
+    if (!Array.isArray(data.runs)) throw new Error('empty')
     return { runs: data.runs, live: true }
   } catch {
-    if (opts.archived) return { runs: [], live: false }
-    return { runs: RUNS_MOCK, live: false }
+    return { runs: [], live: false }
   }
 }
 
@@ -34,7 +27,7 @@ export async function fetchRuns(opts: { archived?: boolean } = {}): Promise<Runs
 
 export async function setConversationArchived(key: string, archived: boolean): Promise<boolean> {
   try {
-    const res = await fetch(`/api/runs/session/${encodeURIComponent(key)}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST' })
+    const res = await fetch(`/api/conversations/session/${encodeURIComponent(key)}/${archived ? 'archive' : 'unarchive'}`, { method: 'POST', headers: browserHeaders() })
     return res.ok
   } catch {
     return false
@@ -43,17 +36,7 @@ export async function setConversationArchived(key: string, archived: boolean): P
 
 export async function deleteConversation(key: string): Promise<boolean> {
   try {
-    const res = await fetch(`/api/runs/session/${encodeURIComponent(key)}`, { method: 'DELETE' })
-    return res.ok
-  } catch {
-    return false
-  }
-}
-
-/** 删除单条运行记录（运行记录页归档视图） */
-export async function deleteRun(runId: string): Promise<boolean> {
-  try {
-    const res = await fetch(`/api/runs/${encodeURIComponent(runId)}`, { method: 'DELETE' })
+    const res = await fetch(`/api/conversations/session/${encodeURIComponent(key)}`, { method: 'DELETE', headers: browserHeaders() })
     return res.ok
   } catch {
     return false
@@ -70,23 +53,19 @@ export interface RunDetailResult {
 
 export async function fetchRunDetail(runId: string): Promise<RunDetailResult> {
   try {
-    const res = await fetch(`/api/runs/${encodeURIComponent(runId)}`, { cache: 'no-store' })
+    const res = await fetch(`/api/conversations/${encodeURIComponent(runId)}`, { headers: browserHeaders(), cache: 'no-store' })
     if (!res.ok) throw new Error(String(res.status))
     const data = (await res.json()) as { item: RunListItem; trace?: RunDetail; conversation?: RunDetailResult['conversation'] }
     if (!data.item) throw new Error('no item')
     return { item: data.item, trace: data.trace ?? undefined, conversation: data.conversation, live: true }
   } catch {
-    return {
-      item: RUNS_MOCK.find(r => r.runId === runId),
-      trace: RUN_DETAILS_MOCK[runId],
-      live: false,
-    }
+    return { live: false }
   }
 }
 
 /** 原始文件下载地址（仅真实数据可用） */
 export function runFileUrl(runId: string, kind: 'events' | 'trace' | 'md' | 'report'): string {
-  return `/api/runs/${encodeURIComponent(runId)}/file/${kind}`
+  return `/api/admin/runs/${encodeURIComponent(runId)}/file/${kind}`
 }
 
 export function runReportUrl(runId: string): string {

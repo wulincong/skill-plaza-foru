@@ -1,3 +1,4 @@
+import { browserHeaders } from './browserHistory.ts'
 /* ============================================================
    附件上传（POST /api/upload）
    ------------------------------------------------------------
@@ -36,7 +37,7 @@ export function uploadFile(file: File, sessionId?: string): Promise<UploadedFile
       try {
         const response = await fetch('/api/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...browserHeaders(), 'Content-Type': 'application/json' },
           body: JSON.stringify({
             sessionId,
             filename: file.name,
@@ -59,7 +60,7 @@ export function uploadDemoFile(filename: string, text: string, sessionId?: strin
   return (async () => {
     const response = await fetch('/api/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...browserHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId, filename, dataText: text }),
     })
     const data = (await response.json()) as UploadedFile & { error?: string }

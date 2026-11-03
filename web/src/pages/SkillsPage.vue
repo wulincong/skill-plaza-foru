@@ -1,49 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AUDIENCES, CATEGORIES, SKILLS, bySlug, type Skill } from '../data/skills'
+import { AUDIENCES, CATEGORIES, type Skill } from '../data/skills'
 import SkillCard from '../components/SkillCard.vue'
 
-/* 列表 = 后端可运行技能清单（GET /api/skills，随技能注册表/技能文件夹动态增减）。
-   后端不可达时回落静态 SKILLS；后端有而前端文案未跟进的技能渲染基础卡。 */
-interface RemoteSkill {
-  id: string
-  name: string
-  description: string
-  installed: boolean
-}
-
-const remote = ref<RemoteSkill[] | null>(null)
-
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/skills')
-    if (res.ok) remote.value = (await res.json()).skills
-  } catch { /* 后端未启动：回落静态清单 */ }
-})
-
-/* 后端已上线但静态文案还没写的基础卡（正常应尽快补 SKILLS 条目拿详情页） */
-function basicSkill(r: RemoteSkill): Skill {
-  return {
-    slug: r.id,
-    name: r.name,
-    identifier: r.id,
-    categoryId: 'industry',
-    audiences: [],
-    summary: r.description,
-    tags: [r.installed ? '已上线' : '可运行'],
-    preconditions: '',
-    outputs: [],
-    dependencies: [],
-    limitations: [],
-    minimalInput: '',
-  }
-}
-
-const entries = computed<Skill[]>(() => {
-  if (!remote.value) return SKILLS
-  return remote.value.map(r => bySlug.get(r.id) ?? basicSkill(r))
-})
+import { publishedSkills as entries, catalogUnavailable } from '../composables/catalog'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,6 +87,7 @@ function clearFilters(focusSearch: boolean) {
         <p>按角色或业务分类筛选，选择智能体在线运行，或用详情页的标识调用 API。</p>
       </div>
 
+      <p v-if="catalogUnavailable" role="alert">技能目录暂时无法连接，请刷新重试。</p>
       <div class="filters" v-reveal="70">
         <div class="facet" id="facet-role">
           <span class="facet-label" id="lbl-role">适用角色</span>

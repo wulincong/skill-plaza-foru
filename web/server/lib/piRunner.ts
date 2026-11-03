@@ -31,6 +31,7 @@ import {
   skillDir,
 } from './skills.ts'
 import { sidecarInstruction } from './reportMeta.ts'
+import { openModelRelay } from './modelRelay.ts'
 import { loadLocalEnv } from './env.ts'
 
 /* pi CLI 定位：PI_CLI 配置 → PATH；找不到由调用方给配置指引 */
@@ -134,7 +135,17 @@ function sumUsage(prev?: UsageSummary, add?: UsageSummary): UsageSummary {
 
 const PI_IDLE_MS = Number(process.env.PI_IDLE_MS || 30 * 60_000)
 
+interface PiSessionOptions {
+  skill?: string
+  model?: PiModelRef
+  thinking?: string
+  deepseekKey?: string
+  youcaiEndpoint?: string
+}
+
 interface PiSession {
+  relay?: Awaited<ReturnType<typeof openModelRelay>>
+  running?: boolean
   thinking?: string
   channel: JsonlChannel
   workspaceDir: string
@@ -167,6 +178,7 @@ export class PiRunner extends AgentRunner {
   private readonly model: PiModelRef
   private readonly cli: string | null
   private readonly thinking: string
+  idleMs = PI_IDLE_MS
 
   modelInfo(): ModelContextInfo {
     return {
@@ -244,7 +256,7 @@ export class PiRunner extends AgentRunner {
     const session = this.sessions.get(sid)
     if (!session) throw new Error('pi 会话不存在')
     if (session.modelInfo.provider !== target.provider || session.modelInfo.model !== target.modelId) {
-      const model = await this.request({ type: 'set_model', ...target }, sid)
+      const model = await this.request({ type: 'set_model', provider: target.provider, modelId: target.modelId }, sid)
       if (model?.provider !== target.provider || model?.id !== target.modelId) {
         throw new Error('Pi 未确认所选模型，请重新选择后重试。')
       }
@@ -417,6 +429,8 @@ export class PiRunner extends AgentRunner {
         this.trackRoundContext(sid, round, total)
       }
     } else if (type === 'agent_start') {
+      const session = this.sessions.get(sid)
+      if (session) session.running = true
       this.turnUsage.delete(sid)
       this.callUsage.delete(sid)
       this.updateModelInfo(sid, { peakContextTokens: null })
@@ -425,6 +439,8 @@ export class PiRunner extends AgentRunner {
       this.contextStatsPending.delete(sid)
       this.thinkState.delete(sid)
     } else if (type === 'agent_settled') {
+      const session = this.sessions.get(sid)
+      if (session) { session.running = false; session.lastUsed = Date.now() }
       /* 权威收尾：拉最终文本后发 terminal（失败经 error 收尾） */
       void this.finishTurn(sid)
     } else if (type === 'extension_ui_request') {
@@ -511,15 +527,16 @@ export class PiRunner extends AgentRunner {
     }
   }
 
-  async createSession(workspaceDir: string, opts: { skill?: string; model?: PiModelRef } = {}): Promise<string> {
+  async createSession(workspaceDir: string, opts: PiSessionOptions = {}): Promise<string> {
     if (!this.cli) throw new Error('未找到 pi CLI：请安装 pi（npm i -g @earendil-works/pi-coding-agent）或在 web/.env 配置 PI_CLI。')
     const sid = randomUUID()
     const target = opts.model ?? this.model
+    const thinking = opts.thinking || (opts.skill === 'wechat-report' && target.provider === 'youcai' && process.env.WECHAT_REPORT_THINKING?.trim()) || this.thinking
     const args = [
       '--mode', 'rpc',
       '--model', `${target.provider}/${target.modelId}`,
       /* 思考档位默认 medium */
-      '--thinking', opts.skill==='wechat-report' && target.provider==='youcai' ? process.env.WECHAT_REPORT_THINKING?.trim() || this.thinking : this.thinking,
+      '--thinking', thinking,
       /* 会话文件落在沙箱内，兼作权威 trace 来源 */
       '--session-dir', join(workspaceDir, '.pi-sessions'),
       /* A process restart must reopen this workspace's persisted Pi context. */
@@ -527,6 +544,7 @@ export class PiRunner extends AgentRunner {
       '-n', sid.slice(0, 8),
       /* 关闭扩展自动发现，只加载仓库声明的模型与工具注释扩展 */
       '--no-extensions',
+      '--no-skills', // Only the explicitly mounted, published skill is discoverable.
       '--extension', fileURLToPath(new URL('../pi/youcai.js', import.meta.url)),
       '--extension', fileURLToPath(new URL('../pi/tool-purpose.js', import.meta.url)),
       /* 关闭 AGENTS.md/CLAUDE.md 目录链发现：沙箱 cwd 在仓库内，pi 会沿父目录
@@ -541,12 +559,16 @@ export class PiRunner extends AgentRunner {
     if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
+    if (opts.youcaiEndpoint) args.push('--plaza-youcai-endpoint', opts.youcaiEndpoint)
+    const relay = opts.deepseekKey ? await openModelRelay(opts.deepseekKey) : undefined
+    if (relay) args.push('--plaza-deepseek-route', relay.url)
+    const spawnOptions = { cwd: workspaceDir }
     const sudo = piSandboxPrefix()
     const channel = sudo
-      ? new JsonlChannel('sudo', [...sudo, this.cli, ...args], { cwd: workspaceDir })
-      : new JsonlChannel(this.cli, args, { cwd: workspaceDir })
+      ? new JsonlChannel('sudo', [...sudo, this.cli, ...args], spawnOptions)
+      : new JsonlChannel(this.cli, args, spawnOptions)
     this.sessions.set(sid, {
-      thinking:opts.skill==='wechat-report' && target.provider==='youcai' ? process.env.WECHAT_REPORT_THINKING?.trim() || this.thinking : this.thinking,
+      thinking, relay,
       channel,
       workspaceDir,
       lastUsed: Date.now(),
@@ -585,6 +607,7 @@ export class PiRunner extends AgentRunner {
   disposeSession(sessionId: string) {
     const s = this.sessions.get(sessionId)
     if (!s) return
+    s.relay?.close()
     this.sessions.delete(sessionId)
     this.turnUsage.delete(sessionId)
     this.callUsage.delete(sessionId)
@@ -601,6 +624,7 @@ export class PiRunner extends AgentRunner {
   protected onChannelExit(channel: JsonlChannel) {
     const sid = this.sidOf(channel)
     if (!sid) return
+    this.sessions.get(sid)?.relay?.close()
     this.sessions.delete(sid)
     this.turnUsage.delete(sid)
     this.callUsage.delete(sid)
@@ -628,7 +652,7 @@ export class PiRunner extends AgentRunner {
     this.sweeper = setInterval(() => {
       const now = Date.now()
       for (const [sid, s] of [...this.sessions]) {
-        if (s.channel.exited || now - s.lastUsed > PI_IDLE_MS) this.disposeSession(sid)
+        if (s.channel.exited || (!s.running && now - s.lastUsed > this.idleMs)) this.disposeSession(sid)
       }
       if (this.sessions.size === 0 && this.sweeper) {
         clearInterval(this.sweeper)

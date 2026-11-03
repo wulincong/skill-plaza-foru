@@ -18,7 +18,7 @@ Vue SPA ── POST /api/chat {skill, messages} ──> Node 后端 (8767)
                               │    prompt → message_update(text_delta) → agent_settled
                               │  事件归一为 text/usage/terminal/error → SSE 推给浏览器
                               ├─ GET /api/health（Pi 模型状态）
-                              └─ GET /api/runs（运行记录只读 API，含历史 engine 字段）
+                              └─ GET /api/admin/runs（管理员运行记录接口，含历史 engine 字段）
 ```
 
 执行引擎固定为 Pi；`/experience`、`/use` 页面不再提供引擎切换，会话直接绑定 Pi。
@@ -56,7 +56,22 @@ npm run server
 npm run dev
 ```
 
-打开 http://127.0.0.1:4188 。后端未启动时页面不报错：运行记录页自动回落演示数据，在线运行页会提示启动方式。
+打开 http://127.0.0.1:4188 。运行记录位于独立的管理后台。
+
+### 管理后台
+
+首次部署时，在运行后端的系统账号下执行以下命令。它会创建管理员并在当前终端显示随机密码。已有账号时，命令会退出并保留原账号。
+
+```bash
+cd web
+node server/scripts/adminAccount.ts admin
+```
+
+打开 [本机管理后台](http://127.0.0.1:4188/admin) 登录。可管理已注册技能的上架状态、默认模型、网页换模权限、思考档位、优才服务地址、DeepSeek 命名密钥及任务时限。在「账号设置」修改密码会注销所有设备。遗失密码时，在服务机上执行 `node server/scripts/adminAccount.ts admin --reset`。
+
+后台配置保存于服务账号的 `~/.local/state/skill-plaza/admin/control.sqlite`，可用 `ADMIN_STATE_DIR` 指向 Web 根目录之外的专用目录。目录权限为 0700，数据库为 0600，备份应按密钥文件保管。首次使用部署环境中的模型配置。后台保存的配置优先，新一轮运行采用新设置，已开始的任务沿用原设置。
+
+`/admin/runs` 读取现有 `traces/index.jsonl`，支持按任务、技能、结果筛选及归档、恢复、下载。普通对话侧栏只读取本浏览器创建的新对话。旧记录统一由管理员查看。新部署请将 `/admin` 与 `/admin/*` 回落到 SPA 的 `index.html`，将 `/api/*` 和 `/p/*` 转发到 Node；远程管理入口应通过 HTTPS 访问。
 
 ### 使用文档翻译
 
@@ -89,7 +104,7 @@ cd web && npm run detect:cli
 | `DEEPSEEK_API_KEY` | — | pi 引擎的模型 key（也可放 shell 环境；pi 按 `pi auth` 的读取顺序） |
 | `PORT` | `8767` | 后端端口（Vite 代理目标需同步改） |
 | `RUN_TIMEOUT_MS` | 已安装技能 20 分钟，其余 10 分钟 | 单次运行超时 |
-| `TRACES_DIR` | `web/server/traces/` | 运行留痕目录（已 gitignore） |
+| `TRACES_DIR` | `web/server/traces/` | 运行留痕目录（自定义时使用 0700 的服务账号专用目录） |
 
 ## 页面
 
@@ -99,7 +114,7 @@ cd web && npm run detect:cli
 | `/skills`、`/skill/:slug` | SKILL 目录与详情 |
 | `/experience` | 在线对话（多轮，流式输出） |
 | `/use/:slug?` | 在线运行（结构化表单 → 真实 agent 执行 → 流式渲染 + token 用量） |
-| `/runs`、`/runs/:runId` | 运行记录列表与详情（后端离线时回落演示数据） |
+| `/admin`、`/admin/runs/:runId?` | 管理后台及真实运行记录，须管理员登录 |
 | `/guide` | 在线运行与 API 接入指南 |
 | `/docs`、`/docs/:slug/:topic?` | 技能文档中心、技能指南与专题页 |
 
@@ -111,9 +126,9 @@ cd web && npm run detect:cli
 | `GET /api/skills` | 可调用的专业智能体及其标识 |
 | `POST /v1/chat/completions` | 对外调用，传入 `skill` 和 `messages`，返回 JSON 或 SSE |
 | `POST /api/chat` | 广场前端专用。 `{ skill, messages }` → SSE 流式返回（text_delta / usage / 终止） |
-| `GET /api/runs` | 运行列表（来自 traces/index.jsonl） |
-| `GET /api/runs/:runId` | 运行详情 |
-| `GET /api/runs/:runId/file/:kind` | 下载留痕文件（md 可读版按需生成） |
+| `GET /api/admin/runs` | 运行列表（来自 traces/index.jsonl） |
+| `GET /api/admin/runs/:runId` | 运行详情 |
+| `GET /api/admin/runs/:runId/file/:kind` | 下载留痕文件（md 可读版按需生成） |
 
 ## 技能组织模式（父子仓库）
 

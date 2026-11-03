@@ -6,7 +6,7 @@ import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawn } from 'node:child_process'
+import { spawn, execFileSync } from 'node:child_process'
 import { createServer } from 'node:http'
 
 const serverDir = dirname(fileURLToPath(import.meta.url))
@@ -68,6 +68,15 @@ for await(const line of createInterface({input:process.stdin})) {
 test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { timeout: 60000 }, async t => {
   const temp = mkdtempSync(join(tmpdir(), 'plaza-delivery-api-'))
   t.after(() => rmSync(temp, { recursive: true, force: true }))
+  const stateDir = join(temp, 'admin')
+  const account = execFileSync(process.execPath, [join(serverDir, 'scripts/adminAccount.ts')], {
+    env: { ...process.env, ADMIN_STATE_DIR: stateDir }, encoding:'utf8',
+  })
+  const password = /初始密码：(.+)/.exec(account)[1]
+  let cookie
+  const adminRequest = (path, options = {}) => fetch(base + '/api/admin/' + path, {
+    ...options, headers: { Cookie:cookie, 'Content-Type':'application/json', 'X-Plaza-Admin':'1' },
+  })
   const cli = join(temp, 'pi.mjs'), store = join(temp, 'deliveries')
   writeFileSync(cli, fixture, { mode: 0o755 })
   const probe = createServer()
@@ -80,7 +89,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   t.after(stop)
   const start = async () => {
     child = spawn(process.execPath, [join(serverDir, 'index.ts')], {
-      cwd: dirname(serverDir), env: { ...process.env, PORT: String(port), PI_MODEL: 'deepseek/deepseek-v4-pro', PI_CLI: cli, PI_SANDBOX_USER: '', PI_IDLE_MS: '1000', DELIVERY_PUBLIC_BASE_URL: base, DELIVERIES_DIR: store, TRACES_DIR: join(temp, 'traces') },
+      cwd: dirname(serverDir), env: { ...process.env, ADMIN_STATE_DIR:stateDir, PORT: String(port), PI_MODEL: 'deepseek/deepseek-v4-pro', PI_CLI: cli, PI_SANDBOX_USER: '', PI_IDLE_MS: '1000', DELIVERY_PUBLIC_BASE_URL: base, DELIVERIES_DIR: store, TRACES_DIR: join(temp, 'traces') },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     child.stdout.on('data', d => { logs += d }); child.stderr.on('data', d => { logs += d })
@@ -92,6 +101,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     throw new Error('server not ready: ' + logs)
   }
   await start()
+  const login = await fetch(base + '/api/admin/login', {method:'POST', headers:{ 'Content-Type':'application/json','X-Plaza-Admin':'1' },
+    body:JSON.stringify({username:'admin', password})})
+  assert.equal(login.status,200)
+  cookie = login.headers.get('set-cookie').split(';')[0]
   const request = async (message, protocol = 'plaza', stream = true, history = [], model) => {
     const response = await fetch(base + (protocol === 'plaza' ? '/api/chat' : '/v1/chat/completions'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base },
@@ -121,7 +134,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   assert.equal(followUp.webLinks, undefined)
   let detail
   for (let i = 0; i < 100; i++) {
-    detail = await fetch(base + '/api/runs/' + followUp.runId).then(r => r.json())
+    detail = await adminRequest('runs/' + followUp.runId).then(r => r.json())
     if (detail.conversation) break
     await pause(20)
   }
@@ -138,10 +151,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   await stop(); await start()
   await request('follow-up after restart', 'openai', false, [{ role: 'user', content: 'generate' }, { role: 'assistant', content: '完成' }])
   for (let i = 0; i < 100; i++) {
-    const runs = await fetch(base + '/api/runs').then(r => r.json())
+    const runs = await adminRequest('runs').then(r => r.json())
     const resumed = runs.runs.find(run => run.userMessage === 'follow-up after restart')
     if (!resumed) { await pause(20); continue }
-    detail = await fetch(base + '/api/runs/' + resumed.runId).then(r => r.json())
+    detail = await adminRequest('runs/' + resumed.runId).then(r => r.json())
     if (detail.item?.files?.trace) break
     await pause(20)
   }
@@ -156,10 +169,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   await start()
   await request('follow-up with reset engine', 'openai', false, [{ role: 'user', content: 'original user context' }, { role: 'assistant', content: 'original answer context' }])
   for (let i = 0; i < 100; i++) {
-    const runs = await fetch(base + '/api/runs').then(r => r.json())
+    const runs = await adminRequest('runs').then(r => r.json())
     const reset = runs.runs.find(run => run.userMessage === 'follow-up with reset engine')
     if (!reset) { await pause(20); continue }
-    detail = await fetch(base + '/api/runs/' + reset.runId).then(r => r.json())
+    detail = await adminRequest('runs/' + reset.runId).then(r => r.json())
     if (detail.item?.files?.trace) break
     await pause(20)
   }
@@ -212,7 +225,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     assert.equal(done.content, '已核对样本。')
     assert.equal(done.question.kind, 'single')
     await stop(); await start()
-    const history = await fetch(base + '/api/runs/' + done.runId).then(r => r.json())
+    const history = await adminRequest('runs/' + done.runId).then(r => r.json())
     assert.equal(history.item.outcome, 'success')
     assert.deepEqual(history.conversation.at(-1).question, done.question)
     assert.equal(history.conversation.at(-1).text, done.content)
@@ -223,7 +236,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     const answeredId = JSON.parse(reply.split('\n').find(line => line.includes('"type":"done"')).slice(6)).runId
     let answered
     for (let i = 0; i < 100; i++) {
-      answered = await fetch(base + '/api/runs/' + answeredId).then(r => r.json())
+      answered = await adminRequest('runs/' + answeredId).then(r => r.json())
       if (answered.conversation) break
       await pause(20)
     }
@@ -237,7 +250,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     const sessionId = 'sess-' + id()
     const workspace = join(serverDir, 'workspace', sessionId)
     t.after(() => rmSync(workspace, { recursive: true, force: true }))
-    const interrupt = requestId => fetch(base + '/api/runs/session/' + sessionId + '/interrupt/' + requestId, { method: 'POST' }).then(r => r.json())
+    const interrupt = requestId => adminRequest('runs/session/' + sessionId + '/interrupt/' + requestId, { method: 'POST' }).then(r => r.json())
     const submit = (requestId, text, extra) => fetch(base + '/api/chat', {
       method: 'POST', body: JSON.stringify({ requestId, sessionId, skill: 'general', model: 'youcai', messages: [{ role: 'user', content: text }], ...extra }),
     })
@@ -278,7 +291,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     assert.equal(status.latest.resumeSourceId, resumeOf)
     assert.equal(status.latest.tokenUsage.provider, 'youcai')
     assert.equal((await submit(id(), '继续任务', { resumeOf })).status, 409)
-    const detail = await fetch(base + '/api/runs/' + status.latest.runId).then(r => r.json())
+    const detail = await adminRequest('runs/' + status.latest.runId).then(r => r.json())
     const input = detail.trace.messages.filter(m => m.role === 'user').at(-1).parts[0].text
     assert.match(input, /原始任务：\nfollow-up hold-for-refresh/)
     assert.match(input, /附件内容证据/)
@@ -292,14 +305,14 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     const request = (id, text, resumeOf) => fetch(base + '/api/chat', { method: 'POST', body: JSON.stringify({
       sessionId, requestId: id, resumeOf, skill: 'general', messages: [{ role: 'user', content: text }],
     }) })
-    const interrupt = () => fetch(base + '/api/runs/session/' + sessionId + '/interrupt/' + requestId, { method: 'POST' }).then(r => r.json())
+    const interrupt = () => adminRequest('runs/session/' + sessionId + '/interrupt/' + requestId, { method: 'POST' }).then(r => r.json())
     const first = await request(requestId, 'follow-up before Pi')
     assert.equal((await interrupt()).state, 'settling')
     await first.text()
     const { latest } = await interrupt()
     assert.equal(latest.promptNotSent, true)
     assert.equal(latest.outcome, 'aborted')
-    const detail = await fetch(base + '/api/runs/' + latest.runId).then(r => r.json())
+    const detail = await adminRequest('runs/' + latest.runId).then(r => r.json())
     assert.deepEqual(detail.conversation.map(t => t.text), ['follow-up before Pi'])
     const resumed = await request(randomBytes(16).toString('hex'), '继续任务', latest.runId)
     assert.match(await resumed.text(), /"type":"done"/)
@@ -307,13 +320,72 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     for (let i = 0; i < 100; i++) {
       const state = await interrupt()
       if (state.latest.runId !== latest.runId) {
-        restored = await fetch(base + '/api/runs/' + state.latest.runId).then(r => r.json())
+        restored = await adminRequest('runs/' + state.latest.runId).then(r => r.json())
         break
       }
       await pause(20)
     }
     assert.deepEqual(restored.conversation.map(t => t.text), ['follow-up before Pi', '继续任务', '完成'])
     assert.match(restored.trace.messages[0].parts[0].text, /原始任务：\nfollow-up before Pi/)
+  })
+
+  await t.test('administration, catalog enforcement and private browser history', async t => {
+    const read = async path => (await adminRequest(path)).json()
+    let {config} = await read('state')
+    const save = async (section, fields) => {
+      const res = await adminRequest(section, {method:'PUT', body:JSON.stringify({revision:config.revision, ...fields})})
+      assert.equal(res.status,200)
+      return config = await res.json()
+    }
+    assert.equal((await fetch(base + '/api/admin/runs')).status,401)
+    assert.equal((await fetch(base + '/api/runs')).status,401)
+    assert.equal((await fetch(base + '/api/conversations')).status,403)
+    assert.equal((await fetch(base + '/api/admin/settings',{method:'PUT',headers:{Cookie:cookie}})).status,403)
+    const id = 'career-guidance'
+    await save('skills',{id,enabled:false})
+    assert.equal((await fetch(base + '/api/skills').then(r=>r.json())).skills.some(s=>s.id===id),false)
+    const chat = (path, body, key) => fetch(base + path,{method:'POST',headers:key?{'X-Plaza-Browser':key}:{},body:JSON.stringify(body)})
+    for (const path of ['/api/chat','/v1/chat/completions']) {
+      assert.equal((await chat(path,{skill:id,messages:[{role:'user',content:'disabled'}]})).status,400)
+    }
+    const initial = config.settings
+    await save('settings',{settings:{...initial, defaultModel:'youcai',allowModelChoice:false}})
+    const health = await fetch(base + '/api/health').then(r=>r.json())
+    assert.deepEqual(health.chatModels.map(m=>m.id),['youcai'])
+    assert.equal((await chat('/api/chat',{skill:'general',model:'deepseek-flash',messages:[{role:'user',content:'blocked'}]})).status,400)
+    const secret=randomBytes(32).toString('hex')
+    await save('keys',{action:'add',name:'test profile',secret})
+    assert(!JSON.stringify(config).includes(secret))
+    await save('keys',{action:'activate',id:config.keys[0].id})
+    await stop(); await start()
+    config=(await read('state')).config
+    assert.equal(config.activeKey,config.keys[0].id)
+    assert(config.disabledSkills.includes(id))
+    await save('keys',{action:'activate',id:'environment'})
+    await save('keys',{action:'delete',id:config.keys[0].id})
+    await save('skills',{id,enabled:true})
+    const a=randomBytes(32).toString('hex'), b=randomBytes(32).toString('hex')
+    const response=await chat('/api/chat',{skill:id,messages:[{role:'user',content:'follow-up private'}]},a)
+    const frames=(await response.text()).split('\n').filter(l=>l.startsWith('data: {')).map(l=>JSON.parse(l.slice(6)))
+    const sid=frames.find(f=>f.type==='session').sessionId
+    t.after(()=>rmSync(join(serverDir,'workspace',sid),{recursive:true,force:true}))
+    const runId=frames.find(f=>f.type==='done').runId
+    const history=(path,key,method='GET')=>fetch(base+'/api/conversations'+path,{method,headers:{'X-Plaza-Browser':key}})
+    for(let i=0;i<80 && !(await history('',a).then(r=>r.json())).total;i++)await pause(25)
+    assert.equal((await history('',a).then(r=>r.json())).total,1)
+    assert.equal((await history('',b).then(r=>r.json())).total,0)
+    assert.equal((await history('/'+runId,b)).status,404)
+    assert.equal((await history('/'+runId+'/file/trace',a)).status,404)
+    assert.equal((await history('/session/'+sid,b,'DELETE')).status,404)
+    const detail=await history('/'+runId,a).then(r=>r.json())
+    assert.equal(detail.trace,undefined)
+    assert(detail.conversation.some(m=>m.text==='follow-up private'))
+    assert.equal((await chat('/v1/chat/completions',{skill:id,sessionId:sid,messages:[{role:'user',content:'takeover'}]})).status,400)
+    assert.equal((await adminRequest('runs/'+runId+'/file/trace')).status,200)
+    await save('settings',{settings:initial})
+    const rotated = await adminRequest('password',{method:'POST',body:JSON.stringify({currentPassword:password,password:randomBytes(18).toString('hex')})})
+    assert.equal(rotated.status,200)
+    assert.equal((await adminRequest('state')).status,401)
   })
 
 })

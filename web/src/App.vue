@@ -7,7 +7,8 @@ import { useRoute } from 'vue-router'
 import { computed } from 'vue'
 
 const route = useRoute()
-const hideFoot = computed(() => route.name === 'experience')
+const admin = computed(() => route.meta.admin === true)
+const hideFoot = computed(() => admin.value || route.name === 'experience')
 </script>
 
 <template>
@@ -168,7 +169,7 @@ const hideFoot = computed(() => route.name === 'experience')
 
   <a class="skip" href="#main">跳至内容</a>
 
-  <SiteHead />
+  <SiteHead v-if="!admin" />
 
   <main id="main" tabindex="-1">
     <RouterView v-slot="{ Component }">
@@ -185,7 +186,7 @@ const hideFoot = computed(() => route.name === 'experience')
 
   <SiteFoot v-if="!hideFoot" />
 
-  <LoginModal />
+  <LoginModal v-if="!admin" />
 
   <div class="toast-host" id="toast-host" aria-live="polite">
     <div v-for="t in toasts" :key="t.id" class="toast">{{ t.message }}</div>

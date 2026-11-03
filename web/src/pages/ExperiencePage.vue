@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { bySlug, catOf, SKILLS, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
+import { bySlug, catOf, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
 import { checkHealth, streamChat, ChatRequestError, type ChatAttachment, type ChatEvent, type ChatModelId, type ChatModelOption } from '../composables/useChatApi'
 import { interruptSubmission, newRequestId, readSubmission, saveSubmission, type ChatSubmission } from '../composables/interruptedTask'
 import { takePendingFormTask } from '../composables/pendingTask'
 import { uploadFile, validateUploadFile, formatSize, type UploadedFile } from '../composables/useUpload'
 import { fetchRunDetail, fetchRuns, runReportUrl, setConversationArchived, deleteConversation, type RunDetailResult } from '../api/runsApi'
-import { OUTCOME_LABEL, type RunListItem } from '../data/runsMock'
-import type { ReportChart as ReportChartData } from '../data/runsMock'
+import { OUTCOME_LABEL, type RunListItem } from '../data/runs'
+import type { ReportChart as ReportChartData } from '../data/runs'
 import Icon from '../components/Icon.vue'
 import ReportOutput from '../components/ReportOutput.vue'
 import type { ExecutionStep } from '../../shared/execution'
@@ -18,12 +18,13 @@ import ChatModelPicker from '../components/ChatModelPicker.vue'
 import ToolCallGroup from '../components/ToolCallGroup.vue'
 import ConversationResources from '../components/ConversationResources.vue'
 import { collectConversationResources } from '../composables/conversationResources'
+import { publishedSkills, publishedSkill } from '../composables/catalog'
 import { toast } from '../composables/toast'
 
 /* 在线对话：广场的唯一对话与运行呈现面。
    后端就绪时真实流式运行（Pi）：默认通用智能体，$ 挂载技能；
    「任务配置」表单页提交的任务也交接到这里运行。
-   历史展示服务端运行记录（/api/runs），后端未启动时回落为演示摘要输出。 */
+   历史侧栏仅展示 /api/conversations 中本浏览器的对话。 */
 
 interface Msg {
   question?: ChatQuestion
@@ -154,7 +155,7 @@ function onDocClick(event: MouseEvent) {
   if (skillMenu.value && !(event.target as HTMLElement | null)?.closest('.exp-input-box')) skillMenu.value = false
 }
 
-const EXAMPLES = DEMOS.map(d => ({ slug: d.slug, question: d.question, skill: bySlug.get(d.slug) }))
+const EXAMPLES = computed(() => DEMOS.filter(d => publishedSkills.value.some(s => s.slug === d.slug)).map(d => ({ slug: d.slug, question: d.question, skill: bySlug.get(d.slug) })))
 
 /* ---- $ 技能选择：默认通用智能体（不挂技能），输入 $ 或点 $ 钮呼出选择器 ---- */
 const activeSkill = ref<Skill | undefined>()
@@ -163,7 +164,7 @@ const skillQuery = ref('')
 const skillHighlight = ref(0)
 const skillMatches = computed(() => {
   const q = skillQuery.value.trim().toLowerCase()
-  const list = SKILLS.filter(s =>
+  const list = publishedSkills.value.filter(s =>
     !q || s.slug.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q)))
   return list.slice(0, 8)
 })
@@ -513,7 +514,8 @@ function consumePendingFormTask() {
   const task = takePendingFormTask()
   if (!task) return false
   clearRecovery()
-  const skill = bySlug.get(task.slug)
+  const skill = publishedSkill(task.slug)
+  if (!skill) { toast('该技能当前未上架，请选择其他技能。'); return true }
   activeSkill.value = skill
   stopTyping()
   clearHistorySelection()
@@ -764,7 +766,6 @@ async function openRun(run: RunListItem, seq = ++selectionSeq) {
   try {
     const result = await fetchRunDetail(run.runId)
     if (seq !== selectionSeq) return
-    /* live=false 是 mock 兜底数据，不能冒充真实历史 */
     if (!result.live || !(result.conversation ?? []).length) throw new Error('empty')
     const detail: HistoryDetail = {
       conversation: result.conversation ?? [],
@@ -842,7 +843,6 @@ async function loadHistory(opts: { silent?: boolean } = {}) {
   if (!opts.silent) historyLoading.value = true
   try {
     const [result, archived] = await Promise.all([fetchRuns(), fetchRuns({ archived: true })])
-    /* live=false 是 mock 兜底数据，不冒充真实历史 */
     historyRuns.value = result.live ? result.runs : []
     archivedRuns.value = archived.runs
     historyLive.value = result.live
@@ -937,7 +937,7 @@ async function refreshHistoryAfterRun() {
 const route = useRoute()
 watch(() => route.query.skill, (slug) => {
   if (typeof slug !== 'string') return
-  const skill = bySlug.get(slug)
+  const skill = publishedSkill(slug)
   if (skill) pickSkill(skill)
 }, { immediate: true })
 
@@ -1174,7 +1174,7 @@ onBeforeUnmount(() => {
                 <Icon name="paperclip" :size="16" />
               </button>
               <div class="exp-agent">
-                <ChatModelPicker v-if="models.length" v-model="selectedModel" :options="models" :disabled="sending || loadingConversation" />
+                <ChatModelPicker v-if="models.length" v-model="selectedModel" :options="models" :disabled="sending || loadingConversation || models.length === 1" />
                 <span v-else>{{ apiReady ? (apiModel || '在线 Agent') : '演示模式' }}</span>
                 <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || loadingConversation || attachUploading" aria-label="发送" @click="send()">
                   <Icon name="arrow-up" :size="16" />
