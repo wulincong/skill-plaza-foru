@@ -22,7 +22,9 @@ test('one user turn contains one final answer and all tools/narration in process
   const trace = { messages: [
     message('system', text('SYSTEM SECRET')),
     message('user', text('开始')),
-    message('assistant', text('先读取文档。'), tool('read')),
+    message('assistant', text('先读取文档。'), { ...tool('read'), state: {
+      status: 'completed', input: { path: 'PRIVATE PATH', purpose: '确认原文结构' },
+    } }),
     message('toolResult', text('PRIVATE OUTPUT')),
     message('assistant', { type: 'reasoning', text: 'HIDDEN REASONING' }, tool('bash')),
     message('assistant', text('已确认结构，开始生成。'), tool('write')),
@@ -34,7 +36,8 @@ test('one user turn contains one final answer and all tools/narration in process
   assert.deepEqual(turns[1].process, ['先读取文档。', '已确认结构，开始生成。'])
   assert.equal(turns[1].tools.length, 3)
   assert.equal(turns[1].tools[0].startedAt, 100)
-  assert.doesNotMatch(JSON.stringify(turns), /SYSTEM SECRET|HIDDEN REASONING|PRIVATE COMMAND|PRIVATE OUTPUT/)
+  assert.deepEqual(turns[1].execution.flatMap(s => s.tools.map(t => t.purpose)), ['确认原文结构', undefined, undefined])
+  assert.doesNotMatch(JSON.stringify(turns), /SYSTEM SECRET|HIDDEN REASONING|PRIVATE/)
 })
 
 test('multiple user turns keep their own final answer, tools and process', () => {

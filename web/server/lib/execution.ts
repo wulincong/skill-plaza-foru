@@ -3,8 +3,15 @@ import { createInterface } from 'node:readline'
 import type { ExecutionStep, TimeSpan } from '../../shared/execution.ts'
 import { extractSidecar } from './reportMeta.ts'
 
-/** Publish only observable timing, public narration and tool names, grouped by
- * the assistant message that requested each call. Never copy raw RPC payloads. */
+/** Only the dedicated, short Chinese display phrase may leave the tool arguments. */
+export function publicToolPurpose(value: unknown): string | undefined {
+  if (typeof value !== 'string') return
+  const phrase = value.trim().replace(/。$/, '')
+  return /^\p{Script=Han}{4,24}$/u.test(phrase) ? phrase : undefined
+}
+
+/** Group timing, public narration, tool names and purposes by assistant message.
+ * Never copy raw RPC payloads into the execution timeline. */
 export class ExecutionTracker {
   steps: ExecutionStep[] = []
   private step?: ExecutionStep
@@ -62,8 +69,10 @@ export class ExecutionTracker {
         tool = { id, tool: msg.toolName, state: 'active' }
         step.tools.push(tool)
       }
-      if (msg.type === 'tool_execution_start') tool.startedAt = at
-      else {
+      if (msg.type === 'tool_execution_start') {
+        tool.startedAt = at
+        tool.purpose = publicToolPurpose(msg.args?.purpose)
+      } else {
         tool.endedAt = at
         tool.state = msg.isError ? 'failed' : 'completed'
       }

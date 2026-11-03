@@ -1,4 +1,5 @@
 import type { ExecutionStep } from '../../shared/execution.ts'
+import { publicToolPurpose } from './execution.ts'
 import type { RunRecord } from './traceExport.ts'
 
 export interface ConversationTool {
@@ -161,6 +162,7 @@ export function deriveConversation(
         thinking: parts.some((p: any) => p.type === 'reasoning') ? [{}] : [],
         tools: toolParts.map((p: any, i: number) => ({
           id: p.callID ?? String(i), tool: String(p.tool ?? ''),
+          purpose: publicToolPurpose(p.state?.input?.purpose),
           state: p.state?.status === 'error' ? 'failed' : 'completed',
         })),
       } })

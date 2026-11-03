@@ -2,6 +2,7 @@ export interface TimeSpan { startedAt?: number; endedAt?: number }
 export interface ExecutionTool extends TimeSpan {
   id: string
   tool: string
+  purpose?: string
   state: 'active' | 'completed' | 'failed'
 }
 export interface ExecutionStep {

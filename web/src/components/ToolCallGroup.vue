@@ -48,7 +48,8 @@ const toolNames: Record<string, string> = { bash: '执行命令', read: '读取�
       <section v-for="(step, i) in visibleSteps" :key="i" class="tool-step">
         <p v-if="step.note" class="tool-process-note">{{ step.note }}</p>
         <div v-for="tool in step.tools" :key="tool.id" class="tool-row-line">
-          <Icon name="terminal" :size="13" /><span>{{ toolNames[tool.tool] ?? tool.tool }}</span>
+          <Icon name="terminal" :size="13" class="tool-row-icon" /><span class="tool-row-name">{{ toolNames[tool.tool] ?? tool.tool }}</span>
+          <span v-if="tool.purpose" class="tool-row-purpose">{{ tool.purpose }}</span>
           <span class="tool-row-status">{{ tool.state === 'failed' ? '失败' : tool.state === 'active' ? (running ? '进行中' : '未收到结束事件') : '已完成' }} {{ spanTime(tool) }}</span>
         </div>
       </section>
@@ -60,5 +61,6 @@ const toolNames: Record<string, string> = { bash: '执行命令', read: '读取�
 .tool-times { background: var(--sk-fill); }
 .tool-process-note { white-space: pre-wrap; overflow-wrap: anywhere; }
 .tool-step + .tool-step { border-top: 1px solid var(--sk-line); }
+.tool-row-purpose { min-width: 0; color: var(--sk-ink-3); font-size: 11px; overflow-wrap: anywhere; }
 .tool-group-status { display: inline; }
 </style>

@@ -522,9 +522,10 @@ export class PiRunner extends AgentRunner {
       /* A process restart must reopen this workspace's persisted Pi context. */
       '--continue',
       '-n', sid.slice(0, 8),
-      /* 关闭扩展自动发现，只注册受支持的仓库 provider */
+      /* 关闭扩展自动发现，只加载仓库声明的模型与工具注释扩展 */
       '--no-extensions',
       '--extension', fileURLToPath(new URL('../pi/youcai.js', import.meta.url)),
+      '--extension', fileURLToPath(new URL('../pi/tool-purpose.js', import.meta.url)),
       /* 关闭 AGENTS.md/CLAUDE.md 目录链发现：沙箱 cwd 在仓库内，pi 会沿父目录
          把仓库根的开发 AGENTS.md（开发手记强制读写等工程约定）收进用户运行
          上下文，沙箱智能体曾据此写开发手记、改仓库文件（2026-10-19 实证，手记 075） */
