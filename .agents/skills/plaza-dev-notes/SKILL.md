@@ -88,7 +88,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 
 | # | 主题 | 状态 | 文件 |
 |---|---|---|---|
-| 021 | 独立科研图稿与报告图表（figure/1、多面板矢量导出、城市热点图） | 已实现（独立数据、几何与排版复验、报告兼容通过） | [021-shared-chart-visualization-skill.md](references/021-shared-chart-visualization-skill.md) |
+| 021 | 独立科研图稿与报告图表（全国分省地图、分组与分面趋势、多面板矢量导出、城市热点图） | 已实现（独立数据、几何与排版复验、报告兼容通过） | [021-shared-chart-visualization-skill.md](references/021-shared-chart-visualization-skill.md) |
 | 023 | 城市热点图：省内白名单查询、省份资源包 registry 与报告校验（原 023+024） | 已实现（广东、浙江真实报告验证） | [023-city-heatmap-region-resources.md](references/023-city-heatmap-region-resources.md) |
 
 ### tech-forecast 技能

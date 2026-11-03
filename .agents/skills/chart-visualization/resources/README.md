@@ -5,7 +5,11 @@
 | 广东 | `440000` | 21 | 42 | [广东清单](regions/cn/440000/manifest.json) |
 | 浙江 | `330000` | 11 | 22 | [浙江清单](regions/cn/330000/manifest.json) |
 
-## 使用边界
+## 全国省级底图
+
+全国分省图使用独立的[资源清单](regions/cn/100000/manifest.json)，覆盖 34 个省级行政区。源图由 Maitian MaiLin 于 2024-09-21 发布，采用 CC0 1.0 许可。保留源图的投影、完整幅面、南海岛屿及辅助线形，移除英文地名与驻地标注，通过原图标注位置核对省级几何与六位编码。未单独编码的近海几何作为底图要素显示。该资源用于统计示意，无官方审图号。[原图及作者许可](https://commons.wikimedia.org/wiki/File:China_administrative_offical.svg) · [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/)
+
+## 省内地市资源的使用边界
 
 1. 在[省份注册表](regions/registry.json)中查目标省份，打开对应清单。核对 `scope` 中的省级编码和行政层级。未注册的省份缺少可用边界。
 2. 按清单里的 `cityCodeMapping` 和 `boundaryResource` 读取城市名称映射、离线 GeoJSON。路径以清单所在目录为起点。

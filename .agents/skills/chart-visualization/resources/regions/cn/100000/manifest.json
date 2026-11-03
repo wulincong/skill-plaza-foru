@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-100000-province",
+  "scope": {"country": "中国", "level": "province", "count": 34},
+  "boundaryResource": "../../../boundaries/china-provinces.svg",
+  "sha256": "678a56b89007ee0ad837be7409362c8dd2b90f11e34951e8de9688470c6bee0c",
+  "source": {
+    "author": "Maitian MaiLin",
+    "title": "China administrative offical.svg",
+    "versionDate": "2024-09-21",
+    "url": "https://commons.wikimedia.org/wiki/File:China_administrative_offical.svg",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/c/c7/China_administrative_offical.svg",
+    "sha256": "970d2d4c5a149511cfe47cd5077165b3b32fa539e72c46ea2435c574e4ff1fa2",
+    "license": "CC0-1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/"
+  }
+}

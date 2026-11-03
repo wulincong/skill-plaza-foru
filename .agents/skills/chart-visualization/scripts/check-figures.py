@@ -84,6 +84,62 @@ class Output(unittest.TestCase):
         self.assertEqual(len(segments), 1)
         self.assertEqual(float(segments[0].get("x2")), x2)
 
+    def test_grouped_trend_joins_only_the_same_series_and_respects_time_gaps(self):
+        spec = single("grouped-line", ["group", "x", "y"],
+                      [("B", 7, 11), ("A", 0, 2), ("B", 0, 0), ("B", 2, 5), ("A", 7, 5)])
+        svg = self.render(spec)
+        a = svg.find(".//s:g[@data-series='A']", NS)
+        b = svg.find(".//s:g[@data-series='B']", NS)
+        aligned = json.loads((self.out/"values.json").read_text())[0]["rows"]
+        self.assertIn({"group":"A", "x":2, "y":None}, aligned)
+        self.assertIn("<th>Horizontal</th><th>Vertical</th>", (self.out/"figure.html").read_text())
+        self.assertEqual(len(a.findall("s:line", NS)), 0)
+        edges = b.findall("s:line", NS)
+        self.assertEqual(len(edges), 2)
+        dx = [float(e.get("x2")) - float(e.get("x1")) for e in edges]
+        self.assertAlmostEqual(dx[1]/dx[0], 5/2)
+
+    def test_facets_share_both_scales_and_styles(self):
+        spec = single("faceted-line", ["facet","group","x","y"],
+                      [("P","one",1,4),("Q","two",7,30),("Q","one",1,4),("P","one",7,5)])
+        spec.update(columns=2, width_mm=160)
+        svg = self.render(spec)
+        layers = svg.findall(".//s:g[@data-series='one']", NS)
+        marks = [layer.find("s:circle", NS) for layer in layers]
+        self.assertEqual(len(layers), 2)
+        self.assertEqual(marks[0].attrib, marks[1].attrib)
+        self.assertIn("a–b", (self.out/"figure.html").read_text())
+        self.assertEqual(self.cli("verify").returncode, 0)
+
+    def test_ungrouped_facets_show_a_missing_facet_on_the_common_axes(self):
+        spec = single("faceted-line", ["facet","x","y"], [("P",1,0),("Q",1,None)])
+        svg = self.render(spec)
+        panes = svg.findall("./s:g", NS)
+        self.assertEqual(len(panes), 2)
+        self.assertEqual(len(panes[0].findall(".//s:circle", NS)), 1)
+        self.assertEqual(len(panes[1].findall(".//s:circle", NS)), 0)
+
+    def test_province_geometry_and_value_encoding(self):
+        spec = example("provincial-trends")
+        spec.update(panels=spec["panels"][-1:], columns=1)
+        spec["panels"][0]["scale"] = "zero-centered"
+        spec["datasets"]["全国样本"] = [{"编码":k, "岗位数":v} for k,v in
+                                     [("香港", 4), (820000, -4), ("台湾省", 0), ("110000", None)]]
+        svg = self.render(spec)
+        features = {f.get("data-code"): f for f in svg.findall(".//*[@data-code]", NS)}
+        self.assertEqual(len(features), 34)
+        self.assertEqual(len({features[k].get("fill") for k in ["810000","820000","710000","110000"]}), 4)
+        self.assertEqual(features["110000"].get("fill"), features["440000"].get("fill"))
+        self.assertIn("香港特别行政区 · 4", features["810000"].findtext("s:title", namespaces=NS))
+        self.assertEqual(features["820000"].get("data-name"), "澳门特别行政区")
+        self.assertIn("<th>岗位数（千条）</th>", (self.out/"figure.html").read_text())
+        text_labels = {t.text for t in svg.findall(".//s:text", NS)}
+        self.assertTrue(set(spec["panels"][0]["labels"]).issubset(text_labels))
+        table = json.loads((self.out/"values.json").read_text())[0]["rows"]
+        self.assertEqual(len(table), 34)
+        self.assertEqual(sum(r["value"] is not None for r in table), 3)
+        self.assertEqual(self.cli("verify").returncode, 0)
+
     def test_unequal_histogram_areas_and_cutpoints(self):
         spec = single("histogram", ["value"], [(0,), (.5,), (1,), (2,), (4,), (None,)], edges=[0, 1, 4])
         svg = self.render(spec)
@@ -204,6 +260,17 @@ class Output(unittest.TestCase):
 
 
 class Statistics(unittest.TestCase):
+    def test_reject_duplicate_province_aliases_city_codes_and_trend_keys(self):
+        spec = example("provincial-trends")
+        for key in ("duplicate", "city", "trend"):
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                bad = deepcopy(spec)
+                if key == "trend":
+                    bad["datasets"]["两行业记录"].append(bad["datasets"]["两行业记录"][0])
+                else:
+                    bad["datasets"]["全国样本"].append({"编码": "广东" if key == "duplicate" else "440100", "岗位数": 3})
+                prepare(bad)
+
     def test_median_interval_cutoffs(self):
         self.assertIsNone(median_ci([5]*5))
         self.assertEqual(median_ci([1,2,3,4,5,6]), [1,6,0.96875])

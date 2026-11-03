@@ -12,7 +12,8 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from tempfile import TemporaryDirectory
 
-from figure_data import PAIR_TYPES, prepare, require
+from figure_data import PAIR_TYPES, TREND_TYPES, prepare, require
+from province_map import SOURCE as MAP_SOURCE
 
 
 def serialize(value):
@@ -37,6 +38,16 @@ def annotate(p, zh):
         return msg + delta + ("点为组内变化中位数，线为双侧至少 95% 的次序统计量区间，假定对象独立。完整对少于 6 时只画点。"
                               if zh else "Points are group medians of paired changes. Whiskers are two-sided, at least 95% order-statistic intervals assuming independent units. Below six pairs only the estimate is shown.")
     rows = p["rows"]
+    if kind == "province-map":
+        observed = sum(r["value"] is not None for r in rows)
+        return (f"34 个省级行政区中 {observed} 个有值。白色为实测零值，灰色为缺失。底图 " if zh else
+                f"{observed} of 34 regions observed. White is zero, grey is missing. Basemap ") + MAP_SOURCE
+    if kind in TREND_TYPES:
+        count = sum(r["y"] is not None for r in rows)
+        note = f"{count} 个有效观测。缺测处断线。" if zh else f"{count} observations. Lines break at missing observations."
+        if kind == "faceted-line":
+            note += "各分面共用坐标尺度和系列样式。" if zh else " Facets share scales and series styles."
+        return note
     if kind == "matrix":
         cells = len({r["row"] for r in rows}) * len({r["column"] for r in rows})
         missing = cells - sum(r["value"] is not None for r in rows)
@@ -72,11 +83,19 @@ def table(headers, rows):
 
 def accessible_values(p, zh):
     cn = {"category": "类别", "value": "数值", "group": "组别", "row": "行", "column": "列",
-          "lower": "下界", "upper": "上界", "id": "对象编号", "median Δ": "变化中位数",
+          "lower": "下界", "upper": "上界", "region": "省级行政区", "code": "行政区编码",
+          "facet": "分面", "id": "对象编号", "median Δ": "变化中位数",
           "coverage": "名义覆盖率", "n": "完整配对数", "Δ": "变化量"}
     def headings(keys):
         return [cn.get(k, k) for k in keys] if zh else keys
 
+    if p["kind"] in TREND_TYPES:
+        keys = list(p["rows"][0])
+        labels = {**p["fields"], "x": p["x_label"], "y": p["y_label"]}
+        return table([labels[k] for k in keys], ([r[k] for k in keys] for r in p["rows"]))
+    if p["kind"] == "province-map":
+        return table([*headings(["code", "region"]), p["unit"]],
+                     ([r["code"], r["region"], r["value"]] for r in p["rows"]))
     if p["kind"] not in PAIR_TYPES:
         names = list(p["rows"][0])
         return table(headings(names), ([r[k] for k in names] for r in p["rows"]))
@@ -121,8 +140,16 @@ def generate(spec, out):
     if len(panels) == 1:
         name = panels[0]["kind"]
         kind = ("bar" if name == "barh" else name) + "-chart"
-    caption = "".join(f"<li><b>{chr(97+i)} · {escape(p['title'])}</b> {escape(n)}</li>"
-                      for i, (p, n) in enumerate(zip(panels, notes)))
+    captions = []
+    display_index = 0
+    for panel, note in zip(panels, notes):
+        count = len({row["facet"] for row in panel["rows"]}) if panel["kind"] == "faceted-line" else 1
+        key = chr(97 + display_index)
+        display_index += count
+        if count > 1:
+            key += "–" + chr(96 + display_index)
+        captions.append(f"<li><b>{key} · {escape(panel['title'])}</b> {escape(note)}</li>")
+    caption = "".join(captions)
     tables = "".join(f"<h3>{escape(p['title'])}</h3>{accessible_values(p, zh)}" for p in panels)
     hint = "图幅较宽，可横向滚动查看全图。" if zh else "Scroll horizontally to see the full-width figure."
     html = f"""<!doctype html><html lang="{spec.get('lang', 'en')}"><head><meta charset="utf-8">
@@ -144,7 +171,7 @@ def comparable(path):
     # Cairo may compress the Info dictionary. Expand objects before ignoring its clock.
     with TemporaryDirectory() as stage:
         expanded = Path(stage) / "expanded.pdf"
-        subprocess.run(["mutool", "clean", "-d", str(path), str(expanded)], check=True)
+        subprocess.run(["mutool", "clean", "-gg", "-d", str(path), str(expanded)], check=True)
         return re.sub(rb"/CreationDate \(D:[^()]*\)", b"/CreationDate (export time)", expanded.read_bytes(), count=1)
 
 

@@ -1,5 +1,6 @@
 """Lay out vector marks in physical points; measure text with the export engine."""
 from collections import Counter
+from copy import deepcopy
 from functools import lru_cache
 from itertools import combinations
 import math
@@ -13,7 +14,8 @@ import gi
 gi.require_version("Rsvg", "2.0")
 from gi.repository import Rsvg
 
-from figure_data import PAIR_TYPES, require
+from figure_data import PAIR_TYPES, TREND_TYPES, require
+from province_map import basemap, short_name
 
 NS = "http://www.w3.org/2000/svg"
 FONT = "Liberation Sans, WenQuanYi Zen Hei, sans-serif"
@@ -112,15 +114,53 @@ def panel_axes(p):
     return cats, scale_ticks([v for v in vals if v is not None], p.get("y_ticks"), zero=kind in {"bar", "median-change", "change-distribution"})
 
 
+# The same series receives the same colour and dash pattern in every facet.
+SERIES = [(BLUE, ""), (ORANGE, "4 2"), ("#267254", "1 2"), ("#79508a", "5 2 1 2"),
+          ("#80592a", "6 2"), ("#2e7480", "3 1 1 1"), ("#9b3858", "2 2"), ("#475362", "7 2 2 2")]
+
+
+def trend_panels(panel):
+    rows = panel["rows"]
+    times = sorted({row["x"] for row in rows})
+    if "x_ticks" not in panel and len(times) <= 6 and all(float(t).is_integer() for t in times):
+        xt = times if len(times) > 1 else [times[0]-1, times[0], times[0]+1]
+    else:
+        xt = scale_ticks(times, panel.get("x_ticks"))
+    yt = scale_ticks([r["y"] for r in rows if r["y"] is not None], panel.get("y_ticks"))
+    groups = list(dict.fromkeys(r.get("group") for r in rows))
+    by_facet = {}
+    for row in rows:
+        by_facet.setdefault(row.get("facet"), []).append(row)
+    for facet, subset in by_facet.items():
+        title = panel["title"] if facet is None else f"{panel['title']} · {facet}"
+        yield dict(panel, title=title, rows=subset, axes=(xt, yt), groups=groups, times=times)
+
+
+def series_mark(parent, x, y, index, legend=False):
+    color, dash = SERIES[index]
+    if legend:
+        sample = line(parent, x-4, y, x+4, y, color, .9)
+        if dash:
+            sample.set("stroke-dasharray", dash)
+    if index % 3 == 0:
+        el(parent, "circle", cx=x, cy=y, r=1.6, fill=color)
+    elif index % 3 == 1:
+        rect(parent, x-1.5, y-1.5, 3, 3, color)
+    else:
+        el(parent, "path", d=f"M{x},{y-2}l1.9,3.3h-3.8Z", fill=color)
+
+
 class Panel:
     def __init__(self, parent, p, w, h, letter, chinese):
         self.p, self.g = p, parent
         self.na = "缺失" if chinese else "NA"
-        self.xt, self.yt = panel_axes(p)
+        self.xt, self.yt = p["axes"] if p["kind"] in TREND_TYPES else panel_axes(p)
         matrix = p["kind"] == "matrix"
         categorical_y = p["kind"] in {"matrix", "barh"}
-        numeric_x = p["kind"] in {"line", "scatter", "ecdf", "barh", "histogram"}
+        numeric_x = p["kind"] in TREND_TYPES | {"line", "scatter", "ecdf", "barh", "histogram"}
         xt_labels = [number(x) if numeric_x else x for x in self.xt]
+        if p["kind"] in TREND_TYPES and all(float(t).is_integer() for t in self.xt):
+            xt_labels = [str(int(t)) for t in self.xt]
         if p["kind"] in PAIR_TYPES:
             count = "units" if p["kind"] == "paired" else "complete"
             xt_labels = [f"{g['group']} (n={g[count]})" for g in p["groups"]]
@@ -128,6 +168,19 @@ class Panel:
         self.left = 16 + max(map(text_width, yt_labels))
         self.right = w - max(6, text_width(xt_labels[-1]) / 2 + 2 if numeric_x else 6)
         self.top = 20 if not matrix else 30
+        if p["kind"] in TREND_TYPES and p["groups"] != [None]:
+            present = {r["group"] for r in p["rows"] if r["y"] is not None}
+            pos, baseline = 2, 21
+            for index, group in enumerate(p["groups"]):
+                span = text_width(group) + 19
+                require(span <= w, "trend legend label too wide")
+                if pos + span > w:
+                    pos, baseline = 2, baseline + 10
+                if group in present:
+                    series_mark(parent, pos+4, baseline-2, index, legend=True)
+                    text(parent, pos+12, baseline, group, "start")
+                pos += span
+            self.top = baseline + 9
         self.bottom = h - (35 if p["kind"] == "paired" else 26)
         require(self.right - self.left >= 49 and self.bottom - self.top >= 36,
                 "insufficient plotting area; widen figure, increase panel height or use fewer columns")
@@ -284,6 +337,34 @@ class Panel:
                         "many coincident points; aggregate and label frequencies before plotting")
                 self.dot(self.x(x), y, radius=radius)
             return
+        if kind in TREND_TYPES:
+            if all(row["y"] is None for row in rows):
+                message = "无有效观测" if self.na == "缺失" else "No observations"
+                text(self.g, (self.left+self.right)/2, (self.top+self.bottom)/2, message)
+                return
+            series = {}
+            for row in rows:
+                series.setdefault(row.get("group"), {})[row["x"]] = row["y"]
+            for index, group in enumerate(p["groups"]):
+                observed = series.get(group, {})
+                if not observed:
+                    continue
+                layer = el(self.g, "g", data_series=group or p["title"])
+                color, dash = SERIES[index]
+                previous = None
+                for time in p["times"]:
+                    value = observed.get(time)
+                    if value is None:
+                        previous = None
+                        continue
+                    point = self.x(time), self.y(value)
+                    if previous is not None:
+                        segment = line(layer, *previous, *point, color, 1)
+                        if dash:
+                            segment.set("stroke-dasharray", dash)
+                    series_mark(layer, *point, index)
+                    previous = point
+            return
         if kind == "line":
             previous = None
             for r in rows:
@@ -365,10 +446,85 @@ class Panel:
                 cell.set("fill", ink)
 
 
+def draw_provinces(parent, panel, width, height, letter, chinese):
+    if letter:
+        text(parent, 1, 9, letter, "start", 8, font_weight="bold")
+    text(parent, 12 if letter else 1, 9, panel["title"], "start", 7)
+    rows = {r["code"]: r for r in panel["rows"]}
+    observed = [r["value"] for r in rows.values() if r["value"] is not None]
+    nonzero = [v for v in observed if v != 0]
+    lo, hi = (min(nonzero), max(nonzero)) if nonzero else (0, 0)
+    centered = panel["scale"] == "zero-centered"
+    if centered:
+        hi = max(abs(lo), abs(hi))
+        lo = -hi
+    missing, zero = "#bfc4c5", "#fff"
+
+    def ramp(value):
+        if centered:
+            pale, dark = (247, 245, 239), (156, 63, 29) if value < 0 else (28, 87, 132)
+            fraction = abs(value) / hi if hi else 0
+        else:
+            pale, dark = (211, 236, 241), (24, 80, 126)
+            fraction = (value-lo) / (hi-lo) if hi != lo else 1
+        return "#%02x%02x%02x" % tuple(round(a + (b-a)*fraction) for a,b in zip(pale, dark))
+
+    original = basemap()
+    _, _, geo_w, geo_h = map(float, original.get("viewBox").split())
+    left_w = width * .64
+    factor = min(left_w / geo_w, (height - 23) / geo_h)
+    dx = (left_w - geo_w * factor) / 2
+    drawing = el(parent, "g", transform=f"translate({dx} 16) scale({factor})",
+                 stroke="#64757b", stroke_width=.7, stroke_linejoin="round")
+    labels = []
+    for shape in original:
+        feature = deepcopy(shape)
+        code = feature.get("data-code")
+        if code:
+            row = rows[code]
+            v = row["value"]
+            feature.set("fill", missing if v is None else zero if v == 0 else ramp(v))
+            if code in panel["labels"]:
+                px, py = map(float, feature.get("data-pin").split())
+                labels.append((dx+px*factor, 16+py*factor, short_name(row["region"])))
+            title = el(feature, "title")
+            title.text = f"{row['region']} · {v if v is not None else ('缺失' if chinese else 'NA')}"
+        drawing.append(feature)
+    for x, y, name in labels:
+        text(parent, x, y+2, name, size=6, stroke="white", stroke_width=1.5, paint_order="stroke")
+
+    x, y = left_w + 5, 23
+    text(parent, x, y, panel["unit"], "start", 7)
+    y += 13
+    if nonzero:
+        if lo != hi:
+            bar_w = min(70, width - x - 8)
+            for i in range(40):
+                rect(parent, x+bar_w*i/40, y, bar_w/40+.1, 5, ramp(lo+(hi-lo)*i/39))
+            text(parent, x, y+14, number(lo), "start")
+            text(parent, x+bar_w, y+14, number(hi), "end")
+            if centered:
+                text(parent, x+bar_w/2, y+14, "0")
+            y += 26
+        else:
+            rect(parent, x, y-5, 7, 6, ramp(lo))
+            text(parent, x+12, y, number(lo), "start")
+            y += 13
+    for color, name in [(zero, "0"), (missing, "缺失" if chinese else "Missing")]:
+        rect(parent, x, y-5, 7, 6, color, stroke="#69777b", stroke_width=.5)
+        text(parent, x+12, y, name, "start")
+        y += 12
+    coverage = f"有值 {len(observed)} / 34" if chinese else f"Observed {len(observed)} / 34"
+    text(parent, x, y+3, coverage, "start")
+    text(parent, x, height-3, "M. MaiLin · CC0", "start", 5.5)
+
+
 def build_svg(spec, panels, description):
     w = spec.get("width_mm", 89)
     h = spec.get("panel_height_mm", 55)
     cols = spec.get("columns", 1)
+    panels = [display for panel in panels for display in
+              (trend_panels(panel) if panel["kind"] in TREND_TYPES else [panel])]
     nrows = math.ceil(len(panels) / cols)
     width, height = w * PT, h * PT * nrows
     ident = spec["id"]
@@ -384,7 +540,12 @@ def build_svg(spec, panels, description):
         row, col = divmod(i, cols)
         left, top = col * slot, row * h * PT
         g = el(svg, "g", transform=f"translate({left+4} {top+3})")
-        Panel(g, panel, slot-9, h*PT-6, chr(97+i) if len(panels) > 1 else None, spec.get("lang") == "zh").draw()
+        letter = chr(97+i) if len(panels) > 1 else None
+        chinese = spec.get("lang") == "zh"
+        if panel["kind"] == "province-map":
+            draw_provinces(g, panel, slot-9, h*PT-6, letter, chinese)
+        else:
+            Panel(g, panel, slot-9, h*PT-6, letter, chinese).draw()
         for element in g.iter("text"):
             key = f"{ident}-t{len(labels)}"
             element.set("id", key)

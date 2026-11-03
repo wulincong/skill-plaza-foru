@@ -249,6 +249,19 @@ for (const [province, code] of seenProvinces) {
   }
 }
 
+const nationalPath = resolve(registryDir, registry.nationalProvinceMap);
+const national = await loadJson(nationalPath, 'national province map');
+const nationalSvg = resolve(dirname(nationalPath), national.boundaryResource);
+if (national.scope?.level !== 'province' || national.scope.count !== 34 ||
+    national.sha256 !== await readSha256(nationalSvg, 'national province shapes')) {
+  fail('national province package: invalid scope, count or checksum');
+}
+const labels = [...(await readFile(nationalSvg, 'utf8')).matchAll(/data-code="(\d{2}0000)"/g)];
+if (labels.length !== national.scope.count || new Set(labels.map(match => match[1])).size !== labels.length) {
+  fail('national province package: expected 34 distinct six-digit provincial codes');
+}
+console.log('OK: national map validated (34 provinces and equivalents)');
+
 const filterValue = process.argv.slice(2).find((arg) => arg.startsWith('--province='))?.split('=').slice(1).join('=');
 const filtered = filterValue
   ? regionResults.filter((result) => result.province === filterValue || result.provinceCode === filterValue || registry.provinceNameToCode[filterValue] === result.provinceCode)

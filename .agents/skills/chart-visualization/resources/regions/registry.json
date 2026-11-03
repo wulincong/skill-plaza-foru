@@ -3,6 +3,7 @@
   "country": "中国",
   "level": "city",
   "codeSystem": "six-digit administrative division adcode",
+  "nationalProvinceMap": "cn/100000/manifest.json",
   "regions": [
     {
       "id": "cn-440000-city",

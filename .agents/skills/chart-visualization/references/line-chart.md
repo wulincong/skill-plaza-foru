@@ -8,3 +8,5 @@
 [打开最小示例](../examples/line-chart.html)。演示输入为 1 月 4 条、2 月 6 条、3 月 5 条，均为当月新增岗位记录。
 
 数值横轴可直接使用独立出图入口的 `line`。[输入与复验](figure-spec.md)
+
+多组观测可用 `grouped-line` 同轴比较，或用 `faceted-line` 分面共用坐标尺度。字段及缺测规则见[独立图稿规格](figure-spec.md)。

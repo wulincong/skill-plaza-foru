@@ -4,6 +4,8 @@ import math
 import re
 from statistics import median
 
+from province_map import province_code, province_rows
+
 
 def require(condition, message):
     if not condition:
@@ -43,7 +45,10 @@ def median_ci(values):
 
 
 PAIR_TYPES = {"paired", "change-distribution", "median-change"}
+TREND_TYPES = {"grouped-line", "faceted-line"}
 ROLES = {
+    "grouped-line": ("group", "x", "y"), "faceted-line": ("facet", "x", "y"),
+    "province-map": ("region", "value"),
     "bar": ("category", "value"), "barh": ("category", "value"),
     "histogram": ("value",), "line": ("x", "y"), "scatter": ("x", "y"),
     "ecdf": ("value",), "distribution": ("group", "value"), "interval": ("group", "value", "lower", "upper"),
@@ -76,19 +81,22 @@ def prepare_panel(panel, datasets):
     kind = panel.get("kind") if isinstance(panel, dict) else None
     require(isinstance(kind, str) and kind in ROLES, f"unknown chart kind {kind!r}")
     options = {"histogram": ("edges",), "interval": ("method",), "matrix": ("scale",), "median-change": ("phases", "independent_units")}
-    required = ("kind", "title", "data", "fields", "x_label", "y_label")
+    label_keys = ("unit",) if kind == "province-map" else ("x_label", "y_label")
+    required = ("kind", "title", "data", "fields", *label_keys)
+    options["province-map"] = ("scale",)
     axes = []
-    if kind in {"line", "scatter", "histogram", "ecdf", "barh"}:
+    if kind in TREND_TYPES | {"line", "scatter", "histogram", "ecdf", "barh"}:
         axes.append("x_ticks")
-    if kind not in {"matrix", "barh", "ecdf"}:
+    if kind not in {"matrix", "barh", "ecdf", "province-map"}:
         axes.append("y_ticks")
-    structure(panel, required + options.get(kind, ("phases",) if kind in PAIR_TYPES else ()), axes)
-    for key in ("title", "x_label", "y_label", "data"):
+    required += options.get(kind, ("phases",) if kind in PAIR_TYPES else ())
+    structure(panel, required, ("labels",) if kind == "province-map" else axes)
+    for key in ("title", "data", *label_keys):
         label(panel[key], key)
     data = datasets.get(panel["data"])
     require(isinstance(data, list) and data, f"no rows in {panel['data']!r}")
     fields = panel["fields"]
-    structure(fields, ROLES[kind])
+    structure(fields, ROLES[kind], ("group",) if kind == "faceted-line" else ())
     for name in fields.values():
         label(name, "field name")
     require(len(set(fields.values())) == len(fields), "field roles must use distinct columns")
@@ -101,9 +109,17 @@ def prepare_panel(panel, datasets):
             if role in {"value", "x", "y", "lower", "upper"}:
                 row[role] = None if value is None else num(value, f"row {i} {name}")
             else:
-                row[role] = value if role == "id" and type(value) is int else label(value, f"row {i} {name}")
+                row[role] = value if role in ("id", "region") and type(value) is int else label(value, f"row {i} {name}")
         rows.append(row)
-    result = {"kind": kind, "title": panel["title"], "x_label": panel["x_label"], "y_label": panel["y_label"]}
+    result = {"kind": kind, "title": panel["title"]}
+    if kind == "province-map":
+        require(panel["scale"] in ("sequential", "zero-centered"), "unknown map scale")
+        labels = panel.get("labels", [])
+        require(isinstance(labels, list), "map labels must be an array of provincial codes or names")
+        codes = [province_code(key) for key in labels]
+        require(len(codes) == len(set(codes)), "duplicate province labels")
+        return dict(result, unit=panel["unit"], scale=panel["scale"], labels=codes, rows=province_rows(rows))
+    result.update(x_label=panel["x_label"], y_label=panel["y_label"])
     for key in axes:
         if key in panel:
             ticks = panel[key]
@@ -130,6 +146,24 @@ def prepare_panel(panel, datasets):
             result["groups"].append(record)
         return result
     unique_keys = {"bar": ("category",), "barh": ("category",), "line": ("x",), "interval": ("group",), "matrix": ("row", "column")}
+    if kind in TREND_TYPES:
+        # Align only the (facet, series) combinations that were actually submitted.
+        times = sorted({r["x"] for r in rows if r["x"] is not None})
+        roles = [key for key in ("facet", "group") if key in fields]
+        series = {}
+        for row in rows:
+            key = tuple(row[k] for k in roles)
+            time = row["x"]
+            require(time is not None, "trend requires a time coordinate")
+            readings = series.setdefault(key, {})
+            require(time not in readings, f"duplicate {kind} coordinate {key}, {time}")
+            readings[time] = row["y"]
+        require(len({r.get("group") for r in rows}) <= 8, "too many trend groups; use facets or split the figure")
+        require(len({r.get("facet") for r in rows}) <= 26, "too many trend facets; split the figure")
+        result["fields"] = fields
+        result["rows"] = [dict(zip(roles, key), x=t, y=readings.get(t))
+                          for key, readings in series.items() for t in times]
+        return result
     if kind in unique_keys:
         keys = [tuple(row[key] for key in unique_keys[kind]) for row in rows]
         require(len(keys) == len(set(keys)), f"duplicate {kind} coordinate")
@@ -178,5 +212,8 @@ def prepare(spec):
     width, height, columns = (spec.get(k, v) for k, v in (("width_mm", 89), ("panel_height_mm", 55), ("columns", 1)))
     require(55 <= num(width, "width_mm") <= 300 and 32 <= num(height, "panel_height_mm") <= 200,
             "width_mm outside 55–300 or panel_height_mm outside 32–200")
-    require(type(columns) is int and 1 <= columns <= len(panels), "invalid columns")
-    return [prepare_panel(panel, spec["datasets"]) for panel in panels]
+    prepared = [prepare_panel(panel, spec["datasets"]) for panel in panels]
+    slots = sum(len({r["facet"] for r in p["rows"]}) if p["kind"] == "faceted-line" else 1 for p in prepared)
+    require(slots <= 26, "at most 26 displayed panels; split the figure")
+    require(type(columns) is int and 1 <= columns <= slots, "invalid columns")
+    return prepared
