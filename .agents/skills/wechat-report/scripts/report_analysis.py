@@ -10,7 +10,7 @@ from pathlib import Path
 import re
 
 BASE = Path(__file__).resolve().parent.parent
-VERSION = 'wechat-analysis/1'
+VERSION = 'wechat-analysis/2'
 LABELS = {
     'overview': '核心发现', 'geography': '地域分布', 'jobtype': '招聘类型',
     'education': '学历要求', 'experience': '经验要求', 'access': '学历与经验交叉',
@@ -252,7 +252,11 @@ def entity_labels(data):
 def validate_analysis(data, binding, analysis):
     if not data['total']['positions']:
         raise ValueError('当前范围无岗位记录，应说明空样本，不能生成研究报告')
-    if not isinstance(analysis, dict) or analysis.get('schema') != VERSION:
+    if not isinstance(analysis, dict):
+        raise ValueError('缺少已完成的真实数据分析；先运行 report_analysis.py 并撰写 report_analysis.json')
+    if analysis.get('schema') == 'wechat-analysis/1':
+        raise ValueError('分析稿为旧版协议：需按 wechat-analysis/2 为综合判断补充 2-4 条结论卡（conclusions）')
+    if analysis.get('schema') != VERSION:
         raise ValueError('缺少已完成的真实数据分析；先运行 report_analysis.py 并撰写 report_analysis.json')
     pack = evidence_pack(data, binding)
     for key in ('sourceDataSha256', 'sourceContentHash'):
@@ -286,6 +290,26 @@ def validate_analysis(data, binding, analysis):
     if len({facts[x]['section'] for x in executive['findingIds']}) < min(3, len(domains)):
         raise ValueError('综合判断需结合不同维度，不能只罗列同一主题的事实')
     narrative(executive.get('synthesis'), '跨维度综合判断', 40)
+    # Conclusion cards: the synthesis must decompose into decision takeaways;
+    # every executive finding has to be claimed by one of the cards.
+    conclusions = executive.get('conclusions')
+    if not isinstance(conclusions, list) or not 2 <= len(conclusions) <= 4:
+        raise ValueError('综合判断需拆分为 2-4 条结论卡，不能整段堆砌')
+    covered = []
+    for card in conclusions:
+        narrative(card.get('title'), '结论卡标题', 4)
+        if len(card['title']) > 16:
+            raise ValueError('结论卡标题须压缩为 16 字内的动作短语')
+        narrative(card.get('text'), '结论卡内容', 20)
+        if len(card['text']) > 200:
+            raise ValueError('结论卡内容须压缩为 200 字内的决策要点')
+        ids = card.get('findingIds')
+        if (not isinstance(ids, list) or not 1 <= len(ids) <= 3
+                or len(set(ids)) != len(ids) or any(x not in facts for x in ids)):
+            raise ValueError('结论卡须引用 1-3 条存在的事实')
+        covered += ids
+    if sorted(set(covered)) != sorted(set(executive['findingIds'])):
+        raise ValueError('每条综合事实都要落在某张结论卡中，结论卡也不能只讲空话')
     insights = analysis.get('sections', [])
     if not isinstance(insights, list) or any(not isinstance(s, dict) for s in insights):
         raise ValueError('sections 必须为分析章节列表')
@@ -326,12 +350,14 @@ def finding_spec(fact, binding):
 
 
 def analysis_payload(item, facts, executive=False):
+    """Return (paragraphs, conclusion, cards, summary); conclusion-first overview."""
     paragraphs = [facts[x]['text'] for x in item['findingIds']]
     if executive:
-        # Conclusion-first: the synthesis leads the page, findings support it.
-        return paragraphs, {'title': '核心结论', 'text': item['synthesis']}, None
+        cards = [{'no': str(i + 1), 'title': c['title'], 'desc': c['text']}
+                 for i, c in enumerate(item.get('conclusions', []))]
+        return paragraphs, {'title': '核心结论', 'text': item['synthesis']}, cards, None
     paragraphs += ['结构解读与分析推断：'+item['interpretation'], '行动建议：'+item['action']]
-    return paragraphs, None, {'title': '落实与验证', 'text': item['validation']}
+    return paragraphs, None, None, {'title': '落实与验证', 'text': item['validation']}
 
 
 def apply_analysis(outline, data, binding, analysis):
@@ -358,11 +384,14 @@ def apply_analysis(outline, data, binding, analysis):
             screen['analysis_key'] = key
             if key != 'overview':
                 screen['title'] = item['title']
-            screen['paragraphs'], conclusion, summary = analysis_payload(item, facts, key == 'overview')
+            screen['paragraphs'], conclusion, cards, summary = analysis_payload(item, facts, key == 'overview')
             screen.pop('summary', None)
             screen.pop('conclusion', None)
+            screen.pop('cards', None)
             if conclusion:
                 screen['conclusion'] = conclusion
+            if cards:
+                screen['cards'] = cards
             if summary:
                 screen['summary'] = summary
             for j, fact_id in enumerate(item['findingIds']):
@@ -393,9 +422,9 @@ def verify_analysis_outline(data, binding, outline):
         if key in items:
             seen.append(key)
             item = items[key]
-            ps, conclusion, summary = analysis_payload(item, facts, key == 'overview')
+            ps, conclusion, cards, summary = analysis_payload(item, facts, key == 'overview')
             if (screen.get('paragraphs') != ps or screen.get('summary') != summary
-                    or screen.get('conclusion') != conclusion):
+                    or screen.get('conclusion') != conclusion or screen.get('cards') != cards):
                 raise ValueError('报告未完整保留分析正文：'+key)
             if key != 'overview' and screen['title'] != item['title']:
                 raise ValueError('报告标题与分析稿不一致')
@@ -430,7 +459,7 @@ def main():
     (out/'analysis_evidence.md').write_text('\n'.join(lines), 'utf-8')
     draft = dict(schema=VERSION, sourceDataSha256=pack['sourceDataSha256'],
                  sourceContentHash=pack['sourceContentHash'], evidenceHash=fingerprint(pack),
-                 executive={'findingIds': [], 'synthesis': ''},
+                 executive={'findingIds': [], 'synthesis': '', 'conclusions': []},
                  sections=[dict(key=key, title='', findingIds=[], interpretation='', action='', validation='')
                            for key in pack['requiredSections']],
                  limitations=[], coverageGaps=pack['coverageGaps'])

@@ -13,17 +13,24 @@
 3. 读完证据后，由当前智能体撰写会话工作副本根的 report_analysis.json。可从 draft 复制来源指纹和结构，不得把空模板当成已分析。研究问题要求而证据没有的比较，应补充共享查询或派生类型后再分析，不自行填写数字。
 4. gen_outline.py 只接受匹配当前数据的完整分析稿，输出 wechat-outline/3；它保留事实与解释，绑定图表。verify_data、render_report、build_article、pack_delivery 均要求报告包含该分析。旧大纲要补完分析后重新生成；已保存的历史网页/下载不会因此修改。不能删除分析字段或减少正文绕过。
 
-## wechat-analysis/1
+## wechat-analysis/2
 
 ```json
 {
-  "schema": "wechat-analysis/1",
+  "schema": "wechat-analysis/2",
   "sourceDataSha256": "从 analysis_draft.json 保留",
   "sourceContentHash": "从 analysis_draft.json 保留",
   "evidenceHash": "从 analysis_draft.json 保留",
   "executive": {
     "findingIds": ["geography.concentration", "salary.quantiles", "vocational.salary_comparison"],
-    "synthesis": "结合已选事实解释地域、总体薪酬与入门池之间的关系，指出对读者决策的意义和仍需核实的条件。"
+    "synthesis": "结合已选事实解释地域、总体薪酬与入门池之间的关系，指出对读者决策的意义和仍需核实的条件。",
+    "conclusions": [
+      {
+        "title": "合作城市按学生条件重选",
+        "text": "把综合判断压成 20-200 字的决策要点：判断是什么、读者因此应该做什么，不写数字。",
+        "findingIds": ["geography.concentration"]
+      }
+    ]
   },
   "sections": [
     {
@@ -41,6 +48,8 @@
 ```
 
 以上仅示意字段；真实稿须覆盖 analysis_draft 中的全部章节并原样保留 coverageGaps。每章选择相关且不重复的事实；存在比较事实时必须使用，通常至少选择两个；综合判断选择不同维度的事实。findingIds 由程序重算，不能编辑生成的事实来改变结论。
+
+**综合判断的写法（结论先行）**：synthesis 是跨维度总判断（一句话定调 + 结构关系 + 证据边界）；conclusions 把它拆成 2-4 条结论卡——每卡标题是 16 字内的动作短语（如"合作城市按学生条件重选"），内容是 20-200 字的决策要点（判断 + 读者该做什么），每卡引用 1-3 条支撑事实，且每条综合事实都必须被某张卡认领。结论卡与总判断都不能出现数字（数据中带数字的名称除外）；支撑数字由其后绑定的 fact 段落给出，读者先看结论再看证据。不要写成限制条件的堆砌：边界写进卡内一句话即可，主体必须是判断和行动。
 
 解释、标题、行动与验证字段使用自然语言，具体数字放在选定事实中，不能写未绑定的数字或 HTML；已在真实数据中出现的带数字类别/技能名称可原样使用。正文会先展示完整事实，再展示结构解释/分析推断和行动；因此不要逐字重复事实。解释要回答条件差异意味着什么、有哪些替代解释；行动要说明读者做什么，验证说明如何确认该行动适用。不要为追求“深入”添加没有数据的行业因果。
 

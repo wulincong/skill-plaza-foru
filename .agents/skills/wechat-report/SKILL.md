@@ -21,7 +21,7 @@ description: 基于共享人才数据库统计生成地区与产业的微信公�
 
 ## 大纲、图文与交付
 
-- 运行 scripts/report_analysis.py，读取 output/analysis/analysis_evidence.md、完整 report_data.json 及必要的共享结果。脚本只整理可复核事实，**不会替你完成分析**。按研究规范独立撰写 report_analysis.json，逐维度形成“具体发现与比较 → 结构解释/待验证推断 → 面向读者的行动 → 验证方式”，并做跨维度综合判断。空样本直接反馈缺口，不生成研究报告。
+- 运行 scripts/report_analysis.py，读取 output/analysis/analysis_evidence.md、完整 report_data.json 及必要的共享结果。脚本只整理可复核事实，**不会替你完成分析**。按研究规范独立撰写 report_analysis.json，逐维度形成“具体发现与比较 → 结构解释/待验证推断 → 面向读者的行动 → 验证方式”，并做跨维度综合判断：synthesis 总判断 + 2-4 张结论卡（动作短语标题 + 决策要点，每卡认领支撑事实，数字只出现在其后的事实段落）。空样本直接反馈缺口，不生成研究报告。
 - scripts/gen_outline.py 必须消费已完成的分析稿，缺失、占位、数据版本不符或章节缺项即停止。先交付 output/outline/outline.md 中的实际分析与图表供审阅，不能只展示标题、页数和“亮点”；确认后渲染。旧工作副本需同步本次 scripts/references，保留原数据和用户品牌/文案。
 - 正文数字使用带字段、分母和公式的 findingIds，图表绑定 metricId；量化事实由保存数据重新计算校验。新增所需事实应扩充报告侧派生投影，新增原始统计仍走共享查询。解释和建议由智能体结合证据撰写，不能恢复固定行业/地区结论；单次横截面不生成市场增速或招聘趋势。检查器可验证分析结构和数字引用，解释合理性仍须逐章审阅。
 - 依次运行 verify_data.py --stage data、render_report.py、build_article.py、verify_data.py --stage final。前置校验中的渲染状态为 pending，不能作为最终通过。工作副本保留数据；大纲确认即使超过15分钟也直接读本地结果，不重新查库。
