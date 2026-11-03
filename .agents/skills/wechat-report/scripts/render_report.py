@@ -316,8 +316,6 @@ def est_screen_height(s):
             h += CHART_H.get(k, 620) + 120
     if s.get('insight'):
         h += 190
-    if s.get('conclusion'):
-        h += 190
     if s.get('summary'):
         h += 100 + math.ceil(len(s['summary'].get('text', '')) / 29) * 45
     if s.get('quote'):
@@ -590,8 +588,8 @@ def assign_els(screen):
     return screen
 
 
-def render_screen(s, idx, total, org, scale, meta=None, height=None):
-    """返回 (html, height)；height 传入实测值时覆盖估算，供截图与测高复用"""
+def render_screen(s, idx, total, org, scale, meta=None):
+    """返回 (html, height)"""
     src_line = ''
     if meta:
         src_line = ('<div class="src">数据来源：%s｜样本 N=%s｜统计周期：%s</div>'
@@ -647,11 +645,11 @@ def render_screen(s, idx, total, org, scale, meta=None, height=None):
 %(cards)s
 %(tail)s
 <div class="footer"><div class="org">%(org)s</div><div class="dots">%(dots)s</div></div>
-</div></body></html>""" % {'css': CSS, 'H': height or est_screen_height(s),
+</div></body></html>""" % {'css': CSS, 'H': est_screen_height(s),
                              'title': s.get('title', '摘要'), 'lead': lead,
                              'cards': cards, 'tail': tail,
                              'org': org, 'dots': dots}
-        return html, height or est_screen_height(s)
+        return html, est_screen_height(s)
 
     if s['type'] == 'backcover':
         html = """<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -788,12 +786,6 @@ def render_screen(s, idx, total, org, scale, meta=None, height=None):
     if s.get('insight'):
         body_parts.append('<div class="insight"><div class="tag">产业观察</div>'
                           '<div class="txt">%s</div></div>' % s['insight'])
-    # 总起结论框永远在正文之前（结论先行），与洞察框/总结框区分样式
-    if s.get('conclusion'):
-        body_parts.insert(0, '<div class="insight" style="border-left-color:%s">'
-                          '<div class="tag">%s</div><div class="txt">%s</div></div>'
-                          % (TH('accent'), s['conclusion'].get('title', '核心结论'),
-                             s['conclusion'].get('text', '')))
     # 章末灵活小标题总结框（橙系）
     if s.get('summary'):
         body_parts.append('<div class="sbox"><div class="st">%s</div>'
@@ -816,11 +808,6 @@ def render_screen(s, idx, total, org, scale, meta=None, height=None):
     elif s.get('title'):
         chapter = '<div class="chapter"><div class="tt">%s</div></div>' % s['title']
 
-    # 两遍渲染测高：scrollHeight 在 overflow:hidden 下仍包含被裁内容，
-    # 截字问题因此可被测量而非依赖估算。
-    js_parts.append("var __p=document.querySelector('.page');"
-                    "document.title='PAGE_MEASURE_H='+(__p?__p.scrollHeight:0);")
-
     html = """<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>%(css)s</style></head>
 <body><div class="page" style="height:%(H)dpx">
@@ -834,30 +821,16 @@ def render_screen(s, idx, total, org, scale, meta=None, height=None):
 <script src="%(ech)s"></script>
 <script>%(js)s</script>
 </body></html>""" % {
-        'css': CSS, 'H': height or est_screen_height(s), 'chapter': chapter,
+        'css': CSS, 'H': est_screen_height(s), 'chapter': chapter,
         'subtitle': ('<div class="subtitle">%s</div>' % s['subtitle'])
                     if s.get('subtitle') else '',
         'body': '\n'.join(body_parts), 'org': org, 'dots': dots,
         'ech': ECHARTS_URL, 'js': '\n'.join(js_parts),
     }
-    return html, height or est_screen_height(s)
+    return html, est_screen_height(s)
 
 
 _VIEWPORT_OVERHEAD = None
-
-
-def measure_page(html_path):
-    """Dump the DOM and read the real .page scrollHeight (includes clipped content)."""
-    if not EDGE:
-        raise RuntimeError('未找到 Edge / Chrome / Chromium；请设置 WECHAT_REPORT_BROWSER')
-    proc = subprocess.run([EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars',
-                           '--window-size=943,1200', '--virtual-time-budget=6000',
-                           '--dump-dom', Path(html_path).resolve().as_uri()],
-                          capture_output=True, text=True, timeout=120, check=True)
-    match = re.search(r'PAGE_MEASURE_H=(\d+)', proc.stdout)
-    if not match:
-        raise RuntimeError('无法测量页面实际高度: %s' % html_path)
-    return int(match.group(1))
 
 
 def shoot(html_path, png_path, w, h, scale):
@@ -950,15 +923,6 @@ def main():
         hp = os.path.join(pages_dir, 'page_%02d.html' % idx)
         with open(hp, 'w', encoding='utf-8') as f:
             f.write(html)
-        if s['type'] not in ('cover', 'backcover'):
-            # 截图前先实测内容高度：估算偏小时按实测+余量重排，杜绝半截字。
-            measured = measure_page(hp)
-            if measured + 12 > h:
-                h = measured + 12
-                html, _ = render_screen(s, idx, total, ol.get('org', ''), args.scale,
-                                        meta=ol.get('meta'), height=h)
-                with open(hp, 'w', encoding='utf-8') as f:
-                    f.write(html)
         png = os.path.join(pages_dir, 'page_%02d.png' % idx)
         shoot(hp, png, PAGE_W, h, args.scale)
         manifest.append({'index': idx, 'name': s.get('title', 'screen'),

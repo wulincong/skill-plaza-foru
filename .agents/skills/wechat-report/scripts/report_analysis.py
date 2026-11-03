@@ -328,10 +328,10 @@ def finding_spec(fact, binding):
 def analysis_payload(item, facts, executive=False):
     paragraphs = [facts[x]['text'] for x in item['findingIds']]
     if executive:
-        # Conclusion-first: the synthesis leads the page, findings support it.
-        return paragraphs, {'title': '核心结论', 'text': item['synthesis']}, None
+        paragraphs.append('综合分析：'+item['synthesis'])
+        return paragraphs, None
     paragraphs += ['结构解读与分析推断：'+item['interpretation'], '行动建议：'+item['action']]
-    return paragraphs, None, {'title': '落实与验证', 'text': item['validation']}
+    return paragraphs, {'title': '落实与验证', 'text': item['validation']}
 
 
 def apply_analysis(outline, data, binding, analysis):
@@ -358,11 +358,8 @@ def apply_analysis(outline, data, binding, analysis):
             screen['analysis_key'] = key
             if key != 'overview':
                 screen['title'] = item['title']
-            screen['paragraphs'], conclusion, summary = analysis_payload(item, facts, key == 'overview')
+            screen['paragraphs'], summary = analysis_payload(item, facts, key == 'overview')
             screen.pop('summary', None)
-            screen.pop('conclusion', None)
-            if conclusion:
-                screen['conclusion'] = conclusion
             if summary:
                 screen['summary'] = summary
             for j, fact_id in enumerate(item['findingIds']):
@@ -393,9 +390,8 @@ def verify_analysis_outline(data, binding, outline):
         if key in items:
             seen.append(key)
             item = items[key]
-            ps, conclusion, summary = analysis_payload(item, facts, key == 'overview')
-            if (screen.get('paragraphs') != ps or screen.get('summary') != summary
-                    or screen.get('conclusion') != conclusion):
+            ps, summary = analysis_payload(item, facts, key == 'overview')
+            if screen.get('paragraphs') != ps or screen.get('summary') != summary:
                 raise ValueError('报告未完整保留分析正文：'+key)
             if key != 'overview' and screen['title'] != item['title']:
                 raise ValueError('报告标题与分析稿不一致')

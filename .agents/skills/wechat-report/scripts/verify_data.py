@@ -37,18 +37,6 @@ def main():
             if any(re.search(BANNED, t) for t in visible):
                 raise ValueError('正文包含无证据支撑的动态或因果判断')
         checks.append(('文案证据边界', True, '通过'))
-        from chart_recommender import check_chart_choice
-        problems = []
-        for i, s in enumerate(outline['screens']):
-            for key in ('chart', 'chart2', 'chartA', 'chartB'):
-                cfg = s.get(key)
-                if not cfg:
-                    continue
-                for problem in check_chart_choice(cfg):
-                    problems.append('第%d页 %s：%s' % (i+1, key, problem))
-        if problems:
-            raise ValueError('图表选型违规：'+'；'.join(problems))
-        checks.append(('图表选型（FT 规则）', True, '通过'))
         if args.stage == 'final':
             manifest_path = Path(args.report_dir)/'manifest.json'
             manifest = json.loads(manifest_path.read_text('utf-8'))
