@@ -7,13 +7,14 @@ const props = defineProps<{ steps: ExecutionStep[]; durationMs?: number; running
 const open = ref(false)
 const body = ref<HTMLElement>()
 const visibleSteps = computed(() => props.steps.filter(step => step.note || step.tools.length))
-const toolCount = computed(() => props.steps.reduce((n, step) => n + step.tools.length, 0))
+const tools = computed(() => props.steps.flatMap(step => step.tools))
+const finishedCount = computed(() => tools.value.filter(tool => tool.state !== 'active').length)
 const times = computed(() => !props.running && props.durationMs !== undefined
   ? executionTimes(props.steps, props.durationMs) : undefined)
 
 const hasDetails = computed(() => Boolean(times.value || visibleSteps.value.length))
 
-watch(() => [visibleSteps.value.length, toolCount.value], async () => {
+watch(() => [visibleSteps.value.length, tools.value.length], async () => {
   const el = body.value
   if (!el || !props.running || el.scrollHeight - el.scrollTop - el.clientHeight > 12) return
   await nextTick()
@@ -37,7 +38,7 @@ const toolNames: Record<string, string> = { bash: '执行命令', read: '读取�
       <Icon name="wrench" :size="14" class="tool-group-wrench" />
       <span class="tool-group-title">执行过程</span>
       <span class="tool-group-status" :class="{ 'is-running': running }">
-        <span v-if="running">进行中 · </span><span v-if="toolCount">{{ toolCount }} 次工具调用 · </span>
+        <span v-if="running">进行中 · </span><span v-if="tools.length" title="已结束的工具调用数 / 本轮已记录的工具调用数">工具调用 {{ finishedCount }}/{{ tools.length }} · </span>
         <span v-if="durationMs !== undefined">总用时 {{ fmt(durationMs) }}</span><span v-else-if="hasDetails">查看详情</span>
       </span>
       <Icon v-if="hasDetails" name="chev-down" :size="14" class="tool-group-chev" />
