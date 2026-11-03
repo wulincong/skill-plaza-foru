@@ -28,3 +28,5 @@
 数据就绪阶段的上下文预算（已实现）：`web/server/pi/reportWorkflowContext.mjs:1`仅在原生受限报告工具阶段压缩实际provider请求；保留全部system/developer规则、本轮原始要求、已绑定地区/产业/读者/筛选、完整当前任务及本轮最近工具纠错。普通对话和取数阶段不变，持久Pi消息、运行历史和数据文件不删改。provider请求不保留无对应assistant调用的tool消息，纠错作为明确的执行资料提供；用户图片部分保留。
 
 写作以当前报告计划和已绑定数据为依据，跨轮未写入计划的自由讨论不能替代报告范围。`report-tool-contract.jsonl`增加context计数：mode、originalMessages、sentMessages、originalChars、sentChars，不记录新的一份原始消息副本。真实长会话重绘两次请求累计输入从约71600降至5518 token，单次发送约9.9万字符降至约7500字符；该次约11.4秒、同成品ID与PNG保持一致。不同并发条件下的耗时不能作为严格速度对照。另以单城硕士样本真实执行完整写作/核心/构建约46秒、没有重查库。纯函数检查覆盖不改原payload、当前任务/范围保留、纠错保留、图片部分保留与未知provider结构后备。
+
+公开执行过程的报告工具名称通过ToolCallGroup.vue映射为“读取报告任务／保存分析章节／汇总核心发现／生成报告图片”，避免将report_core等内部标识当成面向业务读者的步骤名；仍只展示真实调用。

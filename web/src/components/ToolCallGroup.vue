@@ -29,7 +29,7 @@ function fmt(ms: number) {
 function spanTime(span: TimeSpan) {
   return span.startedAt !== undefined && span.endedAt !== undefined ? fmt(span.endedAt - span.startedAt) : ''
 }
-const toolNames: Record<string, string> = { bash: '执行命令', read: '读取文件', write: '写入文件', edit: '编辑文件' }
+const toolNames: Record<string, string> = { bash: '执行命令', read: '读取文件', write: '写入文件', edit: '编辑文件', report_next: '读取报告任务', report_submit: '保存分析章节', report_core: '汇总核心发现', report_build: '生成报告图片' }
 </script>
 
 <template>
