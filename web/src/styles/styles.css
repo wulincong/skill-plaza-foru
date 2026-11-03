@@ -1166,6 +1166,15 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
   background: var(--sk-blue); animation: sk-pulse 1.2s ease-in-out infinite;
 }
 .exp-ai-note { margin: 10px 0 0; font-size: 12px; line-height: 1.6; color: var(--sk-ink-4); }
+.exp-resource-reference {
+  display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 14px;
+  min-height: 34px; padding: 7px 12px; border: 1px solid var(--sk-line); border-radius: 12px;
+  background: var(--surface-card); color: var(--sk-ink-2); font: inherit; font-size: 12px;
+  transition: background .18s var(--sk-ease);
+}
+.exp-resource-reference > span { display: inline-flex; align-items: center; gap: 2px; margin-left: 8px; color: var(--sk-blue); }
+.exp-resource-reference:hover { background: var(--sk-fill-hover); }
+@media (max-width: 1199px) { .page-exp.has-resources .exp-top { padding-top: 68px; } }
 
 /* ---- 输入区：白卡容器 + 黑色圆形发送钮 ---- */
 .exp-input {

@@ -11,6 +11,8 @@ import type { ReportChart as ReportChartData } from '../data/runsMock'
 import Icon from '../components/Icon.vue'
 import ReportOutput from '../components/ReportOutput.vue'
 import ToolCallGroup from '../components/ToolCallGroup.vue'
+import ConversationResources from '../components/ConversationResources.vue'
+import { collectConversationResources } from '../composables/conversationResources'
 import { toast } from '../composables/toast'
 
 /* 在线对话：广场的唯一对话与运行呈现面。
@@ -74,6 +76,12 @@ const textarea = ref('')
 const textareaEl = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const messages = ref<Msg[]>([])
+const resources = computed(() => collectConversationResources(messages.value))
+const resourcePanel = ref<InstanceType<typeof ConversationResources>>()
+function resourceCount(message: Msg) {
+  const published = (message.webLinks?.length ?? 0) + (message.downloads?.length ?? 0)
+  return published || (message.reportUrl ? (message.skill?.slug === 'doc-translate' ? 1 : 2) : 0)
+}
 /* 附件（真实运行）：上传到会话沙箱 uploads/，随下一条消息发送；
    已上传文件属于当前技能绑定的沙箱目录，技能切换/新对话即失效（见 pickSkill/newChat） */
 const pendingAttachments = ref<UploadedFile[]>([])
@@ -894,7 +902,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="page page-exp">
+  <section class="page page-exp" :class="{ 'has-resources': resources.length && !loadingConversation }">
     <aside class="exp-side">
       <button type="button" class="exp-new" @click="newChat">
         <Icon name="plus" :size="15" />
@@ -1005,10 +1013,11 @@ onBeforeUnmount(() => {
                 </div>
                 <ToolCallGroup v-if="msg === progressOwner && (progressEvents.length || msg.process?.length)" :items="progressEvents" :notes="msg.process" :running="!msg.done" :prose-started="proseStarted" />
                 <ToolCallGroup v-else-if="msg.tools?.length || msg.process?.length" :items="historyToolItems(msg)" :notes="msg.process" :prose-started="true" />
-                <ReportOutput :text="msg.text" :charts="msg.charts" :report-url="msg.reportUrl"
-                  :web-links="msg.webLinks" :downloads="msg.downloads"
-                  :artifact-name="msg.skill?.slug === 'doc-translate' ? '译文 PDF' : undefined"
+                <ReportOutput :text="msg.text" :charts="msg.charts" :has-resources="resourceCount(msg) > 0"
                   :html-mode="msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
+                <button v-if="resourceCount(msg)" type="button" class="exp-resource-reference" aria-controls="conversation-resource-list" @click="resourcePanel?.reveal(mi)">
+                  <Icon name="file" :size="13" />{{ resourceCount(msg) }} 项生成资源<span>查看资源<Icon name="chev" :size="12" /></span>
+                </button>
                 <p v-if="msg.done && !msg.real" class="exp-ai-note">演示输出仅展示结果形态，完整产物请在本地 AI 工具中运行获得。</p>
                 <p v-else-if="msg.done" class="exp-ai-note">{{ msg.skill ? '以上为 SKILL 真实运行输出' : '以上为通用智能体真实输出' }}（pi · {{ apiModel || '本地 Agent' }}）。</p>
               </div>
@@ -1122,5 +1131,6 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+    <ConversationResources v-if="resources.length && !loadingConversation" ref="resourcePanel" :items="resources" :conversation-key="currentConvId" />
   </section>
 </template>

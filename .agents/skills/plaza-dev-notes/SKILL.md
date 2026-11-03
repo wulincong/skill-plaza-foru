@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 090）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 091）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -104,6 +104,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 
 | # | 主题 | 状态 | 文件 |
 |---|---|---|---|
+| 090 | 在线对话右侧资源栏：Zero4-UI、汇总去重、折叠与窄屏入口 | 已实现（21项回归/构建/公网明暗及窄屏交互通过） | [090-conversation-resource-sidebar.md](references/090-conversation-resource-sidebar.md) |
 | 080 | 原始用户输入快照、历史提示词剥离、每轮最终回答与默认折叠执行过程 | 已实现（28 项回归/构建/真实 Pi 与 OpenAI/浏览器通过） | [080-conversation-source-and-process.md](references/080-conversation-source-and-process.md) |
 | 022 | 就业指导开发侧测试模板切换 | 已实现（构建与浏览器交互已验证） | [022-career-test-template-switcher.md](references/022-career-test-template-switcher.md) |
 | 066 | 在线对话/在线运行前端按 SkillHub 设计系统重构（--sk-* 令牌、文档流对话、ToolCallGroup） | 已实现（双页双主题截图与一次真实 SSE 核对；长报告回归待用户） | [066-skillhub-ui-redesign.md](references/066-skillhub-ui-redesign.md) |

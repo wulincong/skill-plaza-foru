@@ -36,6 +36,7 @@ Linux 低权运行器与后端须共享工作区组：公开目录至少组读/�
 - `GET /p/:deliveryId/:index/`：重定向到真实 HTML 入口，直接在线访问，可分享；静态依赖只能从该网页目录读取。
 - `GET /api/deliveries/:deliveryId/files/:index`：固定 `Content-Disposition: attachment`，PDF、图片、Excel、ZIP都作为下载。两类入口均支持 HEAD，不依赖聊天会话。
 - 链接保存进原有运行记录，详情 conversation 会把链接恢复到对应回答；旧 `reportUrl` 继续兼容。已有固定 HTML/PDF 技能自动接入新交付。
+- 广场界面将当前对话的交付链接汇总到右侧资源栏，支持折叠和窄屏展开；消息下方保留定位入口。只使用上述已发布字段，不把正文磁盘路径当作资源链接。
 - `DELIVERIES_DIR` 缺省 `web/server/deliveries/`，部署需保留此目录；清理会话或重启服务不会删除已保存交付。首期不自动清理，不承诺永久存储。
 - `DELIVERY_PUBLIC_BASE_URL` 配置公开 HTTP(S) origin；缺省采用已校验的请求 Origin，非浏览器采用 Host。当前部署为 `http://biubiubiu.vip:14188`，反向代理必须转发 `/p/` 和 `/api/` 到 Node，不能将 `/p/` 回落到 SPA。
 - 持链接可访问；不可猜测 ID 不是账号鉴权。网页用 CSP sandbox 创建不共享主站权限的来源，允许脚本和目录内静态数据，禁止访问主站 API、存储、表单及子页面。无 PDF/图片/表格在线查看组件。
