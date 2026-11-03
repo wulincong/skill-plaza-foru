@@ -91,8 +91,8 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     return frames.findLast(f => f.type === 'done' || f.webLinks)
   }
   const health = await fetch(base + '/api/health').then(r => r.json())
-  assert.deepEqual(health.chatModels.map(m => m.id), ['deepseek', 'youcai'])
-  assert.equal(health.defaultChatModel, 'deepseek')
+  assert.deepEqual(health.chatModels.map(m => m.id), ['deepseek-flash', 'deepseek-pro', 'youcai'])
+  assert.equal(health.defaultChatModel, 'deepseek-pro')
   const invalidModel = await fetch(base + '/api/chat', { method: 'POST', body: JSON.stringify({ skill: 'general', model: 'unknown' }) })
   assert.equal(invalidModel.status, 400)
   const done = await request('generate', 'plaza', true, [], 'deepseek')
@@ -112,6 +112,9 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     await pause(20)
   }
   assert.deepEqual(detail.conversation.filter(t => t.role === 'assistant').map(t => t.provider), ['deepseek', 'youcai'])
+  assert.equal(detail.conversation[3].durationMs, followUp.durationMs)
+  assert.equal(detail.item.durationMs, followUp.durationMs)
+  assert.equal(detail.conversation[1].model, 'deepseek-v4-pro')
   assert.equal(detail.item.tokenUsage.provider, 'youcai')
   assert.equal(detail.item.agentEnv.model, 'youcai/youcai')
   assert.equal(detail.item.tokenUsage.contextWindowTokens, 2000)

@@ -160,10 +160,8 @@ export class PiRunner extends AgentRunner {
   private callUsage = new Map<string, UsageSummary>()
   /** 引擎会话 id → 思考进度（累计字数 + 上次上报时间，agent_start 重置） */
   private thinkState = new Map<string, { chars: number; at: number }>()
-  /** 工具调用计时（会话内累计，供 trace 导出还原历史工具组耗时）：
-      键 `轮次:contentIndex`（start 建档）与 `id:callID`（end 补别名） */
+  /** Pi 工具实际执行区间，按 toolCallId 关联。 */
   private toolTiming = new Map<string, Map<string, { startedAt: number; endedAt?: number }>>()
-  private toolTimingRound = new Map<string, number>()
 
   private readonly model: PiModelRef
   private readonly cli: string | null
@@ -346,32 +344,6 @@ export class PiRunner extends AgentRunner {
         this.emitThinking(sid, ev.delta.length)
         this.emit(sid, { kind: 'thinking_delta', delta: ev.delta })
       }
-      else if (ev?.type === 'toolcall_start') {
-        /* 工具计时建档：start 通知不带调用 id，按 轮次:contentIndex 键，
-           end 通知带 callID 再补别名供 trace 导出按 callID 取用 */
-        const per = this.toolTiming.get(sid) ?? new Map<string, { startedAt: number; endedAt?: number }>()
-        this.toolTiming.set(sid, per)
-        per.set(`${this.toolTimingRound.get(sid) ?? 0}:${ev.contentIndex}`, { startedAt: Date.now() })
-        if (ev.toolName)
-          this.emit(sid, {
-            kind: 'status', phase: 'tool', state: 'active',
-            tool: ev.toolName, id: ev.toolCallId ?? ev.id,
-          })
-      }
-      else if (ev?.type === 'toolcall_end') {
-        const per = this.toolTiming.get(sid)
-        const rec = per?.get(`${this.toolTimingRound.get(sid) ?? 0}:${ev.contentIndex}`)
-        if (rec) rec.endedAt = Date.now()
-        const callId = ev.toolCall?.id ?? ev.toolCallId ?? ev.id
-        if (per && callId != null)
-          per.set(`id:${callId}`, rec ?? { startedAt: Date.now(), endedAt: Date.now() })
-        this.emit(sid, {
-          kind: 'status', phase: 'tool', state: ev.isError ? 'failed' : 'completed',
-          /* id/name 嵌在 ev.toolCall 下（真实载荷顶层无这两个字段），顶层保留为回落 */
-          tool: (ev.toolCall?.name ?? ev.toolName ?? ev.name) || undefined,
-          id: (ev.toolCall?.id ?? ev.toolCallId ?? ev.id) || undefined,
-        })
-      }
       else if (ev?.type === 'text_start') this.emit(sid, { kind: 'status', phase: 'text', state: 'active' })
       if (msg.usage) {
         /* usage 逐 delta 都会带（单次调用内的累计值），先记账最新值 */
@@ -383,6 +355,17 @@ export class PiRunner extends AgentRunner {
             usage: sumUsage(this.turnUsage.get(sid), this.callUsage.get(sid)),
           })
       }
+    } else if (type === 'tool_execution_start' || type === 'tool_execution_end') {
+      const timing = this.toolTiming.get(sid) ?? new Map()
+      this.toolTiming.set(sid, timing)
+      const id = msg.toolCallId
+      const started = type === 'tool_execution_start'
+      if (started) timing.set(id, { startedAt: Date.now() })
+      else if (timing.has(id)) timing.get(id)!.endedAt = Date.now()
+      this.emit(sid, {
+        kind: 'status', phase: 'tool', tool: msg.toolName, id,
+        state: started ? 'active' : msg.isError ? 'failed' : 'completed',
+      })
     } else if (type === 'message_start' && msg.message?.role === 'assistant') {
       /* 新 assistant 消息开始：wire 以此兜底上一条消息 end 丢失时的残余文本缓冲 */
       this.emit(sid, { kind: 'status', phase: 'message', state: 'start' })
@@ -400,7 +383,6 @@ export class PiRunner extends AgentRunner {
       }
       /* 每条 assistant 消息对应一次 LLM 调用：终值入账，累计成本轮总量；
          部分供应商（DeepSeek）message_end 不带细分，回落流式最后上报值 */
-      this.toolTimingRound.set(sid, (this.toolTimingRound.get(sid) ?? 0) + 1)
       const u = normUsage(msg.message?.usage)
       const hasBreakdown = (x?: UsageSummary) =>
         Boolean(x && (x.inputTokens !== undefined || x.outputTokens !== undefined || x.cacheReadTokens !== undefined))
@@ -598,7 +580,6 @@ export class PiRunner extends AgentRunner {
     this.contextStatsPending.delete(sessionId)
     this.thinkState.delete(sessionId)
     this.toolTiming.delete(sessionId)
-    this.toolTimingRound.delete(sessionId)
     s.channel.kill()
     this.dropSessionBookkeeping(sessionId)
   }
@@ -613,6 +594,7 @@ export class PiRunner extends AgentRunner {
     this.turnRoundNo.delete(sid)
     this.contextStatsPending.delete(sid)
     this.thinkState.delete(sid)
+    this.toolTiming.delete(sid)
     for (const [id, p] of this.pending) {
       if (p.sid === sid) {
         this.pending.delete(id)
@@ -674,6 +656,7 @@ export class PiRunner extends AgentRunner {
       options.tokenUsage ??
       tokenUsageFrom(undefined, info?.modelInfo ?? this.modelInfo(), options.usageRounds ?? [])
     const trace: SessionTrace = {
+      execution: options.execution,
       session: {
         id: state?.sessionId ?? info?.piSessionId ?? sessionId,
         title: `pi ${tokenUsage.model ?? this.model.modelId}`,
@@ -729,7 +712,7 @@ function piParts(
     if (b?.type === 'toolCall') {
       const out = outputs.get(b.id)
       const status = out?.isError ? 'error' : 'completed'
-      const t = timing?.get(`id:${b.id}`)
+      const t = timing?.get(b.id)
       toolCalls.push({ tool: b.name, status, read_only: false, started: time })
       return {
         type: 'tool',

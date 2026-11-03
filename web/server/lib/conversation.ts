@@ -1,3 +1,4 @@
+import type { ExecutionStep } from '../../shared/execution.ts'
 import type { RunRecord } from './traceExport.ts'
 
 export interface ConversationTool {
@@ -9,6 +10,10 @@ export interface ConversationTool {
 
 export interface ConversationTurn {
   role: 'user' | 'assistant'
+  runId?: string
+  durationMs?: number
+  execution?: ExecutionStep[]
+  model?: string
   provider?: string
   text: string
   tools?: ConversationTool[]
@@ -19,6 +24,10 @@ export interface ConversationTurn {
 }
 
 export interface OriginalUserMessage {
+  runId?: string
+  durationMs?: number
+  execution?: ExecutionStep[]
+  model?: string
   provider?: string
   text?: string
   attachments?: string[]
@@ -42,6 +51,7 @@ export function deriveSessionConversation(
   const groups = new Map<string, { runs: RunRecord[]; trace: unknown; captured: number }>()
   const nativeIds = new Map<string, string>()
   const snapshots = runs.map(run => ({ run, trace: loadTrace(run) as any }))
+  const executionByRun = new Map(snapshots.map(({ run, trace }) => [run.runId, trace?.execution]))
   // A later intact snapshot can identify an engine whose earlier trace is missing.
   for (const { run, trace } of snapshots) {
     const engineKey = run.engineSessionId || run.runId
@@ -60,6 +70,8 @@ export function deriveSessionConversation(
   }
   return [...groups.values()].flatMap(group => {
     const turns = deriveConversation(group.trace, wrappersFor(group.runs[0]!.skill), group.runs.slice(0, group.captured).map(run => ({
+      runId: run.runId, durationMs: run.durationMs, execution: executionByRun.get(run.runId),
+      model: run.outcome === 'success' ? run.tokenUsage?.model ?? undefined : undefined,
       provider: run.outcome === 'success' ? run.tokenUsage?.provider ?? undefined : undefined,
       text: run.userMessage, attachments: run.attachments, webLinks: run.webLinks, downloads: run.downloads,
     })))
@@ -108,7 +120,7 @@ export function deriveConversation(
   const hasOriginals = userCount === originalMessages.length
   const turns: ConversationTurn[] = []
   let userIndex = 0
-  let pending: { text: string; hasTools: boolean }[] = []
+  let pending: { text: string; hasTools: boolean; step: ExecutionStep }[] = []
   let tools: ConversationTool[] = []
   let inTurn = false
   const flush = () => {
@@ -117,7 +129,11 @@ export function deriveConversation(
     const last = pending.at(-1)
     const final = last && !last.hasTools ? last.text : ''
     const process = pending.slice(0, final ? -1 : undefined).map(message => message.text).filter(Boolean)
-    turns.push({ role: 'assistant', text: final, ...(original?.provider ? { provider: original.provider } : {}), ...(tools.length ? { tools } : {}), ...(process.length ? { process } : {}), ...(original?.webLinks?.length ? { webLinks: original.webLinks } : {}), ...(original?.downloads?.length ? { downloads: original.downloads } : {}) })
+    const steps = pending.map((message, i) => ({
+      ...message.step, note: i === pending.length - 1 && final ? undefined : message.text || undefined,
+    })).filter(step => step.note || step.thinking.length || step.tools.length)
+    turns.push({ role: 'assistant', text: final, runId: original?.runId, model: original?.model,
+      durationMs: original?.durationMs, execution: original?.execution ?? steps, ...(original?.provider ? { provider: original.provider } : {}), ...(tools.length ? { tools } : {}), ...(process.length ? { process } : {}), ...(original?.webLinks?.length ? { webLinks: original.webLinks } : {}), ...(original?.downloads?.length ? { downloads: original.downloads } : {}) })
     pending = []
     tools = []
   }
@@ -141,7 +157,13 @@ export function deriveConversation(
         ...(typeof part.endedAt === 'number' ? { endedAt: part.endedAt } : {}),
       })
       // 即使没有 text，也记录最后一条消息是否仍在调用工具，不能把早先的叙述当最终回答。
-      pending.push({ text, hasTools: toolParts.length > 0 })
+      pending.push({ text, hasTools: toolParts.length > 0, step: {
+        thinking: parts.some((p: any) => p.type === 'reasoning') ? [{}] : [],
+        tools: toolParts.map((p: any, i: number) => ({
+          id: p.callID ?? String(i), tool: String(p.tool ?? ''),
+          state: p.state?.status === 'error' ? 'failed' : 'completed',
+        })),
+      } })
     }
   }
   flush()

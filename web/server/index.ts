@@ -21,6 +21,7 @@ import {
   rewriteIndex,
   type RunOutcome,
   type ModelContextInfo,
+  type SessionTrace,
   type RunRecord,
   type TokenUsageSnapshot,
   type UsageRound,
@@ -50,6 +51,8 @@ import {
 import { PiRunner, resolvePiCli, piModelRef, type PiModelRef } from './lib/piRunner.ts'
 import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
+import { ExecutionTracker, readLegacyExecution } from './lib/execution.ts'
+import type { ExecutionStep } from '../shared/execution.ts'
 import { deriveSessionConversation } from './lib/conversation.ts'
 import { deliveryBaseUrl, deliveryFingerprint, handleDelivery, publishDelivery, publishLegacyDelivery, readDeliveryManifest, type DeliveryLinks } from './lib/delivery.ts'
 
@@ -85,11 +88,13 @@ if (!piCli) {
 const DEFAULT_ENGINE: EngineName = 'pi'
 const defaultModel = piModelRef()
 const runner = new PiRunner(defaultModel, piCli)
+const deepseekPro = { provider: 'deepseek', modelId: 'deepseek-v4-pro' }
 const chatModels = [
-  { id: 'deepseek', name: 'DeepSeek', route: defaultModel.provider === 'deepseek' ? defaultModel : { provider: 'deepseek', modelId: 'deepseek-v4-pro' } },
+  { id: 'deepseek-flash', name: 'DeepSeek Flash', route: { provider: 'deepseek', modelId: 'deepseek-flash' } },
+  { id: 'deepseek-pro', name: 'DeepSeek Pro', route: deepseekPro },
   { id: 'youcai', name: '优才之路产教融合大模型', route: { provider: 'youcai', modelId: 'youcai' } },
 ]
-const defaultChatModel = chatModels.find(m => m.id === defaultModel.provider)?.id ?? 'deepseek'
+const defaultChatModel = chatModels.find(m => m.route.provider === defaultModel.provider && m.route.modelId === defaultModel.modelId)?.id ?? 'deepseek-pro'
 
 /* ------------------------------------------------------------
    会话管理：浏览器 sessionId → 引擎会话 + 沙箱目录
@@ -252,7 +257,7 @@ const server = createServer((req, res) => {
     sendJson(res, 200, {
       ok: true,
       model: runner.describe(),
-      chatModels: chatModels.map(({ id, name }) => ({ id, name })),
+      chatModels: chatModels.map(({ id, name, route }) => ({ id, name, ...route })),
       defaultChatModel,
       runner: DEFAULT_ENGINE,
       // 保留数组形状兼容旧客户端，但只公布 Pi。
@@ -292,7 +297,7 @@ const server = createServer((req, res) => {
       sendJson(res, 403, { error: '不允许跨站调用本地 API。' })
       return
     }
-    handleRunsApi(req, res, seg)
+    void handleRunsApi(req, res, seg).catch(() => sendJson(res, 500, { error: '运行记录读取失败。' }))
     return
   }
   sendJson(res, 404, { error: '接口不存在。' })
@@ -321,7 +326,7 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
 }
 
 
-function handleRunsApi(req: any, res: any, seg: string[]) {
+async function handleRunsApi(req: any, res: any, seg: string[]) {
   /* 会话级操作：归档标记与删除按 clientSessionId 匹配整段对话
      （旧记录无 clientSessionId 时退化为其 runId，与前端分组口径一致）。 */
   if (seg[2] === 'session' && seg.length === 4 && req.method === 'DELETE') {
@@ -399,11 +404,20 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
     } catch {
       /* 文件损坏按无详情处理 */
     }
+    const legacyLogs = new Map<string, string>()
     const conversation = deriveSessionConversation(record, records, run => {
-      if (run.runId === record.runId) return trace
-      try { return run.files.trace ? JSON.parse(readFileSync(run.files.trace, 'utf8')) : null }
-      catch { return null }
+      let snapshot = trace as SessionTrace | null
+      if (run.runId !== record.runId) {
+        try { snapshot = run.files.trace ? JSON.parse(readFileSync(run.files.trace, 'utf8')) : null }
+        catch { snapshot = null }
+      }
+      if (!snapshot?.execution && run.engine === 'pi' && run.files.events) legacyLogs.set(run.runId, run.files.events)
+      return snapshot
     }, promptWrappers)
+    for (const turn of conversation) {
+      const log = turn.runId && legacyLogs.get(turn.runId)
+      if (log) turn.execution = await readLegacyExecution(log) ?? turn.execution
+    }
     sendJson(res, 200, { item: record, trace, conversation })
     return
   }
@@ -678,7 +692,10 @@ async function handleChat(req: any, res: any) {
   }
 
   const { skill, messages, sessionId, model } = body || {}
-  const selected = chatModels.find(choice => choice.id === model)
+  // Existing clients may still send the original provider alias.
+  const selected = model === 'deepseek'
+    ? { route: defaultModel.provider === 'deepseek' ? defaultModel : deepseekPro }
+    : chatModels.find(choice => choice.id === model)
   if (model !== undefined && !selected) {
     sendJson(res, 400, { error: '未知的对话模型，请选择 DeepSeek 或优才之路产教融合大模型。' })
     return
@@ -722,6 +739,7 @@ async function handleChat(req: any, res: any) {
 /* ---------- 输出协议适配器 ---------- */
 
 interface WireDonePayload extends DeliveryLinks {
+  durationMs: number
   content: string
   resultType?: string
   charts?: MetaChart[]
@@ -830,6 +848,9 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
         if (!res.writableEnded) res.write(': ping\n\n')
       }, HEARTBEAT_MS)
     },
+    executionStep(index: number, step: ExecutionStep) {
+      if (protocol === 'plaza') sse({ type: 'execution', index, step })
+    },
     stopHeartbeat() {
       if (heartbeat) {
         clearInterval(heartbeat)
@@ -896,6 +917,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
         flushMessageText(false)
         sse({
           type: 'done',
+          durationMs: p.durationMs,
           content: p.content,
           resultType: p.resultType,
           charts: p.charts,
@@ -931,10 +953,10 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
         })
       }
     },
-    error(message: string) {
+    error(message: string, durationMs?: number) {
       msgBuf = ''
       if (protocol === 'plaza') {
-        sse({ type: 'error', message })
+        sse({ type: 'error', message, durationMs })
       } else if (stream) {
         msgBuf = '' /* 错误帧已携带信息，丢弃缓冲 */
         sse({ error: { message, type: 'agent_error' } })
@@ -1181,6 +1203,16 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     return delivery
   }
 
+  let durationMs: number | undefined
+  const elapsed = () => durationMs ??= Date.now() - startedAt
+  const execution = new ExecutionTracker()
+  const recordProtocol = (dir: 'in' | 'out', msg: any) => {
+    const at = Date.now()
+    recorder.proto(dir, msg)
+    if (dir !== 'in' || runFinalized) return
+    const step = execution.accept(msg, at)
+    if (step) wire.executionStep(execution.steps.indexOf(step), step)
+  }
   const finalizeRun = (outcome: RunOutcome) => {
     if (runFinalized) return
     /* A timeout/abort can happen after the Agent flushed report.html but
@@ -1189,7 +1221,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     captureWorkspacePdfReport()
     captureDelivery()
     runFinalized = true
-    const durationMs = Date.now() - startedAt
+    const durationMs = elapsed()
     const tokenUsage = currentTokenUsage()
     recorder.end(outcome, {
       durationMs,
@@ -1225,6 +1257,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         if (entry?.engineSessionId) {
           const traceFile = traceFilePath(runId, 'trace')
           const result = await runner.exportTrace(entry.engineSessionId, traceFile, {
+            execution: execution.steps,
             tokenUsage,
             usageRounds: usageRounds.slice(),
           })
@@ -1319,6 +1352,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       /* A recovered artifact is a usable result; do not send error first because
          the browser treats error as terminal and would discard the link. */
       wire.done({
+        durationMs: elapsed(),
         content: (recoveredPdf && !recoveredHtml ? '译文已生成，但本次任务已超时。' : '已保存生成产物，但本次任务已超时。') + (deliveryError ? `\n\n${deliveryError}` : ''),
         resultType: 'timeout',
         runId,
@@ -1327,7 +1361,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         usage: lastUsage,
       })
     } else {
-      wire.error('任务超时，报告未生成。')
+      wire.error('任务超时，报告未生成。', elapsed())
     }
     finalizeRun('timeout')
     cleanup()
@@ -1363,7 +1397,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       wire.session(clientSessionId)
     }
     turnStarted = true
-    untap = runner.tapSession(entry.engineSessionId, (dir, msg) => recorder.proto(dir, msg))
+    untap = runner.tapSession(entry.engineSessionId, recordProtocol)
 
     /* 创建期间客户端已断开：停止 turn，不再空跑 */
     if (clientGone) {
@@ -1455,6 +1489,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           : isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length
             ? `${finalText}${finalText ? '\n\n' : ''}${pdfFailure}` : finalText
         wire.done({
+          durationMs: elapsed(),
           content: doneContent + (deliveryError ? `\n\n${deliveryError}` : ''),
           resultType: ev.resultType,
           charts: checkedCharts,
@@ -1473,7 +1508,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         cleanup()
         finish()
       } else if (ev.kind === 'error') {
-        wire.error(ev.message)
+        wire.error(ev.message, elapsed())
         finalizeRun('error')
         cleanup()
         finish()
@@ -1514,12 +1549,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       recorder.note({ sessionRecreated: engineSessionId })
       unlisten()
       untap()
-      untap = runner.tapSession(engineSessionId, (dir, msg) => recorder.proto(dir, msg))
+      untap = runner.tapSession(engineSessionId, recordProtocol)
       unlisten = runner.listen(engineSessionId, onEvent)
       await sendTurn()
     }
   } catch (exc: any) {
-    wire.error(exc.message || '执行失败，请稍后重试。')
+    wire.error(exc.message || '执行失败，请稍后重试。', elapsed())
     finalizeRun('error')
     cleanup()
     finish()

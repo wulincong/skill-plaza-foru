@@ -45,10 +45,10 @@ pi --mode rpc \
 ## 在线对话选模型
 
 `/api/health` 的 `chatModels` 和 `defaultChatModel` 供聊天输入框展示。
-`POST /api/chat` 可传 `model: "deepseek"` 或 `model: "youcai"`。
-DeepSeek 使用已配置的 DeepSeek 型号，否则使用 `deepseek/deepseek-v4-pro`。
-优才之路产教融合大模型使用 `youcai/youcai`。网页优先选中配置的提供方，
-其他配置下初选 DeepSeek。省略字段时，后端沿用 `PI_MODEL`。
+`POST /api/chat` 的 `model` 可选 `deepseek-flash`（Pi 型号 `deepseek/deepseek-flash`）、
+`deepseek-pro`（`deepseek/deepseek-v4-pro`）或 `youcai`（`youcai/youcai`）。
+网页优先选中与 `PI_MODEL` 完全匹配的选项，否则初选 Pro。旧客户端仍可传
+`deepseek` 复用部署配置的 DeepSeek 型号或 Pro。省略字段时沿用 `PI_MODEL`。
 
 Pi 会在下一轮 prompt 前通过 RPC `set_model` 切换当前会话。
 选定模型不可用时，该轮返回错误。模型提供方的认证与服务地址由后端管理。
@@ -70,6 +70,8 @@ Pi 会在下一轮 prompt 前通过 RPC `set_model` 切换当前会话。
 | 块边界 / `message_end` 的 usage（本轮累计） | usage | `usage` |
 | `agent_settled`（经 `get_last_assistant_text` 取终文本） | terminal | `usage` + `done` |
 | `auto_retry_end success=false` / `extension_error` / 收尾请求失败 | error | `error` |
+
+广场额外发 `execution` 帧，按 assistant 消息序号更新当前步骤的可观测思考区间、公开过程说明及实际工具执行。工具计时来自 `tool_execution_start/end`，可用 `toolCallId` 区分并行调用。终态的 `durationMs` 与本轮运行索引共用同一墙钟时间。思考输出区间以 Pi 流式边界为准；等待首包、生成、收尾等其余用时单列。
 
 ## trace 导出（exportTrace）
 

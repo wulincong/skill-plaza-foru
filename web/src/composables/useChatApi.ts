@@ -6,6 +6,8 @@
    未启动本地服务时，工作台会提示如何启动，不影响表单预览。
    ============================================================ */
 
+import type { ExecutionStep } from '../../shared/execution'
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -16,8 +18,8 @@ export type EngineId = 'pi'
 export interface DeliveryLink { name: string; url: string }
 import type { ReportChart } from '../data/runsMock'
 
-export type ChatModelId = 'deepseek' | 'youcai'
-export interface ChatModelOption { id: ChatModelId; name: string }
+export type ChatModelId = 'deepseek-flash' | 'deepseek-pro' | 'youcai'
+export interface ChatModelOption { id: ChatModelId; name: string; provider: string; modelId: string }
 
 export interface HealthResult {
   chatModels?: ChatModelOption[]
@@ -43,10 +45,11 @@ export type ChatEvent =
       tool?: string
       id?: string
     }
+  | { type: 'execution'; index: number; step: ExecutionStep }
   | { type: 'text'; delta: string }
   | { type: 'usage'; usage: Record<string, number | string> }
-  | { type: 'done'; content: string; resultType?: string; charts?: ReportChart[]; runId?: string; reportUrl?: string; webLinks?: DeliveryLink[]; downloads?: DeliveryLink[] }
-  | { type: 'error'; message: string }
+  | { type: 'done'; durationMs?: number; content: string; resultType?: string; charts?: ReportChart[]; runId?: string; reportUrl?: string; webLinks?: DeliveryLink[]; downloads?: DeliveryLink[] }
+  | { type: 'error'; durationMs?: number; message: string }
 
 export async function checkHealth(): Promise<HealthResult> {
   try {

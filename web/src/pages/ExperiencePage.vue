@@ -10,6 +10,8 @@ import { OUTCOME_LABEL, type RunListItem } from '../data/runsMock'
 import type { ReportChart as ReportChartData } from '../data/runsMock'
 import Icon from '../components/Icon.vue'
 import ReportOutput from '../components/ReportOutput.vue'
+import type { ExecutionStep } from '../../shared/execution'
+import ChatModelPicker from '../components/ChatModelPicker.vue'
 import ToolCallGroup from '../components/ToolCallGroup.vue'
 import ConversationResources from '../components/ConversationResources.vue'
 import { collectConversationResources } from '../composables/conversationResources'
@@ -32,9 +34,8 @@ interface Msg {
   reportUrl?: string
   webLinks?: Array<{ name: string; url: string }>
   downloads?: Array<{ name: string; url: string }>
-  /** 历史恢复的 AI 消息携带的工具调用摘要（名称+成败+起止耗时，030 边界内） */
-  tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>
-  process?: string[]
+  execution?: ExecutionStep[]
+  durationMs?: number
 }
 
 interface Demo { slug: string; question: string; reply: string }
@@ -98,24 +99,6 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)')
 const convSessions = reactive(new Map<string, string>())
 const convSlugs = reactive(new Map<number, string>())
 
-/* ---------- 运行进度（status 事件 → ToolCallGroup，只登记真实工具调用；安全边界见手记 030） ---------- */
-interface ProgressItem {
-  id: string
-  phase: 'tool'
-  state: 'active' | 'completed' | 'failed'
-  title: string
-  detail: string
-  tool?: string
-  startedAt: number
-  finishedAt?: number
-}
-const progressEvents = ref<ProgressItem[]>([])
-/** 正文首字到达后工具组自动折叠（066 交互） */
-const proseStarted = ref(false)
-/** 本轮工具组归属的 AI 消息：多轮对话里组只贴在发起运行的那条上 */
-const progressOwner = ref<Msg | null>(null)
-let progressSeq = 0
-
 /* 运行阶段实时状态行 + 计时 */
 const runStatus = ref('')
 const elapsedMs = ref(0)
@@ -124,69 +107,15 @@ function formatElapsed(ms: number): string {
   const seconds = Math.max(0, Math.floor(ms / 1000))
   return seconds < 60 ? `${seconds}s` : `${Math.floor(seconds / 60)}分${String(seconds % 60).padStart(2, '0')}秒`
 }
+let elapsedStart = 0
 function beginRun() {
   if (elapsedTimer) clearInterval(elapsedTimer)
-  progressEvents.value = []
-  proseStarted.value = false
-  progressSeq = 0
-  const started = Date.now()
+  elapsedStart = Date.now()
   elapsedMs.value = 0
-  elapsedTimer = setInterval(() => { elapsedMs.value = Date.now() - started }, 250)
+  elapsedTimer = setInterval(() => { elapsedMs.value = Math.max(0, Date.now() - elapsedStart) }, 250)
 }
 function endRun() {
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null }
-}
-
-/* 中性动词短语：实时状态行加「正在…」，历史工具行直接用（不再对已完成行显示"正在"） */
-function toolProgress(tool?: string): { title: string; detail: string } {
-  const name = (tool ?? '').toLowerCase()
-  if (name.includes('career-market') || name.includes('mysql') || name.includes('query')) {
-    return { title: '查询岗位库', detail: '分析岗位要求、经验和薪资结构' }
-  }
-  if (name === 'read' || name.includes('read')) {
-    return { title: '读取参考资料', detail: '整理当前任务所需的技能规则和资料' }
-  }
-  if (name === 'write' || name.includes('write')) {
-    return { title: '生成报告文件', detail: '写入并校验用户可查看的报告' }
-  }
-  if (name.includes('chart') || name.includes('visual')) {
-    return { title: '生成数据图表', detail: '把已验证的数据整理为可读图表' }
-  }
-  if (name === 'bash' || name.includes('shell')) {
-    return { title: '执行数据处理', detail: '运行受控的数据处理任务' }
-  }
-  return { title: '调用工具', detail: tool || '执行受控任务' }
-}
-
-function activeProgress(phase?: ProgressItem['phase'], id?: string): ProgressItem | undefined {
-  return progressEvents.value.find(item => item.state === 'active' && ((!id || item.id === id) && (!phase || item.phase === phase)))
-}
-
-function handleProgressStatus(event: Extract<ChatEvent, { type: 'status' }>) {
-  /* 面板只展示真实发生的工具调用（030 边界不变）：思考、写正文是每次运行的
-     常态而非阶段，不再渲染占位行——是否调用工具由智能体按意图自行决定。 */
-  const now = Date.now()
-  if (event.phase === 'text') {
-    /* 正文开始：兜底关闭未收到完成事件的工具行 */
-    for (const item of progressEvents.value) if (item.state === 'active') {
-      item.state = 'completed'
-      item.finishedAt = now
-    }
-    return
-  }
-  if (event.phase !== 'tool') return
-  if (event.state === 'active') {
-    const copy = toolProgress(event.tool)
-    progressEvents.value.push({ id: event.id ?? `p-${++progressSeq}`, phase: 'tool', state: 'active', title: copy.title, detail: copy.detail, tool: event.tool, startedAt: now })
-  } else {
-    const item = activeProgress('tool', event.id) ?? [...progressEvents.value].reverse().find(x => x.phase === 'tool' && x.state === 'active')
-    if (item) {
-      item.state = event.state === 'failed' ? 'failed' : 'completed'
-      item.finishedAt = now
-      const seconds = ((now - item.startedAt) / 1000).toFixed(1)
-      item.detail = event.state === 'failed' ? `工具执行失败（${seconds}s）` : `工具执行完成（${seconds}s）`
-    }
-  }
 }
 
 /* ---------- 后端就绪探测：就绪则真实流式，否则演示输出 ---------- */
@@ -392,29 +321,28 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       /* 服务端发回本轮会话 id（首轮新建、被回收后重建都会发）：记住它，后续轮次带上下文多轮 */
       convSessions.set(sessionKey, event.sessionId)
     } else if (event.type === 'started') {
-      elapsedMs.value = Math.max(0, Date.now() - event.startedAt)
+      elapsedStart = event.startedAt
+      elapsedMs.value = Math.max(0, Date.now() - elapsedStart)
       runStatus.value = '正在思考…'
+    } else if (event.type === 'execution') {
+      msg.execution ??= []
+      msg.execution[event.index] = event.step
     } else if (event.type === 'status') {
-      if (event.phase === 'thinking' && event.message) {
-        msg.process ??= []
-        msg.process.push(event.message)
-      }
-      handleProgressStatus(event)
-      if (event.phase === 'tool') runStatus.value = `正在${toolProgress(event.tool).title}…`
-      else if (event.phase === 'text') runStatus.value = ''
-      else runStatus.value = '正在思考…'
+      if (event.phase === 'tool') runStatus.value = event.state === 'active' ? '正在执行工具…' : '正在继续处理…'
+      else if (event.phase === 'text') runStatus.value = '正在生成回复…'
+      else runStatus.value = event.phase === 'initializing' ? '正在启动…' : '正在思考…'
     } else if (event.type === 'text') {
-      proseStarted.value = true
       msg.text += event.delta
       scrollTop()
     } else if (event.type === 'done') {
       if (event.content) msg.text = event.content
+      msg.durationMs = event.durationMs
       msg.charts = event.charts ?? []
       msg.reportUrl = event.reportUrl
       msg.webLinks = event.webLinks
       msg.downloads = event.downloads
     } else if (event.type === 'error') {
-      for (const item of progressEvents.value) if (item.state === 'active') item.state = 'failed'
+      msg.durationMs = event.durationMs
       throw new Error(event.message)
     }
   }
@@ -424,7 +352,6 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
   const convId = currentConvId.value
   if (convId === null) return
   const msg = startAiMsg(skill, true)
-  progressOwner.value = msg
   convSlugs.set(convId, slug)
   const sessionKey = `pi:${convId}`
   beginRun()
@@ -444,12 +371,8 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
   } catch (error) {
     const reason = error instanceof Error ? error.message : '请求失败，请稍后重试。'
     msg.text += `${msg.text ? '\n\n' : ''}本次运行失败：${reason}`
-    for (const item of progressEvents.value) if (item.state === 'active') item.state = 'failed'
     msg.done = true
   } finally {
-    msg.tools = progressEvents.value.map(item => ({
-      tool: item.tool ?? '', failed: item.state === 'failed', startedAt: item.startedAt, endedAt: item.finishedAt,
-    }))
     endRun()
     if (msg.done) sending.value = false
   }
@@ -702,17 +625,8 @@ function clearHistorySelection() {
   selectedSessionKey.value = null
 }
 
-/* 历史恢复的工具行 → ProgressItem；trace 带起止时间（新运行）时还原每行耗时与组总时长，旧 trace 无计时则不显示 */
-function historyToolItems(msg: Msg): ProgressItem[] {
-  return (msg.tools ?? []).map((tool, i) => ({
-    id: `ht-${i}`,
-    phase: 'tool',
-    state: tool.failed ? 'failed' : 'completed',
-    title: toolProgress(tool.tool).title,
-    detail: tool.failed ? '工具执行失败' : '',
-    startedAt: tool.startedAt ?? 0,
-    finishedAt: tool.endedAt,
-  }))
+function historicalModel(provider?: string | null, modelId?: string | null) {
+  return models.value.find(m => m.provider === provider && m.modelId === modelId)
 }
 
 /* 点开历史 = 把对话载入正常消息流（与 ChatGPT 一致）：无专门结果卡，
@@ -736,14 +650,12 @@ async function selectHistory(group: HistoryGroup) {
     /* 后端优先复用内存会话，重启/回收后从同一工作区恢复持久上下文。 */
     if (run.clientSessionId) convSessions.set(`pi:${currentConvId.value}`, run.clientSessionId)
     activeSkill.value = skill
-    selectedModel.value = models.value.find(m => m.id === run.tokenUsage?.provider)?.id ?? defaultChatModel
+    selectedModel.value = historicalModel(run.tokenUsage?.provider, run.tokenUsage?.model)?.id ?? defaultChatModel
     let lastAi = -1
     detail.conversation.forEach((turn, i) => { if (turn.role === 'assistant') lastAi = i })
     messages.value = detail.conversation.map((turn, i) => turn.role === 'user'
       ? { role: 'user', text: turn.text, done: true }
-      : { role: 'ai', text: turn.text, skill, modelName: models.value.find(m => m.id === turn.provider)?.name, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), tools: turn.tools, process: turn.process })
-    progressOwner.value = null
-    progressEvents.value = []
+      : { role: 'ai', text: turn.text, skill, modelName: historicalModel(turn.provider, turn.model)?.name ?? turn.model ?? turn.provider, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), execution: turn.execution, durationMs: turn.durationMs })
     scrollTop()
   }
 
@@ -899,7 +811,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="page page-exp" :class="{ 'has-resources': resources.length && !loadingConversation }">
     <aside class="exp-side">
-      <button type="button" class="exp-new" @click="newChat">
+      <button type="button" class="exp-new" :disabled="sending" @click="newChat">
         <Icon name="plus" :size="15" />
         新建对话
       </button>
@@ -1006,8 +918,8 @@ onBeforeUnmount(() => {
                   <span v-if="!msg.done && runStatus" class="exp-run-status">{{ runStatus }} · {{ formatElapsed(elapsedMs) }}</span>
                   <span v-else-if="msg.done" class="exp-demo-tag" :class="{ 'is-real': msg.real }">{{ msg.real ? '真实运行' : '演示输出' }}</span>
                 </div>
-                <ToolCallGroup v-if="msg === progressOwner && (progressEvents.length || msg.process?.length)" :items="progressEvents" :notes="msg.process" :running="!msg.done" :prose-started="proseStarted" />
-                <ToolCallGroup v-else-if="msg.tools?.length || msg.process?.length" :items="historyToolItems(msg)" :notes="msg.process" :prose-started="true" />
+                <ToolCallGroup v-if="msg.real && (msg.execution?.length || msg.durationMs !== undefined || !msg.done)"
+                  :steps="msg.execution ?? []" :duration-ms="msg.done ? msg.durationMs : elapsedMs" :running="!msg.done" />
                 <ReportOutput :text="msg.text" :charts="msg.charts" :has-resources="resourceCount(msg) > 0"
                   :html-mode="msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
                 <button v-if="resourceCount(msg)" type="button" class="exp-resource-reference" aria-controls="conversation-resource-list" @click="resourcePanel?.reveal(mi)">
@@ -1096,18 +1008,13 @@ onBeforeUnmount(() => {
               >
                 <Icon name="paperclip" :size="16" />
               </button>
-              <span class="exp-agent">
-                <label v-if="models.length" class="exp-model">
-                  <select v-model="selectedModel" aria-label="选择对话模型" :disabled="sending || loadingConversation">
-                    <option v-for="m in models" :key="m.id" :value="m.id">{{ m.name }}</option>
-                  </select>
-                  <Icon name="chev-down" :size="13" />
-                </label>
+              <div class="exp-agent">
+                <ChatModelPicker v-if="models.length" v-model="selectedModel" :options="models" :disabled="sending || loadingConversation" />
                 <span v-else>{{ apiReady ? (apiModel || '在线 Agent') : '演示模式' }}</span>
-              </span>
-              <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || attachUploading" aria-label="发送" @click="send()">
-                <Icon name="arrow-up" :size="16" />
-              </button>
+                <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || attachUploading" aria-label="发送" @click="send()">
+                  <Icon name="arrow-up" :size="16" />
+                </button>
+              </div>
             </div>
           </div>
           <p class="exp-input-note">内容由 AI 生成，请仔细核对</p>

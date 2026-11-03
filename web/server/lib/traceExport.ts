@@ -10,6 +10,7 @@
 import { appendFileSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import type { ExecutionStep } from '../../shared/execution.ts'
 import type { HtmlReportValidation } from './htmlReport.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -65,6 +66,7 @@ export interface TokenUsageSnapshot {
 }
 
 export interface TraceExportOptions {
+  execution?: ExecutionStep[]
   tokenUsage?: TokenUsageSnapshot
   usageRounds?: UsageRound[]
 }
@@ -309,6 +311,7 @@ function now(): string {
    ------------------------------------------------------------ */
 
 export interface SessionTrace {
+  execution?: ExecutionStep[]
   session: {
     id: string
     title: string

@@ -5,6 +5,7 @@
    runsMock 演示数据，保证纯静态部署也能预览页面结构。
    ============================================================ */
 
+import type { ExecutionStep } from '../../shared/execution'
 import { RUNS_MOCK, RUN_DETAILS_MOCK, type RunListItem, type RunDetail } from '../data/runsMock'
 
 export interface RunsResult {
@@ -62,7 +63,7 @@ export interface RunDetailResult {
   item?: RunListItem
   trace?: RunDetail
   /** 服务端从 trace 剥离技能提示词包装后的用户可读对话；assistant 轮可带工具摘要（名称+成败） */
-  conversation?: Array<{ provider?: string; role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>; process?: string[]; webLinks?: Array<{ name: string; url: string }>; downloads?: Array<{ name: string; url: string }> }>
+  conversation?: Array<{ durationMs?: number; execution?: ExecutionStep[]; model?: string; provider?: string; role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>; process?: string[]; webLinks?: Array<{ name: string; url: string }>; downloads?: Array<{ name: string; url: string }> }>
   live: boolean
 }
 

@@ -54,3 +54,14 @@
 **取舍与后续。** 统一注册一个本地扩展，换取同一会话内即时切换。重建进程会额外付出启动与重载成本；修改全局环境变量会让其他用户的请求串用提供方。若以后加入新模型，先验证 Pi 工具、鉴权与可切换性，再扩充服务端白名单。当前验收限于短对话，跨模型长报告质量仍待专项验证。
 
 **验证。** 50 项服务端、HTTP/SSE、提供方与前端回归通过（含 Chrome 交付测试），Vue 类型检查与 Vite 构建通过。在使用实际低权 Pi 与单独 trace 目录的 390px Chrome 会话中，先选 DeepSeek 发送口令，再选优才追问，第二轮正确复述；两条记录的 clientSessionId 和 engineSessionId 均相同，环境快照分别为 `deepseek/deepseek-v4-pro` 和 `youcai/youcai`。重启验证服务、重新进入历史对话后，两条回答保留各自的模型标签。现有 4188 页面加载新的模型列表，窄屏深色布局无横向溢出。
+
+
+### Flash / Pro 型号与弹出菜单修订（已实现）
+
+用户要求区分 DeepSeek 型号并恢复原弹出式菜单。第 49–52 行记录的双选项与原生下拉框由本节替代。
+
+- `web/server/index.ts:91` 按低权 Pi catalog 公布 `deepseek-flash → deepseek/deepseek-flash`、`deepseek-pro → deepseek/deepseek-v4-pro`、`youcai → youcai/youcai`。健康接口提供 `{id,name,provider,modelId}`，默认按完整路由匹配部署配置，否则用 Pro。原 `deepseek` API 别名保留旧路由语义。
+- `web/src/components/ChatModelPicker.vue:7` 在输入栏使用紧凑文字触发器与向上弹出的三个互斥菜单项，选中项带对勾；支持方向键、首尾键、回车、Esc、移出焦点或点击外部关闭。窄屏触摸菜单项增高。继承现有亮暗令牌。`ExperiencePage.vue:628` 恢复时按 provider 与型号匹配每条回答和最近选择。
+- 单层菜单减少选完提供方再选型号的一步操作，代价是自行实现并验证键盘与焦点管理。更多提供方出现后再评估分组。
+
+真实低权 Pi 目录确认两个 DeepSeek 标识。390px 浏览器选 Flash 调用 bash、切 Pro 复述上轮命令输出，实际运行记录为对应的两个 modelId。刷新重开同一对话，历史标签分别为 Flash / Pro，菜单回到 Pro；窄屏深色、键盘选项和 Esc 关闭通过。

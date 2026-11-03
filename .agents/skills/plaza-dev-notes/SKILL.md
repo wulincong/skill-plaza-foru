@@ -43,7 +43,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 027 | Pi-only 执行链与就业报告固定用户结构 | 已实现（真实报告回归待用户执行） | [027-pi-only-user-report-structure.md](references/027-pi-only-user-report-structure.md) |
 | 030 | 在线运行安全进度时间线：只登记真实工具调用，工具参数/SQL/路径不进前端 DOM | 已实现（066 起以 ToolCallGroup 工具组形态呈现） | [030-stream-progress-timeline.md](references/030-stream-progress-timeline.md) |
 | 035 | Pi 通用模型选择与计费来源（全局 Skill，防误走第三方计费） | 已实现 Skill，项目运行时接入待实现 | [035-pi-model-selection-and-billing-source.md](references/035-pi-model-selection-and-billing-source.md) |
-| 082 | 自部署 youcai 与在线对话模型切换（DeepSeek / 优才之路产教融合大模型） | 已实现（浏览器跨模型续聊、逐轮历史标注、50 项回归与构建通过） | [082-youcai-model-provider.md](references/082-youcai-model-provider.md) |
+| 082 | 在线模型切换（DeepSeek Flash / Pro、优才之路产教融合大模型） | 已实现（弹出菜单、浏览器跨型号续聊与历史恢复通过） | [082-youcai-model-provider.md](references/082-youcai-model-provider.md) |
 | 036 | OpenAI 兼容端点 /v1/chat/completions：外部项目统一接入入口 | 接口已实现；2026-11-03 追加微信机器人两阶段报告接入设计（待实现） | [036-openai-compat-chat-endpoint.md](references/036-openai-compat-chat-endpoint.md) |
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |
@@ -113,7 +113,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 068 | /use 收敛为任务配置表单，历史统一到在线对话侧栏 | 已实现（历史形态被 069 修订，其余约定生效） | [068-form-only-usepage-and-experience-surface.md](references/068-form-only-usepage-and-experience-surface.md) |
 | 069 | 历史按对话展示整段记录 + 运行进度只显真实工具调用 | 已实现（构建/curl/浏览器断言与截图通过） | [069-conversation-history-and-toolsonly-progress.md](references/069-conversation-history-and-toolsonly-progress.md) |
 | 070 | 点开历史即正常对话流：恢复服务端会话可直接续聊，报告链接内联 | 已实现（含真实续聊与下载路由回归） | [070-history-as-normal-chat.md](references/070-history-as-normal-chat.md) |
-| 071 | 历史对话工具调用摘要与耗时（conversation.tools，计时入 trace） | 已实现（构建/curl/浏览器断言与截图通过） | [071-history-tool-summary.md](references/071-history-tool-summary.md) |
+| 071 | 执行过程按模型消息分组、工具实际执行计时与整轮墙钟时间 | 已实现（新旧会话、真实工具、并行计时、52 项回归与构建通过） | [071-history-tool-summary.md](references/071-history-tool-summary.md) |
 | 072 | 会话归档与删除（archived 标记、session 路由、两步删除、归档分区） | 已实现（构建/curl/浏览器断言与截图通过） | [072-conversation-archive-delete.md](references/072-conversation-archive-delete.md) |
 | 074 | 侧栏实时对话条目与落库竞态重拉（liveConvGroup 占位、运行中徽章） | 已实现（真实两轮 e2e 8 断言通过） | [074-live-sidebar-entry.md](references/074-live-sidebar-entry.md) |
 
