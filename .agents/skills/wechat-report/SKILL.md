@@ -9,6 +9,8 @@ description: 以真实人才统计、可复核结构分析、多维多类型图�
 
 ## 先取回正确范围
 
+平台提供 `report_next` 时，首次先调用它读取当前状态；返回 `collection_required` 时使用其中的初始化命令和 `planTemplate`，然后完成下面的范围解析与取数。不要先试探多种 capabilities 命令或自行猜测请求格式。共享查询入口和 resolve 参数先以安装的 `talent-data-query/SKILL.md` 为准，避免把查询 JSON 当成 resolve 命令。
+
 1. 只有必需地区或产业缺失才询问。普通报告默认面向院校人才培养与校企合作；未指定时间用全时间范围的在招记录。不自动添加AI、近一年或其他学历。产业、岗位类型、岗位名称分别处理。
 2. 通过共享工具`resolve --kind industry --name 产业名`确认唯一level=0根产业ID；同名细链不能替代根产业。保留用户全部地域、学历、经验、名称和时间条件。
 3. 用安装目录`.venv/bin/python scripts/report.py --workdir 当前会话/wechat-report init`初始化。工作区只存数据、文案与输出，不复制/修改脚本，不修补BASE。平台提供真实绝对路径。

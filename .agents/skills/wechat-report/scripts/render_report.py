@@ -642,7 +642,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
             '<div style="margin-bottom:26px"><div style="font-size:32px;'
             'font-weight:700;color:%s;margin-bottom:10px;padding-left:14px;'
             'border-left:7px solid %s">%s</div><div style="font-size:32px;'
-            'line-height:1.75;color:#4B5563;text-align:justify;overflow-wrap:anywhere">%s</div></div>'
+            'line-height:1.75;color:#4B5563;text-align:left;overflow-wrap:anywhere">%s</div></div>'
             % (TH('primary'), TH('accent'), t, c)
             for t, c in s.get('blocks', []))
         contact = ('<div style="background:linear-gradient(135deg,%s,'
