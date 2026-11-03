@@ -54,6 +54,8 @@ import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } 
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
 import { ExecutionTracker, readLegacyExecution } from './lib/execution.ts'
 import type { ExecutionStep } from '../shared/execution.ts'
+import { projectQuestion, QUESTION_INSTRUCTION } from './lib/chatQuestion.ts'
+import type { ChatQuestion } from '../shared/chatQuestion.ts'
 import { deriveSessionConversation } from './lib/conversation.ts'
 import { deliveryBaseUrl, deliveryFingerprint, handleDelivery, publishDelivery, publishLegacyDelivery, readDeliveryManifest, type DeliveryLinks } from './lib/delivery.ts'
 
@@ -631,6 +633,8 @@ async function handleUpload(req: any, res: any) {
 type ChatProtocol = 'plaza' | 'openai'
 
 interface TurnParams {
+  interactive?: boolean
+  answerTo?: string
   requestId?: string
   resumeSource?: RunRecord
   model?: PiModelRef
@@ -714,6 +718,19 @@ async function handleOpenAiChat(req: any, res: any) {
   })
 }
 
+// Older runs only kept the choice list in the final Pi message.
+function hasChatQuestion(run: RunRecord): boolean {
+  if (run.question) return true
+  if (run.engine !== 'pi' || run.protocol === 'openai' || run.outcome !== 'success' || !run.files.trace) return false
+  try {
+    const trace = JSON.parse(readFileSync(run.files.trace, 'utf8'))
+    const last = trace.messages.at(-1)
+    if (last?.role !== 'assistant' || !Array.isArray(last.parts) || last.parts.some((part: any) => part.type === 'tool')) return false
+    const text = last.parts.filter((part: any) => part.type === 'text').map((part: any) => part.text).join('')
+    return Boolean(projectQuestion(text).question)
+  } catch { return false }
+}
+
 /** POST /api/chat：广场前端入口（plaza 协议，帧格式见 plaza wire）。 */
 async function handleChat(req: any, res: any) {
   let body: any
@@ -761,9 +778,9 @@ async function handleChat(req: any, res: any) {
     return
   }
 
-  const { requestId, resumeOf } = body
+  const { requestId, resumeOf, answerTo } = body
   let resumeSource: RunRecord | undefined
-  if (requestId !== undefined || resumeOf !== undefined) {
+  if (requestId !== undefined || resumeOf !== undefined || answerTo !== undefined) {
     if (typeof requestId !== 'string' || !requestIdPattern.test(requestId) ||
         typeof sessionId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(sessionId)) {
       sendJson(res, 400, { error: '任务标识无效。' })
@@ -773,6 +790,13 @@ async function handleChat(req: any, res: any) {
     if (browserTurns.has(sessionId) || discardedRequests.has(sessionId + '/' + requestId) || runs.some(run => run.requestId === requestId)) {
       sendJson(res, 409, { error: '任务正在收尾或已经提交，请重新读取任务。' })
       return
+    }
+    if (answerTo !== undefined) {
+      const last = runs.at(-1)
+      if (typeof answerTo !== 'string' || !last || last.runId !== answerTo || last.skill !== skill || resumeOf !== undefined || !hasChatQuestion(last)) {
+        sendJson(res, 409, { error: '这道问题的会话已更新，请重新打开对话。' })
+        return
+      }
     }
     if (resumeOf !== undefined) {
       const last = runs.at(-1)
@@ -789,7 +813,7 @@ async function handleChat(req: any, res: any) {
   }
   await runChatTurn(req, res, {
     protocol: 'plaza',
-    requestId, resumeSource,
+    requestId, resumeSource, answerTo, interactive: body.interactive === true,
     model: selected?.route,
     stream: true,
     skill,
@@ -803,6 +827,7 @@ async function handleChat(req: any, res: any) {
 /* ---------- 输出协议适配器 ---------- */
 
 interface WireDonePayload extends DeliveryLinks {
+  question?: ChatQuestion
   durationMs: number
   content: string
   resultType?: string
@@ -821,7 +846,7 @@ interface WireDonePayload extends DeliveryLinks {
  *   为 choices:[] + 顶层扩展帧；终态 stop/报告/usage 帧后 [DONE]。
  * openai JSON：不写 SSE 头，终态一次性回 chat.completion（reportUrl 为顶层扩展字段）。
  */
-function createChatWire(protocol: ChatProtocol, stream: boolean) {
+function createChatWire(protocol: ChatProtocol, stream: boolean, interactive = false) {
   let res: any = null
   let heartbeat: ReturnType<typeof setInterval> | undefined
   let id = 'chatcmpl-pending'
@@ -856,7 +881,10 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
     if (!msgBuf) return
     if (protocol === 'plaza') {
       if (narration) sse({ type: 'status', phase: 'thinking', state: 'completed', message: msgBuf })
-      else sse({ type: 'text', delta: msgBuf })
+      else {
+        const visible = interactive ? projectQuestion(msgBuf).text : msgBuf
+        if (visible) sse({ type: 'text', delta: visible })
+      }
     } else frame(narration ? { reasoning_content: msgBuf } : { content: msgBuf })
     msgBuf = ''
   }
@@ -981,6 +1009,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
         flushMessageText(false)
         sse({
           type: 'done',
+          question: p.question,
           durationMs: p.durationMs,
           content: p.content,
           resultType: p.resultType,
@@ -1039,7 +1068,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   const { skill } = params
   const { messages, sessionId } = params
 
-  const wire = createChatWire(params.protocol, params.stream)
+  const wire = createChatWire(params.protocol, params.stream, params.interactive)
   wire.begin(res)
   const finish = () => wire.finish()
   const taskTitle = params.taskTitle
@@ -1155,6 +1184,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   }
   const currentTokenUsage = (): TokenUsageSnapshot => tokenUsageFrom(lastUsage, contextInfo, usageRounds)
   let finalText = ''
+  let question: ChatQuestion | undefined
   let runFinalized = false
   /* 侧车流式隐藏（仅 maskSidecar 技能累积，见 onEvent）：围栏标记可能跨 delta
      到达，未确认出现前扣留尾部（长度 = 标记-1）不转发；确认出现后从标记处截断，
@@ -1311,6 +1341,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       skill,
       taskTitle: taskTitle || undefined,
       userMessage: digestSource,
+      question, answerTo: params.answerTo,
       promptDigest,
       outcome,
       durationMs,
@@ -1329,7 +1360,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     if (htmlReportValidation) record.report = { ...(record.report ?? {}), html: htmlReportValidation }
     if (htmlReportFile) record.files.html = htmlReportFile
     if (pdfReportFile) record.files.pdf = pdfReportFile
-    void (async () => {
+    return (async () => {
       try {
         if (entry?.engineSessionId) {
           const traceFile = traceFilePath(runId, 'trace')
@@ -1349,7 +1380,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       /* MVP 直出模式：解析最终回复（报告全文）为结构化结果并落盘（pi 专属）。
          章节契约 REPORT_SECTIONS 属于 industry-education-report，其他技能（如就业指导）
          没有对应模板，解析只会得到整份缺失，因此只对该技能执行 */
-      if (engine === 'pi' && skill === 'industry-education-report' && finalText) {
+      if (!question && engine === 'pi' && skill === 'industry-education-report' && finalText) {
         try {
           const parsed = parseReport(finalText)
           if (parsed) {
@@ -1539,9 +1570,16 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           wire.textDelta(fullText.slice(forwarded))
         }
         wire.usage(ev.usage)
+        if (params.interactive) {
+          const projected = projectQuestion(finalText)
+          if (projected.question) {
+            question = projected.question
+            finalText = projected.text
+          }
+        }
         const checkedCharts = sidecar.meta && validateMeta(sidecar.meta).pass ? sidecar.meta.charts : []
         const workspaceReport = captureWorkspaceHtmlReport()
-        if (HTML_REPORT_SKILLS.has(skill) && !workspaceReport) {
+        if (!question && HTML_REPORT_SKILLS.has(skill) && !workspaceReport) {
           /* Backward compatibility only: a plain short status is not a report.
              Legacy agents may still return a complete HTML document in text. */
           const legacyReport = normalizeLegacyHtmlDocument(finalText)
@@ -1558,13 +1596,13 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         /* HTML_REPORT_SKILLS 泛化重构漏定义的局部布尔（wlc 分支终态 ReferenceError 修复） */
         const isHtmlReportSkill = HTML_REPORT_SKILLS.has(skill)
         const isPdfReportSkill = PDF_REPORT_SKILLS.has(skill)
-        const missingReport = (isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length)
-        const doneContent = isHtmlReportSkill
+        const missingReport = !question && ((isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length))
+        const doneContent = question ? finalText : isHtmlReportSkill
           ? htmlReportFile || delivery.webLinks?.length ? '' : reportFailure
           : isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length
             ? `${finalText}${finalText ? '\n\n' : ''}${pdfFailure}` : finalText
-        wire.done({
-          durationMs: elapsed(),
+        const sendDone = () => wire.done({
+          durationMs: elapsed(), question,
           content: doneContent + (deliveryError ? `\n\n${deliveryError}` : ''),
           resultType: ev.resultType,
           charts: checkedCharts,
@@ -1579,9 +1617,19 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           : missingReport || deliveryError
             ? 'error'
             : 'success'
-        finalizeRun(finalOutcome)
-        cleanup()
-        finish()
+        if (question) {
+          // A visible question must already be answerable, including immediately after reload.
+          clearTimeout(timeout)
+          void Promise.resolve(finalizeRun(finalOutcome)).then(
+            () => { if (!res.destroyed) sendDone() },
+            () => { if (!res.destroyed) wire.error('提问未能保存，请重新发送。', elapsed()) },
+          ).finally(() => { cleanup(); finish() })
+        } else {
+          sendDone()
+          finalizeRun(finalOutcome)
+          cleanup()
+          finish()
+        }
       } else if (ev.kind === 'error') {
         wire.error(ev.message, elapsed())
         finalizeRun('error')
@@ -1599,7 +1647,8 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           .map(m => `${m.role === 'user' ? '用户' : '助手'}：${m.content.trim()}`).join('\n\n')
         if (history) input = [{ role: 'user', content: `【对话历史】\n${history}\n\n【当前消息】\n${latest.content}` }]
       }
-      return runner.buildPrompt(skill, input, first)
+      const prompt = runner.buildPrompt(skill, input, first)
+      return params.interactive ? prompt + '\n\n' + QUESTION_INSTRUCTION : prompt
     }
     const sendTurn = async () => {
       const sid = entry!.engineSessionId

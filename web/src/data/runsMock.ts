@@ -1,3 +1,4 @@
+import type { ChatQuestion } from '../../shared/chatQuestion'
 /* ============================================================
    运行记录 · 演示数据（前端先行版）
    ------------------------------------------------------------
@@ -25,6 +26,7 @@ export type ReportChart = {
 }
 
 export interface RunListItem {
+  question?: ChatQuestion
   requestId?: string
   userMessage?: string
   resumeSourceId?: string

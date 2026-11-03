@@ -10,6 +10,7 @@ export interface ChatSubmission {
   model?: ChatModelId
   taskTitle?: string
   attachments?: ChatAttachment[]
+  answerTo?: string
   resumeOf?: string
 }
 

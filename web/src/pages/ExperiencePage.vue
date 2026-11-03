@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { bySlug, catOf, SKILLS, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
-import { checkHealth, streamChat, type ChatAttachment, type ChatEvent, type ChatModelId, type ChatModelOption } from '../composables/useChatApi'
+import { checkHealth, streamChat, ChatRequestError, type ChatAttachment, type ChatEvent, type ChatModelId, type ChatModelOption } from '../composables/useChatApi'
 import { interruptSubmission, newRequestId, readSubmission, saveSubmission, type ChatSubmission } from '../composables/interruptedTask'
 import { takePendingFormTask } from '../composables/pendingTask'
 import { uploadFile, validateUploadFile, formatSize, type UploadedFile } from '../composables/useUpload'
@@ -12,6 +12,8 @@ import type { ReportChart as ReportChartData } from '../data/runsMock'
 import Icon from '../components/Icon.vue'
 import ReportOutput from '../components/ReportOutput.vue'
 import type { ExecutionStep } from '../../shared/execution'
+import type { ChatQuestion } from '../../shared/chatQuestion'
+import ChatQuestionCard from '../components/ChatQuestionCard.vue'
 import ChatModelPicker from '../components/ChatModelPicker.vue'
 import ToolCallGroup from '../components/ToolCallGroup.vue'
 import ConversationResources from '../components/ConversationResources.vue'
@@ -24,6 +26,9 @@ import { toast } from '../composables/toast'
    历史展示服务端运行记录（/api/runs），后端未启动时回落为演示摘要输出。 */
 
 interface Msg {
+  question?: ChatQuestion
+  runId?: string
+  answerTo?: string
   role: 'user' | 'ai'
   text: string
   skill?: Skill
@@ -79,6 +84,15 @@ const textarea = ref('')
 const textareaEl = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const messages = ref<Msg[]>([])
+const pendingQuestion = computed(() => {
+  const last = messages.value[messages.value.length - 1]
+  return last?.question && last.runId ? last : undefined
+})
+function replyText(index: number) {
+  const reply = messages.value[index + 1]
+  const question = messages.value[index]
+  return question?.question && question.runId && reply?.answerTo === question.runId ? reply.text : undefined
+}
 const resources = computed(() => collectConversationResources(messages.value))
 const resourcePanel = ref<InstanceType<typeof ConversationResources>>()
 function resourceCount(message: Msg) {
@@ -317,7 +331,7 @@ function typeInto(msg: Msg, reply: string) {
 }
 
 /* ---------- 真实运行：走本地 Node 后端 → Pi，SSE 流式回填 ---------- */
-interface RunOptions { taskTitle?: string; attachments?: ChatAttachment[] }
+interface RunOptions { answerTo?: string; taskTitle?: string; attachments?: ChatAttachment[] }
 const resumable = ref<ChatSubmission | null>(null)
 const recoveryFailed = ref(false)
 let inFlight: ChatSubmission | null = null
@@ -344,6 +358,7 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       /* 服务端发回本轮会话 id（首轮新建、被回收后重建都会发）：记住它，后续轮次带上下文多轮 */
       convSessions.set(sessionKey, event.sessionId)
     } else if (event.type === 'started') {
+      msg.runId = event.runId
       elapsedStart = event.startedAt
       elapsedMs.value = Math.max(0, Date.now() - elapsedStart)
       runStatus.value = '正在思考…'
@@ -358,7 +373,9 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       msg.text += event.delta
       scrollTop()
     } else if (event.type === 'done') {
-      if (event.content) msg.text = event.content
+      if (event.question || event.content) msg.text = event.content
+      msg.question = event.question
+      if (event.question) nextTick(() => document.getElementById('question-' + msg.runId)?.scrollIntoView({ block: 'nearest' }))
       msg.durationMs = event.durationMs
       msg.charts = event.charts ?? []
       msg.reportUrl = event.reportUrl
@@ -390,18 +407,25 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
   try {
     const handle = makeStreamHandler(msg, sessionKey)
     await streamChat({
-      ...task, messages: [{ role: 'user', content: task.text }],
+      interactive: true, ...task, messages: [{ role: 'user', content: task.text }],
       onEvent(event) {
         if (event.type === 'done' || event.type === 'error') {
           terminal = true
-          if (!leaving) saveSubmission(null)
+          if (!leaving) saveSubmission(event.type === 'done' && event.question ? task : null)
         }
         handle(event)
       },
     })
     msg.modelName = models.value.find(m => m.id === task.model)?.name ?? apiModel.value
   } catch (error) {
-    if (!leaving) {
+    if (!leaving && task.answerTo && error instanceof ChatRequestError && error.status === 409) {
+      // Another tab may have answered. Reload the server's latest turn instead of offering to replay this reply.
+      messages.value.splice(-2)
+      clearRecovery()
+      toast(error.message)
+      const state = await interruptSubmission(task).catch(() => null)
+      if (state?.latest) await openRun(state.latest)
+    } else if (!leaving) {
       if (!terminal) recoveryFailed.value = true
       const reason = error instanceof Error ? error.message : '请求失败，请稍后重试。'
       msg.text += `${msg.text ? '\n\n' : ''}${reason}`
@@ -426,6 +450,16 @@ function continueTask() {
   void runReal(task.text, task.skill, activeSkill.value, {}, task)
 }
 
+function answerQuestion(question: Msg, text: string) {
+  if (pendingQuestion.value !== question || !question.runId || sending.value || loadingConversation.value || attachUploading.value) return
+  if (!apiReady.value) { toast('运行服务未连接，请刷新后重试。'); return }
+  clearRecovery()
+  sending.value = true
+  activeSkill.value = question.skill
+  messages.value.push({ role: 'user', text, done: true, answerTo: question.runId })
+  void runReal(text, question.skill?.slug ?? GENERAL_SKILL_ID, question.skill, { answerTo: question.runId })
+}
+
 async function send(raw?: string) {
   const text = (raw ?? textarea.value).trim()
   if (!text || sending.value || loadingConversation.value || attachUploading.value) return
@@ -442,9 +476,11 @@ async function send(raw?: string) {
   skillMenu.value = false
 
   /* 附件随本条消息一次性消费；上屏文本附文件名便于回看 */
+  const pending = pendingQuestion.value
+  const answerTo = pending && pending.skill?.slug === activeSkill.value?.slug ? pending.runId : undefined
   const attachments = pendingAttachments.value.splice(0)
   const shownText = attachments.length ? `${text}\n[附件] ${attachments.map(a => a.name).join('、')}` : text
-  messages.value.push({ role: 'user', text: shownText, done: true })
+  messages.value.push({ role: 'user', text: shownText, done: true, answerTo })
   textarea.value = ''
   sending.value = true
   runStatus.value = ''
@@ -464,9 +500,8 @@ async function send(raw?: string) {
         convSlugs.set(convId, requested)
       }
     }
-    void runReal(text, requested, skill, attachments.length
-      ? { attachments: attachments.map(a => ({ name: a.name, path: a.path })) }
-      : undefined)
+    void runReal(text, requested, skill, { answerTo, attachments: attachments.length
+      ? attachments.map(a => ({ name: a.name, path: a.path })) : undefined })
     return
   }
   const demo = skill ? DEMOS.find(d => d.slug === skill.slug) : undefined
@@ -708,8 +743,11 @@ async function openRun(run: RunListItem, seq = ++selectionSeq) {
     let lastAi = -1
     detail.conversation.forEach((turn, i) => { if (turn.role === 'assistant') lastAi = i })
     messages.value = detail.conversation.map((turn, i) => turn.role === 'user'
-      ? { role: 'user', text: turn.text, done: true }
-      : { role: 'ai', text: turn.text, skill, modelName: historicalModel(turn.provider, turn.model)?.name ?? turn.model ?? turn.provider, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), execution: turn.execution, durationMs: turn.durationMs })
+      ? { role: 'user', text: turn.text, done: true, answerTo: turn.answerTo }
+      : { role: 'ai', text: turn.text, question: turn.question, runId: turn.runId, skill, modelName: historicalModel(turn.provider, turn.model)?.name ?? turn.model ?? turn.provider, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), execution: turn.execution, durationMs: turn.durationMs })
+    if (pendingQuestion.value && run.requestId && run.clientSessionId) {
+      saveSubmission({ requestId: run.requestId, sessionId: run.clientSessionId, text: run.userMessage ?? '', skill: run.skill, model: selectedModel.value })
+    }
     if (run.clientSessionId && run.engine === 'pi' && run.outcome === 'aborted' && run.userMessage) {
       resumable.value = {
         requestId: newRequestId(), sessionId: run.clientSessionId, resumeOf: run.runId, text: '继续任务',
@@ -763,8 +801,8 @@ async function recoverSubmission(task: ChatSubmission) {
     if (result.state === 'settling') throw new Error()
     if (result.latest) {
       if (!await openRun(result.latest, seq)) throw new Error()
-      if (result.state === 'saved' || (task.resumeOf && result.latest.runId !== task.resumeOf)) {
-        if (!resumable.value) saveSubmission(null)
+      if (result.state === 'saved' || ((task.resumeOf || task.answerTo) && result.latest.runId !== (task.resumeOf || task.answerTo))) {
+        if (!resumable.value && !pendingQuestion.value) saveSubmission(null)
         return
       }
     }
@@ -778,10 +816,11 @@ async function recoverSubmission(task: ChatSubmission) {
     selectedModel.value = task.model
     if (!task.resumeOf) {
       const names = task.attachments?.map(file => file.name)
-      messages.value.push({ role: 'user', text: task.text + (names?.length ? '\n[附件] ' + names.join('、') : ''), done: true })
+      messages.value.push({ role: 'user', answerTo: task.answerTo, text: task.text + (names?.length ? '\n[附件] ' + names.join('、') : ''), done: true })
     }
     if (!result.retryId) throw new Error()
     resumable.value = { ...task, requestId: result.retryId }
+    saveSubmission(task)
   } catch {
     if (seq === selectionSeq) recoveryFailed.value = true
   } finally {
@@ -957,6 +996,7 @@ onBeforeUnmount(() => {
                  实时占位条目无结局也无操作，落库后由真实分组接管） -->
             <span class="exp-hist-side">
               <span v-if="group.running" class="use-hist-outcome is-running">运行中</span>
+              <span v-else-if="group.latest.question" class="use-hist-outcome is-pending">待回复</span>
               <span v-else-if="!group.live" class="use-hist-outcome" :class="`is-${group.latest.outcome}`">{{ OUTCOME_LABEL[group.latest.outcome] ?? group.latest.outcome }}</span>
               <button
                 v-if="!group.archived && !group.live"
@@ -1019,9 +1059,9 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="!loadingConversation && messages.length > 0" class="exp-stream">
-          <template v-for="(msg, mi) in messages" :key="mi">
-            <div v-if="msg.role === 'user'" class="exp-msg-user">{{ msg.text }}</div>
-            <div v-else class="exp-msg-ai">
+          <template v-for="(msg, mi) in messages" :key="msg.runId ?? mi">
+            <div v-if="msg.role === 'user' && !(mi && replyText(mi - 1))" class="exp-msg-user">{{ msg.text }}</div>
+            <div v-else-if="msg.role === 'ai'" class="exp-msg-ai">
               <span class="exp-ai-avatar" :style="msg.skill ? { background: `var(--cat-${msg.skill.categoryId}-soft)`, color: `var(--cat-${msg.skill.categoryId})` } : {}">
                 <Icon :name="msg.skill ? msg.skill.categoryId : 'brand'" :size="16" />
               </span>
@@ -1036,8 +1076,11 @@ onBeforeUnmount(() => {
                 </div>
                 <ToolCallGroup v-if="msg.real && (msg.execution?.length || msg.durationMs !== undefined || !msg.done)"
                   :steps="msg.execution ?? []" :duration-ms="msg.done ? msg.durationMs : elapsedMs" :running="!msg.done" />
-                <ReportOutput :text="msg.text" :charts="msg.charts" :has-resources="resourceCount(msg) > 0"
-                  :html-mode="msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
+                <ReportOutput v-if="msg.text || !msg.question" :text="msg.text" :charts="msg.charts" :has-resources="resourceCount(msg) > 0"
+                  :html-mode="!msg.question && msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
+                <ChatQuestionCard v-if="msg.question" :request="msg.question" :run-id="msg.runId"
+                  :pending="msg === pendingQuestion" :answer="replyText(mi)" :disabled="sending || loadingConversation || attachUploading"
+                  @answer="answerQuestion(msg, $event)" />
                 <button v-if="resourceCount(msg)" type="button" class="exp-resource-reference" aria-controls="conversation-resource-list" @click="resourcePanel?.reveal(mi)">
                   <Icon name="file" :size="13" />{{ resourceCount(msg) }} 项生成资源<span>查看资源<Icon name="chev" :size="12" /></span>
                 </button>

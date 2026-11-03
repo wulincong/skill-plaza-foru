@@ -1957,7 +1957,7 @@ a.runs-row:hover { background: var(--surface-sunken); color: var(--ink-body); }
 .use-hist-outcome.is-timeout { background: color-mix(in srgb, var(--sk-orange) 14%, transparent); color: var(--sk-orange); }
 .use-hist-outcome.is-error { background: color-mix(in srgb, var(--sk-red) 12%, transparent); color: var(--sk-red); }
 .use-hist-outcome.is-aborted, .use-hist-outcome.is-historical { background: var(--sk-fill); color: var(--sk-ink-3); }
-.use-hist-outcome.is-running { background: color-mix(in srgb, var(--sk-blue) 12%, transparent); color: var(--sk-blue); }
+.use-hist-outcome.is-pending, .use-hist-outcome.is-running { background: color-mix(in srgb, var(--sk-blue) 12%, transparent); color: var(--sk-blue); }
 
 /* 开发侧测试配置，仅 PLAZA_ENV=test 的就业指导工作台挂载。 */
 .use-test-templates {

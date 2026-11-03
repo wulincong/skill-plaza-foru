@@ -50,7 +50,14 @@ for await(const line of createInterface({input:process.stdin})) {
    writeFileSync('delivery.json',JSON.stringify({web:[{name:'测试网页',directory:'output/public/site',entry:'index.html'}],files:[{name:'测试交付包',path:c.message.includes('invalid')?'missing.zip':'output/public/report.zip'}]}));
    if(c.message.includes('unreadable'))chmodSync('delivery.json',0);
   }
-  last='完成';messages.push({role:'assistant',content:[{type:'text',text:last}]});
+  last='完成';
+  if(c.message.includes('follow-up ask-fixture') && c.message.includes('【在线对话提问约定】')) {
+   const kind=c.message.match(/ask-fixture-(confirm|multiple|single|input)/)?.[1] || 'single';
+   const question={kind,question:'怎样继续分析？',options:kind==='input'?[]:[{label:'大专经验不限',description:'54 条'},{label:'宽口径'}]};
+   const fence=String.fromCharCode(96).repeat(3);
+   last='已核对样本。'+String.fromCharCode(10,10)+fence+'plaza-question'+String.fromCharCode(10)+JSON.stringify(question)+String.fromCharCode(10)+fence;
+  }
+  messages.push({role:'assistant',content:[{type:'text',text:last}]});
   mkdirSync('.pi-sessions',{recursive:true});writeFileSync(stateFile,JSON.stringify({messages,nativeId}));
  }
  send({type:'response',id:c.id,command:c.type,success:true,data});
@@ -191,6 +198,40 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true })
   await stop(); await start()
   assert.equal((await fetch(url)).status, 200)
+  await t.test('a report may request a decision; the original session accepts one answer after restart', async t => {
+    const sessionId = 'sess-' + randomBytes(16).toString('hex')
+    t.after(() => rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true }))
+    const post = (content, extra = {}) => fetch(base + '/api/chat', {
+      method: 'POST', body: JSON.stringify({ sessionId, skill: 'career-guidance', interactive: true,
+        requestId: randomBytes(16).toString('hex'), messages: [{ role: 'user', content }], ...extra }),
+    })
+    const body = await (await post('follow-up ask-fixture-single')).text()
+    assert.doesNotMatch(body, /plaza-question|报告未生成/)
+    const frames = body.split('\n').filter(line => line.startsWith('data: {')).map(line => JSON.parse(line.slice(6)))
+    const done = frames.at(-1)
+    assert.equal(done.content, '已核对样本。')
+    assert.equal(done.question.kind, 'single')
+    await stop(); await start()
+    const history = await fetch(base + '/api/runs/' + done.runId).then(r => r.json())
+    assert.equal(history.item.outcome, 'success')
+    assert.deepEqual(history.conversation.at(-1).question, done.question)
+    assert.equal(history.conversation.at(-1).text, done.content)
+    assert.equal((await post('宽口径', { sessionId: sessionId + '-wrong', answerTo: done.runId })).status, 409)
+    const submissions = await Promise.all([post('宽口径', { answerTo: done.runId }), post('另一个口径', { answerTo: done.runId })])
+    assert.deepEqual(submissions.map(r => r.status).sort(), [200, 409])
+    const reply = await submissions.find(r => r.ok).text()
+    const answeredId = JSON.parse(reply.split('\n').find(line => line.includes('"type":"done"')).slice(6)).runId
+    let answered
+    for (let i = 0; i < 100; i++) {
+      answered = await fetch(base + '/api/runs/' + answeredId).then(r => r.json())
+      if (answered.conversation) break
+      await pause(20)
+    }
+    assert.equal(answered.conversation.at(-2).answerTo, done.runId)
+    assert.equal(answered.conversation.at(-2).text, answered.item.userMessage)
+    assert.equal((await post('迟到的回复', { answerTo: done.runId })).status, 409)
+    assert.equal((await post('普通回答不可作为提问', { answerTo: answeredId })).status, 409)
+  })
   await t.test('refresh before receipt or during a turn, then resume once with original attachments', async t => {
     const id = () => randomBytes(16).toString('hex')
     const sessionId = 'sess-' + id()

@@ -1,3 +1,4 @@
+import type { ChatQuestion } from '../../shared/chatQuestion'
 /* ============================================================
    模型对话接入（Node 后端 → pi RPC）
    ------------------------------------------------------------
@@ -48,7 +49,7 @@ export type ChatEvent =
   | { type: 'execution'; index: number; step: ExecutionStep }
   | { type: 'text'; delta: string }
   | { type: 'usage'; usage: Record<string, number | string> }
-  | { type: 'done'; durationMs?: number; content: string; resultType?: string; charts?: ReportChart[]; runId?: string; reportUrl?: string; webLinks?: DeliveryLink[]; downloads?: DeliveryLink[] }
+  | { type: 'done'; question?: ChatQuestion; durationMs?: number; content: string; resultType?: string; charts?: ReportChart[]; runId?: string; reportUrl?: string; webLinks?: DeliveryLink[]; downloads?: DeliveryLink[] }
   | { type: 'error'; durationMs?: number; message: string }
 
 export async function checkHealth(): Promise<HealthResult> {
@@ -73,6 +74,8 @@ export interface ChatAttachment {
 }
 
 export interface StreamChatOptions {
+  interactive?: boolean
+  answerTo?: string
   requestId?: string
   resumeOf?: string
   model?: ChatModelId
@@ -89,17 +92,22 @@ export interface StreamChatOptions {
 }
 
 /** 流式对话：消费 /api/chat 的 SSE，逐事件回调。 */
+export class ChatRequestError extends Error {
+  readonly status: number
+  constructor(message: string, status: number) { super(message); this.status = status }
+}
+
 export async function streamChat(options: StreamChatOptions): Promise<void> {
   const { skill, model, taskTitle, messages, sessionId, attachments, onEvent, signal } = options
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skill, model, taskTitle, messages, sessionId, attachments, requestId: options.requestId, resumeOf: options.resumeOf }),
+    body: JSON.stringify({ interactive: options.interactive, answerTo: options.answerTo, skill, model, taskTitle, messages, sessionId, attachments, requestId: options.requestId, resumeOf: options.resumeOf }),
     signal,
   })
   if (!response.ok || !response.body) {
     const data = (await response.json().catch(() => ({}))) as { error?: string }
-    throw new Error(data.error || '请求失败，请稍后重试。')
+    throw new ChatRequestError(data.error || '请求失败，请稍后重试。', response.status)
   }
 
   const reader = response.body.getReader()

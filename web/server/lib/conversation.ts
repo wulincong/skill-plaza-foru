@@ -1,4 +1,6 @@
 import type { ExecutionStep } from '../../shared/execution.ts'
+import { projectQuestion, QUESTION_INSTRUCTION } from './chatQuestion.ts'
+import type { ChatQuestion } from '../../shared/chatQuestion.ts'
 import { publicToolPurpose } from './execution.ts'
 import type { RunRecord } from './traceExport.ts'
 
@@ -10,6 +12,8 @@ export interface ConversationTool {
 }
 
 export interface ConversationTurn {
+  question?: ChatQuestion
+  answerTo?: string
   role: 'user' | 'assistant'
   runId?: string
   durationMs?: number
@@ -79,7 +83,8 @@ export function deriveSessionConversation(
     // A missing trace must not remove a saved user message or its published files.
     for (const run of group.runs.slice(group.captured)) {
       turns.push({ role: 'user', runId: run.runId, text: (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '') })
-      if (run.webLinks?.length || run.downloads?.length) turns.push({ role: 'assistant', text: '', webLinks: run.webLinks, downloads: run.downloads })
+      if (run.question) turns.push({ role: 'assistant', runId: run.runId, text: '', question: run.question, webLinks: run.webLinks, downloads: run.downloads })
+      else if (run.webLinks?.length || run.downloads?.length) turns.push({ role: 'assistant', text: '', webLinks: run.webLinks, downloads: run.downloads })
     }
     return turns
   })
@@ -91,11 +96,29 @@ export function deriveSessionConversation(
     const text = (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '')
     conversation.splice(at < 0 ? conversation.length : at, 0, { role: 'user', runId: run.runId, text })
   }
+  const byRun = new Map(runs.map(run => [run.runId, run]))
+  for (const [i, turn] of conversation.entries()) {
+    const run = turn.runId && byRun.get(turn.runId)
+    if (!run) continue
+    if (turn.role === 'user') {
+      if (run.answerTo) turn.answerTo = run.answerTo
+    } else if (run.question || (run.protocol !== 'openai' && run.engine === 'pi' && run.outcome === 'success')) {
+      const projected = projectQuestion(turn.text)
+      if (run.question || projected.question) {
+        turn.question = run.question ?? projected.question
+        turn.text = projected.text
+        // Pre-card conversations recorded the actual reply as the next user turn.
+        const next = conversation[i + 1]
+        if (!run.question && next?.role === 'user') next.answerTo = turn.runId
+      }
+    }
+  }
   return conversation
 }
 
 export function stripUserPrompt(text: string, wrappers: PromptWrapper[]): string {
   let body = text.trimStart()
+  if (body.endsWith('\n\n' + QUESTION_INSTRUCTION)) body = body.slice(0, -(QUESTION_INSTRUCTION.length + 2))
   // 先处理 Pi 已展开的技能；空前后缀不能先命中并吞掉后续清理逻辑。
   if (/^<skill\s+[^>]*\blocation=/.test(body)) {
     const close = body.indexOf('</skill>')
