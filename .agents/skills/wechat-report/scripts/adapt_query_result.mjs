@@ -1,6 +1,6 @@
 // Presentation adapter: consumes talent-result/1 only. No DB configuration or SQL.
 import {fileURLToPath} from 'node:url'
-export const ADAPTER_VERSION='wechat-adapter/2'
+export const ADAPTER_VERSION='wechat-adapter/3'
 const pct=(a,b)=>b?Number((a/b*100).toFixed(2)):null
 export function adaptResult(result,{sections=[],audience='院校与产业研究读者',industryLabel,enumLabels}={}) {
   if(result.schema!=='talent-result/1'||!result.consistency?.completeTransaction)throw new Error('需要完整事务的 talent-result/1 工件')
@@ -50,6 +50,26 @@ export function adaptResult(result,{sections=[],audience='院校与产业研究�
   if(tracks){d.subtrack=tracks.rows.map(r=>({name:r.label,key:r.track,count:r.count,pct:pct(r.count,total)}));bind('/subtrack',['track.distribution'])}
   const ts=get('track_salary.summary')
   if(ts){d.salary_by_track=ts.rows.map(r=>({name:r.label,key:r.track,count:r.count,valid:r.validN,...r.summary}));bind('/salary_by_track',['track_salary.summary'])}
+  const cs=get('city_salary.summary')
+  if(cs&&cities) {
+    const groups=new Map()
+    for(const row of cities.rows) {
+      const key=JSON.stringify([row.province,row.city])
+      if(!groups.has(key))groups.set(key,{count:0,bachelorCount:0,higherCount:0})
+      const group=groups.get(key);group.count+=row.count
+      if(row.education==='BENKE')group.bachelorCount+=row.count
+      if(['BENKE','SHUOSHI','BOSHI'].includes(row.education))group.higherCount+=row.count
+    }
+    d.city_profiles=cs.rows.filter(row=>row.province&&row.city).map(row=>{
+      const education=groups.get(JSON.stringify([row.province,row.city]))
+      if(!education||education.count!==row.count)throw new Error('城市薪酬与学历样本基数不一致')
+      return {name:all.resolved.region.level==='national'?`${row.province}·${row.city}`:row.city,
+        province:row.province,city:row.city,count:row.count,valid:row.validN,...row.summary,
+        bachelorCount:education.bachelorCount,bachelorShare:pct(education.bachelorCount,row.count),
+        higherCount:education.higherCount,higherShare:pct(education.higherCount,row.count)}
+    })
+    bind('/city_profiles',['city_salary.summary','city_education.cross'])
+  }
   const sk=get('skills.distribution')
   if(sk){d.keywords=sk.rows.map(r=>({name:r.skill,count:r.count,pct:pct(r.count,total),described_pct:r.describedShare===null?null:r.describedShare*100}));d.skill_described_n=sk.describedN;bind('/keywords',['skills.distribution']);bind('/skill_described_n',['skills.distribution'])}
   const tsk=get('track_skills.cross')

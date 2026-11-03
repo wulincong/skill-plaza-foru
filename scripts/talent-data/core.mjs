@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const VERSION = 'talent-query-engine/1.2.0'
+export const VERSION = 'talent-query-engine/1.3.0'
 export class QueryError extends Error {
   constructor(code, message, details = {}) { super(message); this.code = code; this.details = details }
 }
@@ -53,11 +53,12 @@ export const METRICS = {
   'track.distribution': {kind:'distribution',unit:'job_records',analysis:true,description:'显式有序规则互斥归类，含未分类'},
   'city_track.cross': {kind:'cross',unit:'job_records',analysis:true,dimensions:['city'],description:'城市×同一互斥方向的完整频数'},
   'track_salary.summary': {kind:'distribution',unit:'K_CNY/month',analysis:true,description:'同一方向及薪酬策略的分组摘要'},
+  'city_salary.summary': {kind:'distribution',unit:'K_CNY/month',analysis:true,dimensions:['city'],description:'企业关联地址城市的同口径薪酬分位、有效量和排除量'},
   'skills.distribution': {kind:'distribution',unit:'job_records',analysis:true,description:'描述中显式技能词的岗位提及计数，不返回描述'},
   'track_skills.cross': {kind:'cross',unit:'job_records',analysis:true,description:'方向×技能提及计数，保留全岗位和有效描述分母'},
 }
 export const DIMENSIONS = { education: 'p.education', experience: 'p.experience', jobType: 'p.type', source: 'p.data_source', city: 'a.city', province: 'a.province', title: 'p.name' }
-export const LIMITS = { cohorts: 4, metrics: 19, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
+export const LIMITS = { cohorts: 4, metrics: 20, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
 
 function analysisPolicy(raw,metrics) {
   const a=object(raw??{},['tracks','skills'],'analysis'),out={}

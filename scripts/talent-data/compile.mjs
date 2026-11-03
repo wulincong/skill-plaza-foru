@@ -114,9 +114,10 @@ export function buildPlan(request,cohorts) {
       const hits=`JSON_OBJECT(${Object.entries(skillFields(request)).map(([w,s])=>`${sqlString(w)},${s}`).join(',')})`
       jobs.push({id:`${prefix}:skills`,cohortId:prefix,kind:'skills',sql:`SELECT ${jsonRow({track,count:'COUNT(*)',describedN:"COALESCE(SUM(NULLIF(TRIM(p.description),'') IS NOT NULL),0)",hits})} ${base} GROUP BY ${track}`})
     }
-    if(request.metrics.some(m=>m.startsWith('salary.')||m==='track_salary.summary')) {
+    if(request.metrics.some(m=>m.startsWith('salary.')||['track_salary.summary','city_salary.summary'].includes(m))) {
       const {status,mid}=salaryParts()
-      const track=request.metrics.includes('track_salary.summary')?{track:trackExpression(request)}:{}
+      const track={...(request.metrics.includes('track_salary.summary')?{track:trackExpression(request)}:{}),
+        ...(request.metrics.includes('city_salary.summary')?{province:clean('a.province'),city:clean('a.city')}:{})}
       jobs.push({id:`${prefix}:salary`,cohortId:prefix,kind:'salary',sql:`SELECT ${jsonRow({...track,status,mid:`CASE WHEN (${status})='valid' THEN ${mid} ELSE NULL END`,count:'COUNT(*)'})} ${base} GROUP BY ${Object.values(track).map(v=>v+',').join('')}${status},CASE WHEN (${status})='valid' THEN ${mid} ELSE NULL END LIMIT 40001`})
     }
   }

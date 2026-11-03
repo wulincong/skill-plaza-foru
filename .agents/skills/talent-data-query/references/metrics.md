@@ -31,3 +31,5 @@ salary-policy/1 要求两端为严格数值（最多六位小数），0 < min <=
 薪酬采用固定分箱 `<3 / 3–6 / 6–10 / 10–15 / 15–25 / 25K+`，不接受自定义分箱；可通过独立 cohort 实现同口径城市/岗位对比，也可通过显式方向规则请求 track_salary.summary。新分箱、专业与多标签分布需新增能力并验收；LQ可从完整城市×方向频数按有版本的公式派生。
 
 1.2 扩展五项指标：track.distribution、city_track.cross、track_salary.summary、skills.distribution、track_skills.cross，见 [analysis.md](analysis.md)。分方向薪酬已支持，方向来自显式首个命中规则，不能把它当成官方产业细分。每组最多五条基础/交叉/方向/技能/薪酬聚合即可供完整报告使用；不请求来源/标题排名时避免额外扫描。新模块仍按 cohort 独立执行，不声称一次 CLI 等于一次扫描。
+
+1.3扩展city_salary.summary：企业关联地址城市的完整薪酬摘要，返回省、市、count、validN、excludedN及summary；同salary-policy/1，不是实际收入。复用原完整薪酬频数查询按需增加城市维度，无方向规则也可请求；缺失省市保留。与city_education.cross联合使用时，按省市连接并检查同一城市岗位基数，学历要求比例以该城市全部岗位为分母。不得将城市平均/中位数按城市简单平均来替代总体分位。

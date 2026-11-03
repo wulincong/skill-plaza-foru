@@ -44,6 +44,36 @@ export function analysisMetrics(request,cohort,logs,total,salaryStatistics,check
     }
   }
   const salary=logs.get(`${id}:salary`)
+  if(salary&&total!==null&&request.metrics.includes('city_salary.summary')) {
+    const grouped=new Map()
+    for(const raw of salary.rows) {
+      const geography=normalizeGeography(raw,cohort.resolved.region)
+      const key=JSON.stringify([geography.province??null,geography.city??null])
+      if(!grouped.has(key))grouped.set(key,{province:geography.province??null,city:geography.city??null,rows:[]})
+      grouped.get(key).rows.push(raw)
+    }
+    const cube=logs.get(`${id}:cube`)
+    const cityCounts=new Map()
+    if(cube?.rows.length&&cube.rows.every(row=>Object.hasOwn(row,'city'))) {
+      for(const raw of cube.rows) {
+        const geography=normalizeGeography(raw,cohort.resolved.region)
+        const key=JSON.stringify([geography.province??null,geography.city??null])
+        cityCounts.set(key,(cityCounts.get(key)??0)+count(raw.count))
+      }
+    }
+    const groupConsistent=!cityCounts.size||[...new Set([...cityCounts.keys(),...grouped.keys()])].every(key=>(cityCounts.get(key)??0)===sum(grouped.get(key)?.rows??[]))
+    const ok=sum(salary.rows)===total&&groupConsistent
+    checks.push({id:`${id}:city-salary-total`,pass:ok,expected:total,actual:sum(salary.rows)})
+    if(ok) {
+      const rows=[...grouped.values()].map(group=>{
+        const s=salaryStatistics(group.rows)
+        return {province:group.province,city:group.city,count:sum(group.rows),validN:s.validN,excludedN:s.excludedN,summary:s.summary}
+      }).sort((a,b)=>b.count-a.count||JSON.stringify([a.province,a.city]).localeCompare(JSON.stringify([b.province,b.city])))
+      values.set('city_salary.summary',{rows,totalCount:total,completeDistribution:true,
+        missingN:rows.filter(row=>!row.province||!row.city).reduce((n,row)=>n+row.count,0),
+        method:'city-salary-policy/1; 企业关联地址，非已核验工作地；salary-policy/1；同事务完整频数加权分位，不是实际到手收入',evidenceIds:[salary.id]})
+    }
+  }
   if(salary&&total!==null&&request.metrics.includes('track_salary.summary')) {
     const grouped=new Map()
     for(const r of salary.rows){checkTrack(r);if(!grouped.has(r.track))grouped.set(r.track,[]);grouped.get(r.track).push(r)}
