@@ -48,7 +48,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |
 | 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现（探针会话验证；kill 链与技能全链路待观察） | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
-| 088 | 统一资源展示与网页服务托管：多产物登记、独立域发布、分享授权及版本 | 设计方案，待实现 | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
+| 088 | 产物交付：网页分享与资源下载，轻量双通道 | 简化设计，待实现（原复杂方案已废弃） | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
 | 079 | doc-translate：PDF 翻译/交付、专用表单、附件会话绑定、真实失败呈现与工件更新校验 | 已实现（真实浏览器全链路/低权 XeLaTeX/下载/历史恢复/21 项回归通过；长文档待验证） | [079-doc-translate-skill.md](references/079-doc-translate-skill.md) |
 | 081 | doc-translate 原图保留：位图素材清单、原 PDF 矢量裁切引用、图注翻译 | 已实现（4 项素材回归/构建/真实 Pi 图文翻译与下载通过） | [081-doc-translate-original-figures.md](references/081-doc-translate-original-figures.md) |
 | 083 | wechat-report：公众号报告技能安装、Linux 工具链与无表单对话入口 | 安装已实现（11-02 审查复现数据范围/质检/渲染/交付缺陷，待修） | [083-wechat-report-skill.md](references/083-wechat-report-skill.md) |
