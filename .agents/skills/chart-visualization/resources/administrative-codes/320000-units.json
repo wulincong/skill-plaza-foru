@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "江苏省",
+    "provinceCode": "320000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "202b591ca2a03c002599e4d5f082fab0a5ec59a73c614df32c5b05b06338f253",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/320000-units.geojson",
+  "cities": [
+    {
+      "code": "320100",
+      "name": "南京市",
+      "aliases": [
+        "南京"
+      ]
+    },
+    {
+      "code": "320200",
+      "name": "无锡市",
+      "aliases": [
+        "无锡"
+      ]
+    },
+    {
+      "code": "320300",
+      "name": "徐州市",
+      "aliases": [
+        "徐州"
+      ]
+    },
+    {
+      "code": "320400",
+      "name": "常州市",
+      "aliases": [
+        "常州"
+      ]
+    },
+    {
+      "code": "320500",
+      "name": "苏州市",
+      "aliases": [
+        "苏州"
+      ]
+    },
+    {
+      "code": "320600",
+      "name": "南通市",
+      "aliases": [
+        "南通"
+      ]
+    },
+    {
+      "code": "320700",
+      "name": "连云港市",
+      "aliases": [
+        "连云港"
+      ]
+    },
+    {
+      "code": "320800",
+      "name": "淮安市",
+      "aliases": [
+        "淮安"
+      ]
+    },
+    {
+      "code": "320900",
+      "name": "盐城市",
+      "aliases": [
+        "盐城"
+      ]
+    },
+    {
+      "code": "321000",
+      "name": "扬州市",
+      "aliases": [
+        "扬州"
+      ]
+    },
+    {
+      "code": "321100",
+      "name": "镇江市",
+      "aliases": [
+        "镇江"
+      ]
+    },
+    {
+      "code": "321200",
+      "name": "泰州市",
+      "aliases": [
+        "泰州"
+      ]
+    },
+    {
+      "code": "321300",
+      "name": "宿迁市",
+      "aliases": [
+        "宿迁"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "南京": "320100",
+    "南京市": "320100",
+    "南通": "320600",
+    "南通市": "320600",
+    "宿迁": "321300",
+    "宿迁市": "321300",
+    "常州": "320400",
+    "常州市": "320400",
+    "徐州": "320300",
+    "徐州市": "320300",
+    "扬州": "321000",
+    "扬州市": "321000",
+    "无锡": "320200",
+    "无锡市": "320200",
+    "泰州": "321200",
+    "泰州市": "321200",
+    "淮安": "320800",
+    "淮安市": "320800",
+    "盐城": "320900",
+    "盐城市": "320900",
+    "苏州": "320500",
+    "苏州市": "320500",
+    "连云港": "320700",
+    "连云港市": "320700",
+    "镇江": "321100",
+    "镇江市": "321100"
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "宁夏回族自治区",
+    "provinceCode": "640000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "cd823ecb2f54009c8931e1386926a4aaf06d2c579fa7810320a8a990f45e971e",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/640000-units.geojson",
+  "cities": [
+    {
+      "code": "640100",
+      "name": "银川市",
+      "aliases": [
+        "银川"
+      ]
+    },
+    {
+      "code": "640200",
+      "name": "石嘴山市",
+      "aliases": [
+        "石嘴山"
+      ]
+    },
+    {
+      "code": "640300",
+      "name": "吴忠市",
+      "aliases": [
+        "吴忠"
+      ]
+    },
+    {
+      "code": "640400",
+      "name": "固原市",
+      "aliases": [
+        "固原"
+      ]
+    },
+    {
+      "code": "640500",
+      "name": "中卫市",
+      "aliases": [
+        "中卫"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "中卫": "640500",
+    "中卫市": "640500",
+    "吴忠": "640300",
+    "吴忠市": "640300",
+    "固原": "640400",
+    "固原市": "640400",
+    "石嘴山": "640200",
+    "石嘴山市": "640200",
+    "银川": "640100",
+    "银川市": "640100"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-340000-city",
+  "scope": {
+    "country": "中国",
+    "province": "安徽省",
+    "provinceCode": "340000",
+    "level": "city"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/340000-units.json",
+  "boundaryResource": "../../../boundaries/340000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "981dce13bf457d951ed187dcfd787f74dcd24199d049e43ea66eb97af68f2d86",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

@@ -1,5 +1,6 @@
 """核对文档中的演示汇总、广东示例的图例及两种输出格式。"""
 
+from collections import Counter
 import json
 import re
 import unittest
@@ -13,6 +14,32 @@ SVG_NS = {"s": "http://www.w3.org/2000/svg"}
 
 
 class ChartExamples(unittest.TestCase):
+    def test_regional_snapshot_and_local_identifiers(self):
+        registry_dir = ROOT / "resources/regions"
+        registry = json.loads((registry_dir / "registry.json").read_text())
+        by_place, levels = {}, Counter()
+        for entry in registry["regions"]:
+            path = registry_dir / entry["manifest"]
+            manifest = json.loads(path.read_text())
+            shapes = json.loads((path.parent / manifest["boundaryResource"]).read_text())
+            names = json.loads((path.parent / manifest["cityCodeMapping"]).read_text())["cityNameToCode"]
+            features = {str(f["properties"]["adcode"]): f["properties"] for f in shapes["features"]}
+            by_place[entry["provinceCode"]] = names, features
+            levels.update(row["level"] for row in features.values())
+        self.assertEqual(len(by_place), 34)
+        self.assertEqual(levels, {"city":333, "direct-county":32, "district":103, "county-city":22,
+                                  "parish":7, "area":1})
+        self.assertEqual(by_place["420000"][1]["429021"]["level"], "direct-county")
+        self.assertEqual(by_place["650000"][1]["659012"]["name"], "白杨市")
+        self.assertIn("两江新区", by_place["500000"][0])
+        self.assertNotIn("渝北区", by_place["500000"][0])
+        self.assertEqual(by_place["810000"][0]["沙田区"], "R")
+        self.assertEqual(by_place["820000"][1]["5758867"]["level"], "area")
+        tw = by_place["710000"][0]
+        self.assertEqual(tw["連江縣"], "09007")
+        self.assertNotIn("新竹", tw)
+        self.assertNotEqual(tw["新竹县"], tw["新竹市"])
+
     def test_bar_widths_against_printed_axis(self):
         html = (ROOT / "examples/bar-chart.html").read_text()
         svg = ET.fromstring(re.search(r"<svg\b.*?</svg>", html, re.S)[0])

@@ -40,6 +40,39 @@ const requireCode = (value, label) => {
   return code;
 };
 
+// Only the province ID is always a six-digit adcode. Child IDs follow the package source.
+const requireUnitCode = (value, expected, label) => {
+  const pattern = { 'TW-COUNTYCODE': /^\d{5}$/, 'HK-district-letter': /^[A-Z]$/,
+    'OSM-relation': /^\d+$/ }[expected.codeSystem];
+  if (!pattern) return requireCode(value, label);
+  if (typeof value !== 'string' || !pattern.test(value)) fail(`${label}: invalid ${expected.codeSystem} ID ${value}`);
+  return value;
+};
+
+const validLevels = {
+  city: ['city'],
+  'city-and-direct-county': ['city', 'direct-county'],
+  district: ['district'],
+  'county-city': ['county-city'],
+  'parish-and-area': ['parish', 'area'],
+};
+
+const validateRings = (geometry, label) => {
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  if (!Array.isArray(polygons) || !polygons.length) fail(`${label}: empty geometry`);
+  for (const polygon of polygons) {
+    if (!Array.isArray(polygon) || !polygon.length) fail(`${label}: empty polygon`);
+    for (const ring of polygon) {
+      if (!Array.isArray(ring) || ring.length < 4) fail(`${label}: invalid ring`);
+      for (const point of ring) {
+        if (!Array.isArray(point) || !Number.isFinite(point[0]) || !Number.isFinite(point[1]) ||
+            Math.abs(point[0]) > 180 || Math.abs(point[1]) > 90) fail(`${label}: invalid coordinate`);
+      }
+      if (ring[0][0] !== ring.at(-1)[0] || ring[0][1] !== ring.at(-1)[1]) fail(`${label}: open ring`);
+    }
+  }
+};
+
 const assertScope = (scope, expected, label) => {
   if (!scope || typeof scope !== 'object') fail(`${label}: scope must be an object`);
   if (scope.country !== expected.country) fail(`${label}: scope.country must be ${expected.country}`);
@@ -74,7 +107,7 @@ const validateMapping = (mapping, expected, label) => {
   const namesSeen = new Map();
   for (const city of mapping.cities) {
     if (!city || typeof city !== 'object') fail(`${label}: every city must be an object`);
-    const code = requireCode(city.code, `${label}: city code`);
+    const code = requireUnitCode(city.code, expected, `${label}: city code`);
     const name = requireText(city.name, `${label}: city ${code} name`);
     if (canonicalCodes.has(code)) fail(`${label}: duplicate code ${code}`);
     canonicalCodes.add(code);
@@ -93,7 +126,7 @@ const validateMapping = (mapping, expected, label) => {
   }
 
   for (const [name, codeValue] of Object.entries(mapping.cityNameToCode)) {
-    const code = requireCode(codeValue, `${label}: cityNameToCode ${name}`);
+    const code = requireUnitCode(codeValue, expected, `${label}: cityNameToCode ${name}`);
     if (!canonicalCodes.has(code)) fail(`${label}: cityNameToCode ${name} points to unknown code ${code}`);
     if (namesSeen.get(name) !== code) {
       fail(`${label}: cityNameToCode ${name} is missing from the city aliases for ${code}`);
@@ -119,20 +152,25 @@ const validateBoundary = (boundaries, expected, mappingInfo, label) => {
   const featureCodes = new Set();
   for (const feature of boundaries.features) {
     const properties = feature?.properties ?? {};
-    const code = requireCode(properties.adcode, `${label}: boundary properties.adcode`);
+    const code = requireUnitCode(properties.adcode, expected, `${label}: boundary properties.adcode`);
     const name = requireText(properties.name, `${label}: boundary ${code} name`);
     if (featureCodes.has(code)) fail(`${label}: duplicate properties.adcode ${code}`);
     if (!canonicalCodes.has(code)) fail(`${label}: code ${code} is absent from city code mapping`);
     if (namesByCode.get(code) !== name) {
       fail(`${label}: ${code} name ${name} does not match ${namesByCode.get(code)}`);
     }
-    if (properties.level !== 'city') fail(`${label}: ${code} must have level=city`);
+    if (expected.codeSystem === 'six-digit administrative division adcode' && !code.startsWith(expected.provinceCode.slice(0,2))) {
+      fail(`${label}: ${code} belongs to a different province`);
+    }
+    if (properties.level === 'city' && !code.endsWith('00')) fail(`${label}: ${code} is not a prefectural code`);
+    if (!validLevels[expected.level]?.includes(properties.level)) fail(`${label}: ${code} has unexpected level ${properties.level}`);
     if (String(properties.parent?.adcode ?? '') !== expected.provinceCode) {
       fail(`${label}: ${code} must have parent.adcode=${expected.provinceCode}`);
     }
     if (!['MultiPolygon', 'Polygon'].includes(feature.geometry?.type)) {
       fail(`${label}: ${code} must use Polygon or MultiPolygon geometry`);
     }
+    validateRings(feature.geometry, `${label}: ${code}`);
     featureCodes.add(code);
   }
   for (const code of canonicalCodes) {
@@ -153,15 +191,15 @@ const validateRegion = async (region, registryDir, registryDefaults) => {
   const manifest = await loadJson(manifestPath, `${province} manifest`);
   if (manifest.schemaVersion !== 1) fail(`${province} manifest: schemaVersion must be 1`);
   if (manifest.resourceId !== id) fail(`${province} manifest: resourceId must be ${id}`);
-  if (manifest.codeSystem !== registryDefaults.codeSystem) {
+  if (manifest.codeSystem !== (region.codeSystem ?? registryDefaults.codeSystem)) {
     fail(`${province} manifest: codeSystem must be ${registryDefaults.codeSystem}`);
   }
   const expected = {
     country: registryDefaults.country,
     province,
     provinceCode,
-    level: registryDefaults.level,
-    codeSystem: registryDefaults.codeSystem
+    level: region.level ?? registryDefaults.level,
+    codeSystem: region.codeSystem ?? registryDefaults.codeSystem
   };
   assertScope(manifest.scope, expected, `${province} manifest`);
   const mappingRef = requireText(manifest.cityCodeMapping, `${province} manifest cityCodeMapping`);
@@ -174,6 +212,9 @@ const validateRegion = async (region, registryDir, registryDefaults) => {
   }
   if (!manifest.source || typeof manifest.source !== 'object') {
     fail(`${province} manifest: source must be an object`);
+  }
+  for (const field of ['attribution','url','license','licenseUrl','snapshot']) {
+    requireText(manifest.source[field], `${province} source.${field}`);
   }
   const mappingPath = resolve(dirname(manifestPath), mappingRef);
   const boundaryPath = resolve(dirname(manifestPath), boundaryRef);
@@ -205,6 +246,7 @@ const validateRegion = async (region, registryDir, registryDefaults) => {
     cityCount: mappingInfo.canonicalCodes.size,
     aliasCount: Object.keys(mapping.cityNameToCode).length,
     boundaryCount: featureCodes.size,
+    level: expected.level,
     mappingPath,
     boundaryPath,
     manifestPath
@@ -260,7 +302,10 @@ const labels = [...(await readFile(nationalSvg, 'utf8')).matchAll(/data-code="(\
 if (labels.length !== national.scope.count || new Set(labels.map(match => match[1])).size !== labels.length) {
   fail('national province package: expected 34 distinct six-digit provincial codes');
 }
-console.log('OK: national map validated (34 provinces and equivalents)');
+if (seenCodes.size !== labels.length || labels.some(match => !seenCodes.has(match[1]))) {
+  fail('regional registry must cover the same 34 province codes as the nationwide map');
+}
+console.log('OK: national map and all 34 regional packages indexed');
 
 const filterValue = process.argv.slice(2).find((arg) => arg.startsWith('--province='))?.split('=').slice(1).join('=');
 const filtered = filterValue
@@ -270,7 +315,7 @@ if (filterValue && filtered.length === 0) fail(`region registry: no resource pac
 
 console.log(`OK: ${filtered.length}/${regionResults.length} region packages validated`);
 for (const result of filtered) {
-  console.log(`- ${result.province} (${result.provinceCode}): ${result.cityCount} city codes, ${result.boundaryCount} matching offline boundaries, ${result.aliasCount} name aliases`);
+  console.log(`- ${result.province} (${result.provinceCode}): ${result.cityCount} ${result.level} units, ${result.boundaryCount} matching offline boundaries, ${result.aliasCount} name aliases`);
   console.log(`  manifest: ${result.manifestPath}`);
   console.log(`  boundary: ${result.boundaryPath}`);
 }

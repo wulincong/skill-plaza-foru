@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "内蒙古自治区",
+    "provinceCode": "150000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "502599f8b863045ac213c9500bc0376413cdbe2d906c038814905d3c4445d594",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/150000-units.geojson",
+  "cities": [
+    {
+      "code": "150100",
+      "name": "呼和浩特市",
+      "aliases": [
+        "呼和浩特"
+      ]
+    },
+    {
+      "code": "150200",
+      "name": "包头市",
+      "aliases": [
+        "包头"
+      ]
+    },
+    {
+      "code": "150300",
+      "name": "乌海市",
+      "aliases": [
+        "乌海"
+      ]
+    },
+    {
+      "code": "150400",
+      "name": "赤峰市",
+      "aliases": [
+        "赤峰"
+      ]
+    },
+    {
+      "code": "150500",
+      "name": "通辽市",
+      "aliases": [
+        "通辽"
+      ]
+    },
+    {
+      "code": "150600",
+      "name": "鄂尔多斯市",
+      "aliases": [
+        "鄂尔多斯"
+      ]
+    },
+    {
+      "code": "150700",
+      "name": "呼伦贝尔市",
+      "aliases": [
+        "呼伦贝尔"
+      ]
+    },
+    {
+      "code": "150800",
+      "name": "巴彦淖尔市",
+      "aliases": [
+        "巴彦淖尔"
+      ]
+    },
+    {
+      "code": "150900",
+      "name": "乌兰察布市",
+      "aliases": [
+        "乌兰察布"
+      ]
+    },
+    {
+      "code": "152200",
+      "name": "兴安盟",
+      "aliases": [
+        "兴安"
+      ]
+    },
+    {
+      "code": "152500",
+      "name": "锡林郭勒盟",
+      "aliases": [
+        "锡林郭勒"
+      ]
+    },
+    {
+      "code": "152900",
+      "name": "阿拉善盟",
+      "aliases": [
+        "阿拉善"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "乌兰察布": "150900",
+    "乌兰察布市": "150900",
+    "乌海": "150300",
+    "乌海市": "150300",
+    "兴安": "152200",
+    "兴安盟": "152200",
+    "包头": "150200",
+    "包头市": "150200",
+    "呼伦贝尔": "150700",
+    "呼伦贝尔市": "150700",
+    "呼和浩特": "150100",
+    "呼和浩特市": "150100",
+    "巴彦淖尔": "150800",
+    "巴彦淖尔市": "150800",
+    "赤峰": "150400",
+    "赤峰市": "150400",
+    "通辽": "150500",
+    "通辽市": "150500",
+    "鄂尔多斯": "150600",
+    "鄂尔多斯市": "150600",
+    "锡林郭勒": "152500",
+    "锡林郭勒盟": "152500",
+    "阿拉善": "152900",
+    "阿拉善盟": "152900"
+  }
+}

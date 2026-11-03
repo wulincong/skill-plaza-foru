@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "吉林省",
+    "provinceCode": "220000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "dfb805f725c6321eef767c4e5d09393648e39df4dfc02b6f24171a2357d1dffe",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/220000-units.geojson",
+  "cities": [
+    {
+      "code": "220100",
+      "name": "长春市",
+      "aliases": [
+        "长春"
+      ]
+    },
+    {
+      "code": "220200",
+      "name": "吉林市",
+      "aliases": [
+        "吉林"
+      ]
+    },
+    {
+      "code": "220300",
+      "name": "四平市",
+      "aliases": [
+        "四平"
+      ]
+    },
+    {
+      "code": "220400",
+      "name": "辽源市",
+      "aliases": [
+        "辽源"
+      ]
+    },
+    {
+      "code": "220500",
+      "name": "通化市",
+      "aliases": [
+        "通化"
+      ]
+    },
+    {
+      "code": "220600",
+      "name": "白山市",
+      "aliases": [
+        "白山"
+      ]
+    },
+    {
+      "code": "220700",
+      "name": "松原市",
+      "aliases": [
+        "松原"
+      ]
+    },
+    {
+      "code": "220800",
+      "name": "白城市",
+      "aliases": [
+        "白城"
+      ]
+    },
+    {
+      "code": "222400",
+      "name": "延边朝鲜族自治州",
+      "aliases": [
+        "延边",
+        "延边州",
+        "延边朝鲜族"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "吉林": "220200",
+    "吉林市": "220200",
+    "四平": "220300",
+    "四平市": "220300",
+    "延边": "222400",
+    "延边州": "222400",
+    "延边朝鲜族": "222400",
+    "延边朝鲜族自治州": "222400",
+    "松原": "220700",
+    "松原市": "220700",
+    "白城": "220800",
+    "白城市": "220800",
+    "白山": "220600",
+    "白山市": "220600",
+    "辽源": "220400",
+    "辽源市": "220400",
+    "通化": "220500",
+    "通化市": "220500",
+    "长春": "220100",
+    "长春市": "220100"
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "辽宁省",
+    "provinceCode": "210000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "7e615331607f3814cb3ab65b6cff92171e3e9851a9c13af1bdfe76197c2c33fb",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/210000-units.geojson",
+  "cities": [
+    {
+      "code": "210100",
+      "name": "沈阳市",
+      "aliases": [
+        "沈阳"
+      ]
+    },
+    {
+      "code": "210200",
+      "name": "大连市",
+      "aliases": [
+        "大连"
+      ]
+    },
+    {
+      "code": "210300",
+      "name": "鞍山市",
+      "aliases": [
+        "鞍山"
+      ]
+    },
+    {
+      "code": "210400",
+      "name": "抚顺市",
+      "aliases": [
+        "抚顺"
+      ]
+    },
+    {
+      "code": "210500",
+      "name": "本溪市",
+      "aliases": [
+        "本溪"
+      ]
+    },
+    {
+      "code": "210600",
+      "name": "丹东市",
+      "aliases": [
+        "丹东"
+      ]
+    },
+    {
+      "code": "210700",
+      "name": "锦州市",
+      "aliases": [
+        "锦州"
+      ]
+    },
+    {
+      "code": "210800",
+      "name": "营口市",
+      "aliases": [
+        "营口"
+      ]
+    },
+    {
+      "code": "210900",
+      "name": "阜新市",
+      "aliases": [
+        "阜新"
+      ]
+    },
+    {
+      "code": "211000",
+      "name": "辽阳市",
+      "aliases": [
+        "辽阳"
+      ]
+    },
+    {
+      "code": "211100",
+      "name": "盘锦市",
+      "aliases": [
+        "盘锦"
+      ]
+    },
+    {
+      "code": "211200",
+      "name": "铁岭市",
+      "aliases": [
+        "铁岭"
+      ]
+    },
+    {
+      "code": "211300",
+      "name": "朝阳市",
+      "aliases": [
+        "朝阳"
+      ]
+    },
+    {
+      "code": "211400",
+      "name": "葫芦岛市",
+      "aliases": [
+        "葫芦岛"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "丹东": "210600",
+    "丹东市": "210600",
+    "大连": "210200",
+    "大连市": "210200",
+    "抚顺": "210400",
+    "抚顺市": "210400",
+    "朝阳": "211300",
+    "朝阳市": "211300",
+    "本溪": "210500",
+    "本溪市": "210500",
+    "沈阳": "210100",
+    "沈阳市": "210100",
+    "盘锦": "211100",
+    "盘锦市": "211100",
+    "营口": "210800",
+    "营口市": "210800",
+    "葫芦岛": "211400",
+    "葫芦岛市": "211400",
+    "辽阳": "211000",
+    "辽阳市": "211000",
+    "铁岭": "211200",
+    "铁岭市": "211200",
+    "锦州": "210700",
+    "锦州市": "210700",
+    "阜新": "210900",
+    "阜新市": "210900",
+    "鞍山": "210300",
+    "鞍山市": "210300"
+  }
+}

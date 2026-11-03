@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "山西省",
+    "provinceCode": "140000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "e3c3ac27201a44f75f4adbfd3c52754d2e58a89e33081ba6b9099117798f3a49",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/140000-units.geojson",
+  "cities": [
+    {
+      "code": "140100",
+      "name": "太原市",
+      "aliases": [
+        "太原"
+      ]
+    },
+    {
+      "code": "140200",
+      "name": "大同市",
+      "aliases": [
+        "大同"
+      ]
+    },
+    {
+      "code": "140300",
+      "name": "阳泉市",
+      "aliases": [
+        "阳泉"
+      ]
+    },
+    {
+      "code": "140400",
+      "name": "长治市",
+      "aliases": [
+        "长治"
+      ]
+    },
+    {
+      "code": "140500",
+      "name": "晋城市",
+      "aliases": [
+        "晋城"
+      ]
+    },
+    {
+      "code": "140600",
+      "name": "朔州市",
+      "aliases": [
+        "朔州"
+      ]
+    },
+    {
+      "code": "140700",
+      "name": "晋中市",
+      "aliases": [
+        "晋中"
+      ]
+    },
+    {
+      "code": "140800",
+      "name": "运城市",
+      "aliases": [
+        "运城"
+      ]
+    },
+    {
+      "code": "140900",
+      "name": "忻州市",
+      "aliases": [
+        "忻州"
+      ]
+    },
+    {
+      "code": "141000",
+      "name": "临汾市",
+      "aliases": [
+        "临汾"
+      ]
+    },
+    {
+      "code": "141100",
+      "name": "吕梁市",
+      "aliases": [
+        "吕梁"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "临汾": "141000",
+    "临汾市": "141000",
+    "吕梁": "141100",
+    "吕梁市": "141100",
+    "大同": "140200",
+    "大同市": "140200",
+    "太原": "140100",
+    "太原市": "140100",
+    "忻州": "140900",
+    "忻州市": "140900",
+    "晋中": "140700",
+    "晋中市": "140700",
+    "晋城": "140500",
+    "晋城市": "140500",
+    "朔州": "140600",
+    "朔州市": "140600",
+    "运城": "140800",
+    "运城市": "140800",
+    "长治": "140400",
+    "长治市": "140400",
+    "阳泉": "140300",
+    "阳泉市": "140300"
+  }
+}

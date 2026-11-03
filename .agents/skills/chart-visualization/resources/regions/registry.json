@@ -6,22 +6,353 @@
   "nationalProvinceMap": "cn/100000/manifest.json",
   "regions": [
     {
-      "id": "cn-440000-city",
-      "province": "广东省",
-      "provinceCode": "440000",
-      "manifest": "cn/440000/manifest.json"
+      "id": "cn-110000-district",
+      "province": "北京市",
+      "provinceCode": "110000",
+      "level": "district",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/110000/manifest.json"
+    },
+    {
+      "id": "cn-120000-district",
+      "province": "天津市",
+      "provinceCode": "120000",
+      "level": "district",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/120000/manifest.json"
+    },
+    {
+      "id": "cn-130000-city",
+      "province": "河北省",
+      "provinceCode": "130000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/130000/manifest.json"
+    },
+    {
+      "id": "cn-140000-city",
+      "province": "山西省",
+      "provinceCode": "140000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/140000/manifest.json"
+    },
+    {
+      "id": "cn-150000-city",
+      "province": "内蒙古自治区",
+      "provinceCode": "150000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/150000/manifest.json"
+    },
+    {
+      "id": "cn-210000-city",
+      "province": "辽宁省",
+      "provinceCode": "210000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/210000/manifest.json"
+    },
+    {
+      "id": "cn-220000-city",
+      "province": "吉林省",
+      "provinceCode": "220000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/220000/manifest.json"
+    },
+    {
+      "id": "cn-230000-city",
+      "province": "黑龙江省",
+      "provinceCode": "230000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/230000/manifest.json"
+    },
+    {
+      "id": "cn-310000-district",
+      "province": "上海市",
+      "provinceCode": "310000",
+      "level": "district",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/310000/manifest.json"
+    },
+    {
+      "id": "cn-320000-city",
+      "province": "江苏省",
+      "provinceCode": "320000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/320000/manifest.json"
     },
     {
       "id": "cn-330000-city",
       "province": "浙江省",
       "provinceCode": "330000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
       "manifest": "cn/330000/manifest.json"
+    },
+    {
+      "id": "cn-340000-city",
+      "province": "安徽省",
+      "provinceCode": "340000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/340000/manifest.json"
+    },
+    {
+      "id": "cn-350000-city",
+      "province": "福建省",
+      "provinceCode": "350000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/350000/manifest.json"
+    },
+    {
+      "id": "cn-360000-city",
+      "province": "江西省",
+      "provinceCode": "360000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/360000/manifest.json"
+    },
+    {
+      "id": "cn-370000-city",
+      "province": "山东省",
+      "provinceCode": "370000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/370000/manifest.json"
+    },
+    {
+      "id": "cn-410000-city-and-direct-county",
+      "province": "河南省",
+      "provinceCode": "410000",
+      "level": "city-and-direct-county",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/410000/manifest.json"
+    },
+    {
+      "id": "cn-420000-city-and-direct-county",
+      "province": "湖北省",
+      "provinceCode": "420000",
+      "level": "city-and-direct-county",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/420000/manifest.json"
+    },
+    {
+      "id": "cn-430000-city",
+      "province": "湖南省",
+      "provinceCode": "430000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/430000/manifest.json"
+    },
+    {
+      "id": "cn-440000-city",
+      "province": "广东省",
+      "provinceCode": "440000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/440000/manifest.json"
+    },
+    {
+      "id": "cn-450000-city",
+      "province": "广西壮族自治区",
+      "provinceCode": "450000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/450000/manifest.json"
+    },
+    {
+      "id": "cn-460000-city-and-direct-county",
+      "province": "海南省",
+      "provinceCode": "460000",
+      "level": "city-and-direct-county",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/460000/manifest.json"
+    },
+    {
+      "id": "cn-500000-district",
+      "province": "重庆市",
+      "provinceCode": "500000",
+      "level": "district",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/500000/manifest.json"
+    },
+    {
+      "id": "cn-510000-city",
+      "province": "四川省",
+      "provinceCode": "510000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/510000/manifest.json"
+    },
+    {
+      "id": "cn-520000-city",
+      "province": "贵州省",
+      "provinceCode": "520000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/520000/manifest.json"
+    },
+    {
+      "id": "cn-530000-city",
+      "province": "云南省",
+      "provinceCode": "530000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/530000/manifest.json"
+    },
+    {
+      "id": "cn-540000-city",
+      "province": "西藏自治区",
+      "provinceCode": "540000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/540000/manifest.json"
+    },
+    {
+      "id": "cn-610000-city",
+      "province": "陕西省",
+      "provinceCode": "610000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/610000/manifest.json"
+    },
+    {
+      "id": "cn-620000-city",
+      "province": "甘肃省",
+      "provinceCode": "620000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/620000/manifest.json"
+    },
+    {
+      "id": "cn-630000-city",
+      "province": "青海省",
+      "provinceCode": "630000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/630000/manifest.json"
+    },
+    {
+      "id": "cn-640000-city",
+      "province": "宁夏回族自治区",
+      "provinceCode": "640000",
+      "level": "city",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/640000/manifest.json"
+    },
+    {
+      "id": "cn-650000-city-and-direct-county",
+      "province": "新疆维吾尔自治区",
+      "provinceCode": "650000",
+      "level": "city-and-direct-county",
+      "codeSystem": "six-digit administrative division adcode",
+      "manifest": "cn/650000/manifest.json"
+    },
+    {
+      "id": "cn-710000-county-city",
+      "province": "台湾省",
+      "provinceCode": "710000",
+      "level": "county-city",
+      "codeSystem": "TW-COUNTYCODE",
+      "manifest": "cn/710000/manifest.json"
+    },
+    {
+      "id": "cn-810000-district",
+      "province": "香港特别行政区",
+      "provinceCode": "810000",
+      "level": "district",
+      "codeSystem": "HK-district-letter",
+      "manifest": "cn/810000/manifest.json"
+    },
+    {
+      "id": "cn-820000-parish-and-area",
+      "province": "澳门特别行政区",
+      "provinceCode": "820000",
+      "level": "parish-and-area",
+      "codeSystem": "OSM-relation",
+      "manifest": "cn/820000/manifest.json"
     }
   ],
   "provinceNameToCode": {
-    "广东": "440000",
-    "广东省": "440000",
+    "北京市": "110000",
+    "北京": "110000",
+    "天津市": "120000",
+    "天津": "120000",
+    "河北省": "130000",
+    "河北": "130000",
+    "山西省": "140000",
+    "山西": "140000",
+    "内蒙古自治区": "150000",
+    "内蒙古": "150000",
+    "辽宁省": "210000",
+    "辽宁": "210000",
+    "吉林省": "220000",
+    "吉林": "220000",
+    "黑龙江省": "230000",
+    "黑龙江": "230000",
+    "上海市": "310000",
+    "上海": "310000",
+    "江苏省": "320000",
+    "江苏": "320000",
+    "浙江省": "330000",
     "浙江": "330000",
-    "浙江省": "330000"
+    "安徽省": "340000",
+    "安徽": "340000",
+    "福建省": "350000",
+    "福建": "350000",
+    "江西省": "360000",
+    "江西": "360000",
+    "山东省": "370000",
+    "山东": "370000",
+    "河南省": "410000",
+    "河南": "410000",
+    "湖北省": "420000",
+    "湖北": "420000",
+    "湖南省": "430000",
+    "湖南": "430000",
+    "广东省": "440000",
+    "广东": "440000",
+    "广西壮族自治区": "450000",
+    "广西": "450000",
+    "海南省": "460000",
+    "海南": "460000",
+    "重庆市": "500000",
+    "重庆": "500000",
+    "四川省": "510000",
+    "四川": "510000",
+    "贵州省": "520000",
+    "贵州": "520000",
+    "云南省": "530000",
+    "云南": "530000",
+    "西藏自治区": "540000",
+    "西藏": "540000",
+    "陕西省": "610000",
+    "陕西": "610000",
+    "甘肃省": "620000",
+    "甘肃": "620000",
+    "青海省": "630000",
+    "青海": "630000",
+    "宁夏回族自治区": "640000",
+    "宁夏": "640000",
+    "新疆维吾尔自治区": "650000",
+    "新疆": "650000",
+    "台湾省": "710000",
+    "台湾": "710000",
+    "香港特别行政区": "810000",
+    "香港": "810000",
+    "澳门特别行政区": "820000",
+    "澳门": "820000",
+    "臺灣": "710000",
+    "臺灣省": "710000",
+    "台灣": "710000",
+    "台灣省": "710000",
+    "澳門": "820000",
+    "澳門特別行政區": "820000",
+    "香港特別行政區": "810000"
   }
 }

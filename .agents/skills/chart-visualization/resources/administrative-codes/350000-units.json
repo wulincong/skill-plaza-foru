@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "福建省",
+    "provinceCode": "350000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "aebb4fe071d3c0ed7ce10a98785a5d07dd383e8c4081eec14f0c68776712dba8",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/350000-units.geojson",
+  "cities": [
+    {
+      "code": "350100",
+      "name": "福州市",
+      "aliases": [
+        "福州"
+      ]
+    },
+    {
+      "code": "350200",
+      "name": "厦门市",
+      "aliases": [
+        "厦门"
+      ]
+    },
+    {
+      "code": "350300",
+      "name": "莆田市",
+      "aliases": [
+        "莆田"
+      ]
+    },
+    {
+      "code": "350400",
+      "name": "三明市",
+      "aliases": [
+        "三明"
+      ]
+    },
+    {
+      "code": "350500",
+      "name": "泉州市",
+      "aliases": [
+        "泉州"
+      ]
+    },
+    {
+      "code": "350600",
+      "name": "漳州市",
+      "aliases": [
+        "漳州"
+      ]
+    },
+    {
+      "code": "350700",
+      "name": "南平市",
+      "aliases": [
+        "南平"
+      ]
+    },
+    {
+      "code": "350800",
+      "name": "龙岩市",
+      "aliases": [
+        "龙岩"
+      ]
+    },
+    {
+      "code": "350900",
+      "name": "宁德市",
+      "aliases": [
+        "宁德"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "三明": "350400",
+    "三明市": "350400",
+    "南平": "350700",
+    "南平市": "350700",
+    "厦门": "350200",
+    "厦门市": "350200",
+    "宁德": "350900",
+    "宁德市": "350900",
+    "泉州": "350500",
+    "泉州市": "350500",
+    "漳州": "350600",
+    "漳州市": "350600",
+    "福州": "350100",
+    "福州市": "350100",
+    "莆田": "350300",
+    "莆田市": "350300",
+    "龙岩": "350800",
+    "龙岩市": "350800"
+  }
+}

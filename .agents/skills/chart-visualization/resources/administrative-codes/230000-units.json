@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "黑龙江省",
+    "provinceCode": "230000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "5d91f5a11df72b5f5ee8cd1ff51a1cf9c91c9f1e8bc58a81ba2948aa28c99eec",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/230000-units.geojson",
+  "cities": [
+    {
+      "code": "230100",
+      "name": "哈尔滨市",
+      "aliases": [
+        "哈尔滨"
+      ]
+    },
+    {
+      "code": "230200",
+      "name": "齐齐哈尔市",
+      "aliases": [
+        "齐齐哈尔"
+      ]
+    },
+    {
+      "code": "230300",
+      "name": "鸡西市",
+      "aliases": [
+        "鸡西"
+      ]
+    },
+    {
+      "code": "230400",
+      "name": "鹤岗市",
+      "aliases": [
+        "鹤岗"
+      ]
+    },
+    {
+      "code": "230500",
+      "name": "双鸭山市",
+      "aliases": [
+        "双鸭山"
+      ]
+    },
+    {
+      "code": "230600",
+      "name": "大庆市",
+      "aliases": [
+        "大庆"
+      ]
+    },
+    {
+      "code": "230700",
+      "name": "伊春市",
+      "aliases": [
+        "伊春"
+      ]
+    },
+    {
+      "code": "230800",
+      "name": "佳木斯市",
+      "aliases": [
+        "佳木斯"
+      ]
+    },
+    {
+      "code": "230900",
+      "name": "七台河市",
+      "aliases": [
+        "七台河"
+      ]
+    },
+    {
+      "code": "231000",
+      "name": "牡丹江市",
+      "aliases": [
+        "牡丹江"
+      ]
+    },
+    {
+      "code": "231100",
+      "name": "黑河市",
+      "aliases": [
+        "黑河"
+      ]
+    },
+    {
+      "code": "231200",
+      "name": "绥化市",
+      "aliases": [
+        "绥化"
+      ]
+    },
+    {
+      "code": "232700",
+      "name": "大兴安岭地区",
+      "aliases": [
+        "大兴安岭"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "七台河": "230900",
+    "七台河市": "230900",
+    "伊春": "230700",
+    "伊春市": "230700",
+    "佳木斯": "230800",
+    "佳木斯市": "230800",
+    "双鸭山": "230500",
+    "双鸭山市": "230500",
+    "哈尔滨": "230100",
+    "哈尔滨市": "230100",
+    "大兴安岭": "232700",
+    "大兴安岭地区": "232700",
+    "大庆": "230600",
+    "大庆市": "230600",
+    "牡丹江": "231000",
+    "牡丹江市": "231000",
+    "绥化": "231200",
+    "绥化市": "231200",
+    "鸡西": "230300",
+    "鸡西市": "230300",
+    "鹤岗": "230400",
+    "鹤岗市": "230400",
+    "黑河": "231100",
+    "黑河市": "231100",
+    "齐齐哈尔": "230200",
+    "齐齐哈尔市": "230200"
+  }
+}

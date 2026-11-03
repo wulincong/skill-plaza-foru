@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-110000-district",
+  "scope": {
+    "country": "中国",
+    "province": "北京市",
+    "provinceCode": "110000",
+    "level": "district"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/110000-units.json",
+  "boundaryResource": "../../../boundaries/110000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_county.gpkg": "e2a74da75e0901e4fc06daada0dd5180"
+    },
+    "sha256": "24c0adf8dc76e376e6bedbdba058ad39645b204c442f7d8e18d57f66fc6cf3e5",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

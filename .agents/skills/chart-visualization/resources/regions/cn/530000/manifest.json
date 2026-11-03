@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-530000-city",
+  "scope": {
+    "country": "中国",
+    "province": "云南省",
+    "provinceCode": "530000",
+    "level": "city"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/530000-units.json",
+  "boundaryResource": "../../../boundaries/530000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "b171592a8001cd6cd5f42d14033a47e8f792fc99ba83f55190e8bc0ca39ab680",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

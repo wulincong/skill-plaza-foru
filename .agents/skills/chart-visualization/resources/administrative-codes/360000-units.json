@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "江西省",
+    "provinceCode": "360000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "88246167d0617ddb81f36247bb1c9a3bbcec6ee5b2dccfb23d28dccf9df43dd9",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/360000-units.geojson",
+  "cities": [
+    {
+      "code": "360100",
+      "name": "南昌市",
+      "aliases": [
+        "南昌"
+      ]
+    },
+    {
+      "code": "360200",
+      "name": "景德镇市",
+      "aliases": [
+        "景德镇"
+      ]
+    },
+    {
+      "code": "360300",
+      "name": "萍乡市",
+      "aliases": [
+        "萍乡"
+      ]
+    },
+    {
+      "code": "360400",
+      "name": "九江市",
+      "aliases": [
+        "九江"
+      ]
+    },
+    {
+      "code": "360500",
+      "name": "新余市",
+      "aliases": [
+        "新余"
+      ]
+    },
+    {
+      "code": "360600",
+      "name": "鹰潭市",
+      "aliases": [
+        "鹰潭"
+      ]
+    },
+    {
+      "code": "360700",
+      "name": "赣州市",
+      "aliases": [
+        "赣州"
+      ]
+    },
+    {
+      "code": "360800",
+      "name": "吉安市",
+      "aliases": [
+        "吉安"
+      ]
+    },
+    {
+      "code": "360900",
+      "name": "宜春市",
+      "aliases": [
+        "宜春"
+      ]
+    },
+    {
+      "code": "361000",
+      "name": "抚州市",
+      "aliases": [
+        "抚州"
+      ]
+    },
+    {
+      "code": "361100",
+      "name": "上饶市",
+      "aliases": [
+        "上饶"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "上饶": "361100",
+    "上饶市": "361100",
+    "九江": "360400",
+    "九江市": "360400",
+    "南昌": "360100",
+    "南昌市": "360100",
+    "吉安": "360800",
+    "吉安市": "360800",
+    "宜春": "360900",
+    "宜春市": "360900",
+    "抚州": "361000",
+    "抚州市": "361000",
+    "新余": "360500",
+    "新余市": "360500",
+    "景德镇": "360200",
+    "景德镇市": "360200",
+    "萍乡": "360300",
+    "萍乡市": "360300",
+    "赣州": "360700",
+    "赣州市": "360700",
+    "鹰潭": "360600",
+    "鹰潭市": "360600"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-230000-city",
+  "scope": {
+    "country": "中国",
+    "province": "黑龙江省",
+    "provinceCode": "230000",
+    "level": "city"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/230000-units.json",
+  "boundaryResource": "../../../boundaries/230000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "5d91f5a11df72b5f5ee8cd1ff51a1cf9c91c9f1e8bc58a81ba2948aa28c99eec",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

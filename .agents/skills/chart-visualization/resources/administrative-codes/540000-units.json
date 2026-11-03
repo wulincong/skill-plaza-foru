@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "西藏自治区",
+    "provinceCode": "540000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "8bad5def34cb74c18789da4636c3cbc9746955f164b0f6c7da37223e7e49638e",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/540000-units.geojson",
+  "cities": [
+    {
+      "code": "540100",
+      "name": "拉萨市",
+      "aliases": [
+        "拉萨"
+      ]
+    },
+    {
+      "code": "540200",
+      "name": "日喀则市",
+      "aliases": [
+        "日喀则"
+      ]
+    },
+    {
+      "code": "540300",
+      "name": "昌都市",
+      "aliases": [
+        "昌都"
+      ]
+    },
+    {
+      "code": "540400",
+      "name": "林芝市",
+      "aliases": [
+        "林芝"
+      ]
+    },
+    {
+      "code": "540500",
+      "name": "山南市",
+      "aliases": [
+        "山南"
+      ]
+    },
+    {
+      "code": "540600",
+      "name": "那曲市",
+      "aliases": [
+        "那曲"
+      ]
+    },
+    {
+      "code": "542500",
+      "name": "阿里地区",
+      "aliases": [
+        "阿里"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "山南": "540500",
+    "山南市": "540500",
+    "拉萨": "540100",
+    "拉萨市": "540100",
+    "日喀则": "540200",
+    "日喀则市": "540200",
+    "昌都": "540300",
+    "昌都市": "540300",
+    "林芝": "540400",
+    "林芝市": "540400",
+    "那曲": "540600",
+    "那曲市": "540600",
+    "阿里": "542500",
+    "阿里地区": "542500"
+  }
+}

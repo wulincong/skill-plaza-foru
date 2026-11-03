@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-430000-city",
+  "scope": {
+    "country": "中国",
+    "province": "湖南省",
+    "provinceCode": "430000",
+    "level": "city"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/430000-units.json",
+  "boundaryResource": "../../../boundaries/430000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "7d0edc6a7c585e42f5bd45d2e0f2155e4101ac3996dc47bf7367476c405a7c33",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

@@ -35,4 +35,4 @@ python3 scripts/figure.py verify examples/paired-recovery.json --out /tmp/recove
 
 报告沿用[柱状图](references/bar-chart.md)、[折线图](references/line-chart.md)和[直方图](references/histogram-chart.md)的口径。比较互斥的组内构成用[堆叠柱](references/stacked-bar-chart.md)，同一量表上的多维评分用[雷达图](references/radar-chart.md)，有权重的来源与去向用[桑基图](references/sankey-chart.md)。这些专题指南也适用于手工生成的内联 SVG。
 
-[行政区地图](references/map-chart.md)和[城市热点图](references/heatmap-chart.md)需要匹配的[离线边界](resources/README.md)，省内地市资源覆盖广东和浙江。全国分省地图使用单独的省级底图。[全国分省与趋势示例输入](examples/provincial-trends.json)报告嵌入与无法评估时的图块见[通用规则](references/common-rules.md)。
+[行政区地图](references/map-chart.md)和[城市热点图](references/heatmap-chart.md)需要匹配的[离线边界](resources/README.md)，已覆盖全部 34 个省级行政区的省内边界。省、自治区按地级行政区和省直管县级单位绘制，直辖市按区县，港澳台按来源单元。全国分省地图使用单独的省级底图。[全国分省与趋势示例输入](examples/provincial-trends.json)。报告嵌入与无法评估时的图块见[通用规则](references/common-rules.md)。

@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "广西壮族自治区",
+    "provinceCode": "450000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "69aaa1a27006f9feb31dc3410d2f5511dd64b77701260076267a51251b83418e",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/450000-units.geojson",
+  "cities": [
+    {
+      "code": "450100",
+      "name": "南宁市",
+      "aliases": [
+        "南宁"
+      ]
+    },
+    {
+      "code": "450200",
+      "name": "柳州市",
+      "aliases": [
+        "柳州"
+      ]
+    },
+    {
+      "code": "450300",
+      "name": "桂林市",
+      "aliases": [
+        "桂林"
+      ]
+    },
+    {
+      "code": "450400",
+      "name": "梧州市",
+      "aliases": [
+        "梧州"
+      ]
+    },
+    {
+      "code": "450500",
+      "name": "北海市",
+      "aliases": [
+        "北海"
+      ]
+    },
+    {
+      "code": "450600",
+      "name": "防城港市",
+      "aliases": [
+        "防城港"
+      ]
+    },
+    {
+      "code": "450700",
+      "name": "钦州市",
+      "aliases": [
+        "钦州"
+      ]
+    },
+    {
+      "code": "450800",
+      "name": "贵港市",
+      "aliases": [
+        "贵港"
+      ]
+    },
+    {
+      "code": "450900",
+      "name": "玉林市",
+      "aliases": [
+        "玉林"
+      ]
+    },
+    {
+      "code": "451000",
+      "name": "百色市",
+      "aliases": [
+        "百色"
+      ]
+    },
+    {
+      "code": "451100",
+      "name": "贺州市",
+      "aliases": [
+        "贺州"
+      ]
+    },
+    {
+      "code": "451200",
+      "name": "河池市",
+      "aliases": [
+        "河池"
+      ]
+    },
+    {
+      "code": "451300",
+      "name": "来宾市",
+      "aliases": [
+        "来宾"
+      ]
+    },
+    {
+      "code": "451400",
+      "name": "崇左市",
+      "aliases": [
+        "崇左"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "北海": "450500",
+    "北海市": "450500",
+    "南宁": "450100",
+    "南宁市": "450100",
+    "崇左": "451400",
+    "崇左市": "451400",
+    "来宾": "451300",
+    "来宾市": "451300",
+    "柳州": "450200",
+    "柳州市": "450200",
+    "桂林": "450300",
+    "桂林市": "450300",
+    "梧州": "450400",
+    "梧州市": "450400",
+    "河池": "451200",
+    "河池市": "451200",
+    "玉林": "450900",
+    "玉林市": "450900",
+    "百色": "451000",
+    "百色市": "451000",
+    "贵港": "450800",
+    "贵港市": "450800",
+    "贺州": "451100",
+    "贺州市": "451100",
+    "钦州": "450700",
+    "钦州市": "450700",
+    "防城港": "450600",
+    "防城港市": "450600"
+  }
+}

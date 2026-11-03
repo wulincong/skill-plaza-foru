@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-710000-county-city",
+  "scope": {
+    "country": "中国",
+    "province": "台湾省",
+    "provinceCode": "710000",
+    "level": "county-city"
+  },
+  "codeSystem": "TW-COUNTYCODE",
+  "cityCodeMapping": "../../../administrative-codes/710000-units.json",
+  "boundaryResource": "../../../boundaries/710000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "内政部国土测绘中心，直辖市、县市界线。GeoJSON 转换由 plotdb/pdmaptw 提供",
+    "url": "https://data.gov.tw/dataset/7442",
+    "license": "政府资料开放授权条款第 1 版",
+    "licenseUrl": "https://data.gov.tw/license",
+    "snapshot": "2025-03-18",
+    "inputs": {
+      "taiwan.geojson": "a809e483184d7762918476058cc9d7e10e9720113187afee2a04b4f7ced3103f"
+    },
+    "download": "https://github.com/plotdb/pdmaptw/releases/download/v2.4.0/county-2025-03-18.geojson",
+    "sha256": "3da4fd3bbbf29bb8044b9fc3394761022799e9c016861300ed4b6624548ab166",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

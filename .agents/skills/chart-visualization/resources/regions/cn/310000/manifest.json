@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-310000-district",
+  "scope": {
+    "country": "中国",
+    "province": "上海市",
+    "provinceCode": "310000",
+    "level": "district"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/310000-units.json",
+  "boundaryResource": "../../../boundaries/310000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_county.gpkg": "e2a74da75e0901e4fc06daada0dd5180"
+    },
+    "sha256": "f5b169792c268db100f9a19cccb1d081e32b8fedb3ee68b610f9e49ac7a11431",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

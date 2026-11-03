@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "陕西省",
+    "provinceCode": "610000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "2bdc340b5449f336e4ba45ba8d54f037be49e07db7358bc8f27bb9a81a1740ae",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/610000-units.geojson",
+  "cities": [
+    {
+      "code": "610100",
+      "name": "西安市",
+      "aliases": [
+        "西安"
+      ]
+    },
+    {
+      "code": "610200",
+      "name": "铜川市",
+      "aliases": [
+        "铜川"
+      ]
+    },
+    {
+      "code": "610300",
+      "name": "宝鸡市",
+      "aliases": [
+        "宝鸡"
+      ]
+    },
+    {
+      "code": "610400",
+      "name": "咸阳市",
+      "aliases": [
+        "咸阳"
+      ]
+    },
+    {
+      "code": "610500",
+      "name": "渭南市",
+      "aliases": [
+        "渭南"
+      ]
+    },
+    {
+      "code": "610600",
+      "name": "延安市",
+      "aliases": [
+        "延安"
+      ]
+    },
+    {
+      "code": "610700",
+      "name": "汉中市",
+      "aliases": [
+        "汉中"
+      ]
+    },
+    {
+      "code": "610800",
+      "name": "榆林市",
+      "aliases": [
+        "榆林"
+      ]
+    },
+    {
+      "code": "610900",
+      "name": "安康市",
+      "aliases": [
+        "安康"
+      ]
+    },
+    {
+      "code": "611000",
+      "name": "商洛市",
+      "aliases": [
+        "商洛"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "咸阳": "610400",
+    "咸阳市": "610400",
+    "商洛": "611000",
+    "商洛市": "611000",
+    "安康": "610900",
+    "安康市": "610900",
+    "宝鸡": "610300",
+    "宝鸡市": "610300",
+    "延安": "610600",
+    "延安市": "610600",
+    "榆林": "610800",
+    "榆林市": "610800",
+    "汉中": "610700",
+    "汉中市": "610700",
+    "渭南": "610500",
+    "渭南市": "610500",
+    "西安": "610100",
+    "西安市": "610100",
+    "铜川": "610200",
+    "铜川市": "610200"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-810000-district",
+  "scope": {
+    "country": "中国",
+    "province": "香港特别行政区",
+    "provinceCode": "810000",
+    "level": "district"
+  },
+  "codeSystem": "HK-district-letter",
+  "cityCodeMapping": "../../../administrative-codes/810000-units.json",
+  "boundaryResource": "../../../boundaries/810000-units.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "attribution": "© 香港特别行政区政府民政事务总署，DATA.GOV.HK",
+    "url": "https://www.had.gov.hk/psi/hong-kong-administrative-boundaries/hksar_18_district_boundary.json",
+    "license": "DATA.GOV.HK 使用条款",
+    "licenseUrl": "https://data.gov.hk/en/terms-and-conditions",
+    "snapshot": "2026-11-03 取得",
+    "inputs": {
+      "hong-kong.json": "ab2123b5a48c2e39e29ce594a0c51590cf6081922ab2c5c14ff78338b788f760"
+    },
+    "sha256": "1593e7dcc8975283f59e2ebd99343ce1b31a84b28394c4d064b33b976bacadf3",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  }
+}

@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "澳门特别行政区",
+    "provinceCode": "820000",
+    "level": "parish-and-area",
+    "codeSystem": "OSM-relation"
+  },
+  "source": {
+    "attribution": "© OpenStreetMap contributors，Geofabrik 澳门提取包，派生数据库按 ODbL 1.0 提供",
+    "url": "https://download.geofabrik.de/asia/china/macau.html",
+    "license": "ODbL 1.0",
+    "licenseUrl": "https://opendatacommons.org/licenses/odbl/1-0/",
+    "snapshot": "2026-11-02",
+    "inputs": {
+      "macau.osm.pbf": "c165b11d11a27bcd5c1a2d4b2db84f57737bb480572ac5e145db53aa41764f87",
+      "carmo.osm": "8532efbaabcf6ffe8fe6a22465cd10dbbc7a74bd6a5a5ac3ef5076b44d26c77d"
+    },
+    "relationSupplement": "https://api.openstreetmap.org/api/0.6/relation/5758865/full",
+    "sha256": "d3d03d2aeef4b918eccb95dcc04cf5ba07e5ba802f6739e3c28e12b103d709f8",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/820000-units.geojson",
+  "cities": [
+    {
+      "code": "12107627",
+      "name": "大堂区",
+      "aliases": [
+        "Sé",
+        "大堂",
+        "大堂區"
+      ]
+    },
+    {
+      "code": "12107628",
+      "name": "望德堂区",
+      "aliases": [
+        "São Lázaro",
+        "望德堂",
+        "望德堂區"
+      ]
+    },
+    {
+      "code": "12107629",
+      "name": "风顺堂区",
+      "aliases": [
+        "São Lourenço",
+        "風順堂",
+        "風順堂區",
+        "风顺堂"
+      ]
+    },
+    {
+      "code": "5758865",
+      "name": "嘉模堂区",
+      "aliases": [
+        "Nossa Senhora do Carmo",
+        "嘉模堂",
+        "嘉模堂區"
+      ]
+    },
+    {
+      "code": "5758866",
+      "name": "圣方济各堂区",
+      "aliases": [
+        "São Francisco Xavier",
+        "圣方济各堂",
+        "聖方濟各堂",
+        "聖方濟各堂區"
+      ]
+    },
+    {
+      "code": "5758867",
+      "name": "路氹填海区",
+      "aliases": [
+        "Zona do Aterro de Cotai",
+        "路氹填海",
+        "路氹填海區"
+      ]
+    },
+    {
+      "code": "9506156",
+      "name": "花地玛堂区",
+      "aliases": [
+        "Nossa Senhora de Fátima",
+        "花地玛堂",
+        "花地瑪堂",
+        "花地瑪堂區"
+      ]
+    },
+    {
+      "code": "9506168",
+      "name": "花王堂区",
+      "aliases": [
+        "Santo António",
+        "花王堂",
+        "花王堂區"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "Nossa Senhora de Fátima": "9506156",
+    "Nossa Senhora do Carmo": "5758865",
+    "Santo António": "9506168",
+    "São Francisco Xavier": "5758866",
+    "São Lourenço": "12107629",
+    "São Lázaro": "12107628",
+    "Sé": "12107627",
+    "Zona do Aterro de Cotai": "5758867",
+    "嘉模堂": "5758865",
+    "嘉模堂区": "5758865",
+    "嘉模堂區": "5758865",
+    "圣方济各堂": "5758866",
+    "圣方济各堂区": "5758866",
+    "大堂": "12107627",
+    "大堂区": "12107627",
+    "大堂區": "12107627",
+    "望德堂": "12107628",
+    "望德堂区": "12107628",
+    "望德堂區": "12107628",
+    "聖方濟各堂": "5758866",
+    "聖方濟各堂區": "5758866",
+    "花地玛堂": "9506156",
+    "花地玛堂区": "9506156",
+    "花地瑪堂": "9506156",
+    "花地瑪堂區": "9506156",
+    "花王堂": "9506168",
+    "花王堂区": "9506168",
+    "花王堂區": "9506168",
+    "路氹填海": "5758867",
+    "路氹填海区": "5758867",
+    "路氹填海區": "5758867",
+    "風順堂": "12107629",
+    "風順堂區": "12107629",
+    "风顺堂": "12107629",
+    "风顺堂区": "12107629"
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "scope": {
+    "country": "中国",
+    "province": "河北省",
+    "provinceCode": "130000",
+    "level": "city",
+    "codeSystem": "six-digit administrative division adcode"
+  },
+  "source": {
+    "attribution": "Cheng Rui、Hu Yunfeng、Xiao Chiwei、Wang Yanjun，CTAmap v2.0（2026 层）",
+    "url": "https://doi.org/10.5281/zenodo.22179207",
+    "license": "CC BY 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+    "snapshot": "2025-12-31",
+    "inputs": {
+      "T2026_prefecture.gpkg": "2c935849e66db951eeb7cc368cbb563c"
+    },
+    "sha256": "5750b6823c21f6989a352394b18e1d35e7fd1b8e453d49c961158dcd2ba775e1",
+    "modification": "按省拆分，拓扑简化及坐标取整，保留原始区域标识"
+  },
+  "boundaryResource": "../boundaries/130000-units.geojson",
+  "cities": [
+    {
+      "code": "130100",
+      "name": "石家庄市",
+      "aliases": [
+        "石家庄"
+      ]
+    },
+    {
+      "code": "130200",
+      "name": "唐山市",
+      "aliases": [
+        "唐山"
+      ]
+    },
+    {
+      "code": "130300",
+      "name": "秦皇岛市",
+      "aliases": [
+        "秦皇岛"
+      ]
+    },
+    {
+      "code": "130400",
+      "name": "邯郸市",
+      "aliases": [
+        "邯郸"
+      ]
+    },
+    {
+      "code": "130500",
+      "name": "邢台市",
+      "aliases": [
+        "邢台"
+      ]
+    },
+    {
+      "code": "130600",
+      "name": "保定市",
+      "aliases": [
+        "保定"
+      ]
+    },
+    {
+      "code": "130700",
+      "name": "张家口市",
+      "aliases": [
+        "张家口"
+      ]
+    },
+    {
+      "code": "130800",
+      "name": "承德市",
+      "aliases": [
+        "承德"
+      ]
+    },
+    {
+      "code": "130900",
+      "name": "沧州市",
+      "aliases": [
+        "沧州"
+      ]
+    },
+    {
+      "code": "131000",
+      "name": "廊坊市",
+      "aliases": [
+        "廊坊"
+      ]
+    },
+    {
+      "code": "131100",
+      "name": "衡水市",
+      "aliases": [
+        "衡水"
+      ]
+    }
+  ],
+  "cityNameToCode": {
+    "保定": "130600",
+    "保定市": "130600",
+    "唐山": "130200",
+    "唐山市": "130200",
+    "廊坊": "131000",
+    "廊坊市": "131000",
+    "张家口": "130700",
+    "张家口市": "130700",
+    "承德": "130800",
+    "承德市": "130800",
+    "沧州": "130900",
+    "沧州市": "130900",
+    "石家庄": "130100",
+    "石家庄市": "130100",
+    "秦皇岛": "130300",
+    "秦皇岛市": "130300",
+    "衡水": "131100",
+    "衡水市": "131100",
+    "邢台": "130500",
+    "邢台市": "130500",
+    "邯郸": "130400",
+    "邯郸市": "130400"
+  }
+}
