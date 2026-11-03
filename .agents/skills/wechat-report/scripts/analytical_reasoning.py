@@ -89,6 +89,19 @@ def section(data,key):
 
 def core(data,ids,index):
     if index==0 and any(fid.startswith('vocational.city_coverage') for fid in ids):
+        cities=sorted([row for row in data.get('city_profiles',[]) if row.get('valid',0)>=30 and row.get('median') is not None],key=lambda row:-row['count'])
+        pool=data.get('voc_pool') or {};total=data.get('total',{}).get('positions',0)
+        if data.get('meta',{}).get('filters',{}).get('region',{}).get('level')=='province' and cities and total and cities[0]['count'] and 'count' in pool:
+            city=cities[0];entry=dict(pool.get('city',[])).get(city['name'],0)
+            comparison=entry*total-pool['count']*city['count']
+            if comparison<0:
+                return {'title':city['name']+'入门条件覆盖低于全省基线',
+                    'interpretation':'重点城市的薪酬、学历结构与入门条件覆盖给出了不同的定位线索。本地条件覆盖低于全省基线，意味着按原始岗位量等比例安排面向入门学生的核实工作，会包含更高比例的不满足当前筛选条件的记录。应先形成匹配条件的候选清单，再比较方向与职责，按候选量和核实成本安排对接；这不等于企业实际接收或录用概率更低，也不用于给城市划定培养层次。'}
+            if comparison>0:
+                return {'title':city['name']+'入门条件覆盖高于全省基线',
+                    'interpretation':'重点城市的条件覆盖高于全省基线，为按本次筛选形成候选清单提供了更明确的筛选线索，但不能据此把薪酬、学历结构和实际录用混成同一种优势。可以先按候选量和方向组织企业核实，再用职责、接收对象和学生产出检验试点。筛选通过仍不等于企业接收，资源扩展须以实际核实结果为条件。'}
+            return {'title':city['name']+'入门条件覆盖与省级基线相同',
+                'interpretation':'重点城市的条件覆盖与省级基线相同，城市岗位总量仍影响候选绝对数量，但没有提供更高覆盖率的证据。宜按候选量组织调查，再按方向和职责拆分核实清单；薪酬与学历份额是另一层定位信息，不能替代目标人群条件。企业接收对象和学生能力仍需独立验证，不把城市标签作为培养层次依据。'}
         return {'title':'岗位规模与入门条件覆盖应分开排序','interpretation':'城市薪酬学历差异与本市入门条件覆盖描述不同结构。岗位量适合安排调查规模，条件覆盖更接近目标岗位筛选的覆盖范围，二者不能互相替代。对接优先级应先明确目标人群，再按岗位条件抽样核实，而非按城市标签直接划分学生层次。'}
     if index==1 and 'salary.entry_upper_bound' in ids:
         row=section(data,'salary');return {'title':row['title'],'interpretation':row['interpretation']}

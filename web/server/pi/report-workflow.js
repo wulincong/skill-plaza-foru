@@ -2,10 +2,11 @@
 import { Type } from '@earendil-works/pi-ai'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdirSync,writeFileSync,appendFileSync } from 'node:fs'
+import { mkdirSync,writeFileSync,appendFileSync,readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { reportTask,reportDataReady,reportBuildReady } from './reportWorkflowPolicy.mjs'
+import { compactReportContext } from './reportWorkflowContext.mjs'
 
 const execute=promisify(execFile)
 const installed=fileURLToPath(new URL('../../../.agents/skills/wechat-report/',import.meta.url))
@@ -152,8 +153,10 @@ export default function registerReportWorkflow(pi) {
       }
       return {...tool,function:{...tool.function,parameters:schema}}
     })
+    const meta=JSON.parse(readFileSync(join(ctx.cwd,'wechat-report/report_data.json'),'utf8')).meta
+    const compact=compactReportContext({...payload,tools,tool_choice:'required'},current,task,{region:meta.region,industry:meta.industry,audience:meta.audience,filters:meta.filters})
     appendFileSync(join(ctx.cwd,'report-tool-contract.jsonl'),JSON.stringify({runId,request:requests,task:current?.part?.task??current?.status??'start',
-      names:tools.map(tool=>tool.function?.name??tool.name),required:tools.map(tool=>(tool.function?.parameters??tool.parameters)?.required),toolChoice:'required'})+'\n')
-    return {...payload,tools,tool_choice:'required'}
+      names:tools.map(tool=>tool.function?.name??tool.name),required:tools.map(tool=>(tool.function?.parameters??tool.parameters)?.required),toolChoice:'required',context:compact.metrics})+'\n')
+    return compact.payload
   })
 }

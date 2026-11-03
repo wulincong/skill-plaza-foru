@@ -85,6 +85,23 @@ class DeepReportTests(unittest.TestCase):
         self.assertIn('硕士学历条件',text)
         self.assertIn('不能把筛选形成的地域范围解释成产业集聚',text)
 
+    def test_city_core_decision_changes_with_coverage_and_keeps_city_baseline_in_scope(self):
+        from analytical_reasoning import core
+        from joint_findings import derive
+        data={'meta':{'filters':{'region':{'level':'province'}}},'total':{'positions':100},
+              'city_profiles':[{'name':'甲市','valid':60,'median':10,'count':60,'bachelorCount':30,'bachelorShare':50},
+                               {'name':'乙市','valid':40,'median':8,'count':40,'bachelorCount':20,'bachelorShare':50}],
+              'voc_pool':{'count':30,'city':[['甲市',6],['乙市',24]]}}
+        ids=['geography.joint_contrast','vocational.city_coverage_0']
+        self.assertIn('甲市入门条件覆盖低于',core(data,ids,0)['title'])
+        data['voc_pool']['city']=[['甲市',24],['乙市',6]]
+        self.assertIn('高于',core(data,ids,0)['title'])
+        data['voc_pool']['city']=[['甲市',18],['乙市',12]]
+        self.assertIn('相同',core(data,ids,0)['title'])
+        data['meta']['filters']['region']['level']='city'
+        facts=[row['text'] for row in derive(data) if row['id']=='vocational.city_coverage_0']
+        self.assertIn('当前范围同口径',facts[0]);self.assertNotIn('全省同口径',facts[0])
+
     def test_canonical_analysis_overrides_model_claims_but_preserves_proposals(self):
         from analytical_reasoning import normalize,verify
         data={'meta':{'region':'广东省','industry':'人工智能','filters':{'region':{'level':'province'}}},'salary':{'median':10}}

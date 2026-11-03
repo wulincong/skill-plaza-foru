@@ -30,7 +30,7 @@ def derive(data):
     for i,row in enumerate(cities[:2] if 'count' in pool and city_join_safe else []):
         entry_n=pool_cities.get(row['name'],0)
         text=(f"{row['name']}全部 {number(row['count'])} 条岗位中，有 {number(entry_n)} 条满足已声明的入门池条件，条件覆盖率为 {pct(entry_n,row['count'])}%；"
-              f"全省同口径为 {pct(pool.get('count',0),data['total']['positions'])}%。条件覆盖率不代表应届接收率或录用概率。")
+              f"{'全省' if data.get('meta',{}).get('filters',{}).get('region',{}).get('level')=='province' else '当前范围'}同口径为 {pct(pool.get('count',0),data['total']['positions'])}%。条件覆盖率不代表应届接收率或录用概率。")
         paths=['/city_profiles','/voc_pool/city','/voc_pool/count','/total/positions']
         add('geography.entry_coverage_'+str(i),'geography',text,paths)
         add('vocational.city_coverage_'+str(i),'vocational',text,paths)
