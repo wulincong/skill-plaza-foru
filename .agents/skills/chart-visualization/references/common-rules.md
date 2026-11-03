@@ -1,12 +1,14 @@
-# Shared chart rules
+# 通用绘图规则
 
-- Every figure uses a meaningful `data-chart-skill` value, a `<title>`, a `<desc>`, and a visible caption.
-- State the source, query date, snapshot date, filter scope, denominator, unit, and whether the values are counts or percentages.
-- Keep one chart to one scope and unit. Do not mix national, provincial, and city data in one denominator.
-- Report proportions for decision making; retain counts in the development-side evidence when useful. Small samples need a visible representativeness note.
-- Do not make a chart from missing or failed query data. Mark the section “未评估” and include the failure reason in developer-side evidence.
-- Use inline SVG for static report output. Do not load remote maps, map tiles, chart libraries, or JavaScript.
-- Use standard geographic codes and a local boundary dataset for maps. Do not draw approximate geography from memory.
-- For maps and heatmaps, missing or out-of-coverage regions use a neutral fill; a real zero may use the lowest data color only when the legend labels it as zero. Never imply zero when the region was not covered.
-- Keep labels readable, use color with sufficient contrast, and provide a text fallback or ranked list for the same key findings.
-- If a chart protocol limits data points, show the top-ranked points and aggregate the remainder as “其他”; state that choice in the caption.
+## 数据与图注
+
+- 一张图使用同一统计范围和单位。图注写清图名、来源、查询日、数据快照日、地区和筛选条件。来源未给出快照日时直接注明。
+- 比较构成时优先用占比，注明分母和有效样本数。小样本在图旁提示代表性有限。画评分或权重时说明量表或权重含义。
+- 只在总量已核实且各项可以相加时合并“其他”，并注明截取和归并规则。不同地区、不同筛选条件的总量不能共用。
+- 区分实测零值、部分缺失和整项查询失败。部分缺失按所选图的规则标注。整图缺少依据时标“未评估”，写明具体原因，并在开发侧保留证据。
+
+## 输出与核对
+
+1. 在 `<figure>` 上设置所选图的 `data-chart-skill` 和报告内唯一的 `data-chart-id`。成功时使用内联 SVG，附可见的 `<figcaption>`。图形、字体回退和样式应能离线使用，不引入远程脚本、瓦片、图表库或截图。
+2. SVG 使用 `role="img"`。用 `aria-labelledby` 关联本图的 `<title>` 和 `<desc>`，两个元素的 ID 均须在整页唯一。标题命名图表，描述说明读图方法和主要结果。保留可读的数值标签、文字摘要或数据表，让读者在分不清颜色时也能读出结果。
+3. 交付前核对标签和图形是否对应原始数值，图例与标记是否一致，HTML/SVG 标签是否闭合。未评估图块保留图表标识，增加 `data-chart-status="unassessed"`，只在图注写原因，省去 SVG。
