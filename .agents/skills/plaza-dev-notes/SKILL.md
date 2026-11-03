@@ -104,7 +104,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 
 | # | 主题 | 状态 | 文件 |
 |---|---|---|---|
-| 090 | 在线对话右侧资源栏：Zero4-UI、汇总去重、折叠与窄屏入口 | 已实现（21项回归/构建/公网明暗及窄屏交互通过） | [090-conversation-resource-sidebar.md](references/090-conversation-resource-sidebar.md) |
+| 090 | 在线对话悬浮资源管理器：Zero4-UI、紧凑文件行、分类折叠及行内操作 | 已实现（21项回归/构建/公网明暗及窄屏交互通过） | [090-conversation-resource-sidebar.md](references/090-conversation-resource-sidebar.md) |
 | 080 | 原始用户输入快照、历史提示词剥离、每轮最终回答与默认折叠执行过程 | 已实现（28 项回归/构建/真实 Pi 与 OpenAI/浏览器通过） | [080-conversation-source-and-process.md](references/080-conversation-source-and-process.md) |
 | 022 | 就业指导开发侧测试模板切换 | 已实现（构建与浏览器交互已验证） | [022-career-test-template-switcher.md](references/022-career-test-template-switcher.md) |
 | 066 | 在线对话/在线运行前端按 SkillHub 设计系统重构（--sk-* 令牌、文档流对话、ToolCallGroup） | 已实现（双页双主题截图与一次真实 SSE 核对；长报告回归待用户） | [066-skillhub-ui-redesign.md](references/066-skillhub-ui-redesign.md) |
