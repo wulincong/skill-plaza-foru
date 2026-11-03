@@ -82,7 +82,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 084 | 通用人才数据分析：真实库能力、地域/产业/专业/岗位语义筛选与证据绑定 | 设计中（真实库连通/表结构/有限专业映射已验证，协议与改造未实现） | [084-general-talent-analysis-skill-design.md](references/084-general-talent-analysis-skill-design.md) |
 | 085 | 共享人才数据库查询 Skill：取数协议、缓存与离线产业链岗位目录 | 共享查询已实现；目录与真实库逐节点对账，离线双向检索通过 | [085-shared-talent-data-query-skill-design.md](references/085-shared-talent-data-query-skill-design.md) |
 | 086 | 人才统计查询优化：按需质量字段、产业候选优先、四组计数合并与真实基准 | 已实现（39 项测试、20+5 请求与20项同快照核验通过；源库索引待评估） | [086-talent-statistics-query-optimization.md](references/086-talent-statistics-query-optimization.md) |
-| 087 | 报告智能体接入共享人才查询：按章节请求、兼容适配、证据绑定与迁移验收 | 接入已实现（57项测试/真实取数；分析阶段后续实现见091） | [087-report-query-skill-integration.md](references/087-report-query-skill-integration.md) |
+| 087 | 报告智能体接入共享人才查询：按章节请求、兼容适配、证据绑定与迁移验收 | 接入已实现；同口径改标题触发重复取数已核实，修订复用待优化；分析阶段见091 | [087-report-query-skill-integration.md](references/087-report-query-skill-integration.md) |
 | 098 | 城市薪酬与学历结构同口径联合统计 | 两省取数已验证；单城构建预检与缺失职教池的章节一致性待修 | [098-city-salary-multivariate-data.md](references/098-city-salary-multivariate-data.md) |
 | 091 | wechat-report：强制真实数据分析、比较证据、解释与行动建议后再生成报告 | 已实现（63项测试/真实保存结果全链路；在线模型新会话待验） | [091-wechat-evidence-led-analysis.md](references/091-wechat-evidence-led-analysis.md) |
 
