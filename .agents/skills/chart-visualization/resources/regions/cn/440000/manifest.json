@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-440000-city",
+  "scope": {
+    "country": "中国",
+    "province": "广东省",
+    "provinceCode": "440000",
+    "level": "city"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/guangdong-city-codes.json",
+  "boundaryResource": "../../../boundaries/guangdong-440000-city.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "kind": "project-offline-copy",
+    "path": "skill-plaza-foru/reports/guangdong_440000_full.geojson",
+    "description": "项目已有的广东省地级市离线边界；边界属性来自 properties.adcode 与 properties.name。",
+    "retrievedAt": "2026-09-20",
+    "sha256": "209ad617a296b154c4fd0828180b2a9ab2b270044990ab34e72a344ce913c8c7",
+    "licenseStatus": "待核实；发布前保留原始来源归属并完成许可复核"
+  }
+}

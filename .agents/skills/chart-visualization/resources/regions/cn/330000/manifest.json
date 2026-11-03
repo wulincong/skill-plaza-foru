@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "resourceId": "cn-330000-city",
+  "scope": {
+    "country": "中国",
+    "province": "浙江省",
+    "provinceCode": "330000",
+    "level": "city"
+  },
+  "codeSystem": "six-digit administrative division adcode",
+  "cityCodeMapping": "../../../administrative-codes/zhejiang-city-codes.json",
+  "boundaryResource": "../../../boundaries/zhejiang-330000-city.geojson",
+  "boundaryFormat": "geojson",
+  "source": {
+    "kind": "public-offline-copy",
+    "url": "https://geo.datav.aliyun.com/areas_v3/bound/330000_full.json",
+    "description": "阿里云 DataV 行政区边界接口返回的浙江省地级市离线副本；边界属性来自 properties.adcode 与 properties.name。",
+    "retrievedAt": "2026-09-29",
+    "sha256": "f87241d47687264861aa619b8dc37ffeb61a2be5d6018a8c01ec0ce0acb5cb38",
+    "licenseStatus": "待核实；对外发布前须确认 DataV 数据来源、归属和许可条件"
+  }
+}

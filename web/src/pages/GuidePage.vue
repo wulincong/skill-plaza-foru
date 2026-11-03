@@ -5,7 +5,7 @@ import Icon from '../components/Icon.vue'
 import Codebox from '../components/Codebox.vue'
 
 /* 多 AI 工具接入：每个工具给出接入步骤与验证方式；安装提示词全工具通用 */
-const INSTALL_PROMPT = '根据 https://github.com/Lntanohuang/skill-plaza-foru 安装 智能体搭子精选。'
+const INSTALL_PROMPT = '根据 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支安装智能体搭子精选。'
 
 interface ToolGuide {
   id: string
@@ -40,7 +40,7 @@ const TOOLS: ToolGuide[] = [
       '方式二：手动安装——把仓库克隆到 ~/.claude/skills/ 目录',
       '新开会话，询问已安装的 SKILL 确认',
     ],
-    verify: '# 手动安装（可选）：\ngit clone https://github.com/Lntanohuang/skill-plaza-foru ~/.claude/skills/skill-plaza-foru\n\n# 新会话中验证：\n我有哪些 SKILL 可以用？',
+    verify: '# 手动安装（可选）：\ngit clone --branch wlc --recurse-submodules https://github.com/wulincong/skill-plaza-foru ~/.claude/skills/skill-plaza-foru\n\n# 新会话中验证：\n我有哪些 SKILL 可以用？',
   },
   {
     id: 'cursor',

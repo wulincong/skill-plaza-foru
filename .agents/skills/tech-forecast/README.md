@@ -1,6 +1,6 @@
 # tech-forecast
 
-「新岗位·新技术预判」技能。**直接内置于技能广场主仓库**（[skill-plaza-foru](https://github.com/Lntanohuang/skill-plaza-foru) 的 `.agents/skills/tech-forecast/`），不设独立父仓库；由 Pi 通过 `--skill` 加载。
+「新岗位·新技术预判」技能。**直接内置于技能广场主仓库**（[skill-plaza-foru](https://github.com/wulincong/skill-plaza-foru) 的 `.agents/skills/tech-forecast/`），不设独立父仓库；由 Pi 通过 `--skill` 加载。
 
 ## 功能
 

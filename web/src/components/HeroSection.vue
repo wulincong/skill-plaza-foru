@@ -104,7 +104,7 @@ function catName(id: string) { return catOf(id).name }
         <RouterLink class="btn btn-quiet" to="/skills">浏览全部 SKILL</RouterLink>
       </div>
       <div class="install-bar">
-        <span class="install-text" id="install-text">根据 https://github.com/Lntanohuang/skill-plaza-foru 安装智能体搭子精选。</span>
+        <span class="install-text" id="install-text">根据 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支安装智能体搭子精选。</span>
         <HeroCopyButton />
       </div>
       <p class="hero-hint">想先看看效果？直接进任意 SKILL 的工作台跑一次，或去详情页拿专属安装提示词。</p>

@@ -11,7 +11,7 @@
 - `web/server/lib/skills.ts` 新增 `HtmlReportContract`（sections / userReportContract / fileProtocol / firstTurnRules / heatmapChecks）与 `HTML_REPORT_CONTRACTS`、`HTML_REPORT_SKILLS`；career-guidance 原常量改由 `reportFileProtocol(chartRule)` / `sectionsContract(sections)` 工厂生成（career-guidance 生成串与重构前逐字节一致）。
 - 接入点：`web/server/index.ts` 的 `captureWorkspaceHtmlReport`、legacy HTML 回落、done 文案与 finalOutcome 改为 `HTML_REPORT_SKILLS.has(skill)`；`saveHtmlReport` 按 contract 的 `heatmapChecks` 决定热点图专项校验（tech-forecast 传 false 跳过 CH_CITY 检查）。`piRunner.buildPrompt` 按 contract 拼装（首轮 firstTurnRules、后续轮重申 contract+fileProtocol；非契约技能行为不变）。
 - **技能本体内置主仓库**（2026-10-12 用户决策：不做独立父仓库、不走 submodule；初版曾以 submodule 挂载，同日转普通目录并移除 `.gitmodules` 条目）。这是对父子仓库模式的已登记例外（README「技能组织模式」注明）：省去远端与指针维护，代价是技能历史与主仓库耦合。前端 `web/src/data/skills.ts` 与 `useTaskConfigs.ts` 登记 industry 分类条目与表单（region/domains/horizon/institution/majors/context + 可选资料上传）。
-- chart-visualization 子模块新增 `references/radar-chart.md`（1–5 刻度、单图最多 3–4 个多边形）与 `sankey-chart.md`（两阶段节点合计 ≤20、流量必须写口径与证据来源），SKILL.md 索引同步。
+- chart-visualization 在子模块阶段新增 `references/radar-chart.md`（1–5 刻度、单图最多 3–4 个多边形）与 `sankey-chart.md`（两阶段节点合计 ≤20、流量必须写口径与证据来源），SKILL.md 索引同步。2026-11-03 已原样转为主仓库内置目录，见 092。
 - 否决：复制 career-guidance 四点硬编码（第三份技能出现时不可维护）；把报告校验挪进各技能 SKILL.md（服务端校验不可被提示词绕过）。
 
 ## 证据链 v2：四级证据与横截面
@@ -60,7 +60,7 @@
 - 自建趋势观测（月度定时对固定关键词计划跑 title-top 追加快照，2–3 个月后形成口径自洽的真时间序列）；快照超 90 天自动刷新；`references/data/` 补鞋类（`guangdong-footwear.md`，登记专业角色词口径）等新领域；标准关键词表补「鞋类/皮革箱包」行与「建议 roleTerms」列。
 - `web-search.mjs` 相关性硬阈值、charset 探测、域名信誉降权、低相关自动 fetch 兜底（见上节改进方向）。
 - 受控日期参数（`ingestSince`）按需开放；radar/sankey 专项结构化校验（当前仅泛型 figure 校验）。
-- chart-visualization 子模块提交 dfcdafa 的远端 push 待办。
+- chart-visualization 原 `dfcdafa`/`75e10d0` 提交的内容已由 092 原样内置主仓库，旧子仓库 push 待办不再适用。
 
 ## 验证要点（多轮真实运行汇总）
 

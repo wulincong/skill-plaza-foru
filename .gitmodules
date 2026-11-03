@@ -7,6 +7,3 @@
 [submodule ".agents/skills/career-guidance"]
 	path = .agents/skills/career-guidance
 	url = https://github.com/Lntanohuang/career-guidance-skill.git
-[submodule ".agents/skills/chart-visualization"]
-	path = .agents/skills/chart-visualization
-	url = https://github.com/Lntanohuang/chart-visualization-skill.git

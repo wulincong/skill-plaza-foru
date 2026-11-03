@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "country": "中国",
+  "level": "city",
+  "codeSystem": "six-digit administrative division adcode",
+  "regions": [
+    {
+      "id": "cn-440000-city",
+      "province": "广东省",
+      "provinceCode": "440000",
+      "manifest": "cn/440000/manifest.json"
+    },
+    {
+      "id": "cn-330000-city",
+      "province": "浙江省",
+      "provinceCode": "330000",
+      "manifest": "cn/330000/manifest.json"
+    }
+  ],
+  "provinceNameToCode": {
+    "广东": "440000",
+    "广东省": "440000",
+    "浙江": "330000",
+    "浙江省": "330000"
+  }
+}

@@ -130,11 +130,11 @@ export const SKILLS: Skill[] = [
       '安装时保留 SKILL.md、references 和 agents 等配套文件。',
     ],
     installPrompt:
-      '请从 https://github.com/Lntanohuang/skill-plaza-foru 获取 .agents/skills/tech-forecast 目录并安装 tech-forecast SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
+      '请从 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支获取 .agents/skills/tech-forecast 目录并安装 tech-forecast SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $tech-forecast，面向广东省高职院校，预判未来 1–3 年人工智能与机器人方向的新兴岗位与培训建议。',
-    repository: 'https://github.com/Lntanohuang/skill-plaza-foru',
-    repositoryLabel: 'Lntanohuang/skill-plaza-foru（本仓库内置技能）',
+    repository: 'https://github.com/wulincong/skill-plaza-foru',
+    repositoryLabel: 'wulincong/skill-plaza-foru（本仓库内置技能）',
   },
   {
     slug: 'doc-translate',
@@ -166,11 +166,11 @@ export const SKILLS: Skill[] = [
       '安装时保留 SKILL.md、references 和 scripts 等配套文件。',
     ],
     installPrompt:
-      '请从 https://github.com/Lntanohuang/skill-plaza-foru 获取 .agents/skills/doc-translate 目录并安装 doc-translate SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
+      '请从 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支获取 .agents/skills/doc-translate 目录并安装 doc-translate SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $doc-translate，上传一份 PDF 文档并翻译为中文（示例：上传英文课件 PDF，要求全文翻译成中文）。',
-    repository: 'https://github.com/Lntanohuang/skill-plaza-foru',
-    repositoryLabel: 'Lntanohuang/skill-plaza-foru（本仓库内置技能）',
+    repository: 'https://github.com/wulincong/skill-plaza-foru',
+    repositoryLabel: 'wulincong/skill-plaza-foru（本仓库内置技能）',
   },
   {
     slug: 'classroom-assistant',

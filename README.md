@@ -4,7 +4,7 @@
 
 - 前端：`web/`，Vue 3 + TypeScript + Vite
 - 后端：`web/server/index.ts`，node:http 零第三方依赖；`PiRunner` 通过 `pi --mode rpc` 为每会话启动常驻子进程（JSONL over stdio）。
-- 技能：`.agents/skills/` 下均为独立技能仓库的 git submodule（见「技能组织模式」），clone 需 `--recurse-submodules`；Pi 用 `--skill` + `/skill:` 命令加载技能。
+- 技能：`.agents/skills/` 同时包含主仓库内置技能和独立技能仓库的 git submodule（见「技能组织模式」），clone 需 `--recurse-submodules`；Pi 用 `--skill` + `/skill:` 命令加载技能。
 
 ## 架构
 
@@ -22,6 +22,25 @@ Vue SPA ── POST /api/chat {skill, messages} ──> Node 后端 (8767)
 开发期 Vite（4188）把 `/api` 代理到 8767；前端只访问同源 `/api/*`，不感知后端形态。
 
 ## 快速开始
+
+### 仓库地址与迁移
+
+主仓库现为 [wulincong/skill-plaza-foru](https://github.com/wulincong/skill-plaza-foru)，当前开发分支为 `wlc`。已有工作目录只需切换远程并获取分支，无需重新克隆：
+
+```bash
+git remote set-url origin git@github.com:wulincong/skill-plaza-foru.git
+git fetch origin
+git remote -v
+```
+
+新环境克隆当前开发版本：
+
+```bash
+git clone --branch wlc --recurse-submodules git@github.com:wulincong/skill-plaza-foru.git
+cd skill-plaza-foru
+```
+
+`.gitmodules` 中三个独立技能仓库继续使用原地址；`chart-visualization` 因原子仓库缺少固定提交，现按用户决定改为主仓库内置目录，原有 21 个文件全部保留。2026-11-03 核对时 GitHub 默认分支仍为 `codex/foru-demo`，因此克隆当前版本需显式指定 `--branch wlc`。已有环境的 `web/.env`、运行记录、会话工作目录和交付资源保留在原磁盘上，不由 Git 迁移到另一台机器。迁移约定及验证见 [开发手记 092](.agents/skills/plaza-dev-notes/references/092-main-repository-remote-migration.md)。
 
 ### 前置条件
 
@@ -108,7 +127,7 @@ cd web && npm run detect:cli
 
 ## 技能组织模式（父子仓库）
 
-每个技能一个**独立仓库（父）**：技能的全部内容与修改历史都在父仓库，广场不保存副本，只以 git submodule 将其挂载到 `.agents/skills/<slug>`（子引用，钉住 commit）。**今后新增技能默认沿用此模式；例外需在 README 和开发手记中注明**——当前例外：`tech-forecast`（新岗位·新技术预判）直接内置于主仓库 `.agents/skills/tech-forecast/`，不设独立父仓库；开发手记 `plaza-dev-notes` 同为主仓库内置。
+独立分发的技能各有一个**独立仓库（父）**：技能的全部内容与修改历史都在父仓库，广场不保存副本，只以 git submodule 将其挂载到 `.agents/skills/<slug>`（子引用，钉住 commit）。**今后新增技能默认沿用此模式；例外需在 README 和开发手记中注明**——当前 `tech-forecast`、`doc-translate`、`wechat-report`、`talent-data-query`、`chart-visualization` 和开发手记等直接内置于主仓库。`chart-visualization` 于 2026-11-03 转为普通目录，来源为 `Lntanohuang/chart-visualization-skill` 的 `75e10d00fbbcbc7c60cf50e678385afbfe434eb8`，技能路径和文件内容保持一致，后续在主仓库维护。
 
 新技能接入三步：
 
