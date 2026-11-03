@@ -14,7 +14,7 @@ import HowItWorks from '../components/HowItWorks.vue'
     <div class="wrap">
       <div class="section-head" v-reveal>
         <h2>SKILL 推荐</h2>
-        <p>每个 SKILL 覆盖一类业务任务，进详情复制安装提示词。</p>
+        <p>查看智能体的任务示例和所需材料，选择在线运行或 API 接入。</p>
       </div>
 
       <div class="grid" id="home-recs">

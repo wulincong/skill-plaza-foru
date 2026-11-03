@@ -1,17 +1,11 @@
-<script setup lang="ts">
-import { CHECKED_ON, SKILLS } from '../data/skills'
-</script>
-
 <template>
   <footer class="site-foot">
     <div class="wrap foot-inner">
-      <p class="foot-note">
-        {{ SKILLS.length }} 个条目都指向公开 GitHub 仓库，仓库可匿名读取。页面不执行 SKILL，也不生成推测的日期、版本、评分或下载量；依赖、费用与许可以各 SKILL 的发布资料为准。清单最后核对 {{ CHECKED_ON }}。
-      </p>
+      <p class="foot-note">智能体搭子 · 课堂教学、实训就业与产业分析</p>
       <nav class="foot-links" aria-label="页脚导航">
-        <RouterLink to="/skills">SKILL 列表</RouterLink>
-        <RouterLink to="/guide">使用指南</RouterLink>
-        <RouterLink to="/guide">怎么用？</RouterLink>
+        <RouterLink to="/skills">智能体广场</RouterLink>
+        <RouterLink to="/experience">在线对话</RouterLink>
+        <RouterLink to="/guide">API 接入指南</RouterLink>
       </nav>
     </div>
   </footer>

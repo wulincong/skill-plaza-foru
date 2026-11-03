@@ -44,7 +44,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 030 | 在线运行安全进度时间线：只登记真实工具调用，工具参数/SQL/路径不进前端 DOM | 已实现（066 起以 ToolCallGroup 工具组形态呈现） | [030-stream-progress-timeline.md](references/030-stream-progress-timeline.md) |
 | 035 | Pi 通用模型选择与计费来源（全局 Skill，防误走第三方计费） | 已实现 Skill，项目运行时接入待实现 | [035-pi-model-selection-and-billing-source.md](references/035-pi-model-selection-and-billing-source.md) |
 | 082 | 在线模型切换（DeepSeek Flash / Pro、优才之路产教融合大模型） | 已实现（弹出菜单、浏览器跨型号续聊与历史恢复通过） | [082-youcai-model-provider.md](references/082-youcai-model-provider.md) |
-| 036 | OpenAI 兼容端点 /v1/chat/completions：外部项目统一接入入口 | 接口已实现；2026-11-03 追加微信机器人两阶段报告接入设计（待实现） | [036-openai-compat-chat-endpoint.md](references/036-openai-compat-chat-endpoint.md) |
+| 036 | OpenAI 兼容端点 /v1/chat/completions：外部项目统一接入入口 | 接口与在线运行/API 公开指南已验证；微信机器人两阶段报告接入待实现 | [036-openai-compat-chat-endpoint.md](references/036-openai-compat-chat-endpoint.md) |
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |
 | 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现（探针会话验证；kill 链与技能全链路待观察） | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
@@ -123,7 +123,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 |---|---|---|---|
 | 003 | 开发任务 GitHub issue 生命周期与 push 关闭 | 已实现（GitHub 认证后待实测） | [003-task-issue-lifecycle.md](references/003-task-issue-lifecycle.md) |
 | 005 | 新仓库协作初始化 Skill：手记、Issue hooks 与项目约定 | 已实现（GitHub 远端待验证） | [005-repo-bootstrap-skill.md](references/005-repo-bootstrap-skill.md) |
-| 092 | 主仓库远程迁移至 wulincong：分支与标签同步、安装链接和chart技能内置 | 已实现（SSH读写/标签同步/构建/全新递归克隆及21文件一致通过） | [092-main-repository-remote-migration.md](references/092-main-repository-remote-migration.md) |
+| 092 | 主仓库远程迁移至 wulincong：分支与标签同步、chart 技能内置（旧安装入口已由 036 撤下） | 已实现（SSH读写/标签同步/构建/全新递归克隆及21文件一致通过） | [092-main-repository-remote-migration.md](references/092-main-repository-remote-migration.md) |
 | 048 | 广场技能列表动态化：/api/skills 与幽灵卡移除 | 已实现（API 实测 6 技能；浏览器页面回归待用户） | [048-plaza-skill-list-dynamic.md](references/048-plaza-skill-list-dynamic.md) |
 | 057 | 公网入口 origin 白名单 PLAZA_ALLOWED_ORIGINS | 已实现（curl 四场景验证；公网浏览器回归待确认） | [057-public-origin-allowlist.md](references/057-public-origin-allowlist.md) |
 | 076 | 开发手记重组：清除运行观察、合并同主题、分区索引（删并映射表） | 已实现 | [076-dev-notes-reorg.md](references/076-dev-notes-reorg.md) |

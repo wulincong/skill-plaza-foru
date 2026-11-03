@@ -27,7 +27,7 @@ const audiences = computed(() => props.skill.audiences.map(id => audOf(id).name)
     </div>
     <div class="card-foot">
       <div class="card-cond">
-        <div class="cond-row"><span class="cond-k">运行</span><span class="cond-v">{{ skill.compatibility.join(' / ') }}</span></div>
+        <div class="cond-row"><span class="cond-k">运行</span><span class="cond-v">在线运行 / API</span></div>
         <div class="cond-row"><span class="cond-k">需要</span><span class="cond-v">{{ skill.preconditions }}</span></div>
         <div class="cond-row"><span class="cond-k">适用</span><span class="cond-v">{{ audiences }}</span></div>
       </div>

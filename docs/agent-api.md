@@ -3,10 +3,10 @@
 供外部项目调用本服务（智能体广场后端，Pi 引擎）的接口说明。以 `web/server/index.ts` 实际实现为准。
 
 - **Base URL**：`http://127.0.0.1:8767`（服务只监听本机回环；端口可用环境变量 `PORT` 覆盖）
-- **公网部署**：后端 `http://115.231.218.150:18767`（前端 :14188）；服务端调用可直接使用，`/api/reports/*` 支持浏览器直接打开，其余接口对跨源浏览器页面返回 403（需后端转发或同源反代）
+- **公网部署**：API 服务 `http://biubiubiu.vip:18767`，网页使用指南位于 [智能体使用指南](http://biubiubiu.vip:14188/#/guide)。
 - **认证**：无鉴权
-- **数据格式**：请求/响应均为 JSON（`/api/chat` 与 `/v1/chat/completions` 例外，为 SSE 流）
-- **跨域限制**：浏览器调用时 `Origin` 必须是本机/内网地址（localhost、127.0.0.1、`*.local`、10.x、192.168.x、172.16-31.x）；服务端对服务端调用（不带 Origin 头）不受限制
+- **数据格式**：对话请求为 JSON。对外端点默认返回 JSON，`stream: true` 时返回 SSE。
+- **跨域限制**：浏览器调用对话接口时 `Origin` 必须在部署的允许列表内，或为本机/内网地址（localhost、127.0.0.1、`*.local`、10.x、192.168.x、172.16-31.x）；服务端对服务端调用（不带 Origin 头）不受限制
 - **服务启动**：`cd web && npm run server`（需本机已安装 pi CLI，模型 key 在启动 shell 环境或 `web/.env`）
 
 ## 产物交付：网页分享与文件下载
@@ -45,16 +45,16 @@ Linux 低权运行器与后端须共享工作区组：公开目录至少组读/�
 
 ## 0. POST /v1/chat/completions（OpenAI 兼容，外部项目推荐入口）
 
-OpenAI 风格的对话补全端点，供已有 OpenAI SDK/SSE 客户端的项目直接接入（通常只需把 baseURL 指到 `<服务地址>/v1`）。运行记录与 `/api/chat` 同套落盘（`/api/runs` 里 `protocol` 字段为 `openai`）。
+OpenAI 风格的对话补全端点，供已有 OpenAI SDK/SSE 客户端的项目直接接入（将 baseURL 指向 `<服务地址>/v1`，并在请求体中加入 `skill`）。运行记录与 `/api/chat` 同套落盘（`/api/runs` 里 `protocol` 字段为 `openai`）。
 
 **请求体**：
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| `skill` | string | 是 | **技能 id**：`industry-education-report` / `career-guidance` / `tech-forecast` / `classroom-assistant` / `ai-interview` / `training-data-qa`；非法值返回 400 并列出可用值 |
+| `skill` | string | 是 | 通用问答填 `general`。专业智能体填 `GET /api/skills` 返回的 `skills[].id`，如 `career-guidance`。未知值返回 400 和可用值。 |
 | `messages` | array | 是 | OpenAI 消息数组，最后一条必须是内容非空的 `user` 消息；无 `sessionId` 时历史会被拍平注入本轮上下文（无状态客户端直接带全量历史即可） |
 | `stream` | boolean | 否 | 默认 `false`；`true` 时输出 SSE 流 |
-| `sessionId` | string | 否 | 非标准扩展：复用服务端会话（多轮只发最新一条，省 token）；不传则每次新会话 |
+| `sessionId` | string | 否 | 多轮对话由客户端在首轮生成并保存 UUID，后续使用同一标识。对外端点不会回传新会话号。省略时每次开启新会话。 |
 | `taskTitle` | string | 否 | 任务标题，≤120 字符；用于运行记录展示与报告下载文件名，不传则回退消息摘要 |
 | `attachments` | array | 否 | 附件列表 `[{ "name": "简历.pdf", "path": "uploads/简历.pdf" }]`，`path` 为 `/api/upload` 返回的相对路径，最多 5 个 |
 
@@ -75,20 +75,12 @@ data: {…同壳…,"choices":[],"usage":{"prompt_tokens":…,"completion_tokens
 data: [DONE]
 ```
 
-- `reasoning_content`（思考）与 `content`（正文）二选一出现在 delta 里；`choices` 为空数组的帧是扩展信息帧（工具 `status` / `reportUrl` / `usage`），标准客户端自然跳过。
-- 工具 `status` 帧为**活动时间线级别**：只有工具名（`tool`）、状态（`state`: `active`/`completed`/`failed`）与调用 id，不含工具入参和返回内容。
-- `reportUrl` 是相对路径，拼上后端地址使用（如 `http://<host>:<port>/api/reports/<runId>`）；加 `/download` 为下载。`resultType` 为 `success` 或 `timeout`。
-- 报告类技能成功时正文增量为空、结果在 `reportUrl`；其余技能结果在 `content` 增量拼接。
-- `cost_usd`、`status`、`reportUrl`、`runId`、`resultType` 均为非标准扩展字段，标准客户端可忽略；客户端 JSON 反序列化需配置忽略未知字段（Spring Boot 默认即是）。
-- 失败时在 `[DONE]` 前输出 `data: {"error":{"message":"…","type":"agent_error"}}`。
-- 每 15 秒一条 `: ping` 注释行作心跳，客户端忽略即可。
-- 正文与思考分离：Agent 工具调用前的过程叙述并入 `reasoning_content`；`delta.content` 只含最终答复，在任务完成时一次性发出（不逐 delta 流式）。
-- `choices` 为空数组的帧（status / reportUrl / usage）为顶层扩展帧，标准客户端按未知字段忽略即可。
-- `reportUrl` 是相对路径，拼上后端地址使用（如 `http://<host>:<port>/api/reports/<runId>`）；加 `/download` 为下载。
-- career-guidance 等报告类技能成功时结果在 `reportUrl`，`delta.content` 只含收尾说明（可能为空）；其余技能结果在 `delta.content`。
-- `cost_usd` 为非标准扩展字段，标准客户端可忽略。
+- 从 `choices[0].delta.content` 取最终答复。思考与过程叙述在 `delta.reasoning_content`。
+- `choices: []` 的扩展帧可包含顶层 `status`、交付字段或 `usage`。工具状态包含名称和状态。报告任务的正文可能为空，应读取 `webLinks`、`downloads` 或 `reportUrl`。
+- 网页和文件取服务端返回的 URL。相对 `reportUrl` 以 API 服务地址为基准解析。若收到 `resultType: "timeout"`，交付物为超时时保留的结果。
+- 忽略 SSE 心跳注释。在 `finish_reason: "stop"` 后继续读取交付信息和用量，直到 `data: [DONE]`。流中失败会先发送含有 `error.message` 的帧。
 
-**非流式输出**（`stream: false`）：标准 `chat.completion` JSON；`model` 回显服务端实际模型；报告类技能（career-guidance / tech-forecast）成功时顶层多 `reportUrl` / `runId` 字段，`choices[0].message.content` 为空串。
+**非流式输出**（`stream: false`）返回 `chat.completion` JSON，正文位于 `choices[0].message.content`。有交付物时还会返回相应的顶层链接字段。
 
 ```json
 {
@@ -168,7 +160,7 @@ curl -N http://127.0.0.1:8767/v1/chat/completions \
 | `engine` | string | 否 | 仅支持 `"pi"`（默认），传其他值报 400 |
 | `attachments` | array | 否 | 附件列表 `[{ "name": "简历.pdf", "path": "uploads/简历.pdf" }]`，`path` 为 `/api/upload` 返回的相对路径，最多 5 个 |
 
-**skill 合法取值**：`industry-education-report`（区域产业人才报告）、`career-guidance`（就业指导，生成 HTML 报告）、`classroom-assistant`（课堂答疑）、`ai-interview`（模拟面试）、`training-data-qa`（训练数据构造）。
+**skill 合法取值** 同第 0 节。
 
 **SSE 事件**（每条为 `data: {JSON}\n\n`，按可能出现顺序）：
 

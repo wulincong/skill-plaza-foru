@@ -47,19 +47,14 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
         <p class="detail-summary">{{ skill.summary }}</p>
         <div class="detail-actions">
           <RouterLink class="btn btn-primary" :to="{ name: 'use', params: { slug: skill.slug } }">
-            在线运行这个 SKILL<Icon name="arrow" :size="15" />
+            在线运行<Icon name="arrow" :size="15" />
           </RouterLink>
+          <RouterLink class="btn btn-quiet" to="/guide">API 接入指南</RouterLink>
           <span class="detail-actions-note">{{ configOf(skill.slug) ? '配置任务后运行，也可在在线对话中选择此技能。' : '进入在线对话，说明任务要求即可使用此技能。' }}</span>
         </div>
         <div class="meta-row">
-          <div class="meta-item"><span class="meta-k">运行环境</span><span class="meta-v">{{ skill.compatibility.join(' / ') }}</span></div>
+          <div class="meta-item"><span class="meta-k">API 标识（skill）</span><code class="meta-v">{{ skill.slug }}</code></div>
           <div class="meta-item"><span class="meta-k">适用角色</span><span class="meta-v">{{ audiences }}</span></div>
-          <div class="meta-item">
-            <span class="meta-k">仓库</span>
-            <span class="meta-v mono">
-              <a class="ext" :href="skill.repository" target="_blank" rel="noreferrer">{{ skill.repositoryLabel }}<Icon name="ext" :size="13" /></a>
-            </span>
-          </div>
         </div>
       </header>
 
@@ -70,7 +65,7 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
 
       <section class="block" v-reveal="60">
         <h2 class="block-title">跑完会得到什么</h2>
-        <p class="block-note">按条目列出。具体文件名与目录结构以仓库当前发布资料为准。</p>
+        <p class="block-note">可交付的内容如下，实际文件可在任务完成后查看。</p>
         <ul class="out-list">
           <li v-for="(item, i) in skill.outputs" :key="item" class="out-item"><span class="idx">{{ pad2(i) }}</span>{{ item }}</li>
         </ul>
@@ -83,27 +78,10 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
         </div>
       </section>
 
-      <section v-if="skill.slug !== 'career-guidance'" class="block" v-reveal="120">
-        <h2 class="block-title">怎么用</h2>
-        <p class="block-note">两步：先装上，再跑一次最小任务。</p>
-        <div class="rail">
-          <div class="rail-item">
-            <span class="rail-no">1</span>
-            <div class="rail-body">
-              <p class="rail-title">安装</p>
-              <p class="rail-desc">把这句话完整发给你使用的 AI 工具（Codex、Claude Code、Cursor 等），它会从指定仓库取回整个目录。</p>
-              <Codebox label="安装提示词" :text="skill.installPrompt" message="安装提示词已复制" :primary="true" />
-            </div>
-          </div>
-          <div class="rail-item">
-            <span class="rail-no">2</span>
-            <div class="rail-body">
-              <p class="rail-title">跑一次最小任务</p>
-              <p class="rail-desc">安装完成后从这里开始。把示例里的地区、资料或附件换成你自己的。</p>
-              <Codebox label="最小输入示例" :text="skill.minimalInput" message="最小输入示例已复制" />
-            </div>
-          </div>
-        </div>
+      <section class="block" v-reveal="120">
+        <h2 class="block-title">试一个任务</h2>
+        <p class="block-note">把示例里的材料和要求换成自己的，再提交给这个智能体。</p>
+        <Codebox label="最小输入示例" :text="skill.minimalInput" message="最小输入示例已复制" />
       </section>
 
       <section class="block" v-reveal="180">
@@ -120,17 +98,6 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
           </div>
         </div>
       </section>
-
-      <section v-if="skill.slug !== 'career-guidance'" class="block" v-reveal="240">
-        <h2 class="block-title">安装步骤</h2>
-        <ol class="olist"><li v-for="d in skill.installation" :key="d">{{ d }}</li></ol>
-        <div class="repo-line">
-          <span class="repo-path">{{ skill.repositoryLabel }}</span>
-          <a class="btn btn-quiet" :href="skill.repository" target="_blank" rel="noreferrer">打开 GitHub 仓库<Icon name="ext" :size="15" /></a>
-        </div>
-      </section>
-
-      <p class="note">这一页的内容与产物清单都取自该仓库的发布资料；依赖、费用与许可以仓库当前内容为准。页面不会执行 SKILL。</p>
 
       <div class="detail-foot">
         <a class="btn btn-quiet" :href="returnTo"><Icon name="back" :size="15" />返回列表</a>

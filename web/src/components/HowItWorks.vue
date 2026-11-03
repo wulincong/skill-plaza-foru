@@ -7,8 +7,8 @@ const steps = [
   },
   {
     no: '2',
-    title: '复制提示词，发给你的 AI',
-    desc: '详情页的安装提示词一键复制，发给 AI 工具就会把完整目录装好。',
+    title: '选择接入方式',
+    desc: '在详情页点击「在线运行」。从自己的应用发起任务，可按 API 接入指南发送请求。',
   },
   {
     no: '3',
@@ -23,7 +23,7 @@ const steps = [
     <div class="wrap">
       <div class="section-head" v-reveal>
         <h2>三步开始使用</h2>
-        <p>不用注册、不用联网执行，复制提示词在你的 AI 工具里完成。</p>
+        <p>从一个具体问题开始，准备好任务所需的资料。</p>
       </div>
 
       <div class="how-grid">

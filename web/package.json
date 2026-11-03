@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "智能体广场：产教领域的公开 SKILL 目录（Vue 3 + TypeScript + Vite）",
+  "description": "智能体广场：产教智能体在线运行与 API 接入平台（Vue 3 + TypeScript + Vite）",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",

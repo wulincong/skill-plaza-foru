@@ -32,16 +32,11 @@ function basicSkill(r: RemoteSkill): Skill {
     audiences: [],
     summary: r.description,
     tags: [r.installed ? '已上线' : '可运行'],
-    compatibility: [],
     preconditions: '',
     outputs: [],
     dependencies: [],
     limitations: [],
-    installation: [],
-    installPrompt: '',
     minimalInput: '',
-    repository: '',
-    repositoryLabel: '',
   }
 }
 
@@ -128,7 +123,7 @@ function clearFilters(focusSearch: boolean) {
     <div class="wrap">
       <div class="section-head" v-reveal>
         <h2>发现值得使用的 SKILL</h2>
-        <p>按角色或业务分类收窄，进详情复制安装提示词。</p>
+        <p>按角色或业务分类筛选，选择智能体在线运行，或用详情页的标识调用 API。</p>
       </div>
 
       <div class="filters" v-reveal="70">

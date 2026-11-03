@@ -2,7 +2,6 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { SKILLS, catOf } from '../data/skills'
 import Icon from './Icon.vue'
-import HeroCopyButton from './HeroCopyButton.vue'
 
 /* 3 列 marquee 轮播恢复 + 入场：卡片先叠成一叠（带微旋转），随后依次散开成一排 */
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)')
@@ -79,8 +78,8 @@ function cardVars(idx: number) {
   }
 }
 /* 标题逐字动画：从模糊到清晰，从左到右；🧩 作为最后一个"字符"压轴弹出 */
-const LINE1 = '把课堂、作业和求职要用的方法，'
-const LINE2 = '装进你的 AI'
+const LINE1 = '备课、练习和求职，'
+const LINE2 = '找智能体搭子'
 const chars1 = LINE1.split('')
 const chars2 = LINE2.split('')
 const line2Start = 60 + chars1.length * 26 + 150
@@ -93,21 +92,17 @@ function catName(id: string) { return catOf(id).name }
 <template>
   <div class="hero" id="hero">
     <div class="hero-inner">
-      <h1 class="hero-title" aria-label="把课堂、作业和求职要用的方法，装进你的 AI">
+      <h1 class="hero-title" aria-label="备课、练习和求职，找智能体搭子">
         <span aria-hidden="true"><span v-for="(ch, i) in chars1" :key="'a' + i" class="hero-char" :style="{ animationDelay: `${60 + i * 26}ms` }">{{ nb(ch) }}</span></span>
         <br aria-hidden="true">
         <span aria-hidden="true"><span v-for="(ch, i) in chars2" :key="'b' + i" class="hero-char" :style="{ animationDelay: `${line2Start + i * 26}ms` }">{{ nb(ch) }}</span></span><span class="hero-emoji" :style="{ animationDelay: `${emojiDelay}ms` }" aria-hidden="true">🧩</span>
       </h1>
-      <p class="hero-sub">{{ SKILLS.length }} 个免费公开的 SKILL，帮你搞定课程答疑、课堂练习、模拟面试、就业指导和数据实践。装进你的 AI 工具，随装随用。</p>
+      <p class="hero-sub">{{ SKILLS.length }} 个智能体，支持课程答疑、课堂练习、模拟面试、就业指导和数据实践。</p>
       <div class="hero-actions">
         <RouterLink class="btn btn-primary" to="/experience">在线对话<Icon name="arrow" :size="15" /></RouterLink>
         <RouterLink class="btn btn-quiet" to="/skills">浏览全部 SKILL</RouterLink>
       </div>
-      <div class="install-bar">
-        <span class="install-text" id="install-text">根据 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支安装智能体搭子精选。</span>
-        <HeroCopyButton />
-      </div>
-      <p class="hero-hint">想先看看效果？直接进任意 SKILL 的工作台跑一次，或去详情页拿专属安装提示词。</p>
+      <p class="hero-hint">要在自己的应用里使用？<RouterLink class="text-btn" to="/guide">查看 API 接入指南 →</RouterLink></p>
     </div>
     <div class="hero-strip">
       <div ref="viewport" class="hero-cards" id="hero-cards" aria-label="SKILL 速览">

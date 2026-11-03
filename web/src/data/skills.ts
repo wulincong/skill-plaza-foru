@@ -2,7 +2,7 @@
    智能体广场 · 数据
    ------------------------------------------------------------
    只放事实字段。不填推测的日期、版本、评分或下载量。
-   outputs / dependencies / limitations / installation 均按条目列出，
+   outputs / dependencies / limitations 均按条目列出，
    便于在界面里逐条核对，而不是藏在句子里。
    ============================================================ */
 
@@ -25,16 +25,11 @@ export interface Skill {
   summary: string
   introduction?: string
   tags: string[]
-  compatibility: string[]
   preconditions: string
   outputs: string[]
   dependencies: string[]
   limitations: string[]
-  installation: string[]
-  installPrompt: string
   minimalInput: string
-  repository: string
-  repositoryLabel: string
 }
 
 export interface Feature {
@@ -62,9 +57,6 @@ export const AUDIENCES: Audience[] = [
   { id: 'data', name: '数据团队' },
 ]
 
-/* 清单最后核对日期（对应 README 验证记录） */
-export const CHECKED_ON = '2026-09-15'
-
 export const SKILLS: Skill[] = [
   {
     slug: 'industry-education-report',
@@ -74,7 +66,6 @@ export const SKILLS: Skill[] = [
     audiences: ['manager', 'data'],
     summary: '面向院校、政府和园区生成有证据、可审查的产业与专业建设决策报告。',
     tags: ['产教融合', '专业建设', '决策报告'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
     preconditions: '产业 / 岗位 / 专业或就业资料',
     outputs: [
       '报告 Markdown',
@@ -83,23 +74,14 @@ export const SKILLS: Skill[] = [
       '结构与语义验收结果',
     ],
     dependencies: [
-      '可信的产业、岗位、专业或就业资料',
-      'Python 3（运行报告校验脚本时）',
+      '目标地区、产业范围与报告用途',
     ],
     limitations: [
       '最新报告需要重新核验来源、年份、范围和统计口径。',
       '缺少院校微观数据时会保留缺口，不编造就业率、岗位缺口或招生规模。',
     ],
-    installation: [
-      '从公开 GitHub 仓库获取完整目录。',
-      '安装时保留 SKILL.md、references、assets 和 scripts 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/Lntanohuang/industry-education-report-skill.git 安装 industry-education-report SKILL，保留仓库完整目录，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $industry-education-report，为广东省某高职院校制作新能源汽车专业建设报告，受众为院校管理者，基期为 2024 年。',
-    repository: 'https://github.com/Lntanohuang/industry-education-report-skill',
-    repositoryLabel: 'Lntanohuang/industry-education-report-skill',
   },
   {
     slug: 'tech-forecast',
@@ -109,7 +91,6 @@ export const SKILLS: Skill[] = [
     audiences: ['manager', 'teacher', 'data'],
     summary: '面向院校与培训机构的新兴技术成熟度、技能演进与新兴岗位预判，输出证据分级的 HTML 决策报告。',
     tags: ['技术预判', '新兴岗位', '培训方向'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
     preconditions: '目标地区 + 技术领域方向',
     outputs: [
       '技术成熟度雷达图报告（HTML）',
@@ -118,23 +99,14 @@ export const SKILLS: Skill[] = [
       '培训方向建议表',
     ],
     dependencies: [
-      '岗位库查询（岗位名与薪资区间佐证，可选）',
-      '技能内置技术与专业对照文档',
+      '目标地区、技术领域与预判时间范围',
     ],
     limitations: [
       '预测字段区分证据等级（库内实测 / 内置文档 / 分析推断），分析推断不作为事实呈现。',
       '无真实月度趋势数据时，需求与增长趋势标注为推断或未评估。',
     ],
-    installation: [
-      '随技能广场主仓库分发（.agents/skills/tech-forecast/ 目录）。',
-      '安装时保留 SKILL.md、references 和 agents 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支获取 .agents/skills/tech-forecast 目录并安装 tech-forecast SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $tech-forecast，面向广东省高职院校，预判未来 1–3 年人工智能与机器人方向的新兴岗位与培训建议。',
-    repository: 'https://github.com/wulincong/skill-plaza-foru',
-    repositoryLabel: 'wulincong/skill-plaza-foru（本仓库内置技能）',
   },
   {
     slug: 'doc-translate',
@@ -144,33 +116,24 @@ export const SKILLS: Skill[] = [
     audiences: ['teacher', 'manager', 'student'],
     summary: '把 PDF 全文翻译为目标语言，保留原图并翻译图注，重排为对齐原文纸张、分栏和章节层级的译文 PDF。',
     tags: ['文档翻译', 'PDF 重排', 'XeLaTeX'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
     preconditions: 'PDF 文档（文本层可提取）+ 目标语言',
     outputs: [
-      '对齐原文宏观结构的译文 PDF（workspace/translation.pdf）',
+      '与原文章节结构对齐的译文 PDF',
       '全文术语一致的章节级翻译',
       '保留原图、翻译图注并插回对应章节',
       '简短完成说明（页数与结构对齐情况）',
     ],
     dependencies: [
-      'poppler（pdftotext / pdfinfo / pdftohtml / pdftoppm，系统安装）',
-      'XeLaTeX + xeCJK + 中文字体（WenQuanYi，系统安装）',
+      '含可提取文本的 PDF 原件',
+      '译文的目标语言',
     ],
     limitations: [
       '只对齐宏观结构（纸张、单双栏、标题层级），不逐像素复刻原版式。',
       '扫描件（无文本层）与加密 PDF 不支持，运行时如实告知。',
       '图内文字保持原样；图片位置随译文重排，上传单文件上限 6MB。',
     ],
-    installation: [
-      '随技能广场主仓库分发（.agents/skills/doc-translate/ 目录）。',
-      '安装时保留 SKILL.md、references 和 scripts 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/wulincong/skill-plaza-foru 的 wlc 分支获取 .agents/skills/doc-translate 目录并安装 doc-translate SKILL，保留完整目录结构，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $doc-translate，上传一份 PDF 文档并翻译为中文（示例：上传英文课件 PDF，要求全文翻译成中文）。',
-    repository: 'https://github.com/wulincong/skill-plaza-foru',
-    repositoryLabel: 'wulincong/skill-plaza-foru（本仓库内置技能）',
   },
   {
     slug: 'classroom-assistant',
@@ -180,7 +143,6 @@ export const SKILLS: Skill[] = [
     audiences: ['teacher', 'student'],
     summary: '在授权课程资料范围内完成带引用答疑、要点总结、练习生成和答疑记录整理。',
     tags: ['课程资料', '课堂练习', '引用答疑'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
     preconditions: '本次明确授权的课程材料',
     outputs: [
       '带定位引用的答疑记录',
@@ -196,16 +158,8 @@ export const SKILLS: Skill[] = [
       '只回答授权资料覆盖范围内的问题，范围外会明确说明。',
       '练习题在教师确认前只作为草稿，不直接计分。',
     ],
-    installation: [
-      '从公开 GitHub 仓库获取完整目录。',
-      '安装时保留 SKILL.md、references、assets 和 examples 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/Lntanohuang/classroom-assistant-skill.git 安装 classroom-assistant SKILL，保留仓库完整目录，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $classroom-assistant，基于我上传的《新能源汽车概论》第 3 章资料，生成 5 道课堂练习并附答案要点。',
-    repository: 'https://github.com/Lntanohuang/classroom-assistant-skill',
-    repositoryLabel: 'Lntanohuang/classroom-assistant-skill',
   },
   {
     slug: 'ai-interview',
@@ -215,7 +169,6 @@ export const SKILLS: Skill[] = [
     audiences: ['teacher', 'student'],
     summary: '结合目标岗位、岗位要求和简历开展逐题模拟面试、智能追问与证据化复盘。',
     tags: ['模拟面试', '就业辅导', '回答复盘'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包', 'Python'],
     preconditions: '目标岗位 + 简历或经历摘要',
     outputs: [
       '逐题问答记录（含追问链）',
@@ -231,16 +184,8 @@ export const SKILLS: Skill[] = [
       '复盘只基于本人提供的信息，不联网核查任职资格。',
       '不承诺面试结果，只给出证据化的改进建议。',
     ],
-    installation: [
-      '从公开 GitHub 仓库获取完整目录。',
-      '安装时保留 SKILL.md、references、assets 和 scripts 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/Lntanohuang/ai-interview-skill.git 安装 ai-interview SKILL，保留仓库完整目录，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $ai-interview，目标岗位为某新能源汽车企业售后技术支持，按我上传的简历逐题模拟并复盘。',
-    repository: 'https://github.com/Lntanohuang/ai-interview-skill',
-    repositoryLabel: 'Lntanohuang/ai-interview-skill',
   },
   {
     slug: 'career-guidance',
@@ -251,7 +196,6 @@ export const SKILLS: Skill[] = [
     summary: '基于目标、经历、岗位要求和现实约束，制定可执行的职业定位与求职行动方案。',
     introduction: '就业指导是面向学生求职决策的结构化职业规划 SKILL。它综合目标岗位、个人经历、简历、岗位描述以及地区和求职阶段等现实约束，帮助梳理职业定位、岗位匹配证据、能力缺口与求职优先级，并形成简历优化建议和分阶段行动计划。它不承诺录用结果，结论应以用户提供的事实和可核验的岗位信息为依据。',
     tags: ['职业定位', '岗位匹配', '求职计划'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包'],
     preconditions: '目标岗位或方向 + 简历、经历摘要',
     outputs: [
       '职业定位或岗位匹配证据表',
@@ -267,16 +211,8 @@ export const SKILLS: Skill[] = [
       '建议基于用户提供的事实和岗位信息，不承诺录用结果。',
       '最新招聘状态、薪资行情和劳动法规需要按时间、地区和来源重新核实。',
     ],
-    installation: [
-      '从公开 GitHub 仓库获取完整目录。',
-      '安装时保留 SKILL.md、agents 和 references 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/Lntanohuang/career-guidance-skill.git 安装 career-guidance SKILL，保留仓库完整目录，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $career-guidance，目标是 Java 后端实习，请根据我的匿名简历和岗位描述列出匹配证据、关键缺口和 30 天行动计划。',
-    repository: 'https://github.com/Lntanohuang/career-guidance-skill',
-    repositoryLabel: 'Lntanohuang/career-guidance-skill',
   },
   {
     slug: 'training-data-qa',
@@ -286,7 +222,6 @@ export const SKILLS: Skill[] = [
     audiences: ['data'],
     summary: '从治理数据构造可追溯训练样本，检查重复、泄漏、分布和业务规则并编排专家抽检。',
     tags: ['数据治理', '标注质检', '训练数据'],
-    compatibility: ['Codex', 'Claude Code', 'Cursor', 'WorkBuddy', '豆包', 'Python'],
     preconditions: '治理数据、任务模板和标注规则',
     outputs: [
       '训练样本数据集（带来源标注）',
@@ -302,16 +237,8 @@ export const SKILLS: Skill[] = [
       '数据授权范围由使用方确认，页面与 SKILL 不代替授权判断。',
       '统计结论基于所给数据计算，不外推到未提供的数据源。',
     ],
-    installation: [
-      '从公开 GitHub 仓库获取完整目录。',
-      '安装时保留 SKILL.md、references、scripts 和 requirements.txt 等配套文件。',
-    ],
-    installPrompt:
-      '请从 https://github.com/Lntanohuang/training-data-qa-skill.git 安装 training-data-qa SKILL，保留仓库完整目录，并在安装后检查依赖、说明调用方式。',
     minimalInput:
       '使用 $training-data-qa，对我提供的就业意向调查数据构造训练样本，标注字段以附带规则文件为准。',
-    repository: 'https://github.com/Lntanohuang/training-data-qa-skill',
-    repositoryLabel: 'Lntanohuang/training-data-qa-skill',
   },
   {
     slug: 'wechat-report',
@@ -321,16 +248,11 @@ export const SKILLS: Skill[] = [
     audiences: ['manager', 'teacher', 'data'],
     summary: '把地区与行业的岗位数据整理为公众号报告大纲、图文页面、文章和证据核查表。',
     tags: ['公众号图文', '人才需求', '产业报告'],
-    compatibility: ['Codex', 'Pi'],
     preconditions: '地区、行业、目标读者与可用数据',
     outputs: ['可审阅的报告大纲', '报告分屏图片与长图', '公众号文章 Markdown / HTML', '证据核查表 XLSX'],
-    dependencies: ['Python 3、PyMySQL、Pillow、openpyxl', 'Edge / Chrome / Chromium（渲染图片）', '数据库连接配置（真实数据）；公众号账号配置（推送草稿时）'],
+    dependencies: ['目标地区与行业', '报告读者及希望回答的问题'],
     limitations: ['未配置数据库时仅可使用明确标注的离线示例。', '大纲确认后生成图文；推送草稿需要明确要求，不自动群发或发布。'],
-    installation: ['获取仓库中的完整 wechat-report 目录。', '按 references/project-installation.md 配置依赖，在会话副本中运行。'],
-    installPrompt: '请从 https://github.com/MJL629/Official-Account-Skill 安装 wechat-report，保留 scripts、references、assets、example 和岗位字典，并检查依赖。',
     minimalInput: '使用 $wechat-report，为广东省人工智能产业拟一份公众号报告大纲，读者是院校管理者；先说明所需数据。',
-    repository: 'https://github.com/MJL629/Official-Account-Skill',
-    repositoryLabel: 'MJL629/Official-Account-Skill',
   },
 ]
 

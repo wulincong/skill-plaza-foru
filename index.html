@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="智能体广场：按产业专业、课程教学、实训就业和数据治理寻找方法，复制安装提示词与最小输入示例。">
+<meta name="description" content="智能体广场：按产业专业、课程教学、实训就业和数据治理寻找方法，在线运行任务或通过 API 接入。">
 <title>智能体广场 · FORU 风格 Demo</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23165DFF'/%3E%3Cpath d='m16 6 10 6-10 6-10-6Zm-10 12 10 6 10-6' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="styles.css">
@@ -50,15 +50,15 @@
 <div class="page-view" data-page="home">
 <section class="foru-hero"><div class="foru-container foru-hero-layout">
 <div class="foru-hero-copy">
-<div class="hero-eyebrow"><span></span>4 个公开 SKILL · 即看即装</div>
+<div class="hero-eyebrow"><span></span>智能体广场 · 在线运行</div>
 <h1>让专业方法<br><span>开箱即用</span></h1>
-<p class="hero-lead">把经过验证的方法、安装提示词和最小输入示例放在一起，让每个真实任务都有清晰起点。</p>
+<p class="hero-lead">从任务示例开始，在网页中运行智能体，也可通过 API 接入自己的应用。</p>
 <div class="hero-category-pills" aria-label="业务分类"><span>产业与专业</span><span>课程与教学</span><span>实训与就业</span><span>数据与模型</span></div>
 <div class="foru-hero-actions">
 <a class="foru-pill hero-main-action" href="#/use"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M3 4h16v13H3Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M7 8h8M7 12h5M11 17v3M7 20h8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>直接使用 SKILL</a>
 <a class="foru-pill" href="#/catalog"><svg aria-hidden="true" viewBox="0 0 48 48"><use href="#foru-book"/></svg>浏览全部 SKILL</a>
 </div>
-<p class="hero-assurance"><span>✓</span>无需 npm，下载后可直接打开</p>
+<p class="hero-assurance"><span>✓</span>按业务任务选择智能体</p>
 </div>
 <div class="foru-hero-art" aria-hidden="true">
 <div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div>
@@ -74,12 +74,12 @@
 <div class="hero-flow-card">
 <div class="hero-flow-label"><span>当前任务</span><i>READY</i></div>
 <code>$industry-education-report</code>
-<div class="hero-flow-steps"><span><b>01</b>安装</span><i>→</i><span><b>02</b>最小输入</span><i>→</i><span><b>03</b>生成产物</span></div>
+<div class="hero-flow-steps"><span><b>01</b>选择智能体</span><i>→</i><span><b>02</b>最小输入</span><i>→</i><span><b>03</b>生成产物</span></div>
 <div class="hero-output"><svg viewBox="0 0 48 48"><use href="#foru-projects"/></svg><span><small>预期产出</small><strong>可审查的专业建设报告</strong></span><b>完成</b></div>
 </div>
 </div>
 </div>
-<div class="hero-float-chip float-repo"><span>↗</span>公开仓库</div>
+<div class="hero-float-chip float-repo"><span>↗</span>API 接入</div>
 <div class="hero-float-chip float-example"><span>⌁</span>最小输入示例</div>
 </div>
 </div></section>
@@ -91,10 +91,10 @@
 </div><div class="foru-feature-controls"><button type="button" id="feature-pause" aria-pressed="false">暂停自动展示</button></div>
 </div></section>
 <section class="foru-section foru-soft" id="catalog"><div class="foru-container">
-<div class="foru-section-heading"><h2>全部 SKILL</h2><p>查看用途、安装提示词、最小输入示例和必要依赖</p></div>
+<div class="foru-section-heading"><h2>全部 SKILL</h2><p>查看用途、任务示例和所需材料</p></div>
 <div class="catalog-controls"><label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" fill="none" stroke="currentColor" stroke-width="2"/><path d="m15 15 6 6" stroke="currentColor" stroke-width="2"/></svg><input id="search-input" type="search" placeholder="搜索名称、用途或关键词" aria-label="搜索 SKILL"></label><label class="sort-label">排序<select id="sort-select"><option value="featured">精选优先</option><option value="updated">最近更新</option><option value="name">名称排序</option></select></label></div>
 <div id="categories" class="category-list" aria-label="SKILL 分类"></div>
-<div class="catalog-meta"><span id="result-count" aria-live="polite"></span><span id="sort-note">4 个业务分类 · 4 个公开 GitHub 仓库</span></div>
+<div class="catalog-meta"><span id="result-count" aria-live="polite"></span><span id="sort-note">4 个业务分类 · 在线运行与 API 接入</span></div>
 <div class="skill-grid" id="skill-grid"></div>
 <div class="empty-state" id="empty-state" hidden><svg viewBox="0 0 56 56" aria-hidden="true"><use href="#foru-projects"/></svg><h3>未找到匹配的 SKILL</h3><p>试试其他关键词，或恢复完整清单。</p><button type="button" class="outline-button" id="clear-filters">清除筛选</button></div>
 </div></section>
@@ -106,8 +106,8 @@
 </main>
 <footer class="foru-footer" id="footer"><div class="foru-container"><div class="foru-footer-grid">
 <div><h2>智能体广场</h2><p>连接产教业务任务与可复用专业方法。</p><span class="footer-badge">FORU 风格 · 本地 Demo</span></div>
-<div><h3>快速入口</h3><a href="#/use">直接使用</a><a href="#/catalog">全部 SKILL</a><a href="#/guide">安装与使用</a></div>
-<div><h3>内容说明</h3><p>4 个条目均已配置公开 GitHub 仓库入口。</p><p>直接使用页通过本地代理调用已配置的 Youcai 模型 API。</p></div>
+<div><h3>快速入口</h3><a href="#/use">直接使用</a><a href="#/catalog">全部 SKILL</a><a href="#/guide">使用指南</a></div>
+<div><h3>内容说明</h3><p>使用指南提供在线对话入口和 API 调用示例。</p><p>直接使用页通过本地代理调用已配置的 Youcai 模型 API。</p></div>
 </div><div class="footer-bottom">独立风格重建，不使用原站联系方式或合作背书；API 密钥仅由本地服务端读取。</div></div></footer>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>
