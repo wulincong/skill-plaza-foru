@@ -112,7 +112,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 067 | 在线对话默认通用智能体与 $ 技能选择器 | 已实现（构建/后端 e2e/浏览器断言通过） | [067-experience-general-agent-dollar-picker.md](references/067-experience-general-agent-dollar-picker.md) |
 | 068 | /use 收敛为任务配置表单，历史统一到在线对话侧栏 | 已实现（历史形态被 069 修订，其余约定生效） | [068-form-only-usepage-and-experience-surface.md](references/068-form-only-usepage-and-experience-surface.md) |
 | 069 | 历史按对话展示整段记录 + 运行进度只显真实工具调用 | 已实现（构建/curl/浏览器断言与截图通过） | [069-conversation-history-and-toolsonly-progress.md](references/069-conversation-history-and-toolsonly-progress.md) |
-| 070 | 点开历史即正常对话流：恢复服务端会话可直接续聊，报告链接内联 | 已实现（含真实续聊与下载路由回归） | [070-history-as-normal-chat.md](references/070-history-as-normal-chat.md) |
+| 070 | 历史续聊、运行中刷新恢复原任务与手动继续 | 已实现（Chrome 实模中断续跑、首次提交及重复点击回归通过） | [070-history-as-normal-chat.md](references/070-history-as-normal-chat.md) |
 | 071 | 执行过程按模型消息分组、工具行内用途、调用进度与整轮计时 | 已实现（优才与 Pro 实模、并行进度、历史与窄屏验证通过；Flash 用途待实模复验） | [071-history-tool-summary.md](references/071-history-tool-summary.md) |
 | 072 | 会话归档与删除（archived 标记、session 路由、两步删除、归档分区） | 已实现（构建/curl/浏览器断言与截图通过） | [072-conversation-archive-delete.md](references/072-conversation-archive-delete.md) |
 | 074 | 侧栏实时对话条目与落库竞态重拉（liveConvGroup 占位、运行中徽章） | 已实现（真实两轮 e2e 8 断言通过） | [074-live-sidebar-entry.md](references/074-live-sidebar-entry.md) |

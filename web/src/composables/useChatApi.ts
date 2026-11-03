@@ -73,6 +73,8 @@ export interface ChatAttachment {
 }
 
 export interface StreamChatOptions {
+  requestId?: string
+  resumeOf?: string
   model?: ChatModelId
   skill: string
   /** 结构化任务生成的用户可读标题，用于运行历史和报告文件名。 */
@@ -92,7 +94,7 @@ export async function streamChat(options: StreamChatOptions): Promise<void> {
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skill, model, taskTitle, messages, sessionId, attachments }),
+    body: JSON.stringify({ skill, model, taskTitle, messages, sessionId, attachments, requestId: options.requestId, resumeOf: options.resumeOf }),
     signal,
   })
   if (!response.ok || !response.body) {

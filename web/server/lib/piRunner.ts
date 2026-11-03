@@ -566,8 +566,15 @@ export class PiRunner extends AgentRunner {
     if (session) session.hasContext = true
   }
 
-  stop(sessionId: string) {
-    this.request({ type: 'abort' }, sessionId).catch(() => {})
+  async stop(sessionId: string) {
+    const timer = setTimeout(() => this.disposeSession(sessionId), 5000)
+    try {
+      await this.request({ type: 'abort' }, sessionId)
+    } catch {
+      this.disposeSession(sessionId)
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   disposeSession(sessionId: string) {
@@ -582,6 +589,7 @@ export class PiRunner extends AgentRunner {
     this.thinkState.delete(sessionId)
     this.toolTiming.delete(sessionId)
     s.channel.kill()
+    this.rejectSessionRequests(sessionId)
     this.dropSessionBookkeeping(sessionId)
   }
 
@@ -596,13 +604,17 @@ export class PiRunner extends AgentRunner {
     this.contextStatsPending.delete(sid)
     this.thinkState.delete(sid)
     this.toolTiming.delete(sid)
+    this.rejectSessionRequests(sid)
+    this.dropSessionBookkeeping(sid)
+  }
+
+  private rejectSessionRequests(sid: string) {
     for (const [id, p] of this.pending) {
       if (p.sid === sid) {
         this.pending.delete(id)
         p.reject(new Error('pi 会话进程退出'))
       }
     }
-    this.dropSessionBookkeeping(sid)
   }
 
   /* 空闲回收：pi 每会话一进程，不能任其堆积 */

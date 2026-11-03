@@ -155,7 +155,7 @@ export abstract class AgentRunner {
   /** 新一轮运行开始；无状态引擎可保持默认空操作。 */
   beginTurn(_sessionId: string): void {}
   /** 停止当前执行（超时/断连用）；尽力而为，不抛错 */
-  abstract stop(sessionId: string): void
+  abstract stop(sessionId: string): Promise<void>
   /** 会话终态 trace 导出（写入 outFile，返回 toolCallCount；导不出返回 null） */
   abstract exportTrace(
     sessionId: string,

@@ -1,7 +1,8 @@
 /** Real HTTP/SSE/history contract, with a deterministic Pi transport (no model calls). */
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtempSync, rmSync, writeFileSync, readdirSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
+import { mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,6 +23,7 @@ let messages=saved?.messages||[],nativeId=saved?.nativeId||String(Date.now()),la
 const send=x=>process.stdout.write(JSON.stringify(x)+'\n');
 for await(const line of createInterface({input:process.stdin})) {
  const c=JSON.parse(line); let data={};
+ if(c.type==='get_state' && process.cwd().endsWith('-early')) await new Promise(resolve=>setTimeout(resolve,120));
  if(c.type==='get_state')data={sessionId:nativeId,messageCount:messages.length,model};
  if(c.type==='set_model') {
   if(c.provider==='youcai' && !process.argv.some(a=>a.endsWith('/pi/youcai.js'))) throw Error('youcai extension missing');
@@ -31,6 +33,11 @@ for await(const line of createInterface({input:process.stdin})) {
  if(c.type==='get_last_assistant_text')data={text:last};
  if(c.type==='prompt') {
   messages.push({role:'user',content:[{type:'text',text:c.message}]});
+  if(c.message.includes('hold-for-refresh') && !c.message.includes('原始任务：')) {
+   writeFileSync('checkpoint.txt','partial');
+   send({type:'response',id:c.id,command:c.type,success:true,data});
+   continue;
+  }
   if(!c.message.includes('follow-up')) {
    mkdirSync('output/public/site',{recursive:true});
    writeFileSync('output/public/site/index.html','<!doctype html><html><head><title>Delivery browser test</title><link rel="stylesheet" href="style.css"></head><body><img src="image.svg"><script src="script.js"></script></body></html>');
@@ -184,4 +191,88 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true })
   await stop(); await start()
   assert.equal((await fetch(url)).status, 200)
+  await t.test('refresh before receipt or during a turn, then resume once with original attachments', async t => {
+    const id = () => randomBytes(16).toString('hex')
+    const sessionId = 'sess-' + id()
+    const workspace = join(serverDir, 'workspace', sessionId)
+    t.after(() => rmSync(workspace, { recursive: true, force: true }))
+    const interrupt = requestId => fetch(base + '/api/runs/session/' + sessionId + '/interrupt/' + requestId, { method: 'POST' }).then(r => r.json())
+    const submit = (requestId, text, extra) => fetch(base + '/api/chat', {
+      method: 'POST', body: JSON.stringify({ requestId, sessionId, skill: 'general', model: 'youcai', messages: [{ role: 'user', content: text }], ...extra }),
+    })
+
+    const before = id()
+    const missing = await interrupt(before)
+    assert.equal(missing.state, 'missing')
+    assert.equal((await interrupt(before)).retryId, missing.retryId)
+    assert.equal((await submit(before, 'late request')).status, 409)
+
+    const upload = await fetch(base + '/api/upload', { method: 'POST', body: JSON.stringify({
+      filename: 'input.txt', dataText: '附件内容证据', sessionId,
+    }) }).then(r => r.json())
+    const first = await submit(missing.retryId, 'follow-up hold-for-refresh', { attachments: [upload] })
+    for (let i = 0; i < 100 && !existsSync(join(workspace, 'checkpoint.txt')); i++) await pause(20)
+    assert(existsSync(join(workspace, 'checkpoint.txt')))
+    assert.equal((await interrupt(before)).state, 'missing', 'stale pagehide cannot stop the replacement')
+    assert.equal((await submit(missing.retryId, 'duplicate')).status, 409)
+    assert.equal((await interrupt(missing.retryId)).state, 'settling')
+    await first.text()
+    let status
+    for (let i = 0; i < 100; i++) {
+      status = await interrupt(missing.retryId)
+      if (status.state === 'saved') break
+      await pause(20)
+    }
+    assert.equal(status.latest.outcome, 'aborted')
+    const resumeOf = status.latest.runId
+    const next = id()
+    const resumed = await submit(next, '继续任务', { resumeOf })
+    assert.match(await resumed.text(), /"type":"done"/)
+    for (let i = 0; i < 100; i++) {
+      status = await interrupt(next)
+      if (status.state === 'saved') break
+      await pause(20)
+    }
+    assert.equal(status.latest.outcome, 'success')
+    assert.equal(status.latest.resumeSourceId, resumeOf)
+    assert.equal(status.latest.tokenUsage.provider, 'youcai')
+    assert.equal((await submit(id(), '继续任务', { resumeOf })).status, 409)
+    const detail = await fetch(base + '/api/runs/' + status.latest.runId).then(r => r.json())
+    const input = detail.trace.messages.filter(m => m.role === 'user').at(-1).parts[0].text
+    assert.match(input, /原始任务：\nfollow-up hold-for-refresh/)
+    assert.match(input, /附件内容证据/)
+    assert.equal(detail.conversation.filter(m => m.role === 'user').at(-1).text, '继续任务')
+  })
+
+  await t.test('refresh after acceptance but before Pi starts restores the original first prompt', async t => {
+    const sessionId = 'sess-' + randomBytes(16).toString('hex') + '-early'
+    t.after(() => rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true }))
+    const requestId = randomBytes(16).toString('hex')
+    const request = (id, text, resumeOf) => fetch(base + '/api/chat', { method: 'POST', body: JSON.stringify({
+      sessionId, requestId: id, resumeOf, skill: 'general', messages: [{ role: 'user', content: text }],
+    }) })
+    const interrupt = () => fetch(base + '/api/runs/session/' + sessionId + '/interrupt/' + requestId, { method: 'POST' }).then(r => r.json())
+    const first = await request(requestId, 'follow-up before Pi')
+    assert.equal((await interrupt()).state, 'settling')
+    await first.text()
+    const { latest } = await interrupt()
+    assert.equal(latest.promptNotSent, true)
+    assert.equal(latest.outcome, 'aborted')
+    const detail = await fetch(base + '/api/runs/' + latest.runId).then(r => r.json())
+    assert.deepEqual(detail.conversation.map(t => t.text), ['follow-up before Pi'])
+    const resumed = await request(randomBytes(16).toString('hex'), '继续任务', latest.runId)
+    assert.match(await resumed.text(), /"type":"done"/)
+    let restored
+    for (let i = 0; i < 100; i++) {
+      const state = await interrupt()
+      if (state.latest.runId !== latest.runId) {
+        restored = await fetch(base + '/api/runs/' + state.latest.runId).then(r => r.json())
+        break
+      }
+      await pause(20)
+    }
+    assert.deepEqual(restored.conversation.map(t => t.text), ['follow-up before Pi', '继续任务', '完成'])
+    assert.match(restored.trace.messages[0].parts[0].text, /原始任务：\nfollow-up before Pi/)
+  })
+
 })

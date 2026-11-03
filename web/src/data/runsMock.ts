@@ -25,6 +25,9 @@ export type ReportChart = {
 }
 
 export interface RunListItem {
+  requestId?: string
+  userMessage?: string
+  resumeSourceId?: string
   tokenUsage?: { provider?: string | null; model?: string | null }
   webLinks?: Array<{ name: string; url: string }>
   downloads?: Array<{ name: string; url: string }>

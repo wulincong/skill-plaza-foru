@@ -148,6 +148,10 @@ export interface RunRecord {
   taskTitle?: string
   /** 用户原始输入（注入技能/附件说明之前），用于历史对话恢复；旧记录缺省。 */
   userMessage?: string
+  promptNotSent?: boolean
+  requestId?: string
+  resumeSourceId?: string
+  attachmentFiles?: Array<{ name: string; path: string }>
   promptDigest: string
   outcome: RunOutcome
   durationMs: number

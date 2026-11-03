@@ -51,7 +51,7 @@ export function deriveSessionConversation(
     .sort((a, b) => a.ts.localeCompare(b.ts) || a.runId.localeCompare(b.runId))
   const groups = new Map<string, { runs: RunRecord[]; trace: unknown; captured: number }>()
   const nativeIds = new Map<string, string>()
-  const snapshots = runs.map(run => ({ run, trace: loadTrace(run) as any }))
+  const snapshots = runs.filter(run => !run.promptNotSent).map(run => ({ run, trace: loadTrace(run) as any }))
   const executionByRun = new Map(snapshots.map(({ run, trace }) => [run.runId, trace?.execution]))
   // A later intact snapshot can identify an engine whose earlier trace is missing.
   for (const { run, trace } of snapshots) {
@@ -69,7 +69,7 @@ export function deriveSessionConversation(
     }
     groups.set(key, group)
   }
-  return [...groups.values()].flatMap(group => {
+  const conversation = [...groups.values()].flatMap(group => {
     const turns = deriveConversation(group.trace, wrappersFor(group.runs[0]!.skill), group.runs.slice(0, group.captured).map(run => ({
       runId: run.runId, durationMs: run.durationMs, execution: executionByRun.get(run.runId),
       model: run.outcome === 'success' ? run.tokenUsage?.model ?? undefined : undefined,
@@ -78,11 +78,20 @@ export function deriveSessionConversation(
     })))
     // A missing trace must not remove a saved user message or its published files.
     for (const run of group.runs.slice(group.captured)) {
-      turns.push({ role: 'user', text: (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '') })
+      turns.push({ role: 'user', runId: run.runId, text: (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '') })
       if (run.webLinks?.length || run.downloads?.length) turns.push({ role: 'assistant', text: '', webLinks: run.webLinks, downloads: run.downloads })
     }
     return turns
   })
+  // Refresh can precede Pi's prompt. Such a user request has no native message.
+  for (const [i, run] of runs.entries()) {
+    if (!run.promptNotSent) continue
+    const following = new Set(runs.slice(i + 1).map(next => next.runId))
+    const at = conversation.findIndex(turn => turn.runId && following.has(turn.runId))
+    const text = (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '')
+    conversation.splice(at < 0 ? conversation.length : at, 0, { role: 'user', runId: run.runId, text })
+  }
+  return conversation
 }
 
 export function stripUserPrompt(text: string, wrappers: PromptWrapper[]): string {
@@ -147,7 +156,7 @@ export function deriveConversation(
       userIndex++
       const clean = original?.text ?? stripUserPrompt(text, wrappers)
       const attachments = original?.attachments?.length ? `\n[附件] ${original.attachments.join('、')}` : ''
-      turns.push({ role: 'user', text: clean + attachments })
+      turns.push({ role: 'user', runId: original?.runId, text: clean + attachments })
       inTurn = true
     } else if (message?.role === 'assistant' && inTurn) {
       const toolParts = parts.filter((part: any) => part?.type === 'tool')

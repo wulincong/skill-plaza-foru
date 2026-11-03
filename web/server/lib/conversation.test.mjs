@@ -120,3 +120,15 @@ test('a later cumulative snapshot recovers a missing earlier trace without dupli
   assert.deepEqual(turns.map(turn => turn.text), ['第一问', '第一答', '第二问', '第二答'])
 })
 
+
+test('refresh before dispatch keeps the unsent input between its own surrounding turns', () => {
+  const runs = ['a', 'b', 'c'].map(runId => ({
+    runId, ts: runId, clientSessionId: 'client', engineSessionId: 'engine',
+    userMessage: runId === 'c' ? '继续任务' : runId, promptNotSent: runId === 'b',
+  }))
+  const first = [message('user', text('a')), message('assistant', text('第一答'))]
+  const traces = [first, first, [...first, message('user', text('PRIVATE RESUME PROMPT')), message('assistant', text('已继续'))]]
+  const load = run => ({ session: { id: 'pi' }, messages: traces[runs.indexOf(run)] })
+  assert.deepEqual(deriveSessionConversation(runs[1], runs, load, () => []).map(t => t.text), ['a', '第一答', 'b'])
+  assert.deepEqual(deriveSessionConversation(runs[2], runs, load, () => []).map(t => t.text), ['a', '第一答', 'b', '继续任务', '已继续'])
+})

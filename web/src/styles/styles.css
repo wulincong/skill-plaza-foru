@@ -1176,6 +1176,14 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
 .exp-resource-reference:hover { background: var(--sk-fill-hover); }
 @media (max-width: 1199px) { .page-exp.has-resources .exp-top { padding-top: 68px; } }
 
+.exp-resume { display: flex; align-items: center; gap: 12px; color: var(--sk-ink-3); font-size: 13px; }
+.exp-resume button {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 14px;
+  border: 1px solid var(--sk-line); border-radius: var(--r-full); background: var(--surface-card);
+  color: var(--sk-ink-1); font: inherit; font-weight: 600;
+}
+.exp-resume button:hover { background: var(--sk-fill-hover); }
+
 /* ---- 输入区：白卡容器 + 黑色圆形发送钮 ---- */
 .exp-input {
   position: sticky; bottom: 0; z-index: 2; margin-top: 8px; padding: 14px 0 6px;

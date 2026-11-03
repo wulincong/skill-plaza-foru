@@ -7,6 +7,7 @@
    规定的 JSONL 协议和三层 trace 留痕。
    ============================================================ */
 
+import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
 import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
@@ -106,6 +107,11 @@ const sessions = new Map<
   { engine: EngineName; engineSessionId: string; workspaceDir: string }
 >()
 const activeTurns = new Set<string>()
+// Cover a late POST still buffered by a proxy when the user refreshes.
+const discardedRequests = new Set<string>()
+const requestIdPattern = /^[a-f0-9]{32}$/
+// Keep the request registered through trace export so refresh cannot race the history index.
+const browserTurns = new Map<string, { requestId: string; interrupt: () => void }>()
 
 /* ------------------------------------------------------------
    沙箱 AGENTS.md：会话工作目录的服务端说明。pi 以 --no-context-files
@@ -360,6 +366,35 @@ async function handleRunsApi(req: any, res: any, seg: string[]) {
     return
   }
 
+  if (req.method === 'POST' && seg.length === 6 && seg[2] === 'session' && seg[4] === 'interrupt') {
+    const [, , , sessionId, , requestId] = seg
+    if (!requestIdPattern.test(requestId)) {
+      sendJson(res, 400, { error: '任务标识无效。' })
+      return
+    }
+    const turn = browserTurns.get(sessionId)
+    if (turn?.requestId === requestId) {
+      turn.interrupt()
+      sendJson(res, 202, { state: 'settling' })
+      return
+    }
+    const runs = readIndex().filter(run => run.clientSessionId === sessionId)
+    const latest = runs.at(-1)
+    const retryId = createHash('sha256').update(requestId).digest('hex').slice(0, 32)
+    if (runs.some(run => run.requestId === requestId || run.requestId === retryId)) {
+      sendJson(res, 200, { state: 'saved', latest })
+      return
+    }
+    // A proxy may still forward the original POST after the refreshed tab gets here.
+    const key = sessionId + '/' + requestId
+    if (!discardedRequests.has(key)) {
+      discardedRequests.add(key)
+      setTimeout(() => discardedRequests.delete(key), 60_000).unref()
+    }
+    sendJson(res, 200, { state: 'missing', latest, retryId })
+    return
+  }
+
   /* 单条运行删除（运行记录页归档视图） */
   if (seg.length === 3 && req.method === 'DELETE') {
     const all = readIndex()
@@ -596,6 +631,8 @@ async function handleUpload(req: any, res: any) {
 type ChatProtocol = 'plaza' | 'openai'
 
 interface TurnParams {
+  requestId?: string
+  resumeSource?: RunRecord
   model?: PiModelRef
   protocol: ChatProtocol
   /** openai 非流式时终态一次性回 JSON；plaza 恒为流式 */
@@ -724,8 +761,35 @@ async function handleChat(req: any, res: any) {
     return
   }
 
+  const { requestId, resumeOf } = body
+  let resumeSource: RunRecord | undefined
+  if (requestId !== undefined || resumeOf !== undefined) {
+    if (typeof requestId !== 'string' || !requestIdPattern.test(requestId) ||
+        typeof sessionId !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(sessionId)) {
+      sendJson(res, 400, { error: '任务标识无效。' })
+      return
+    }
+    const runs = readIndex().filter(run => run.clientSessionId === sessionId)
+    if (browserTurns.has(sessionId) || discardedRequests.has(sessionId + '/' + requestId) || runs.some(run => run.requestId === requestId)) {
+      sendJson(res, 409, { error: '任务正在收尾或已经提交，请重新读取任务。' })
+      return
+    }
+    if (resumeOf !== undefined) {
+      const last = runs.at(-1)
+      if (!last || last.runId !== resumeOf || last.outcome !== 'aborted' || last.skill !== skill) {
+        sendJson(res, 409, { error: '任务状态已更新，请重新读取任务。' })
+        return
+      }
+      resumeSource = last.resumeSourceId ? runs.find(run => run.runId === last.resumeSourceId) : last
+      if (!resumeSource?.userMessage) {
+        sendJson(res, 409, { error: '这条记录缺少原始任务，无法继续。' })
+        return
+      }
+    }
+  }
   await runChatTurn(req, res, {
     protocol: 'plaza',
+    requestId, resumeSource,
     model: selected?.route,
     stream: true,
     skill,
@@ -1019,20 +1083,27 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     const at = s.indexOf('【当前消息】')
     return at >= 0 ? s.slice(at + '【当前消息】'.length) : s
   })()
+  if (params.resumeSource) {
+    latest.content = `继续上次中断的任务。先核对当前工作目录、已保存的文件和工具结果，从未完成处继续。可能已执行的操作须先检查结果再决定是否重做。\n\n原始任务：\n${params.resumeSource.userMessage}`
+  }
   const promptDigest = taskTitle || digestSource.replace(/\s+/g, ' ').slice(0, 80)
   /* 附件说明在 digest 之后注入 prompt：路径必须落在本会话沙箱内（防穿越）；
      .md/.txt 直接内联内容（截断 16000 字保底），其余格式指示引擎读工作目录文件 */
   const attachmentNotes: string[] = []
-  const attachmentNames: string[] = []
-  if (Array.isArray(params.attachments)) {
+  const attachmentFiles: Array<{ name: string; path: string }> = []
+  const source = params.resumeSource
+  const attachments = source
+    ? source.attachmentFiles ?? source.attachments?.filter(name => basename(name) === name).map(name => ({ name, path: 'uploads/' + name }))
+    : params.attachments
+  if (Array.isArray(attachments)) {
     const workspaceRoot = resolve(workspaceDirFor(clientSessionId))
-    for (const item of (params.attachments as any[]).slice(0, 5)) {
+    for (const item of attachments.slice(0, 5)) {
       const rel = typeof item?.path === 'string' ? item.path : ''
       if (!rel) continue
       const abs = resolve(workspaceRoot, rel)
       if (!abs.startsWith(workspaceRoot + sep) || !existsSync(abs)) continue
       const name = typeof item.name === 'string' && item.name ? item.name : basename(abs)
-      attachmentNames.push(name)
+      attachmentFiles.push({ name, path: rel })
       if (/\.(md|txt)$/i.test(abs)) {
         const text = readFileSync(abs, 'utf8').slice(0, 16_000)
         attachmentNotes.push(`[附件 ${name}（${rel}）内容]\n${text}${text.length >= 16_000 ? '\n（内容超长，已截断）' : ''}`)
@@ -1107,6 +1178,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   let delivery: DeliveryLinks = {}
   let deliveryCaptured = false
   let deliveryError: string | undefined
+  let promptDispatched = false
   let turnStarted = false
 
   /** Copy a validated report into the run-owned trace directory. */
@@ -1245,7 +1317,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       usage: usageWithTokenSnapshot(lastUsage, tokenUsage),
       tokenUsage,
       usageRounds: usageRounds.slice(),
-      attachments: attachmentNames.length ? attachmentNames : undefined,
+      requestId: params.requestId,
+      promptNotSent: !promptDispatched || undefined,
+      resumeSourceId: params.resumeSource?.runId,
+      ...(attachmentFiles.length && !params.resumeSource ? {
+        attachments: attachmentFiles.map(file => file.name), attachmentFiles,
+      } : {}),
       files: { events: recorder.file },
       ...delivery,
     }
@@ -1331,7 +1408,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       record.agentEnv = agentEnv
       recorder.note({ agentEnv })
       appendIndex(record)
-    })()
+    })().finally(() => {
+      if (params.requestId && browserTurns.get(clientSessionId)?.requestId === params.requestId) {
+        browserTurns.delete(clientSessionId)
+      }
+    })
   }
 
   const cleanup = () => {
@@ -1370,20 +1451,23 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
 
   /* SSE 断连检测：res close 且响应未正常结束 = 客户端提前断开
      （req 的 close 在 body 读完后语义不可靠，勿用） */
-  res.on('close', () => {
-    if (res.writableEnded) return
+  const interrupt = () => {
+    if (cleaned || clientGone || runFinalized) return
     clientGone = true
-    if (entry && !cleaned) {
-      runner.stop(entry.engineSessionId)
-      /* The browser has already disconnected; only persist any report that was
-         flushed before the abort. A future history lookup can recover it. */
-      captureWorkspaceHtmlReport()
-      captureWorkspacePdfReport()
+    wire.stopHeartbeat()
+    clearTimeout(timeout)
+    unlisten()
+    const finishAbort = () => {
       finalizeRun('aborted')
       cleanup()
+      finish()
     }
-    wire.stopHeartbeat()
-  })
+    // Pi acknowledges abort after the running turn settles; export that final snapshot.
+    if (entry && promptDispatched) void runner.stop(entry.engineSessionId).then(finishAbort)
+    else finishAbort()
+  }
+  res.on('close', () => { if (!res.writableEnded) interrupt() })
+  if (params.requestId) browserTurns.set(clientSessionId, { requestId: params.requestId, interrupt })
 
   activeTurns.add(clientSessionId)
   try {
@@ -1398,15 +1482,6 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     }
     turnStarted = true
     untap = runner.tapSession(entry.engineSessionId, recordProtocol)
-
-    /* 创建期间客户端已断开：停止 turn，不再空跑 */
-    if (clientGone) {
-      runner.stop(entry.engineSessionId)
-      finalizeRun('aborted')
-      cleanup()
-      finish()
-      return
-    }
 
     /* 侧车扣留按技能门控：只有真正会输出 report-meta 围栏的技能需要直播遮蔽
        （SIDECAR_SKILLS 当前为空集合 = 全员即时透传） */
@@ -1532,6 +1607,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       if (cleaned || clientGone) return
       recorder.updateStart({ ...currentTokenUsage(), usageRounds: [] })
       runner.beginTurn(sid)
+      promptDispatched = true
       await runner.send(sid, turnPrompt(!runner.hasConversationContext(sid)))
     }
     try {
@@ -1555,7 +1631,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     }
   } catch (exc: any) {
     wire.error(exc.message || '执行失败，请稍后重试。', elapsed())
-    finalizeRun('error')
+    finalizeRun(clientGone ? 'aborted' : 'error')
     cleanup()
     finish()
   }

@@ -3,6 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 import { useRoute } from 'vue-router'
 import { bySlug, catOf, SKILLS, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
 import { checkHealth, streamChat, type ChatAttachment, type ChatEvent, type ChatModelId, type ChatModelOption } from '../composables/useChatApi'
+import { interruptSubmission, newRequestId, readSubmission, saveSubmission, type ChatSubmission } from '../composables/interruptedTask'
 import { takePendingFormTask } from '../composables/pendingTask'
 import { uploadFile, validateUploadFile, formatSize, type UploadedFile } from '../composables/useUpload'
 import { fetchRunDetail, fetchRuns, runReportUrl, setConversationArchived, deleteConversation, type RunDetailResult } from '../api/runsApi'
@@ -278,6 +279,9 @@ function stopTyping() {
 }
 
 function newChat() {
+  selectionSeq++
+  loadingConversation.value = false
+  clearRecovery()
   stopTyping()
   clearHistorySelection()
   currentConvId.value = null
@@ -314,6 +318,25 @@ function typeInto(msg: Msg, reply: string) {
 
 /* ---------- 真实运行：走本地 Node 后端 → Pi，SSE 流式回填 ---------- */
 interface RunOptions { taskTitle?: string; attachments?: ChatAttachment[] }
+const resumable = ref<ChatSubmission | null>(null)
+const recoveryFailed = ref(false)
+let inFlight: ChatSubmission | null = null
+let leaving = false
+
+function clearRecovery() {
+  resumable.value = null
+  recoveryFailed.value = false
+  saveSubmission(null)
+}
+
+function onPageShow(event: PageTransitionEvent) {
+  if (event.persisted && leaving) window.location.reload()
+}
+
+function leavePage() {
+  leaving = true
+  if (inFlight) void interruptSubmission(inFlight, true).catch(() => {})
+}
 
 function makeStreamHandler(msg: Msg, sessionKey: string) {
   return (event: ChatEvent) => {
@@ -348,39 +371,64 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
   }
 }
 
-async function runReal(text: string, slug: string, skill: Skill | undefined, opts: RunOptions = {}) {
+async function runReal(text: string, slug: string, skill: Skill | undefined, opts: RunOptions = {}, retry?: ChatSubmission) {
   const convId = currentConvId.value
   if (convId === null) return
   const msg = startAiMsg(skill, true)
   convSlugs.set(convId, slug)
   const sessionKey = `pi:${convId}`
-  beginRun()
-  try {
-    const choice = models.value.find(m => m.id === selectedModel.value)
-    await streamChat({
-      skill: slug,
-      model: choice?.id,
-      taskTitle: opts.taskTitle,
-      messages: [{ role: 'user', content: text }],
-      sessionId: convSessions.get(sessionKey),
-      attachments: opts.attachments,
-      onEvent: makeStreamHandler(msg, sessionKey),
-    })
-    msg.modelName = choice?.name ?? apiModel.value
-    msg.done = true
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : '请求失败，请稍后重试。'
-    msg.text += `${msg.text ? '\n\n' : ''}本次运行失败：${reason}`
-    msg.done = true
-  } finally {
-    endRun()
-    if (msg.done) sending.value = false
+  const task: ChatSubmission = retry ?? {
+    sessionId: convSessions.get(sessionKey) ?? 'sess-' + newRequestId(),
+    requestId: newRequestId(), skill: slug, model: selectedModel.value, text, ...opts,
   }
+  convSessions.set(sessionKey, task.sessionId)
+  inFlight = task
+  resumable.value = null
+  saveSubmission(task)
+  beginRun()
+  let terminal = false
+  try {
+    const handle = makeStreamHandler(msg, sessionKey)
+    await streamChat({
+      ...task, messages: [{ role: 'user', content: task.text }],
+      onEvent(event) {
+        if (event.type === 'done' || event.type === 'error') {
+          terminal = true
+          if (!leaving) saveSubmission(null)
+        }
+        handle(event)
+      },
+    })
+    msg.modelName = models.value.find(m => m.id === task.model)?.name ?? apiModel.value
+  } catch (error) {
+    if (!leaving) {
+      if (!terminal) recoveryFailed.value = true
+      const reason = error instanceof Error ? error.message : '请求失败，请稍后重试。'
+      msg.text += `${msg.text ? '\n\n' : ''}${reason}`
+    }
+  } finally {
+    inFlight = null
+    msg.done = true
+    endRun()
+    sending.value = false
+  }
+}
+
+function continueTask() {
+  const task = resumable.value
+  if (!task || sending.value || loadingConversation.value) return
+  if (!apiReady.value) { toast('运行服务未连接，请刷新后重试。'); return }
+  sending.value = true
+  activeSkill.value = bySlug.get(task.skill)
+  selectedModel.value = task.model
+  if (task.resumeOf) messages.value.push({ role: 'user', text: '继续任务', done: true })
+  runStatus.value = '正在启动…'
+  void runReal(task.text, task.skill, activeSkill.value, {}, task)
 }
 
 async function send(raw?: string) {
   const text = (raw ?? textarea.value).trim()
-  if (!text || sending.value || attachUploading.value) return
+  if (!text || sending.value || loadingConversation.value || attachUploading.value) return
 
   /* 翻译依赖附件与真实服务：离线时保留输入，重试时重新探测连接。 */
   if (activeSkill.value?.slug === 'doc-translate' && !apiReady.value) {
@@ -389,6 +437,7 @@ async function send(raw?: string) {
     if (!apiReady.value) { toast('翻译服务未连接，请启动后端后重试。'); return }
   }
 
+  clearRecovery()
   if (currentConvId.value === null) currentConvId.value = Date.now()
   skillMenu.value = false
 
@@ -427,7 +476,8 @@ async function send(raw?: string) {
 /* ---------- 表单任务承接：任务配置页 stash → 这里挂载技能并发起运行 ---------- */
 function consumePendingFormTask() {
   const task = takePendingFormTask()
-  if (!task) return
+  if (!task) return false
+  clearRecovery()
   const skill = bySlug.get(task.slug)
   activeSkill.value = skill
   stopTyping()
@@ -450,13 +500,14 @@ function consumePendingFormTask() {
       msg.text = '翻译服务未连接，请启动后端后重新提交。'
       msg.done = true
       sending.value = false
-      return
+      return true
     }
     const demo = skill ? DEMOS.find(d => d.slug === skill.slug) : undefined
     typeInto(startAiMsg(skill, false), demo ? demo.reply : FALLBACK)
-    return
+    return true
   }
   void runReal(task.prompt, task.slug, skill, { taskTitle: task.taskTitle, attachments: task.attachments })
+  return true
 }
 
 function fill(slug: string) {
@@ -639,14 +690,17 @@ async function selectHistory(group: HistoryGroup) {
     return
   }
   if (selectedSessionKey.value === group.key) return
-  selectedSessionKey.value = group.key
-  const run = group.latest
+  clearRecovery()
+  await openRun(group.latest)
+}
 
+async function openRun(run: RunListItem, seq = ++selectionSeq) {
+  selectedSessionKey.value = run.clientSessionId || run.runId
   const restore = (detail: HistoryDetail) => {
-    const skill = bySlug.get(group.skill)
+    const skill = bySlug.get(run.skill)
     stopTyping()
     currentConvId.value = Date.now()
-    convSlugs.set(currentConvId.value, group.skill)
+    convSlugs.set(currentConvId.value, run.skill)
     /* 后端优先复用内存会话，重启/回收后从同一工作区恢复持久上下文。 */
     if (run.clientSessionId) convSessions.set(`pi:${currentConvId.value}`, run.clientSessionId)
     activeSkill.value = skill
@@ -656,13 +710,18 @@ async function selectHistory(group: HistoryGroup) {
     messages.value = detail.conversation.map((turn, i) => turn.role === 'user'
       ? { role: 'user', text: turn.text, done: true }
       : { role: 'ai', text: turn.text, skill, modelName: historicalModel(turn.provider, turn.model)?.name ?? turn.model ?? turn.provider, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), execution: turn.execution, durationMs: turn.durationMs })
+    if (run.clientSessionId && run.engine === 'pi' && run.outcome === 'aborted' && run.userMessage) {
+      resumable.value = {
+        requestId: newRequestId(), sessionId: run.clientSessionId, resumeOf: run.runId, text: '继续任务',
+        skill: run.skill, model: selectedModel.value, taskTitle: run.taskTitle,
+      }
+    }
     scrollTop()
   }
 
   const cached = historyDetails[run.runId]
-  if (cached) { restore(cached); return }
+  if (cached) { restore(cached); loadingConversation.value = false; return true }
 
-  const seq = ++selectionSeq
   loadingConversation.value = true
   try {
     const result = await fetchRunDetail(run.runId)
@@ -677,6 +736,7 @@ async function selectHistory(group: HistoryGroup) {
     }
     historyDetails[run.runId] = detail
     restore(detail)
+    return true
   } catch {
     if (seq === selectionSeq) {
       selectedSessionKey.value = null
@@ -685,6 +745,53 @@ async function selectHistory(group: HistoryGroup) {
   } finally {
     if (seq === selectionSeq) loadingConversation.value = false
   }
+}
+
+async function recoverSubmission(task: ChatSubmission) {
+  const seq = ++selectionSeq
+  loadingConversation.value = true
+  recoveryFailed.value = false
+  resumable.value = null
+  try {
+    let result = await interruptSubmission(task)
+    for (let i = 0; result.state === 'settling' && i < 30; i++) {
+      await new Promise(resolve => setTimeout(resolve, 400))
+      if (leaving || seq !== selectionSeq) return
+      result = await interruptSubmission(task)
+    }
+    if (leaving || seq !== selectionSeq) return
+    if (result.state === 'settling') throw new Error()
+    if (result.latest) {
+      if (!await openRun(result.latest, seq)) throw new Error()
+      if (result.state === 'saved' || (task.resumeOf && result.latest.runId !== task.resumeOf)) {
+        if (!resumable.value) saveSubmission(null)
+        return
+      }
+    }
+    // The POST never reached the server (possibly before the first SSE frame).
+    // Only the replacement ID returned by the server can submit the saved input.
+    if (!result.latest) messages.value = []
+    currentConvId.value ??= Date.now()
+    convSessions.set(`pi:${currentConvId.value}`, task.sessionId)
+    convSlugs.set(currentConvId.value, task.skill)
+    activeSkill.value = bySlug.get(task.skill)
+    selectedModel.value = task.model
+    if (!task.resumeOf) {
+      const names = task.attachments?.map(file => file.name)
+      messages.value.push({ role: 'user', text: task.text + (names?.length ? '\n[附件] ' + names.join('、') : ''), done: true })
+    }
+    if (!result.retryId) throw new Error()
+    resumable.value = { ...task, requestId: result.retryId }
+  } catch {
+    if (seq === selectionSeq) recoveryFailed.value = true
+  } finally {
+    if (seq === selectionSeq) loadingConversation.value = false
+  }
+}
+
+function retryRecovery() {
+  const task = readSubmission()
+  if (task) void recoverSubmission(task)
 }
 
 /* 防重入与显示态分开：初始 loading=true 只为避免空态闪现，不代表有请求在途；
@@ -796,12 +903,21 @@ watch(() => route.query.skill, (slug) => {
 }, { immediate: true })
 
 onMounted(async () => {
+  window.addEventListener('pagehide', leavePage)
+  window.addEventListener('pageshow', onPageShow)
   document.addEventListener('click', onDocClick)
+  const task = readSubmission()
+  loadingConversation.value = Boolean(task)
   await probeApi()
-  void loadHistory()
-  consumePendingFormTask()
+  if (leaving) return
+  if (consumePendingFormTask()) loadingConversation.value = false
+  else if (task) await recoverSubmission(task)
+  if (!leaving) void loadHistory()
 })
 onBeforeUnmount(() => {
+  leaving = true
+  window.removeEventListener('pagehide', leavePage)
+  window.removeEventListener('pageshow', onPageShow)
   document.removeEventListener('click', onDocClick)
   if (streamTimer.value) clearInterval(streamTimer.value)
   endRun()
@@ -895,7 +1011,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="loadingConversation" class="exp-history-loading">正在读取对话…</div>
-        <div v-else-if="messages.length === 0" class="exp-examples">
+        <div v-else-if="messages.length === 0 && !recoveryFailed" class="exp-examples">
           <span class="exp-examples-label">试试这些：</span>
           <button v-for="ex in EXAMPLES" :key="ex.slug" type="button" class="exp-example" @click="fill(ex.slug)">
             {{ ex.question }}
@@ -932,6 +1048,12 @@ onBeforeUnmount(() => {
           </template>
         </div>
 
+        <div v-if="!loadingConversation && (resumable || recoveryFailed)" class="exp-resume">
+          <span role="status">{{ recoveryFailed ? '尚未确认任务状态' : resumable?.resumeOf ? '任务已中断' : '任务尚未开始' }}</span>
+          <button type="button" :disabled="sending" @click="recoveryFailed ? retryRecovery() : continueTask()">
+            {{ recoveryFailed ? '重新读取' : '继续任务' }}<Icon name="chev" :size="13" />
+          </button>
+        </div>
         <div class="exp-input">
           <div class="exp-input-box">
             <div v-if="skillMenu" class="exp-skill-menu" role="listbox" aria-label="挂载 SKILL">
@@ -1011,7 +1133,7 @@ onBeforeUnmount(() => {
               <div class="exp-agent">
                 <ChatModelPicker v-if="models.length" v-model="selectedModel" :options="models" :disabled="sending || loadingConversation" />
                 <span v-else>{{ apiReady ? (apiModel || '在线 Agent') : '演示模式' }}</span>
-                <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || attachUploading" aria-label="发送" @click="send()">
+                <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || loadingConversation || attachUploading" aria-label="发送" @click="send()">
                   <Icon name="arrow-up" :size="16" />
                 </button>
               </div>
