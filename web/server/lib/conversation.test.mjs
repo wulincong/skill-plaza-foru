@@ -65,3 +65,15 @@ test('mismatched original input count falls back rather than assigning another u
   assert.equal(turns[0].text, '原文')
 })
 
+test('history keeps delivery links on their own answer after a follow-up', () => {
+  const webLinks = [{ name: '报告', url: 'https://example.com/p/id/0/' }]
+  const downloads = [{ name: '交付包', url: 'https://example.com/api/deliveries/id/files/0' }]
+  const turns = deriveConversation({ messages: [
+    message('user', text('生成报告')), message('assistant', text('完成')),
+    message('user', text('解释一下')), message('assistant', text('解释')),
+  ] }, [], [{ text: '生成报告', webLinks, downloads }, { text: '解释一下' }])
+  assert.deepEqual(turns[1].webLinks, webLinks)
+  assert.deepEqual(turns[1].downloads, downloads)
+  assert.equal(turns[3].webLinks, undefined)
+})
+

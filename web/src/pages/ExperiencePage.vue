@@ -27,6 +27,8 @@ interface Msg {
   /** done 事件带回的图表与报告链接（表单任务/报告技能） */
   charts?: ReportChartData[]
   reportUrl?: string
+  webLinks?: Array<{ name: string; url: string }>
+  downloads?: Array<{ name: string; url: string }>
   /** 历史恢复的 AI 消息携带的工具调用摘要（名称+成败+起止耗时，030 边界内） */
   tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>
   process?: string[]
@@ -410,6 +412,8 @@ function makeStreamHandler(msg: Msg, sessionKey: string) {
       if (event.content) msg.text = event.content
       msg.charts = event.charts ?? []
       msg.reportUrl = event.reportUrl
+      msg.webLinks = event.webLinks
+      msg.downloads = event.downloads
     } else if (event.type === 'error') {
       for (const item of progressEvents.value) if (item.state === 'active') item.state = 'failed'
       throw new Error(event.message)
@@ -568,7 +572,9 @@ interface HistoryGroup {
 }
 
 interface HistoryDetail {
-  conversation: Array<{ role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>; process?: string[] }>
+  webLinks?: Array<{ name: string; url: string }>
+  downloads?: Array<{ name: string; url: string }>
+  conversation: Array<{ role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>; process?: string[]; webLinks?: Array<{ name: string; url: string }>; downloads?: Array<{ name: string; url: string }> }>
   /** 该对话生成的 HTML 报告（内联在最后一条 AI 消息上，与实时对话一致） */
   reportUrl?: string
 }
@@ -732,7 +738,7 @@ async function selectHistory(group: HistoryGroup) {
     detail.conversation.forEach((turn, i) => { if (turn.role === 'assistant') lastAi = i })
     messages.value = detail.conversation.map((turn, i) => turn.role === 'user'
       ? { role: 'user', text: turn.text, done: true }
-      : { role: 'ai', text: turn.text, skill, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, tools: turn.tools, process: turn.process })
+      : { role: 'ai', text: turn.text, skill, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), tools: turn.tools, process: turn.process })
     progressOwner.value = null
     progressEvents.value = []
     scrollTop()
@@ -751,6 +757,8 @@ async function selectHistory(group: HistoryGroup) {
     const detail: HistoryDetail = {
       conversation: result.conversation ?? [],
       reportUrl: (result.item?.files?.html || result.item?.files?.pdf) ? runReportUrl(run.runId) : undefined,
+      webLinks: result.item?.webLinks,
+      downloads: result.item?.downloads,
     }
     historyDetails[run.runId] = detail
     restore(detail)
@@ -998,6 +1006,7 @@ onBeforeUnmount(() => {
                 <ToolCallGroup v-if="msg === progressOwner && (progressEvents.length || msg.process?.length)" :items="progressEvents" :notes="msg.process" :running="!msg.done" :prose-started="proseStarted" />
                 <ToolCallGroup v-else-if="msg.tools?.length || msg.process?.length" :items="historyToolItems(msg)" :notes="msg.process" :prose-started="true" />
                 <ReportOutput :text="msg.text" :charts="msg.charts" :report-url="msg.reportUrl"
+                  :web-links="msg.webLinks" :downloads="msg.downloads"
                   :artifact-name="msg.skill?.slug === 'doc-translate' ? '译文 PDF' : undefined"
                   :html-mode="msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
                 <p v-if="msg.done && !msg.real" class="exp-ai-note">演示输出仅展示结果形态，完整产物请在本地 AI 工具中运行获得。</p>

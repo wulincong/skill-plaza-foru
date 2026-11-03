@@ -1,140 +1,107 @@
 # 088 · 生成产物交付：网页分享与资源下载
 
-**状态**：简化设计，待实现（2026-11-03）。用户明确只需要“网页分享”和“资源下载”，不建设图片/PDF/Excel在线查看或复杂资源中心。上一版复杂方案已废弃，保留在Git历史；本文作为后续实施依据。本轮仅修改设计，没有发布服务或新增接口。
+**状态**：已实现并在公网验证（2026-11-03）。仅保留网页分享与资源下载；原复杂资源中心方案已废弃，保留在 Git 历史。当前公开入口为 `http://biubiubiu.vip:14188`。
 
 ## 动机与范围
 
-当前网页/PDF交付依赖少量技能的固定文件路径，公众号文章、图片和ZIP没有统一下载入口。以最少改动补齐交付：网页作为静态服务提供访问/分享地址，其他文件直接下载。
+原有交付依赖少量技能的固定 HTML/PDF 路径，公众号文章、引用图片和 ZIP 缺少统一出口。用一个小清单将明确交付的产物保存到持久目录，网页在线访问，其他文件下载，不建设 PDF/图片/Excel 查看器、资源中心或版本系统。
 
-只保留两类用户操作：
-
-| 交付类型 | 用户操作 |
+| 类型 | 用户操作 |
 |---|---|
-| 网页（HTML及其依赖） | 打开网页、复制链接；接收方直接访问，无需原聊天会话 |
-| 其他资源（PDF、图片、Excel、JSON、ZIP等） | 下载文件；多文件可由生成脚本额外打ZIP |
+| HTML 与网页依赖 | 打开网页、复制链接；接收方无需原聊天会话 |
+| PDF、图片、Excel、JSON、ZIP 等 | 下载；多文件由生成脚本打 ZIP |
 
-网页自身的图片、脚本等仍作为网页依赖正常提供；不为单独图片资源建设图库。也不把所有报告自动改造成网页，只有声明为网页交付的内容才托管。
+## 交付契约与保存
 
-## 简单实现
-
-### 1. Skill提供交付清单
-
-拟新增delivery.json，只声明网页和下载文件，不维护资源数据库：
+会话工作区根目录 `delivery.json`：
 
 ~~~json
 {
-  "web": [
-    {
-      "name": "人才需求报告",
-      "directory": "output/public/site",
-      "entry": "index.html"
-    }
-  ],
-  "files": [
-    {
-      "name": "整套报告",
-      "path": "output/public/report.zip"
-    },
-    {
-      "name": "报告PDF",
-      "path": "output/public/report.pdf"
-    }
-  ]
+  "web": [{"name":"人才需求报告","directory":"output/public/site","entry":"index.html"}],
+  "files": [{"name":"整套报告","path":"output/public/report.zip"}]
 }
 ~~~
 
-这是待实现格式，现有程序尚不接受。directory/path均为工作区内的交付路径；内部SQL证据、配置与原始运行追踪不列入清单。服务器只发布明确列出的内容，不暴露整个工作区；网页目录应是生成脚本准备好的独立交付目录。
+两组数组可省略其一，名称非空；路径相对于会话根，不接受绝对路径、点路径段、隐藏路径、internal/uploads、符号链接或特殊文件。directory 是独立公开目录，整目录都会公开；内部 SQL、核查表、密码、原始追踪不能放入。上限 20 个网页、100 个下载、2000 个非空文件、256 MiB，入口须存在且为 HTML。
 
-### 2. 后端保存并返回两组链接
+`web/server/lib/delivery.ts:48` 指纹结合 inode、mtime/ctime 和内容摘要：只有本轮新建或改写清单才收集。生成脚本先写完文件、最后原子替换清单；纯追问不重写。无清单是无文件交付，无效新清单则明确失败，不伪造链接。旧 HTML 同时检查本轮文件更新，避免把上轮报告再交付。
 
-在现有运行结束流程中增加一次交付收集：
-
-1. 读取清单，检查文件存在、入口有效、路径位于本次工作区且不通过符号链接越界。
-2. 分配不可猜测的deliveryId，将网页完整目录和下载文件复制到独立持久目录；暂存完成后再改名生效。
-3. 保存一份简单metadata.json，记录名称、入口及允许提供的文件，随后返回真实URL。
-
-拟议存储布局：
+`web/server/lib/delivery.ts:78` 扫描并验证后分配 128 位随机 ID，用已检查的普通文件 inode 复制内容；拒绝收集期间文件变化。先写私有暂存目录，完整后 rename 生效，失败清理暂存。元数据只保存允许提供的名称、入口和文件清单，不另建数据库。
 
 ~~~text
-deliveries/
-  <deliveryId>/
-    metadata.json
-    web/
-      0/
-        index.html
-        assets/
-    files/
-      0.zip
-      1.pdf
+deliveries/<deliveryId>/
+  metadata.json
+  web/0/index.html
+  web/0/assets/...
+  files/0.zip
 ~~~
 
-由一个常驻静态托管服务提供所有网页，不为每份产物启动进程。采用一个独立内容域或等效的隔离静态入口，不为每站建立子域名或容器；内容入口不代理主站管理API。公网HTTPS及对外基地址由部署配置提供，不能返回localhost或磁盘路径。
+`DELIVERIES_DIR` 默认 `web/server/deliveries/`（已 gitignore），部署需持久保留。会话清理与服务重启不会删此目录；首期不自动清理，不承诺无限期保存。每次交付新 ID，旧链接保持原产物，无 latest 指针或版本切换。
 
-网页示意URL：https://content.example.net/p/{deliveryId}/0/
-下载示意URL：https://plaza.example.com/api/deliveries/{deliveryId}/files/0
+## 托管与下载
 
-网页包含HTML、CSS、JS、图片等完整依赖，采用相对路径。入口在子目录时重定向到实际入口，避免破坏相对路径；file://和服务器临时路径不能出现在交付页面。动态后端应用不在本次范围。
+`web/server/lib/delivery.ts:192` 由现有 Node 服务提供只读资源路由：
 
-下载路由固定返回attachment，即使文件是PDF/图片也不建设在线阅读入口。下载文件名保留用户可读名称。URL由服务器生成，模型不自行拼接。
+- `GET/HEAD /p/:deliveryId/:index/`：重定向到真实入口路径，保留子目录相对依赖；只提供 metadata 声明的静态文件，不暴露工作区或 metadata。
+- `GET/HEAD /api/deliveries/:deliveryId/files/:index`：固定 attachment，中文文件名使用 filename*；PDF/图片也直接下载。
+- 其余方法返回 405，缺失、越界、未声明路径返回 404。访问不调用模型或数据库。
 
-链接按“持链接可访问”交付，不新增账号、团队权限、分享令牌表或可见性状态机。清理会话不会删除已复制的交付目录，服务重启后仍可访问；首期保留至明确的维护清理，不承诺无限期存储。不做latest指针、版本切换或回滚；每次生成新ID，旧链接对应原产物。
+最终采用**复用现有公开入口、浏览器沙箱隔离**，无需新增端口、域名或进程。网页 CSP 使用 `sandbox allow-scripts`，不授予 allow-same-origin，因此不共享主站存储/权限；connect-src 仅允许公开 origin 的 `/p/` 静态路径，禁止主站 API、表单、iframe、worker。静态资源独立允许 CORS，以支持该不透明来源读取网页内数据与字体。允许脚本、相对 CSS/图片/字体和目录内 JSON，外部服务、嵌入页面及动态后端不属于支持范围。
 
-### 3. 前端只显示两组操作
+这是原方案中“等效隔离静态入口”的具体实现；否决另开内容端口作为首期前置条件，因为现有入口即可满足用户的简单分享需求。浏览器实测覆盖正常脚本/图片/CSS/JSON、存储拒绝和 API 请求拒绝，不把 CSP 当成身份鉴权。
 
-done事件拟增加：
+`DELIVERY_PUBLIC_BASE_URL` 为完整 HTTP(S) origin；未配置时采用通过入口校验的请求 Origin，非浏览器回退 Host。HTTPS 代理部署应显式配置。当前本地 `.env` 已配置 `http://biubiubiu.vip:14188` 并加入 PLAZA_ALLOWED_ORIGINS；密钥未提交。`web/vite.config.ts:9` 的 `/p/` 代理与域名 allowedHosts 已生效；生产反向代理同样必须将 `/p/` 和 `/api/` 转给 Node，不能回落 SPA。当前公网实测为 HTTP，未宣称已配置 HTTPS。
+
+分享按“持链接可访问”，不新增账号/授权表；随机 ID 不代表鉴权。不要将私密材料列入公开清单。
+
+## 运行协议与界面
+
+在原 done 中增加可选数组，不新增事件类型：
 
 ~~~json
 {
-  "webLinks": [
-    {"name": "人才需求报告", "url": "https://content.example.net/p/random-id/0/"}
-  ],
-  "downloads": [
-    {"name": "整套报告", "url": "/api/deliveries/random-id/files/0"}
-  ]
+  "webLinks": [{"name":"人才需求报告","url":"http://biubiubiu.vip:14188/p/<deliveryId>/0/"}],
+  "downloads": [{"name":"整套报告","url":"http://biubiubiu.vip:14188/api/deliveries/<deliveryId>/files/0"}]
 }
 ~~~
 
-前端在现有回复下方展示：
-- 网页名称 + 打开网页 + 复制链接。
-- 文件名称 + 下载。
+- `web/server/index.ts:153`：通用沙箱说明注入清单格式，模型不自行拼 URL。
+- `web/server/index.ts:1159`：终态只收集一次，保存成功后再发链接；超时/断连时尝试保存已完成产物；未开始的忙会话请求不收集。
+- `web/server/index.ts:897`：Plaza SSE、OpenAI 流式扩展和非流式 JSON 均携带数组。
+- `web/server/lib/traceExport.ts:201`：数组写入原运行索引；`web/server/lib/conversation.ts:67` 按原用户轮次恢复，追问后仍保留前轮产物。
+- `web/server/lib/delivery.ts:164`：已验证的旧 HTML/PDF 从服务端 trace 目录适配新交付，不向 Agent 控制的目录写文件；原 reportUrl 接口继续兼容旧记录。
+- `web/src/components/ReportOutput.vue:70`：名称加“打开网页 / 复制链接”，名称加“下载”；有新交付时不重复显示旧报告按钮。HTTP 环境复制使用原生复制回落。
+- `web/src/pages/ExperiencePage.vue:415`、`:741`：实时和历史均传递两组链接，分别留在对应回答。
 
-不新增资源中心、在线预览组件、图集、表格查看、版本页面或复杂发布管理。链接写入现有运行记录，历史仍从原入口恢复。沿用done事件，不增加artifact_ready事件；仅在实际保存完成后返回URL，失败就说明失败。
+接口说明同步至 `docs/agent-api.md:12`；不新增资源中心、预览组件、画廊或发布状态机。
 
-## 现有接入点
+## wechat-report 接入
 
-以下是已核对的当前代码，拟议新模块尚未创建：
+`pack_delivery.py:14` 从同一已绑定大纲和本次图片 manifest 生成自包含网页，只复制声明图片；公开 ZIP 继续排除来源绑定和内部核查表。`pack_delivery.py:48` 最后原子写交付清单。副本位于会话 wechat-report/ 时传 `--workspace ..`，路径相对于会话根；独立运行可省略。技能说明与安装流程已同步。
 
-| 当前位置 | 最小改造 |
-|---|---|
-| web/server/index.ts:1096、:1113 | 保留旧HTML/PDF捕获兼容，在终态补交付清单收集 |
-| web/server/index.ts:431 | 现有单报告接口继续兼容旧链接；新增静态网页与attachment下载路由 |
-| web/server/lib/traceExport.ts:201 | 在现有运行记录补webLinks/downloads，不引入独立资源元数据库 |
-| web/src/composables/useChatApi.ts:42 | done类型增加两组链接 |
-| web/src/components/ReportOutput.vue:29 | 用简单链接/按钮展示两组操作 |
-| web/src/pages/ExperiencePage.vue:735 | 历史恢复带回保存的两组链接 |
+网页分享不等于微信公众号推送；publish_draft 仍需用户明确要求。
 
-wechat-report可将文章和引用图片整理到网页交付目录，公开ZIP列入files；内部核查表不进入公开交付清单。其他Skill按同一小清单接入。
+## 验证与证据边界
 
-## 验收
+2026-11-03：
 
-- 外部或无痕浏览器直接打开网页分享链接，页面依赖完整，不下载HTML、不依赖原会话。
-- PDF、图片、Excel和ZIP均以附件下载，不出现专用在线查看页面。
-- 页面访问不触发重新生成或重新查库。
-- 聊天结束和服务重启后，保存目录中的链接仍可访问。
-- 未列入清单的内部文件与工作区路径不可访问。
-- 清单指向缺失/未完成文件或越界路径时不返回假链接。
-- 旧reportUrl兼容；新记录能从现有历史入口恢复交付链接。
+- 共享数据/公众号流水线与后端模块、对话恢复、SSE 回归 96 项通过；新增完整 HTTP 集成测试通过，合计 97 项。集成测试使用确定性 Pi 传输，不调用模型：覆盖真实路由、Plaza done、OpenAI 两种响应、追问历史、无效交付、删工作区和重启恢复。
+- 集成测试带 `DELIVERY_BROWSER=/usr/bin/google-chrome`：图片、CSS、脚本和静态 JSON 正常，localStorage 与主站 API 被拒绝。
+- Vue 类型检查及生产构建通过，Python 技能校验通过。额外经公开域名浏览器挂载真实 ReportOutput 组件，确认两类操作和复制按钮，无额外预览操作。
+- 复用 11-02 已保存的广州低空经济真实统计报告，没有重新查库。公网网页、17 张引用图片全部 200；ZIP 200、attachment、与源 ZIP 字节一致。Chrome 截图已检查。验证摘要保存在忽略目录 `web/server/traces/delivery-acceptance-20261103.json`。
+- 后端已重启，公开域名白名单、静态代理和真实分享链接已验证。公众号报告在线智能体从提示词到新数据/新交付的长任务未重跑；本轮验证的是已有真实产物的打包/托管，以及确定性运行器下的完整接入链。
 
-本轮仅检查设计示例、链接与索引，没有将上述实施验收写成已通过。
+验证命令：
 
-## 成本与取舍
+~~~bash
+node --experimental-strip-types --test scripts/talent-data/*.test.mjs web/server/lib/*.test.* web/src/composables/useChatApi.test.mjs
+DELIVERY_BROWSER=/usr/bin/google-chrome node --experimental-strip-types --test web/server/delivery-api.test.mjs
+(cd web && npm run build)
+python3 /home/wlc/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/wechat-report
+~~~
 
-复用现有Node后端、运行记录和前端结果组件，只增加交付目录、轻量清单和两类链接。代价是同一批文件需从工作区复制一份到持久交付目录，并配置可外网访问的静态入口。
+## 成本与取舍、后续路线
 
-采用“持链接可访问”的简单分享；不建设私有资源体系。内部材料应从交付清单中排除，不能把不可猜测ID称为身份鉴权。
+每次交付增加一份文件复制和少量 JSON；同步复制有 256 MiB 上限，未做对象存储/CDN、SQLite、账号分享、预览或独立站点容器。页面脚本受沙箱限制，有外部 API、跨站嵌入或动态后台需求时需另行设计，不能声称静态托管支持。
 
-明确否决上一版资源中心、PDF/图片/表格在线预览、版本模型、分享授权表、复杂发布状态机、对象存储/CDN和动态容器作为本次前置工作。它们不属于当前需求，不能按原方案继续实施。
-
-## 后续路线
-
-按此双通道方案实现并优先用wechat-report验收。只有用户提出新需求时才单独考虑清理入口、撤销链接等扩展，不预建复杂管理体系。落地后回填实际file:line、字段与验证结果，再更新状态。
+后续只按实际需求增加维护清理/撤销入口或调整容量，不预建复杂管理。部署迁移时需连同 deliveries 目录和公开 origin 配置迁移；仅搬 Git 仓库不能恢复已生成文件。

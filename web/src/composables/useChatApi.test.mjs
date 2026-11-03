@@ -44,3 +44,11 @@ test('HTTP rejection preserves the backend reason', async t => {
   t.mock.method(globalThis, 'fetch', async () => Response.json({ error: '未知的 skill' }, { status: 400 }))
   await assert.rejects(streamChat(request(() => {})), /未知的 skill/)
 })
+
+test('website and download links survive fragmented done frames', async t => {
+  const payload = { type: 'done', content: '完成', webLinks: [{ name: '网页', url: 'https://example.com/p/id/0/' }], downloads: [{ name: '交付包', url: '/api/deliveries/id/files/0' }] }
+  const data = frame(payload), events = []
+  mockStream(t, [data.slice(0, 45), data.slice(45)])
+  await streamChat(request(event => events.push(event)))
+  assert.deepEqual(events.at(-1), payload)
+})

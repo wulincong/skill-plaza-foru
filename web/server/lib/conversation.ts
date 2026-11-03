@@ -11,11 +11,15 @@ export interface ConversationTurn {
   tools?: ConversationTool[]
   /** 工具调用前面向用户的过程说明；不包含模型 reasoning 或工具输入/输出。 */
   process?: string[]
+  webLinks?: Array<{ name: string; url: string }>
+  downloads?: Array<{ name: string; url: string }>
 }
 
 export interface OriginalUserMessage {
   text?: string
   attachments?: string[]
+  webLinks?: Array<{ name: string; url: string }>
+  downloads?: Array<{ name: string; url: string }>
 }
 
 export interface PromptWrapper { prefix: string; suffix: string }
@@ -60,11 +64,12 @@ export function deriveConversation(
   let tools: ConversationTool[] = []
   let inTurn = false
   const flush = () => {
-    if (!pending.length && !tools.length) return
+    const original = hasOriginals ? originalMessages[userIndex - 1] : undefined
+    if (!pending.length && !tools.length && !original?.webLinks?.length && !original?.downloads?.length) return
     const last = pending.at(-1)
     const final = last && !last.hasTools ? last.text : ''
     const process = pending.slice(0, final ? -1 : undefined).map(message => message.text).filter(Boolean)
-    turns.push({ role: 'assistant', text: final, ...(tools.length ? { tools } : {}), ...(process.length ? { process } : {}) })
+    turns.push({ role: 'assistant', text: final, ...(tools.length ? { tools } : {}), ...(process.length ? { process } : {}), ...(original?.webLinks?.length ? { webLinks: original.webLinks } : {}), ...(original?.downloads?.length ? { downloads: original.downloads } : {}) })
     pending = []
     tools = []
   }

@@ -23,15 +23,15 @@ node "$SKILL_DIR/scripts/collect_data.mjs" --plan plan.json
 "$SKILL_DIR/.venv/bin/python" scripts/build_article.py
 "$SKILL_DIR/.venv/bin/python" scripts/verify_data.py --stage final
 "$SKILL_DIR/.venv/bin/python" scripts/evidence_sheet.py
-"$SKILL_DIR/.venv/bin/python" scripts/pack_delivery.py
+"$SKILL_DIR/.venv/bin/python" scripts/pack_delivery.py --workspace ..
 ~~~
 
 collect_data 也接受 --result 指向本会话已保存且可核验的 talent-result/1，适配时不查库。已保存的数据不依赖15分钟查询缓存；刷新需重新收集并生成新大纲。
 
-输出 report_data.json、report_binding.json、data/ 下共享原工件、output/outline、output/report、output/article。内部核查表位于 output/internal/，不进入公开ZIP。不存在独立数据库配置或交互式连接设置流程；共享工具不可用时说明错误，不回退样例。
+以上命令在会话的 wechat-report/ 工作副本执行，--workspace .. 将 delivery.json 写到会话根；独立运行且技能目录就是工作区时省略该参数。pack_delivery 生成 output/public/site/index.html 和引用图片、output/public/report.zip，清单路径相对于会话根。广场在完成时统一持久保存，回复下方显示“打开网页 / 复制链接”和“下载”，不暴露工作区。输出 report_data.json、report_binding.json、data/ 下共享原工件、output/outline、output/report、output/article。内部核查表位于 output/internal/，不进入公开ZIP或网页。不存在独立数据库配置或交互式连接设置流程；共享工具不可用时说明错误，不回退样例。
 
 ## 演示与公众号
 
 用户明确要求演示时，将 example/report_data.json 复制到工作副本的 report_data.json，生成大纲、渲染、文章、校验和核查表时显式传 --demo。演示不证明真实查询通过，当前公开打包入口仅接受真实绑定结果。
 
-公众号推送仍由用户明确要求，使用本地 assets/mp_config.json；默认不运行网络发布。此改造不新增网页图片/ZIP下载路由，回复实际工件位置。
+网页分享由广场的静态交付服务提供，与微信公众号无关。公众号推送仍由用户明确要求，使用本地 assets/mp_config.json；默认不运行公众号网络发布。

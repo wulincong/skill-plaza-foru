@@ -9,3 +9,4 @@ __pycache__/
 *.log
 server/workspace/
 server/traces/
+server/deliveries/

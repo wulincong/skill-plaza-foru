@@ -51,6 +51,7 @@ import { PiRunner, resolvePiCli, piModelRef } from './lib/piRunner.ts'
 import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
 import { deriveConversation } from './lib/conversation.ts'
+import { deliveryBaseUrl, deliveryFingerprint, handleDelivery, publishDelivery, publishLegacyDelivery, readDeliveryManifest, type DeliveryLinks } from './lib/delivery.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -58,6 +59,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 loadLocalEnv()
 
 const PORT = Number(process.env.PORT || 8767)
+const DELIVERIES_DIR = process.env.DELIVERIES_DIR || join(__dirname, 'deliveries')
 const RUN_TIMEOUT_MS = 10 * 60_000
 /** 已安装真实技能的运行要读资料、做检索、跑脚本，放宽到 20 分钟（可用 RUN_TIMEOUT_MS 环境变量覆盖） */
 const RUN_TIMEOUT_MS_INSTALLED = Number(process.env.RUN_TIMEOUT_MS || 20 * 60_000)
@@ -148,6 +150,12 @@ function sandboxAgentsMd(): string {
   }
   lines.push(
     '',
+    '## 产物交付',
+    '',
+    '生成文件后，在会话工作区根目录写 delivery.json：{"web":[{"name":"报告","directory":"output/public/site","entry":"index.html"}],"files":[{"name":"报告交付包","path":"output/public/report.zip"}]}。仅填写实际生成的项目；没有的数组可省略。网页 directory 是只含公开内容的独立目录，入口与 CSS/JS/图片/数据使用相对路径；数据请求只能访问同一 /p/ 静态路径，外部服务、嵌入页面与动态后端不支持。',
+    '所有路径相对于会话根目录，不允许绝对路径、符号链接、隐藏目录或 internal/uploads。网页目录整份公开，SQL证据、密码、配置、核查表和原始追踪不要放入。其余资源由 files 统一下载，不建设 PDF/图片/Excel 在线预览。',
+    '先生成完整产物，再原子写入/替换 delivery.json。只有本轮新生成交付时更新清单，追问说明时不要重写。平台在任务结束后保存并返回真实访问/下载链接，不能自行编造 URL 或以磁盘路径代替交付链接。',
+    '',
     '## 工程边界',
     '',
     '本目录是面向用户任务的独立沙箱。目录之外的项目文件（源码、web/、开发文档与开发手记等）是广场工程资料，与本次任务无关：不要读取，也不要在沙箱外创建或修改任何文件。仓库内容只能通过上文声明的工具脚本和已挂载的技能目录访问。',
@@ -227,7 +235,10 @@ function readBody(req: any, limit: number = MAX_BODY_BYTES): Promise<Buffer> {
 }
 
 const server = createServer((req, res) => {
-  const path = decodeURIComponent((req.url || '').split('?')[0])
+  if (handleDelivery(req, res, DELIVERIES_DIR)) return
+  let path: string
+  try { path = decodeURIComponent((req.url || '').split('?')[0]) }
+  catch { sendJson(res, 400, { error: '无效的 URL。' }); return }
   const seg = path.split('/').filter(Boolean) // 如 ['api','runs',runId,'file',kind]
   if (req.method === 'GET' && path === '/api/health') {
     sendJson(res, 200, {
@@ -381,7 +392,7 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
     const originalMessages = records
       .filter(run => run.clientSessionId === record.clientSessionId && run.engineSessionId === record.engineSessionId && run.ts <= record.ts)
       .sort((a, b) => a.ts.localeCompare(b.ts))
-      .map(run => ({ text: run.userMessage, attachments: run.attachments }))
+      .map(run => ({ text: run.userMessage, attachments: run.attachments, webLinks: run.webLinks, downloads: run.downloads }))
     sendJson(res, 200, { item: record, trace, conversation: deriveConversation(trace, promptWrappers(record.skill), originalMessages) })
     return
   }
@@ -638,7 +649,7 @@ async function handleOpenAiChat(req: any, res: any) {
   const taskTitle = typeof body?.taskTitle === 'string'
     ? body.taskTitle.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
     : ''
-  await runChatTurn(res, {
+  await runChatTurn(req, res, {
     protocol: 'openai',
     stream: body.stream === true,
     skill,
@@ -690,7 +701,7 @@ async function handleChat(req: any, res: any) {
     return
   }
 
-  await runChatTurn(res, {
+  await runChatTurn(req, res, {
     protocol: 'plaza',
     stream: true,
     skill,
@@ -703,7 +714,7 @@ async function handleChat(req: any, res: any) {
 
 /* ---------- 输出协议适配器 ---------- */
 
-interface WireDonePayload {
+interface WireDonePayload extends DeliveryLinks {
   content: string
   resultType?: string
   charts?: MetaChart[]
@@ -883,6 +894,8 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
           charts: p.charts,
           runId: p.runId,
           reportUrl: p.reportUrl,
+          webLinks: p.webLinks,
+          downloads: p.downloads,
         })
         return
       }
@@ -895,7 +908,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
         /* 残余缓冲未等到消息边界（异常收尾）：按最终答复发出 */
         flushMessageText(false)
         frame({}, 'stop')
-        if (p.reportUrl) extFrame({ reportUrl: p.reportUrl, runId: p.runId, resultType: p.resultType })
+        if (p.reportUrl || p.webLinks?.length || p.downloads?.length) extFrame({ reportUrl: p.reportUrl, webLinks: p.webLinks, downloads: p.downloads, runId: p.runId, resultType: p.resultType })
         if (usage) extFrame({ usage })
         sseDone()
       } else {
@@ -907,6 +920,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
           choices: [{ index: 0, message: { role: 'assistant', content: p.content }, finish_reason: 'stop' }],
           ...(usage ? { usage } : {}),
           ...(p.reportUrl ? { reportUrl: p.reportUrl, runId: p.runId } : {}),
+          ...(p.webLinks?.length || p.downloads?.length ? { webLinks: p.webLinks, downloads: p.downloads, runId: p.runId } : {}),
         })
       }
     },
@@ -927,7 +941,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean) {
 
 /* ---------- 编排核心：会话、runner、trace、报告捕获（两入口共用） ---------- */
 
-async function runChatTurn(res: any, params: TurnParams) {
+async function runChatTurn(req: any, res: any, params: TurnParams) {
   const engine: EngineName = 'pi'
   const { skill } = params
   const { messages, sessionId } = params
@@ -1057,6 +1071,12 @@ async function runChatTurn(res: any, params: TurnParams) {
   const previousPdfFingerprint = PDF_REPORT_SKILLS.has(skill)
     ? workspacePdfFingerprint(entry?.workspaceDir ?? join(__dirname, 'workspace', clientSessionId))
     : undefined
+  const previousDeliveryFingerprint = deliveryFingerprint(entry?.workspaceDir ?? join(__dirname, 'workspace', clientSessionId))
+  const previousHtmlFingerprint = deliveryFingerprint(entry?.workspaceDir ?? join(__dirname, 'workspace', clientSessionId), 'report.html')
+  let delivery: DeliveryLinks = {}
+  let deliveryCaptured = false
+  let deliveryError: string | undefined
+  let turnStarted = false
 
   /** Copy a validated report into the run-owned trace directory. */
   const saveHtmlReport = (reportHtml: string, source: string): boolean => {
@@ -1095,6 +1115,10 @@ async function runChatTurn(res: any, params: TurnParams) {
    */
   const captureWorkspaceHtmlReport = (): boolean => {
     if (!HTML_REPORT_SKILLS.has(skill) || htmlReportFile || !entry?.workspaceDir) return Boolean(htmlReportFile)
+    if (previousHtmlFingerprint && previousHtmlFingerprint === deliveryFingerprint(entry.workspaceDir, 'report.html')) {
+      htmlReportError = '本轮未生成新的 HTML 报告'
+      return false
+    }
     const report = readWorkspaceHtmlReport(entry.workspaceDir)
     if (!report.found) {
       const error = 'error' in report ? report.error : undefined
@@ -1132,12 +1156,29 @@ async function runChatTurn(res: any, params: TurnParams) {
     }
   }
 
+  const captureDelivery = (): DeliveryLinks => {
+    if (deliveryCaptured || !turnStarted || !entry?.workspaceDir) return delivery
+    deliveryCaptured = true
+    try {
+      const manifest = readDeliveryManifest(entry.workspaceDir, previousDeliveryFingerprint)
+      // Existing HTML/PDF skills keep their fixed-path contracts. New output uses
+      // the same persistent delivery channel without requiring prompt migration.
+      if (manifest) delivery = publishDelivery(entry.workspaceDir, manifest, DELIVERIES_DIR, deliveryBaseUrl(req))
+      else if (htmlReportFile || pdfReportFile) delivery = publishLegacyDelivery(htmlReportFile, pdfReportFile, taskTitle, DELIVERIES_DIR, deliveryBaseUrl(req))
+    } catch (error: any) {
+      deliveryError = `产物交付失败：${error?.message || String(error)}`
+      recorder.note({ deliveryError })
+    }
+    return delivery
+  }
+
   const finalizeRun = (outcome: RunOutcome) => {
     if (runFinalized) return
     /* A timeout/abort can happen after the Agent flushed report.html but
        before its terminal event. Capture it before writing the run record. */
     captureWorkspaceHtmlReport()
     captureWorkspacePdfReport()
+    captureDelivery()
     runFinalized = true
     const durationMs = Date.now() - startedAt
     const tokenUsage = currentTokenUsage()
@@ -1165,6 +1206,7 @@ async function runChatTurn(res: any, params: TurnParams) {
       usageRounds: usageRounds.slice(),
       attachments: attachmentNames.length ? attachmentNames : undefined,
       files: { events: recorder.file },
+      ...delivery,
     }
     if (htmlReportValidation) record.report = { ...(record.report ?? {}), html: htmlReportValidation }
     if (htmlReportFile) record.files.html = htmlReportFile
@@ -1263,14 +1305,16 @@ async function runChatTurn(res: any, params: TurnParams) {
     if (entry) runner.stop(entry.engineSessionId)
     const recoveredHtml = captureWorkspaceHtmlReport()
     const recoveredPdf = captureWorkspacePdfReport()
-    if (recoveredHtml || recoveredPdf) {
+    captureDelivery()
+    if (recoveredHtml || recoveredPdf || delivery.webLinks?.length || delivery.downloads?.length) {
       /* A recovered artifact is a usable result; do not send error first because
          the browser treats error as terminal and would discard the link. */
       wire.done({
-        content: recoveredPdf && !recoveredHtml ? '译文已生成，但本次任务已超时。' : '报告已生成，但本次任务已超时。',
+        content: (recoveredPdf && !recoveredHtml ? '译文已生成，但本次任务已超时。' : '已保存生成产物，但本次任务已超时。') + (deliveryError ? `\n\n${deliveryError}` : ''),
         resultType: 'timeout',
         runId,
-        reportUrl: `/api/reports/${encodeURIComponent(runId)}`,
+        reportUrl: recoveredHtml || recoveredPdf ? `/api/reports/${encodeURIComponent(runId)}` : undefined,
+        ...delivery,
         usage: lastUsage,
       })
     } else {
@@ -1317,6 +1361,7 @@ async function runChatTurn(res: any, params: TurnParams) {
       return
     }
     entry.busy = true
+    turnStarted = true
     untap = runner.tapSession(entry.engineSessionId, (dir, msg) => recorder.proto(dir, msg))
 
     /* 创建期间客户端已断开：停止 turn，不再空跑 */
@@ -1393,6 +1438,7 @@ async function runChatTurn(res: any, params: TurnParams) {
           if (legacyReport) saveHtmlReport(legacyReport, 'terminal-legacy-html')
         }
         const workspacePdf = captureWorkspacePdfReport()
+        captureDelivery()
         const reportFailure = htmlReportError
           ? `报告未生成：${htmlReportError}`
           : '报告未生成：未找到有效的 workspace/report.html，且最终回复未包含可转换内容。'
@@ -1402,26 +1448,24 @@ async function runChatTurn(res: any, params: TurnParams) {
         /* HTML_REPORT_SKILLS 泛化重构漏定义的局部布尔（wlc 分支终态 ReferenceError 修复） */
         const isHtmlReportSkill = HTML_REPORT_SKILLS.has(skill)
         const isPdfReportSkill = PDF_REPORT_SKILLS.has(skill)
+        const missingReport = (isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length)
+        const doneContent = isHtmlReportSkill
+          ? htmlReportFile || delivery.webLinks?.length ? '' : reportFailure
+          : isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length
+            ? `${finalText}${finalText ? '\n\n' : ''}${pdfFailure}` : finalText
         wire.done({
-          content: isHtmlReportSkill
-            ? htmlReportFile
-              ? ''
-              : reportFailure
-            : isPdfReportSkill
-              ? pdfReportFile
-                ? finalText
-                : `${finalText}${finalText ? '\n\n' : ''}${pdfFailure}`
-              : finalText,
+          content: doneContent + (deliveryError ? `\n\n${deliveryError}` : ''),
           resultType: ev.resultType,
           charts: checkedCharts,
           runId,
           reportUrl: htmlReportFile || pdfReportFile || workspacePdf ? `/api/reports/${encodeURIComponent(runId)}` : undefined,
+          ...delivery,
           usage: ev.usage ?? lastUsage,
-          failure: (isHtmlReportSkill && !htmlReportFile) || (isPdfReportSkill && !pdfReportFile),
+          failure: Boolean(missingReport || deliveryError),
         })
         const finalOutcome: RunOutcome = clientGone
           ? 'aborted'
-          : (isHtmlReportSkill && !htmlReportFile) || (isPdfReportSkill && !pdfReportFile)
+          : missingReport || deliveryError
             ? 'error'
             : 'success'
         finalizeRun(finalOutcome)

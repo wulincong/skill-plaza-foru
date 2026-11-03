@@ -198,6 +198,8 @@ export interface RunRecord {
     /** career-guidance HTML figure/heatmap structural check. */
     html?: HtmlReportValidation
   }
+  webLinks?: Array<{ name: string; url: string }>
+  downloads?: Array<{ name: string; url: string }>
   files: { events?: string; trace?: string; report?: string; html?: string; pdf?: string }
 }
 

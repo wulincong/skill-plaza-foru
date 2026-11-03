@@ -24,8 +24,8 @@ description: 基于共享人才数据库统计生成地区与产业的微信公�
 - 用 scripts/gen_outline.py 生成大纲，先交付 output/outline/outline.md 审阅；确认后渲染。默认章节可随已完成统计调整，空数据/无薪酬/单城市不硬套固定结论。
 - 正文、图表引用绑定中的 metricId、字段和完整分母。量化句由 bound_report.py 的类型化事实投影生成，变更句式需扩充相应事实类型；叙述与建议可编辑，数字变化需重新查询。大纲 bindings 随投影更新并校验；不以“这个数字在别处出现过”作为通过依据。分析推断和课程建议明确为分析，单次横截面不生成市场增速或招聘趋势。
 - 依次运行 verify_data.py --stage data、render_report.py、build_article.py、verify_data.py --stage final。前置校验中的渲染状态为 pending，不能作为最终通过。工作副本保留数据；大纲确认即使超过15分钟也直接读本地结果，不重新查库。
-- evidence_sheet.py 从实际 evidence 生成 output/internal/evidence_核查表.xlsx，包含真实SQL和查询引用，仅供内部审计。pack_delivery.py 依据本次图片 manifest 打包公开产物，排除内部核查表、来源绑定和查询证据。
+- evidence_sheet.py 从实际 evidence 生成 output/internal/evidence_核查表.xlsx，包含真实SQL和查询引用，仅供内部审计。pack_delivery.py 依据本次图片 manifest 打包公开产物，并生成 output/public/site、output/public/report.zip 和会话根 delivery.json；工作副本在 wechat-report/ 时传 --workspace ..。网页目录只复制文章与已验证图片，公开ZIP排除内部核查表、来源绑定和查询证据。
 - 输出先正文与图表一致，再检查实际图片、裁切、缺图和热力图。报告末尾保留数据来源、方法、日期与缺口；章末总结写洞察和行动启示。
-- 默认交付本地文件。仅当用户明确要求推送且已配置公众号时执行 publish_draft.py，只存草稿，不自动群发或发布。密钥、令牌只留本地。
+- 在广场运行时，由平台读取 delivery.json 保存产物并提供网页分享和资源下载按钮，不自行拼接URL；本地工具运行时保留同样文件供调用方接管。仅当用户明确要求推送且已配置公众号时执行 publish_draft.py，只存草稿，不自动群发或发布。密钥、令牌只留本地。
 
 文案、图表与微信操作按需读 [copywriting.md](references/copywriting.md)、[chart-gallery.md](references/chart-gallery.md)、[image-spec.md](references/image-spec.md)、[article-styles.md](references/article-styles.md)、[wechat-publishing.md](references/wechat-publishing.md)。文章从同一已绑定大纲生成；引用范文时以本次真实指标替换并核验。

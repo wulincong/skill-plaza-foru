@@ -9,6 +9,37 @@
 - **跨域限制**：浏览器调用时 `Origin` 必须是本机/内网地址（localhost、127.0.0.1、`*.local`、10.x、192.168.x、172.16-31.x）；服务端对服务端调用（不带 Origin 头）不受限制
 - **服务启动**：`cd web && npm run server`（需本机已安装 pi CLI，模型 key 在启动 shell 环境或 `web/.env`）
 
+## 产物交付：网页分享与文件下载
+
+生成文件的任务在会话工作区根目录提供 `delivery.json`，路径相对于该工作区：
+
+```json
+{
+  "web": [{"name":"人才需求报告","directory":"output/public/site","entry":"index.html"}],
+  "files": [{"name":"报告交付包","path":"output/public/report.zip"}]
+}
+```
+
+网页目录必须独立、完整，只包含允许分享的 HTML/CSS/JS/图片/数据。所有依赖使用相对路径，外部服务、动态后端和嵌入页面不属于托管范围。内部核查表、SQL证据、配置与追踪不放入交付目录。文件准备完毕后原子替换清单；仅追问说明时不重写，避免把旧产物当成本轮生成。
+
+服务器校验并复制到持久目录后，`/api/chat` 的 done、OpenAI 流式扩展帧和非流式 JSON 增加下列可选字段：
+
+```json
+{
+  "webLinks": [{"name":"人才需求报告","url":"http://biubiubiu.vip:14188/p/<deliveryId>/0/"}],
+  "downloads": [{"name":"报告交付包","url":"http://biubiubiu.vip:14188/api/deliveries/<deliveryId>/files/0"}]
+}
+```
+
+- `GET /p/:deliveryId/:index/`：重定向到真实 HTML 入口，直接在线访问，可分享；静态依赖只能从该网页目录读取。
+- `GET /api/deliveries/:deliveryId/files/:index`：固定 `Content-Disposition: attachment`，PDF、图片、Excel、ZIP都作为下载。两类入口均支持 HEAD，不依赖聊天会话。
+- 链接保存进原有运行记录，详情 conversation 会把链接恢复到对应回答；旧 `reportUrl` 继续兼容。已有固定 HTML/PDF 技能自动接入新交付。
+- `DELIVERIES_DIR` 缺省 `web/server/deliveries/`，部署需保留此目录；清理会话或重启服务不会删除已保存交付。首期不自动清理，不承诺永久存储。
+- `DELIVERY_PUBLIC_BASE_URL` 配置公开 HTTP(S) origin；缺省采用已校验的请求 Origin，非浏览器采用 Host。当前部署为 `http://biubiubiu.vip:14188`，反向代理必须转发 `/p/` 和 `/api/` 到 Node，不能将 `/p/` 回落到 SPA。
+- 持链接可访问；不可猜测 ID 不是账号鉴权。网页用 CSP sandbox 创建不共享主站权限的来源，允许脚本和目录内静态数据，禁止访问主站 API、存储、表单及子页面。无 PDF/图片/表格在线查看组件。
+
+每批上限 20 个网页、100 个下载、2000 个文件、256 MiB；拒绝符号链接、路径越界、隐藏文件、internal/uploads 和空文件。无效清单不返回新链接。网页与下载均不会触发模型生成或数据库查询。
+
 ## 0. POST /v1/chat/completions（OpenAI 兼容，外部项目推荐入口）
 
 OpenAI 风格的对话补全端点，供已有 OpenAI SDK/SSE 客户端的项目直接接入（通常只需把 baseURL 指到 `<服务地址>/v1`）。运行记录与 `/api/chat` 同套落盘（`/api/runs` 里 `protocol` 字段为 `openai`）。

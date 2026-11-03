@@ -1,10 +1,54 @@
 """Package public report artifacts; query evidence stays in output/internal."""
 import argparse
 import json
+import html
+import os
+import shutil
+import tempfile
 from pathlib import Path
 import zipfile
 from bound_report import load_data, verify_outline, digest
 BASE = Path(__file__).resolve().parent.parent
+
+
+def prepare_delivery(workspace, report, outline, manifest, archive):
+    """Prepare a self-contained public site; never copies a whole work directory."""
+    public = report.parent/'public'
+    public.resolve().relative_to(workspace)
+    public.mkdir(parents=True, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix='.site-', dir=public))
+    try:
+        (temporary/'assets').mkdir()
+        blocks = ['<h1>'+html.escape(outline['title'])+'</h1>']
+        for i, screen in enumerate(outline['screens']):
+            blocks.append('<section><h2>'+html.escape(screen['title'])+'</h2>')
+            for paragraph in screen.get('paragraphs', []):
+                blocks.append('<p>'+html.escape(paragraph)+'</p>')
+            if screen.get('summary'):
+                blocks.append('<p>'+html.escape(screen['summary']['text'])+'</p>')
+            source = (report/manifest['pages'][i]['file']).resolve()
+            image = 'page_'+str(i+1).zfill(2)+source.suffix
+            shutil.copyfile(source, temporary/'assets'/image)
+            blocks.append('<img loading="lazy" decoding="async" src="assets/'+image+'" alt="'+html.escape(screen['title'], quote=True)+'"></section>')
+        title = html.escape(outline['title'])
+        document = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title><style>body{margin:0;background:#f4f6f8;color:#172033;font:16px/1.8 system-ui,sans-serif}main{max-width:900px;margin:auto;padding:32px 20px;background:white}h1{font-size:28px;line-height:1.5}h2{font-size:22px;margin-top:36px}p{white-space:pre-wrap}img{display:block;width:100%;height:auto;margin:20px auto}section{margin-bottom:32px}@media(max-width:600px){main{padding:20px 12px}h1{font-size:23px}}</style></head><body><main>'+''.join(blocks)+'</main></body></html>'
+        (temporary/'index.html').write_text(document, 'utf-8')
+        site = public/'site'
+        if site.is_symlink():
+            raise ValueError('公开网页目录不能为符号链接')
+        if site.exists():
+            shutil.rmtree(site)
+        temporary.rename(site)
+        shutil.copyfile(archive, public/'report.zip')
+        declaration = {'web': [{'name': outline['title'], 'directory': site.relative_to(workspace).as_posix(), 'entry': 'index.html'}],
+                       'files': [{'name': archive.stem, 'path': (public/'report.zip').relative_to(workspace).as_posix()}]}
+        # Manifest is the last write: the server never receives a partial delivery.
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=workspace, prefix='.delivery-', delete=False) as pending:
+            json.dump(declaration, pending, ensure_ascii=False, indent=2)
+        os.replace(pending.name, workspace/'delivery.json')
+    finally:
+        if temporary.exists():
+            shutil.rmtree(temporary)
 
 
 def main():
@@ -13,6 +57,7 @@ def main():
     ap.add_argument('--outline', default=str(BASE/'output/outline/report_outline.json'))
     ap.add_argument('--report-dir', default=str(BASE/'output/report'))
     ap.add_argument('--name', default='人才需求观察报告_交付包')
+    ap.add_argument('--workspace', default=str(BASE), help='会话根目录；工作副本位于 wechat-report/ 时传 ..')
     args = ap.parse_args()
     if Path(args.name).name != args.name:
         raise ValueError('交付包名称不能包含路径')
@@ -21,6 +66,8 @@ def main():
     outline = json.loads(outline_path.read_text('utf-8'))
     verify_outline(data, binding, outline)
     report = Path(args.report_dir).resolve()
+    workspace = Path(args.workspace).resolve(strict=True)
+    report.relative_to(workspace)
     manifest = json.loads((report/'manifest.json').read_text('utf-8'))
     if manifest.get('outline_sha256') != digest(outline_path.read_bytes()) or len(manifest['pages']) != len(outline['screens']):
         raise ValueError('图片清单与当前大纲不一致')
@@ -45,6 +92,7 @@ def main():
             z.write(source, args.name+'/'+name)
         z.writestr(args.name+'/report_data.json', json.dumps(data, ensure_ascii=False, indent=2))
         z.writestr(args.name+'/outline/report_outline.json', json.dumps(outline, ensure_ascii=False, indent=2))
+    prepare_delivery(workspace, report, outline, manifest, out)
     print(str(out))
 
 

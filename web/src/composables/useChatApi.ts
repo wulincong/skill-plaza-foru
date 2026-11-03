@@ -13,6 +13,7 @@ export interface ChatMessage {
 
 export type ApiState = 'checking' | 'ready' | 'offline' | 'nokey'
 export type EngineId = 'pi'
+export interface DeliveryLink { name: string; url: string }
 import type { ReportChart } from '../data/runsMock'
 
 export interface HealthResult {
@@ -39,7 +40,7 @@ export type ChatEvent =
     }
   | { type: 'text'; delta: string }
   | { type: 'usage'; usage: Record<string, number | string> }
-  | { type: 'done'; content: string; resultType?: string; charts?: ReportChart[]; runId?: string; reportUrl?: string }
+  | { type: 'done'; content: string; resultType?: string; charts?: ReportChart[]; runId?: string; reportUrl?: string; webLinks?: DeliveryLink[]; downloads?: DeliveryLink[] }
   | { type: 'error'; message: string }
 
 export async function checkHealth(): Promise<HealthResult> {
