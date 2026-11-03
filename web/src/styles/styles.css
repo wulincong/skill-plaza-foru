@@ -1023,12 +1023,16 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
    在线对话（SkillHub 对话界面语言 · skillhub-ui-design）
    260px 灰底侧栏 + 768px 文档流消息列 + 白卡输入区
    ============================================================ */
-.page-exp { display: flex; min-height: calc(100vh - var(--head-h)); padding: 0; }
+.page-exp {
+  /* 页头高度另含 1px 底边框。 */
+  --exp-viewport: calc(100dvh - var(--head-h) - 1px);
+  display: flex; min-height: var(--exp-viewport); padding: 0;
+}
 
 /* ---- 历史侧栏 ---- */
 .exp-side {
   position: sticky; top: var(--head-h); align-self: flex-start;
-  flex-shrink: 0; width: 260px; height: calc(100vh - var(--head-h));
+  flex-shrink: 0; width: 260px; height: var(--exp-viewport);
   background: var(--sk-sidebar); border-right: 1px solid var(--sk-line);
   display: flex; flex-direction: column; padding: 12px 10px 16px;
 }
@@ -1107,7 +1111,7 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
   width: 100%; max-width: 768px; margin: 0 auto; padding: 0 20px;
   display: flex; flex-direction: column; flex: 1;
 }
-.wrap-exp.is-empty .exp-shell { justify-content: center; }
+.wrap-exp.is-empty .exp-top { margin-top: auto; }
 .exp-top { text-align: center; padding: 48px 0 16px; }
 .exp-top.is-compact { padding: 20px 0 8px; }
 .exp-title {
@@ -1186,7 +1190,7 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
 
 /* ---- 输入区：白卡容器 + 黑色圆形发送钮 ---- */
 .exp-input {
-  position: sticky; bottom: 0; z-index: 2; margin-top: 8px; padding: 14px 0 6px;
+  position: sticky; bottom: 0; z-index: 2; margin-top: auto; padding: 14px 0 6px;
   background: linear-gradient(180deg, transparent 0%, var(--surface-canvas) 16px);
 }
 .exp-input-box {
