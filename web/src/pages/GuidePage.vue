@@ -27,6 +27,7 @@ const requestExample = `curl ${apiOrigin}/v1/chat/completions \\
         <p class="block-note">打开在线对话即可提问。需要专业能力时，输入 <code>$</code> 选择智能体，也可以在广场点击「在线运行」，按提示填写任务或上传资料。完成后，在对话中查看回答和交付文件。</p>
         <div class="detail-actions">
           <RouterLink class="btn btn-primary" to="/experience">打开在线对话<Icon name="arrow" :size="15" /></RouterLink>
+          <RouterLink class="btn btn-quiet" to="/docs">按技能查阅文档</RouterLink>
           <RouterLink class="btn btn-quiet" to="/skills">浏览智能体广场</RouterLink>
         </div>
       </section>

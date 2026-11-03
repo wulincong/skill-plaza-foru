@@ -6,6 +6,10 @@
 - 后端：`web/server/index.ts`，node:http 零第三方依赖；`PiRunner` 通过 `pi --mode rpc` 为每会话启动常驻子进程（JSONL over stdio）。
 - 技能：`.agents/skills/` 同时包含主仓库内置技能和独立技能仓库的 git submodule（见「技能组织模式」）；Pi 用 `--skill` + `/skill:` 命令加载技能。
 
+## 技能文档
+
+在广场打开「文档中心」即可按任务查阅各技能的材料要求、示例和交付说明。仓库索引还收录绘图、数据查询和内部开发工具。[网站文档中心](http://biubiubiu.vip:14188/#/docs) · [仓库文档索引](docs/skill-index.md) · [给技能写文档](docs/writing-skill-docs.md)
+
 ## 架构
 
 ```
@@ -97,6 +101,7 @@ cd web && npm run detect:cli
 | `/use/:slug?` | 在线运行（结构化表单 → 真实 agent 执行 → 流式渲染 + token 用量） |
 | `/runs`、`/runs/:runId` | 运行记录列表与详情（后端离线时回落演示数据） |
 | `/guide` | 在线运行与 API 接入指南 |
+| `/docs`、`/docs/:slug/:topic?` | 技能文档中心、技能指南与专题页 |
 
 ## 后端 API
 

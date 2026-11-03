@@ -21,6 +21,7 @@ const routes = [
   { path: '/use/:slug?', name: 'use', component: UsePage, meta: { nav: 'skills' } },
   { path: '/runs', name: 'runs', component: RunListPage, meta: { title: '运行记录 · 智能体搭子', nav: 'runs' } },
   { path: '/runs/:runId', name: 'runDetail', component: RunDetailPage, meta: { title: '运行详情 · 智能体搭子', nav: 'runs' } },
+  { path: '/docs/:slug?/:topic?', name: 'skillDocs', component: () => import('../pages/SkillDocsPage.vue'), meta: { nav: 'guide' } },
   { path: '/guide', name: 'guide', component: GuidePage, meta: { title: '使用指南 · 智能体搭子', nav: 'guide' } },
   { path: '/:pathMatch(.*)*', name: 'missing', component: MissingPage, meta: { title: '没有这个地址 · 智能体搭子', nav: 'skills' } },
 ]

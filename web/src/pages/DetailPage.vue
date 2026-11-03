@@ -49,6 +49,7 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
           <RouterLink class="btn btn-primary" :to="{ name: 'use', params: { slug: skill.slug } }">
             在线运行<Icon name="arrow" :size="15" />
           </RouterLink>
+          <RouterLink class="btn btn-quiet" :to="{ name: 'skillDocs', params: { slug: skill.slug } }">技能文档</RouterLink>
           <RouterLink class="btn btn-quiet" to="/guide">API 接入指南</RouterLink>
           <span class="detail-actions-note">{{ configOf(skill.slug) ? '配置任务后运行，也可在在线对话中选择此技能。' : '进入在线对话，说明任务要求即可使用此技能。' }}</span>
         </div>

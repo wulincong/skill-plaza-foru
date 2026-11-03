@@ -6,6 +6,8 @@
   "description": "智能体广场：产教智能体在线运行与 API 接入平台（Vue 3 + TypeScript + Vite）",
   "scripts": {
     "dev": "vite",
+    "docs:index": "node scripts/docs-index.mjs",
+    "docs:check": "node scripts/docs-index.mjs --check",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "server": "node server/index.ts",

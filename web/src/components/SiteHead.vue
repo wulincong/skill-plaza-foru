@@ -91,7 +91,7 @@ watch(() => route.fullPath, () => { closeNav(); closeMenu() })
           <RouterLink to="/skills" :aria-current="route.name === 'skills' || route.name === 'detail' ? 'page' : undefined">智能体广场</RouterLink>
           <RouterLink to="/experience" :aria-current="route.name === 'experience' ? 'page' : undefined">在线对话</RouterLink>
           <RouterLink v-if="isRunsTabVisible()" to="/runs" :aria-current="route.name === 'runs' || route.name === 'runDetail' ? 'page' : undefined">运行记录</RouterLink>
-          <RouterLink to="/guide" :aria-current="route.name === 'guide' ? 'page' : undefined">使用指南</RouterLink>
+          <RouterLink to="/docs" :aria-current="route.name === 'skillDocs' ? 'page' : undefined">文档中心</RouterLink>
         </nav>
         <div class="head-tools">
           <RouterLink class="text-btn" to="/guide">怎么用？</RouterLink>
