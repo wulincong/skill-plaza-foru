@@ -2,7 +2,7 @@
 
 借鉴目的：结论紧邻证据、图表按问题选择、来源与分母明确、构建可复现。外部机构名称不是质量担保，也不意味着其每项能力均在本项目实现。
 
-现行入口：SKILL.md → research-analysis.md → generate_report.py。分析事实与数据指纹由report_analysis/bound_report校验；图表选择见chart-gallery.md；字号、布局和质检见image-spec.md。
+现行入口：SKILL.md → research-analysis.md → report.py（平台优先原生报告工具）；generate_report.py由受信build内部调用。分析事实与数据指纹由report_analysis/bound_report校验；图表选择见chart-gallery.md；字号、布局和质检见image-spec.md。
 
 禁止用单次横截面描述增长或迁移，禁止用组间薪酬差推断因果回报。图表形态服从证据，不设置每篇至少若干类型的硬配额。内部排版结构保持可复现，但不向用户要求大纲确认。
 
