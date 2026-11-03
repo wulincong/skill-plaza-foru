@@ -66,6 +66,14 @@ def _build_skeleton(data, brand, binding=None):
         bind(i, 'chart/'+field, {'path': path, 'op': op, 'limit': 10})
         return i
 
+    def composition(title, path, caption):
+        # Kind follows the FT rules in chart_recommender: extreme share →
+        # bignum, ≤4 pie, 5-7 donut, >7 sorted hbar.
+        i = screen(type='chart', no='%02d' % len(ol['screens']), title=title,
+                   paragraphs=[])
+        bind(i, 'chart', {'path': path, 'op': 'composition', 'caption': caption, 'limit': 10})
+        return i
+
     i = screen(type='cover', title=title, issuer=brand['issuer'],
                co_issuer=brand['co_issuer'], series=brand['report_series'],
                subtitle='平台岗位记录的结构观察' if binding else '离线演示样例',
@@ -87,7 +95,7 @@ def _build_skeleton(data, brand, binding=None):
                   {'n': value('/total/cities')})
     for key, title1 in [('jobtype', '招聘类型'), ('edu', '学历要求'), ('exp', '经验要求')]:
         if data.get(key):
-            i = chart(title1, title1+'岗位记录数', '/'+key)
+            i = composition(title1, '/'+key, title1+'构成（占全部岗位记录比例）')
             paragraph(i, '各类别统计使用同一组 {n} 条岗位记录，缺失与未知类别单独保留。',
                       {'n': value('/total/positions')})
     if data.get('edu_exp'):
@@ -95,13 +103,14 @@ def _build_skeleton(data, brand, binding=None):
               'table', ['学历要求', '经验要求', '岗位记录数'])
     salary = data.get('salary') or {}
     if salary.get('valid'):
-        i = chart('薪酬结构', '招聘声明薪资区间中点分布', '/salary_hist')
+        i = chart('薪酬结构', '招聘声明薪资区间中点分布（占有效薪酬记录比例）',
+                  '/salary_hist', 'name_pct', 'vbar')
         paragraph(i, '共有 {n} 条记录符合薪酬有效性规则，中位数为 {m} K/月。',
                   {'n': value('/salary/valid'), 'm': value('/salary/median')})
         ol['screens'][i]['summary'] = {'title': '培养与岗位定位',
             'text': '薪酬可辅助识别不同方向的招聘定位，实际收入仍取决于岗位职责、经验和录用条件。'}
     if data.get('subtrack'):
-        chart('岗位方向结构', '按显式有序规则的互斥归类', '/subtrack')
+        composition('岗位方向结构', '/subtrack', '按显式有序规则互斥归类的构成')
     if any(r.get('valid') for r in data.get('salary_by_track', [])):
         chart('方向薪酬比较', '同一薪酬规则下的方向摘要', '/salary_by_track',
               'track_salary_table', 'table', ['岗位方向', '有效薪酬记录', '中位数K/月'])
@@ -128,8 +137,8 @@ def _build_skeleton(data, brand, binding=None):
         ol['screens'][i]['summary'] = {'title': '课程与实践对接',
             'text': '岗位池反映所列学历与经验条件的交集，院校还需结合职责、技能与学生基础设计实践任务。'}
         if pool.get('track'):
-            ol['screens'][i]['chart'] = {'kind': 'hbar', 'caption': '职教入门池的岗位方向'}
-            bind(i, 'chart/data', {'path': '/voc_pool/track', 'op': 'name_count', 'limit': 10})
+            bind(i, 'chart', {'path': '/voc_pool/track', 'op': 'composition',
+                              'caption': '职教入门池的岗位方向构成', 'limit': 10})
     i = screen(type='chart', no='%02d' % len(ol['screens']), title='人才培养与合作建议',
                paragraphs=['将样本中数量较多的岗位方向转化为典型工作任务，结合企业访谈验证课程与实训项目。',
                            '把学历、经验与技能要求分别纳入培养方案，优先选择条件清楚的企业开展项目合作。'])
@@ -170,7 +179,10 @@ def build_outline(data, brand, binding=None, analysis=None):
 def outline_to_md(ol):
     lines = ['# '+ol['title'], '', '> 请审阅数据与分析后再渲染。', '']
     for s in ol['screens']:
-        lines += ['## '+s['title'], '']+s.get('paragraphs', [])
+        lines += ['## '+s['title'], '']
+        if s.get('conclusion'):
+            lines += ['**'+s['conclusion']['title']+'**：'+s['conclusion']['text'], '']
+        lines += s.get('paragraphs', [])
         if s.get('summary'):
             lines += ['', s['summary']['title']+'：'+s['summary']['text']]
         if s.get('chart'):

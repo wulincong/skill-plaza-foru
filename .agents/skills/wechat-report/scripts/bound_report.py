@@ -83,8 +83,33 @@ def project(data, spec):
         return '未提供' if value is None else format(value, ',')
     if op == 'name_count':
         return [[r['name'], r['count']] for r in value[:limit]]
+    if op == 'name_pct':
+        return [[r['name'], r['pct']] for r in value[:limit]]
     if op == 'pairs':
         return value[:limit]
+    if op == 'composition':
+        # Composition charts follow the FT rules in chart_recommender; the
+        # chosen kind must stay a pure function of the bound rows.
+        from chart_recommender import recommend_composition
+        rows = sorted(value, key=lambda r: (-r['count'], str(r['name'])))[:limit]
+        total = sum(r['count'] for r in rows)
+        items = []
+        for r in rows:
+            share = r.get('pct')
+            if share is None:
+                share = round(r['count'] / total * 100, 2) if total else 0
+            items.append({'name': r['name'], 'count': r['count'], 'pct': share})
+        chosen = recommend_composition(items)
+        cfg = {'kind': chosen['kind'], 'caption': spec.get('caption', '')}
+        if chosen['kind'] == 'bignum':
+            cfg['top'] = items[0]
+            cfg['rest'] = items[1:4]
+        elif chosen['kind'] == 'hbar':
+            cfg['data'] = [[r['name'], r['count']] for r in items]
+            cfg['sorted'] = True
+        else:
+            cfg['data'] = [[r['name'], r['count'], r['pct']] for r in items]
+        return cfg
     if op == 'city_track_table':
         return [[r.get('city') or '城市缺失', r['label'], r['count']] for r in sorted(value, key=lambda r: -r['count'])[:limit]]
     if op == 'track_salary_table':
@@ -147,6 +172,9 @@ def verify_outline(data, binding, outline):
     from report_analysis import entity_labels, verify_analysis_outline
     labels = entity_labels(data)
     for i, screen in enumerate(outline['screens']):
+        # The lead conclusion box is narrative only; numbers belong to bound findings.
+        if screen.get('conclusion') and re.search(r'\d', screen['conclusion'].get('text', '')):
+            raise ValueError('核心结论框包含未绑定数字')
         for j, text in enumerate(screen.get('paragraphs', [])):
             quantitative = text
             for label in sorted(labels, key=len, reverse=True):

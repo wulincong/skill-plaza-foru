@@ -25,7 +25,7 @@ description: 基于共享人才数据库统计生成地区与产业的微信公�
 - scripts/gen_outline.py 必须消费已完成的分析稿，缺失、占位、数据版本不符或章节缺项即停止。先交付 output/outline/outline.md 中的实际分析与图表供审阅，不能只展示标题、页数和“亮点”；确认后渲染。旧工作副本需同步本次 scripts/references，保留原数据和用户品牌/文案。
 - 正文数字使用带字段、分母和公式的 findingIds，图表绑定 metricId；量化事实由保存数据重新计算校验。新增所需事实应扩充报告侧派生投影，新增原始统计仍走共享查询。解释和建议由智能体结合证据撰写，不能恢复固定行业/地区结论；单次横截面不生成市场增速或招聘趋势。检查器可验证分析结构和数字引用，解释合理性仍须逐章审阅。
 - 依次运行 verify_data.py --stage data、render_report.py、build_article.py、verify_data.py --stage final。前置校验中的渲染状态为 pending，不能作为最终通过。工作副本保留数据；大纲确认即使超过15分钟也直接读本地结果，不重新查库。
-- evidence_sheet.py 从实际 evidence 生成 output/internal/evidence_核查表.xlsx，包含真实SQL和查询引用，仅供内部审计。pack_delivery.py 依据本次图片 manifest 打包公开产物，并生成 output/public/site、output/public/report.zip 和会话根 delivery.json；工作副本在 wechat-report/ 时传 --workspace ..。网页目录只复制文章与已验证图片，公开ZIP排除内部核查表、来源绑定和查询证据。
+- evidence_sheet.py 从实际 evidence 生成 output/internal/evidence_核查表.xlsx，包含真实SQL和查询引用，仅供内部审计。pack_delivery.py 依据本次图片 manifest 打包公开产物，并生成 output/public/site、output/public/report.zip 和会话根 delivery.json；工作副本在 wechat-report/ 时传 --workspace ..。网页目录只放标题与已验证分页图片（图内已含全部文字，不再重复正文）；文字版文章在公开 ZIP 的 article/ 内。公开ZIP排除内部核查表、来源绑定和查询证据。
 - 输出先正文与图表一致，再检查实际图片、裁切、缺图和热力图。报告末尾保留数据来源、方法、日期与缺口；章末总结写洞察和行动启示。
 - 在广场运行时，由平台读取 delivery.json 保存产物并提供网页分享和资源下载按钮，不自行拼接URL；本地工具运行时保留同样文件供调用方接管。仅当用户明确要求推送且已配置公众号时执行 publish_draft.py，只存草稿，不自动群发或发布。密钥、令牌只留本地。
 

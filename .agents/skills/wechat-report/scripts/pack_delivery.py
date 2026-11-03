@@ -22,19 +22,26 @@ def prepare_delivery(workspace, report, outline, manifest, archive):
         # mkdtemp defaults to 0700; the web server uses the shared workspace group.
         temporary.chmod(temporary.stat().st_mode | stat.S_IRGRP | stat.S_IXGRP)
         (temporary/'assets').mkdir()
-        blocks = ['<h1>'+html.escape(outline['title'])+'</h1>']
+        # 分页图片自带全部文字（含标题/结论/图表/附录），网页再重复段落只会
+        # 与图内内容冲突；在线页保持纯图片，文字版在 ZIP 的 article 内。
+        blocks = ['<h1>'+html.escape(outline['title'])+'</h1>',
+                  '<p class="hint">以下为报告分页图片；完整文字版见交付包 article/article.md。</p>']
         for i, screen in enumerate(outline['screens']):
-            blocks.append('<section><h2>'+html.escape(screen['title'])+'</h2>')
-            for paragraph in screen.get('paragraphs', []):
-                blocks.append('<p>'+html.escape(paragraph)+'</p>')
-            if screen.get('summary'):
-                blocks.append('<p>'+html.escape(screen['summary']['text'])+'</p>')
             source = (report/manifest['pages'][i]['file']).resolve()
             image = 'page_'+str(i+1).zfill(2)+source.suffix
             shutil.copyfile(source, temporary/'assets'/image)
-            blocks.append('<img loading="lazy" decoding="async" src="assets/'+image+'" alt="'+html.escape(screen['title'], quote=True)+'"></section>')
+            blocks.append('<img loading="lazy" decoding="async" src="assets/'+image+'" alt="'+html.escape(screen['title'], quote=True)+'">')
         title = html.escape(outline['title'])
-        document = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title><style>body{margin:0;background:#f4f6f8;color:#172033;font:16px/1.8 system-ui,sans-serif}main{max-width:900px;margin:auto;padding:32px 20px;background:white}h1{font-size:28px;line-height:1.5}h2{font-size:22px;margin-top:36px}p{white-space:pre-wrap}img{display:block;width:100%;height:auto;margin:20px auto}section{margin-bottom:32px}@media(max-width:600px){main{padding:20px 12px}h1{font-size:23px}}</style></head><body><main>'+''.join(blocks)+'</main></body></html>'
+        document = ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+                    '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                    '<title>'+title+'</title><style>'
+                    'body{margin:0;background:#f4f6f8;color:#172033;font:16px/1.8 system-ui,sans-serif}'
+                    'main{max-width:900px;margin:auto;padding:32px 20px;background:white}'
+                    'h1{font-size:28px;line-height:1.5}'
+                    'p.hint{color:#6B7280;font-size:14px;margin:0 0 8px}'
+                    'img{display:block;width:100%;height:auto;margin:20px auto}'
+                    '@media(max-width:600px){main{padding:20px 12px}h1{font-size:23px}}'
+                    '</style></head><body><main>'+''.join(blocks)+'</main></body></html>')
         (temporary/'index.html').write_text(document, 'utf-8')
         site = public/'site'
         if site.is_symlink():

@@ -21,6 +21,8 @@
 
 选图必须先过 `scripts/chart_recommender.py`（FT Visual Vocabulary 规则代码化）：
 构成类最大份额 >85% → 强制 `bignum` 大数字卡，禁饼/环；>7 类禁环形；排名必须有序。
+2026-11 起构成类图表已由大纲的 `composition` 投影自动选型（`bound_report.py`），
+`verify_data.py` 数据阶段再以 `check_chart_choice` 复核；本节规则即其执行依据。
 
 ### 1. `hbar` 横向条形 ✅ — 排名对比
 ```json
