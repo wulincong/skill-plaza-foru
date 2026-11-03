@@ -12,6 +12,40 @@ chart_recommender.py — 图表选择器（FT Visual Vocabulary 规则的代码�
     * 阈值类（>85% 等）来自 FT anti-patterns。
 """
 EXTREME_SHARE = 85.0
+MULTIVARIATE_POLICY='wechat-chart-selection/2'
+MULTIVARIATE_SPECS={
+    '招聘地域分布':{'path':'/city_profiles','op':'joint_city'},
+    '学历要求':{'path':'/edu_exp','op':'joint_requirements'},
+    '经验要求':{'path':'/edu_exp','op':'joint_experience'},
+    '学历与经验交叉':{'path':'/edu_exp','op':'joint_access'},
+    '薪酬结构':{'path':'/salary','op':'joint_salary','inputs':{'entry':{'path':'/voc_pool/salary'}}},
+    '岗位方向结构':{'path':'/subtrack','op':'joint_tracks','inputs':{'salary':{'path':'/salary_by_track'}}},
+    '方向薪酬比较':{'path':'/salary_by_track','op':'joint_track_salary'},
+    '城市与岗位方向':{'path':'/city_track_rows','op':'joint_city_tracks'},
+    '地域方向集中程度':{'path':'/city_track_rows','op':'joint_lq'},
+    '人才能力关键词':{'path':'/job_skill_rows','op':'joint_skills'},
+    '职教入门岗位观察':{'path':'/voc_pool/track','op':'joint_entry','inputs':{
+        'all':{'path':'/subtrack'},'salary':{'path':'/voc_pool/salary_by_track'}}},
+}
+
+
+def recommend_multivariate(topic,data):
+    """Choose from real joint structures; omit inapplicable comparisons explicitly."""
+    import copy
+    spec=MULTIVARIATE_SPECS.get(topic)
+    if not spec:return None
+    reason='由同口径联合统计选择多指标视图'
+    if topic=='招聘地域分布':
+        rows=[row for row in data.get('city_profiles',[]) if row.get('valid',0)>=30 and row.get('median') is not None]
+        if len(rows)<2:return {'spec':None,'reason':'有效城市不足两个，不绘制跨城薪酬学历比较，不扩大地域范围'}
+        reason='以城市联合比较薪酬中位数、学历份额与岗位量；全篇唯一柱状组合图'
+    if topic=='经验要求' and len({row[0] for row in data.get('edu_exp',[])})<2:
+        return {'spec':None,'reason':'仅有一个学历组，省略学历组间经验对照，保留原始筛选'}
+    if topic=='城市与岗位方向' and len({(row.get('province'),row.get('city')) for row in data.get('city_track_rows',[]) if row.get('city')})<2:
+        return {'spec':None,'reason':'仅有一个有效城市，省略跨城方向矩阵'}
+    if topic=='地域方向集中程度' and data.get('meta',{}).get('filters',{}).get('region',{}).get('level')=='city':
+        return {'spec':None,'reason':'样本限定单城，内部城市对比不能识别相对外部地域集中度'}
+    return {'spec':copy.deepcopy(spec),'reason':reason}
 
 
 def recommend_composition(items):

@@ -68,9 +68,18 @@ def _build_skeleton(data, brand, binding=None):
         bind(i, 'chart/'+field, {'path': path, 'op': op, 'limit': 10})
         return i
 
+    filters=data['meta'].get('filters',{})
+    restrictions=[]
+    for field,label in [('education','学历'),('experience','经验'),('jobType','招聘类型')]:
+        if filters.get(field):
+            names=data['meta'].get('enum_labels',{}).get(field,{})
+            restrictions.append('、'.join(names.get(value,'限定类别') for value in filters[field])+label+'限定')
+    if filters.get('roles') or any(filters.get('title',{}).values()):restrictions.append('岗位条件限定')
+    if filters.get('updatedAt'):restrictions.append('时间范围限定')
+    subtitle='平台岗位记录的结构观察'+('｜'+'；'.join(restrictions) if restrictions else '')
     i = screen(type='cover', title=title, issuer=brand['issuer'],
                co_issuer=brand['co_issuer'], series=brand['report_series'],
-               subtitle='平台岗位记录的结构观察' if binding else '离线演示样例',
+               subtitle=subtitle if binding else '离线演示样例',
                chips=[{'value': '', 'label': '条在招岗位记录'},
                       {'value': '', 'label': '家关联企业'}])
     bind(i, 'chips/0/value', value('/total/positions'))

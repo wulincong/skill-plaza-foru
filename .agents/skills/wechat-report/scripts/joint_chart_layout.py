@@ -26,15 +26,16 @@ def chart_js(cfg,el,theme):
     scripts=[]
     if kind=='city_combo':
         labels=[row[0] for row in data]
+        salary_top=math.ceil(max([row[3] for row in data] or [1])*1.25*2)/2
         opt.update(grid=[{'left':75,'right':35,'top':80,'height':280},{'left':75,'right':35,'top':470,'height':210}],
             xAxis=[dict(axis,type='category',data=labels,gridIndex=0,axisLabel={'show':False}),dict(axis,type='category',data=labels,gridIndex=1)],
-            yAxis=[dict(axis,type='value',name='薪酬中位数（K/月）',gridIndex=0,nameLocation='middle',nameGap=55,nameTextStyle={'fontSize':23},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
+            yAxis=[dict(axis,type='value',min=0,max=salary_top,name='薪酬中位数（K/月）',gridIndex=0,nameLocation='middle',nameGap=55,nameTextStyle={'fontSize':23},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
                    dict(axis,type='value',name='本科要求比例（%）',gridIndex=1,min=0,max=100,nameLocation='middle',nameGap=55,nameTextStyle={'fontSize':23},splitLine={'lineStyle':{'color':'#E5E7EB'}})],
             series=[{'type':'bar','xAxisIndex':0,'yAxisIndex':0,'barMaxWidth':52,'data':[row[3] for row in data],
-                     'itemStyle':{'color':primary,'borderRadius':[7,7,0,0]},'label':{'show':True,'position':'top','fontSize':23,'lineHeight':28,'color':text}},
+                     'itemStyle':{'color':primary,'borderRadius':[7,7,0,0]},'label':{'show':True,'position':'top','fontSize':22,'lineHeight':27,'color':text}},
                     {'type':'scatter','xAxisIndex':1,'yAxisIndex':1,'symbolSize':23,'data':[[i,row[4]] for i,row in enumerate(data)],
                      'itemStyle':{'color':accent},'label':{'show':True,'position':'top','fontSize':24,'color':text}}])
-        scripts += ["opt.series[0].label.formatter=p=>R[p.dataIndex][3]+' K\\nn='+R[p.dataIndex][1].toLocaleString();",
+        scripts += ["opt.series[0].label.formatter=p=>R[p.dataIndex][3]+' K\\n岗n='+R[p.dataIndex][1].toLocaleString()+'\\n薪n='+R[p.dataIndex][2].toLocaleString();",
                     "opt.series[1].label.formatter=p=>R[p.dataIndex][4]+'%';"]
     elif kind=='requirements_flow':
         nodes=[]
@@ -88,7 +89,7 @@ def chart_js(cfg,el,theme):
         maximum=max([row[1] for row in data] or [1])
         limit=math.ceil(max([row[4] for row in data] or [1])/5)*5+5
         opt.update(grid={'left':220,'right':85,'top':30,'bottom':70},
-            xAxis=dict(axis,type='value',min=0,max=limit,name='K/月',nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
+            xAxis=dict(axis,type='value',min=0,max=limit,name='招聘薪酬（K/月）',nameLocation='middle',nameGap=45,nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
             yAxis=dict(axis,type='category',inverse=True,data=[row[0] for row in data]),
             series=[{'type':'custom','silent':True,'encode':{'x':[1,2],'y':0},'data':[[i,row[2],row[4],row[3],row[1]] for i,row in enumerate(data)]},
                     {'type':'scatter','data':[[row[3],i,row[1]] for i,row in enumerate(data)],'itemStyle':{'color':accent},
@@ -99,8 +100,8 @@ def chart_js(cfg,el,theme):
                     "opt.yAxis.axisLabel.formatter=v=>wrapChartLabel(v,195,25)+'\\nn='+R.find(r=>r[0]===v)[1].toLocaleString();"]
     elif kind=='specialization_dot':
         maximum=max([row[2] for row in data] or [1])
-        opt.update(grid={'left':290,'right':100,'top':30,'bottom':70},
-            xAxis=dict(axis,type='value',min=0,name='LQ',nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
+        opt.update(grid={'left':290,'right':100,'top':30,'bottom':100},
+            xAxis=dict(axis,type='value',min=0,name='相对集中度（LQ）',nameLocation='middle',nameGap=50,nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
             yAxis=dict(axis,type='category',inverse=True,data=[row[0] for row in data]),
             series=[{'type':'scatter','data':[[row[1],i,row[2],row[3]] for i,row in enumerate(data)],'itemStyle':{'color':primary},
                      'label':{'show':True,'position':'right','fontSize':24,'lineHeight':32,'color':text},

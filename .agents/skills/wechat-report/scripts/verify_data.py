@@ -6,10 +6,10 @@ import re
 import subprocess
 import sys
 from bound_report import load_data, verify_outline, digest
+from analysis_quality import problems as claim_problems
 
 from report_runtime import report_root
 BASE = report_root(__file__)
-BANNED = r'可投递|增长最快|快速增长|增速|保持稳定|持续释放|招聘节奏|显著高于|远高于|溢价|样本代表性'
 
 
 def main():
@@ -35,8 +35,8 @@ def main():
             checks.append(('分析覆盖、比较证据与行动建议', True, '分析稿及报告正文一致；解释合理性仍需审阅'))
         for s in outline['screens']:
             visible = s.get('paragraphs', []) + [s.get('summary', {}).get('text', '')]
-            if any(re.search(BANNED, t) for t in visible):
-                raise ValueError('正文包含无证据支撑的动态或因果判断')
+            issues=[issue for text in visible for issue in claim_problems(text,s['title'],semantic=False)]
+            if issues:raise ValueError('；'.join(issues))
         checks.append(('文案证据边界', True, '通过'))
         if args.stage == 'final':
             manifest_path = Path(args.report_dir)/'manifest.json'

@@ -1,0 +1,260 @@
+{
+  "schema": "wechat-industry-profiles/1",
+  "note": "显式首命中岗位方向规则与描述提及词表，非官方产业赛道；必须先解析并明确选择对应根产业，不自动增加产业筛选。",
+  "profiles": {
+    "人工智能": {
+      "name": "人工智能",
+      "version": "2026-11-03.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "llm",
+            "label": "大模型与生成式应用",
+            "titleAny": [
+              "大模型",
+              "生成式",
+              "AIGC",
+              "LLM",
+              "提示词"
+            ]
+          },
+          {
+            "key": "vision",
+            "label": "计算机视觉",
+            "titleAny": [
+              "视觉",
+              "图像",
+              "目标检测"
+            ]
+          },
+          {
+            "key": "nlp",
+            "label": "语言与语音",
+            "titleAny": [
+              "自然语言",
+              "NLP",
+              "语音",
+              "语义"
+            ]
+          },
+          {
+            "key": "algorithm",
+            "label": "其他算法研发",
+            "titleAny": [
+              "算法",
+              "机器学习",
+              "深度学习",
+              "推荐"
+            ]
+          },
+          {
+            "key": "data",
+            "label": "数据处理与分析",
+            "titleAny": [
+              "数据",
+              "标注"
+            ]
+          },
+          {
+            "key": "robotics",
+            "label": "机器人与嵌入式",
+            "titleAny": [
+              "机器人",
+              "嵌入式",
+              "控制",
+              "自动驾驶"
+            ]
+          },
+          {
+            "key": "engineering",
+            "label": "软件开发与交付",
+            "titleAny": [
+              "开发",
+              "软件",
+              "测试",
+              "实施",
+              "运维",
+              "部署"
+            ]
+          },
+          {
+            "key": "product",
+            "label": "产品与解决方案",
+            "titleAny": [
+              "产品",
+              "解决方案",
+              "售前"
+            ]
+          },
+          {
+            "key": "business",
+            "label": "市场销售与运营",
+            "titleAny": [
+              "销售",
+              "市场",
+              "商务",
+              "运营"
+            ]
+          }
+        ],
+        "skills": [
+          "Python",
+          "C++",
+          "Java",
+          "SQL",
+          "PyTorch",
+          "TensorFlow",
+          "机器学习",
+          "深度学习",
+          "计算机视觉",
+          "自然语言处理",
+          "大模型",
+          "RAG",
+          "Linux",
+          "Docker",
+          "Kubernetes",
+          "数据标注",
+          "沟通",
+          "项目管理"
+        ]
+      }
+    },
+    "智能制造": {
+      "name": "智能制造",
+      "version": "2026-11-03.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "robotics",
+            "label": "机器人与自动化集成",
+            "titleAny": [
+              "机器人",
+              "自动化",
+              "PLC",
+              "运动控制"
+            ]
+          },
+          {
+            "key": "electrical",
+            "label": "电气与控制工程",
+            "titleAny": [
+              "电气",
+              "控制",
+              "电子",
+              "电路"
+            ]
+          },
+          {
+            "key": "mechanical",
+            "label": "机械设计与装备",
+            "titleAny": [
+              "机械",
+              "结构",
+              "设备",
+              "机电"
+            ]
+          },
+          {
+            "key": "process",
+            "label": "工艺与生产工程",
+            "titleAny": [
+              "工艺",
+              "生产",
+              "制造",
+              "加工"
+            ]
+          },
+          {
+            "key": "quality",
+            "label": "质量与检测",
+            "titleAny": [
+              "质量",
+              "检测",
+              "测试",
+              "检验"
+            ]
+          },
+          {
+            "key": "software",
+            "label": "工业软件与数字化",
+            "titleAny": [
+              "软件",
+              "MES",
+              "SCADA",
+              "数字化",
+              "开发"
+            ]
+          },
+          {
+            "key": "service",
+            "label": "装备维护与交付",
+            "titleAny": [
+              "维护",
+              "维修",
+              "运维",
+              "实施",
+              "售后"
+            ]
+          },
+          {
+            "key": "business",
+            "label": "产品供应与市场",
+            "titleAny": [
+              "产品",
+              "供应",
+              "采购",
+              "销售",
+              "市场"
+            ]
+          }
+        ],
+        "skills": [
+          "PLC",
+          "CAD",
+          "SolidWorks",
+          "Python",
+          "C++",
+          "机器视觉",
+          "工业机器人",
+          "数控",
+          "电气",
+          "自动化",
+          "MES",
+          "SCADA",
+          "精益生产",
+          "质量管理",
+          "沟通",
+          "项目管理"
+        ]
+      }
+    }
+  }
+}

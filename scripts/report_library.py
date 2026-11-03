@@ -17,7 +17,8 @@ from urllib.parse import urlsplit
 REPO = Path(__file__).resolve().parent.parent
 STORE = Path(os.environ.get('REPORT_LIBRARY_ROOT', str(REPO/'web/server/report-library'))).resolve()
 POLICY = 'wechat-report-library/1'
-PUBLIC_PROFILE = 'education-general-v1'
+DEEP_PROFILE = 'education-multivariate-v2'
+PUBLIC_PROFILE = DEEP_PROFILE
 
 
 def digest(body):
@@ -69,6 +70,51 @@ def public_record(row):
     return {k:meta[k] for k in ['id','title','region','industry','dataAt','webLinks','downloads','pageCount','contentHash']}
 
 
+def verify_build_receipt(base,outline,quality):
+    """A new quality profile requires execution of the installed pipeline."""
+    scripts=REPO/'.agents/skills/wechat-report/scripts'
+    sys.path.insert(0,str(scripts))
+    from generate_report import PIPELINE_FILES
+    receipt=json.loads((base/'output/report/build_receipt.json').read_text('utf-8'))
+    if receipt.get('schema')!='wechat-build/1':raise ValueError('缺少受信报告构建回执')
+    stages=receipt.get('stages',[])
+    names=[row.get('script') for row in stages]
+    expected=['report_preflight.py','gen_outline.py','verify_data.py','render_report.py','verify_data.py','build_article.py','evidence_sheet.py','pack_delivery.py']
+    if names not in (expected,expected[:1]+['report_analysis.py']+expected[1:]):raise ValueError('构建步骤不完整或顺序不符')
+    if any(row.get('exitCode')!=0 or not isinstance(row.get('durationMs'),(int,float)) or row['durationMs']<0 for row in stages):raise ValueError('构建步骤未全部成功')
+    expected_files={name:digest((scripts/name).read_bytes()) for name in PIPELINE_FILES}
+    if receipt.get('pipelineFiles')!=expected_files:raise ValueError('生成代码版本与当前受信版本不一致，请沿用数据重新构建')
+    values={'reportDataSha256':digest((base/'report_data.json').read_bytes()),
+            'analysisSha256':digest((base/'report_analysis.json').read_bytes()),
+            'outlineSha256':quality['outline_sha256'],'manifestSha256':quality['manifest_sha256']}
+    if any(receipt.get(key)!=value for key,value in values.items()):raise ValueError('构建回执与当前数据、分析或图片不一致')
+    started=datetime.fromisoformat(receipt['startedAt']);finished=datetime.fromisoformat(receipt['finishedAt'])
+    if started.tzinfo is None or finished.tzinfo is None or started>finished or finished.timestamp()>time.time()+300:raise ValueError('构建回执时间无效')
+    if (outline.get('analysis',{}).get('schema')!='wechat-analysis/2'
+        or outline['analysis'].get('reasoningPolicy')!='wechat-analytic-reasoning/1'
+        or outline.get('chart_selection',{}).get('policy')!='wechat-chart-selection/2'):raise ValueError('新版成品缺少总分总论证、受信结构分析或适用图型选择')
+    return receipt
+
+
+def stable_report_id(key,source_hash,outline_hash,image_hashes):
+    # Render duration and the newly published URL do not create a new draft.
+    return digest(json.dumps([key,source_hash,outline_hash,image_hashes],separators=(',',':')).encode())[:32]
+
+
+def standard_scope(data,binding):
+    filters=data['meta']['filters']
+    all_cohort=next((row for row in binding['_result']['cohorts'] if row['id']=='all'),{})
+    entities=all_cohort.get('resolved',{}).get('industries',{}).get('entities',[])
+    audience=data['meta'].get('audience')
+    return (filters.get('region',{}).get('level')=='province' and not filters.get('updatedAt')
+            and all(not filters.get(key) for key in ('education','experience','jobType','roles'))
+            and all(not value for value in filters.get('title',{}).values())
+            and len(filters.get('industries',[]))==1 and len(entities)==1
+            and entities[0].get('level')==0 and entities[0].get('includeDescendants') is True
+            and data['meta']['industry']==entities[0]['name']==data['meta'].get('scope_industry')
+            and audience in ('院校管理者与产教融合负责人','院校与产业研究读者','院校管理者','院校人才培养与校企合作读者','院校与产教融合负责人'))
+
+
 def register(args):
     workspace=Path(args['workspace']).resolve(strict=True)
     allowed=(REPO/'web/server/workspace').resolve()
@@ -103,22 +149,23 @@ def register(args):
         if not path.is_relative_to(report.resolve()) or path.is_symlink() or digest(path.read_bytes())!=page.get('sha256'):
             raise ValueError('图片指纹错误，不能入库')
         files.append(path)
-    filters=data['meta']['filters']; profile=args.get('profile',PUBLIC_PROFILE)
-    standard=(filters.get('region',{}).get('level')=='province' and not filters.get('updatedAt')
-              and all(not filters.get(k) for k in ('education','experience','jobType','roles'))
-              and all(not v for v in filters.get('title',{}).values())
-              and len(filters.get('industries',[]))==1)
+    modern=outline.get('presentation')=='wechat-multivariate/1'
+    receipt=verify_build_receipt(base,outline,quality) if modern else None
+    filters=data['meta']['filters']; profile=DEEP_PROFILE if modern else 'education-general-v1'
+    if args.get('profile',profile)!=profile:raise ValueError('不能覆盖报告的实际质量版本')
+    standard=standard_scope(data,binding)
     if not standard: profile='custom-scope'
     key=scope_key(filters,profile)
-    report_id=digest((key+binding['source']['contentHash']+quality['outline_sha256']+quality['manifest_sha256']).encode())[:32]
+    image_hashes=[digest(p.read_bytes()) for p in files]
+    report_id=stable_report_id(key,binding['source']['contentHash'],quality['outline_sha256'],image_hashes) if modern else digest((key+binding['source']['contentHash']+quality['outline_sha256']+quality['manifest_sha256']).encode())[:32]
     meta={'id':report_id,'title':outline['title'],'region':data['meta']['region'],'industry':data['meta']['industry'],
           'dataAt':data['meta']['generated_at'],'webLinks':links,'downloads':downloads,'pageCount':len(files),
           'contentHash':binding['source']['contentHash'],'filters':filters,'profile':profile,
           'analysis':outline['analysis'],'screens':outline['screens'],'positions':data['total']['positions'],
           'companies':data['total']['companies'],'cities':data['total'].get('cities'),
-          'imageHashes':[digest(p.read_bytes()) for p in files],
+          'imageHashes':image_hashes,
           'sourceRun':args.get('runId'), 'humanReview':'pending',
-          'programQuality':'pass'}
+          'programQuality':'pass','buildReceipt':receipt,'qualityProfile':DEEP_PROFILE if modern else 'education-general-v1'}
     destination=STORE/'reports'/report_id
     with database() as db:
         if not destination.exists():
@@ -135,10 +182,12 @@ def register(args):
         db.execute('INSERT OR IGNORE INTO reports(id,scope_key,region,industry,profile,title,data_at,created_at,content_hash,metadata) VALUES(?,?,?,?,?,?,?,?,?,?)',
                    (report_id,key,meta['region'],meta['industry'],profile,meta['title'],meta['dataAt'],time.time(),meta['contentHash'],json.dumps(meta,ensure_ascii=False)))
         db.execute('UPDATE reports SET metadata=? WHERE id=?',(json.dumps(meta,ensure_ascii=False),report_id))
+        temporary_meta=destination/'report.json.tmp'
+        temporary_meta.write_text(json.dumps(meta,ensure_ascii=False),'utf-8');os.replace(temporary_meta,destination/'report.json')
         session=checked_session(args['sessionId'])
         db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?,1,?)',(session,report_id,time.time()))
         row=db.execute('SELECT * FROM reports WHERE id=?',(report_id,)).fetchone()
-        return {'status':'ready','report':public_record(row)}
+        return {'status':row['state'],'report':public_record(row)}
 
 
 PROVINCES=['广东省','山东省','浙江省','江苏省','河南省','河北省','四川省','湖北省','湖南省','福建省','安徽省','陕西省','北京市','上海市','重庆市','天津市']
@@ -179,11 +228,18 @@ def lookup(args):
 
 
 YES={'是','是的','好','好的','可以','需要','确定','确认','保存','存草稿','保存草稿','存到草稿箱','存入草稿箱','保存到草稿箱','保存到公众号草稿箱','确认保存'}
+YES.update({'嗯','嗯嗯','好啊','好呀','好的呀','可以啊','可以呀','可以的','没问题','确定吧','确认吧','保存吧','存吧','保存一下','存一下','确认保存吧','好的保存吧','好的存吧'})
 NO={'不','不需要','不要','取消','暂不保存','不用了','不保存'}
+
+
+def pending_reply_candidate(text):
+    value=re.sub(r'[\s。！!，,]+$','',text.strip())
+    return re.sub(r'[，,、\s]+','',value) in YES or value in NO
 
 
 def consent(args):
     text=re.sub(r'[\s。！!，,]+$','',args.get('text','').strip())
+    affirmative=re.sub(r'[，,、\s]+','',text)
     session=checked_session(args['sessionId'])
     with database() as db:
         row=db.execute('SELECT s.*,r.metadata FROM sessions s JOIN reports r ON r.id=s.report_id WHERE s.id=?',(session,)).fetchone()
@@ -192,7 +248,7 @@ def consent(args):
         if (len(text)<=120 and '草稿' in text and re.search(r'保存|存入|存到',text)
             and not re.search(r'不|取消|别|如果|是否|能否|可否|如何|怎么|吗|么|[?？]|上一|之前|上个|另一',text)):
             explicit=True
-        if not explicit and (not row['pending'] or time.time()-row['updated_at']>86400 or text not in YES|NO):
+        if not explicit and (not row['pending'] or time.time()-row['updated_at']>86400 or affirmative not in YES and text not in NO):
             # A generic yes after another topic must never authorize a draft.
             db.execute('UPDATE sessions SET pending=0 WHERE id=?',(session,))
             return {'status':'unhandled'}

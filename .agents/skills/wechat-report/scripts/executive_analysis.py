@@ -2,6 +2,26 @@
 NUMBERS=['一','二','三','四']
 
 
+def default_pairs(pack):
+    facts={row['id']:row for row in pack['findings']}
+    candidates=[['geography.joint_contrast','vocational.city_coverage_0'],
+                ['salary.entry_upper_bound','vocational.salary_comparison'],
+                ['tracks.classified_leaders','track_skills.conditional_contrast','tracks.coverage']]
+    pairs=[];used=set()
+    priorities=[['geography','jobtype','education'],['salary','track_salary','education'],['tracks','track_skills','skills','experience']]
+    for index,ids in enumerate(candidates):
+        chosen=[fid for fid in ids if fid in facts]
+        domains={facts[fid]['section'] for fid in chosen}
+        while len(chosen)<2:
+            options=[row for row in pack['findings'] if row['kind']=='comparison' and row['section'] not in domains]
+            if not options:break
+            ordered=sorted(options,key=lambda row:(priorities[index].index(row['section']) if row['section'] in priorities[index] else len(priorities[index]),row['section'] in used))
+            fact=ordered[0]
+            chosen.append(fact['id']);domains.add(fact['section'])
+        used.update(domains);pairs.append(chosen)
+    return pairs
+
+
 def validate(executive,facts,narrative):
     issues=[]
     claims=executive.get('claims')

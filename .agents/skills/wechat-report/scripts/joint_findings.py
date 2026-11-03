@@ -2,7 +2,7 @@
 
 
 def derive(data):
-    if not data.get('city_profiles'):return []
+    if 'city_profiles' not in data:return []
     from report_analysis import number,pct
     out=[]
     def add(key,section,text,paths,**details):
@@ -26,7 +26,8 @@ def derive(data):
     all_tracks={row['name']:row['count'] for row in data.get('subtrack',[])}
     pool=data.get('voc_pool') or {};entry_salaries={row['name']:row for row in pool.get('salary_by_track',[])}
     pool_cities={row[0]:row[1] for row in pool.get('city',[])}
-    for i,row in enumerate(cities[:2] if 'count' in pool else []):
+    city_join_safe=data.get('meta',{}).get('filters',{}).get('region',{}).get('level')!='national'
+    for i,row in enumerate(cities[:2] if 'count' in pool and city_join_safe else []):
         entry_n=pool_cities.get(row['name'],0)
         text=(f"{row['name']}全部 {number(row['count'])} 条岗位中，有 {number(entry_n)} 条满足已声明的入门池条件，条件覆盖率为 {pct(entry_n,row['count'])}%；"
               f"全省同口径为 {pct(pool.get('count',0),data['total']['positions'])}%。条件覆盖率不代表应届接收率或录用概率。")
@@ -76,7 +77,7 @@ def derive(data):
         add('vocational.track_access_'+str(i),'vocational',text,
             ['/voc_pool/track','/subtrack','/voc_pool/salary_by_track'])
     jobtype={row.get('raw'):row['count'] for row in data.get('jobtype',[])}
-    if pool and data['total']['positions']:
+    if pool and 'jobtype' in data and data['total']['positions']:
         add('jobtype.entry_definition','jobtype',
             f"校招标签为 {number(jobtype.get('XIAOZHAO',0))} 条，实习标签为 {number(jobtype.get('SHIXI',0))} 条；按学历与经验交集得到的入门池为 {number(pool['count'])} 条。招聘类型与条件交集定义不同，不能把这些数量直接相加或互相替代。",
             ['/jobtype','/voc_pool/count'])
@@ -93,4 +94,31 @@ def derive(data):
         add('track_skills.conditional_contrast','track_skills',
             f"{word}在{a['label']}方向的提及率为 {pct(a['count'],a['positions'])}%（{number(a['count'])}/{number(a['positions'])} 条），在{b['label']}为 {pct(b['count'],b['positions'])}%（{number(b['count'])}/{number(b['positions'])} 条）；这是方向内部比例比较，未提及不等于无需该能力。",
             ['/job_skill_rows'])
+    sections={row['section'] for row in data.get('coverage',[])}
+    ct=data.get('city_track_rows',[]);city_n={};track_n={}
+    for row in ct:
+        track_n[row['track']]=track_n.get(row['track'],0)+row['count']
+        if row.get('province') and row.get('city'):
+            key=(row['province'],row['city']);city_n[key]=city_n.get(key,0)+row['count']
+    total_ct=sum(track_n.values())
+    if 'city_tracks' in sections:
+        for i,(city,cn) in enumerate(sorted(city_n.items(),key=lambda pair:-pair[1])[:2]):
+            candidates=[row for row in ct if (row.get('province'),row.get('city'))==city and row['track']!='__other__']
+            if not candidates:continue
+            row=max(candidates,key=lambda item:item['count']);global_pct=pct(track_n[row['track']],total_ct)
+            add('city_tracks.classified_city_'+str(i),'city_tracks',
+                f"{'·'.join(city)}已分类方向中，{row['label']}记录最多，为 {number(row['count'])} 条，占本市全部 {number(cn)} 条岗位 {pct(row['count'],cn)}%；同方向占完整样本 {global_pct}%。计数反映规模，城市内份额用于区分相对集中。",
+                ['/city_track_rows'])
+    if 'lq' in sections and len(city_n)>=2 and data.get('meta',{}).get('filters',{}).get('region',{}).get('level')!='city':
+        from joint_report_charts import specialization
+        view=specialization(data)
+        for i,row in enumerate((view or {}).get('data',[])[:2]):
+            add('lq.specialized_city_'+str(i),'lq',
+                f"{row[0]}的相对集中度为 {row[1]}，该方向 {number(row[2])} 条、本市全部 {number(row[3])} 条。仅在城市不少于一百条、方向单元不少于三十条的范围选取；指数不是增长率、竞争优势或招聘完成率。",
+                ['/city_track_rows'])
+    if data.get('job_skill_rows') and data.get('skill_described_n') is not None:
+        described=data['skill_described_n'];total=data['total']['positions']
+        add('track_skills.description_coverage','track_skills',
+            f"本次 {number(total)} 条岗位中，有描述 {number(described)} 条，占 {pct(described,total)}%；未取得描述为 {number(total-described)} 条。有描述不等于职责完整或词义已经人工核实。",
+            ['/skill_described_n','/total/positions'])
     return out

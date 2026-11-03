@@ -15,7 +15,7 @@ test('only server-enabled report turns activate workflow',()=>{
   writeFileSync(join(root,'report-turn.json'),JSON.stringify({schema:'plaza-report-turn/1',enabled:true,runId:'run1',startedAt:1}))
   assert.equal(reportTask(root).runId,'run1')
   assert.equal(reportDataReady(root),false)
-  mkdirSync(join(root,'wechat-report'));writeFileSync(join(root,'wechat-report/report_data.json'),JSON.stringify({meta:{region:'广东省',industry:'人工智能'}}))
+  mkdirSync(join(root,'wechat-report'));writeFileSync(join(root,'wechat-report/report_data.json'),JSON.stringify({meta:{region:'广东省',industry:'人工智能'},city_profiles:[]}))
   assert.equal(reportDataReady(root),true)
  } finally {rmSync(root,{recursive:true,force:true})}
 })
@@ -25,7 +25,7 @@ test('a different region, sector or new filters cannot silently reuse saved aggr
  try {
   mkdirSync(join(root,'wechat-report'))
   const meta={region:'广东省',industry:'人工智能'}
-  writeFileSync(join(root,'wechat-report/report_data.json'),JSON.stringify({meta}))
+  writeFileSync(join(root,'wechat-report/report_data.json'),JSON.stringify({meta,city_profiles:[]}))
   const task={schema:'plaza-report-turn/1',enabled:true,startedAt:Date.now()+60000}
   const ready=text=>{writeFileSync(join(root,'report-turn.json'),JSON.stringify({...task,requestText:text}));return reportDataReady(root)}
   assert.equal(ready('帮我生成广东省人工智能人才需求报告'),true)
@@ -33,6 +33,7 @@ test('a different region, sector or new filters cannot silently reuse saved aggr
   assert.equal(ready('帮我生成广东省智能制造人才需求报告'),false)
   assert.equal(ready('帮我生成广东省人工智能本科生人才需求报告'),false)
   assert.equal(ready('请继续'),true)
+  assert.equal(ready('请刷新广东省人工智能人才需求报告的最新数据'),false)
   writeFileSync(join(root,'report-turn.json'),JSON.stringify({...task,revision:true,requestText:'优化核心发现和薪酬图的解释'}))
   assert.equal(reportDataReady(root),true)
   writeFileSync(join(root,'report-turn.json'),JSON.stringify({...task,revision:true,requestText:'改为只看本科岗位，优化报告'}))

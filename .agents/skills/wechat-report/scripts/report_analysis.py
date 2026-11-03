@@ -235,11 +235,9 @@ def _narrative(value, field, minimum=20, labels=()):
         checked = checked.replace(label, '')
     if re.search(r'待填写|TODO|填写这里|<[^>]+>|\{[A-Za-z_][A-Za-z0-9_.:-]*\}|\b(?:geography|salary|vocational|tracks|track_skills|jobtype|education|experience|access|skills|lq|track_salary|city_tracks)\.[a-z_0-9.]+', value, re.I) or re.search(r'\d', checked):
         raise ValueError(field+'含占位、HTML或未绑定数字；数字请选用 findingIds 中的事实')
-    if re.search(r'增长最快|快速增长|增速|持续释放|招聘节奏|显著高于|溢价|样本代表性', value):
-        raise ValueError(field+'包含当前横截面无法证明的判断')
-    for sentence in re.split(r'[。！？；]',value):
-        if re.search(r'源于|得益于|导致|带动了|必然|证明了',sentence) and not re.search(r'可能|假设|待核|需核|待验证|不能|无法|尚不|是否|核实|核对|检验|避免|防止|若|如果',sentence):
-            raise ValueError(field+'把解释写成已证实因果，请改为待核实假设并给出验证方式：'+sentence[:160])
+    from analysis_quality import problems as claim_problems
+    issues=claim_problems(value,field,semantic=False)
+    if issues:raise ValueError('；'.join(issues))
     return value.strip()
 
 
@@ -267,6 +265,10 @@ def validate_analysis(data, binding, analysis):
     if analysis.get('evidenceHash') != fingerprint(pack):
         raise ValueError('分析证据已改变，需重新核对分析稿')
     facts = {f['id']: f for f in pack['findings']}
+    if analysis.get('reasoningPolicy'):
+        from analytical_reasoning import verify as verify_reasoning
+        from executive_analysis import default_pairs
+        verify_reasoning(data,analysis,{key:default_findings(pack,key) for key in pack['requiredSections']},default_pairs(pack))
     if not any(f['kind'] == 'comparison' for f in facts.values()):
         raise ValueError('现有结果只有规模或单项计数，需补充比较或交叉统计后再分析')
     labels = entity_labels(data)
@@ -350,7 +352,9 @@ def default_findings(pack,key=None):
         'salary':['salary.quantiles','salary.entry_upper_bound'],
         'track_salary':['track_salary.qualified_extremes','track_salary.entry_tradeoff'],
         'vocational':['vocational.size','vocational.track_tradeoff'],
-        'track_skills':['track_skills.conditional_contrast','track_skills.group_0']}
+        'city_tracks':['city_tracks.classified_city_0','city_tracks.classified_city_1'],
+        'lq':['lq.specialized_city_0','lq.specialized_city_1'],
+        'track_skills':['track_skills.conditional_contrast','track_skills.description_coverage']}
     if key in preferred:
         available={f['id'] for f in rows};choice=[fid for fid in preferred[key] if fid in available]
         if len(choice)>=2:return choice[:4]
@@ -373,10 +377,15 @@ def assemble_analysis(data,binding,writing):
     pack=evidence_pack(data,binding)
     if writing.get('schema') not in ('wechat-analysis-writing/1','wechat-analysis-writing/2') or writing.get('evidenceHash')!=fingerprint(pack):
         raise ValueError('分析文案须来自本次writing_draft并保留evidenceHash')
+    if writing.get('reasoningPolicy'):
+        from analytical_reasoning import normalize
+        from executive_analysis import default_pairs
+        writing=normalize(data,writing,{key:default_findings(pack,key) for key in pack['requiredSections']},default_pairs(pack))
     result={key:pack[key] for key in ('sourceDataSha256','sourceContentHash')}
     deep=writing.get('schema')=='wechat-analysis-writing/2'
     result.update(schema='wechat-analysis/2' if deep else VERSION,evidenceHash=fingerprint(pack),coverageGaps=pack['coverageGaps'],
                   executive=writing.get('executive',{}),sections=writing.get('sections',[]),limitations=writing.get('limitations',[]))
+    if writing.get('reasoningPolicy'):result['reasoningPolicy']=writing['reasoningPolicy']
     result['executive']=dict(result['executive'])
     if deep:result['executive']['findingIds']=list(dict.fromkeys(fid for claim in result['executive'].get('claims',[]) for fid in claim.get('findingIds',[])))
     result['executive'].setdefault('findingIds',default_findings(pack))
@@ -546,21 +555,15 @@ def main():
     (out/'analysis_draft.json').write_text(json.dumps(draft, ensure_ascii=False, indent=2), 'utf-8')
     writing={key:draft[key] for key in ('evidenceHash','executive','sections','limitations')}
     writing['schema']='wechat-analysis-writing/1'
-    if data.get('city_profiles'):
+    if 'city_profiles' in data:
         writing['schema']='wechat-analysis-writing/2'
         for section in writing['sections']:section['decisionRule']=''
-        candidates=[['geography.joint_contrast','vocational.city_coverage_0'],
-                    ['salary.entry_upper_bound','vocational.salary_comparison'],
-                    ['tracks.classified_leaders','track_skills.conditional_contrast','tracks.coverage']]
         known={f['id']:f for f in pack['findings']}
-        pairs=[]
-        for ids in candidates:
-            chosen=[fid for fid in ids if fid in known]
-            if len(chosen)<2:
-                domains={known[fid]['section'] for fid in chosen}
-                chosen += [f['id'] for f in pack['findings'] if f['kind']=='comparison' and f['section'] not in domains][:2-len(chosen)]
-            pairs.append(chosen)
+        from executive_analysis import default_pairs
+        pairs=default_pairs(pack)
         writing['executive']={'opening':'','claims':[{'title':'','findingIds':ids,'interpretation':'','implication':''} for ids in pairs],'closing':''}
+        from analytical_reasoning import normalize
+        writing=normalize(data,writing,{key:default_findings(pack,key) for key in pack['requiredSections']},pairs)
         brief_path=out/'analysis_brief.md'
         brief_path.write_text(brief_path.read_text('utf-8')+'\n\n## 核心发现的总分总写法\n先写opening总判断，再完成三条claims，每条用跨维度事实论证、写清结构意义和决策取舍，最后closing综合启示。findingIds由--assemble汇总，不能把核心发现写成统计清单。各章还必须写decisionRule：哪些复核结果会使你调整建议、如何调整，不能只写一句免责声明。\n不要从城市学历份额推测企业更重视知识、不要把未分类率归因于产业命名灵活、不要从单次快照判断稳定需求或人才短缺。比较意义应落到名单怎么筛、课程任务怎么拆、薪酬预期怎么校准；可能机制须作为假设并说明替代解释。\n下面为每条分结论默认事实，需先核对再写解释：\n'+'\n'.join(f"- {fid}: {known[fid]['text']}" for ids in pairs for fid in ids),'utf-8')
     (out/'writing_draft.json').write_text(json.dumps(writing,ensure_ascii=False,indent=2),'utf-8')

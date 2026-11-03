@@ -2,7 +2,7 @@
 import { Type } from '@earendil-works/pi-ai'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
-import { mkdirSync,writeFileSync } from 'node:fs'
+import { mkdirSync,writeFileSync,appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { reportTask,reportDataReady,reportBuildReady } from './reportWorkflowPolicy.mjs'
@@ -11,11 +11,10 @@ const execute=promisify(execFile)
 const installed=fileURLToPath(new URL('../../../.agents/skills/wechat-report/',import.meta.url))
 const purpose=Type.Optional(Type.String({description:'给用户看的简短中文用途，不写路径、命令或结果'}))
 const prose=(minimum,description,maximum=180)=>Type.String({minLength:minimum,maxLength:maximum,pattern:'^[^0-9{}<>]*$',description:description+'。禁止任何阿拉伯数字、事实ID、花括号或HTML；已给事实由程序原样插入，不复述统计。'})
-const section=Type.Object({key:Type.String(),title:prose(4,'本章的结构发现或有条件决策，不用决定/确保/保障',40),findingIds:Type.Optional(Type.Array(Type.String())),
-  interpretation:prose(40,'解释事实之间的结构关系与决策取舍，不能只复述比例或编造原因'),
+const section=Type.Object({key:Type.String(),
   action:prose(30,'写明谁针对哪些岗位做什么、产出什么清单或任务'),
   validation:prose(30,'写明复核对象、样本字段和判断依据'),decisionRule:prose(30,'写明何种复核结果会改变当前建议及怎样调整，不以高薪直接决定扩招')})
-const claim=Type.Object({title:prose(6,'数据支持的跨维度结构结论，不用决定/确保/保障',32),findingIds:Type.Optional(Type.Array(Type.String())),interpretation:prose(40,'联合本条不同维度事实，说明含义及取舍',140),implication:prose(30,'据此提出可验证的决策与下一步',120)})
+const claim=Type.Object({implication:prose(30,'结合程序给定的跨维度论证，提出对象明确、可核实的决策与下一步',120)})
 
 export default function registerReportWorkflow(pi) {
   let current
@@ -23,25 +22,30 @@ export default function registerReportWorkflow(pi) {
   let runId
   let revisionApplied
   let baseTools
+  let baseThinking
   let queue=Promise.resolve()
   const serial=fn=>{const result=queue.then(fn,fn);queue=result.catch(()=>{});return result}
   const active=ctx=>ctx.model?.provider==='youcai' && reportTask(ctx.cwd) && reportDataReady(ctx.cwd)
-  const setStage=stage=>pi.setActiveTools(stage==='build'?['report_build']:stage==='submit'?['report_submit']:['report_next'])
+  const actionThinking=process.env.WECHAT_REPORT_ACTION_THINKING?.trim() || 'off'
+  const setStage=stage=>pi.setActiveTools(stage==='build'?['report_build']:stage==='core'?['report_core']:stage==='submit'?['report_submit']:['report_next'])
   const invoke=async(ctx,task,args=[],signal)=>{
     try {
       const result=await execute(join(installed,'.venv/bin/python'),[join(installed,'scripts/report.py'),'--workdir',join(ctx.cwd,'wechat-report'),task,...args],
         {cwd:ctx.cwd,signal,timeout:240000,maxBuffer:4*1024*1024})
       return result.stdout.trim()
     } catch(error) {
-      const details=String(error.stderr||error.message||'报告处理失败')
-      const message=details.includes('ValueError:')?details.split('ValueError:').at(-1):details.split('\n').slice(-9).join('\n')
+      const details=[error.stdout,error.stderr||error.message||'报告处理失败'].filter(Boolean).join('\n')
+      const failed=String(error.stdout||'').split('\n').filter(line=>/FAIL|"status"\s*:\s*"failed"/.test(line))
+      const causes=[...details.matchAll(/(?:^|\n)(?:ValueError|RuntimeError|AssertionError|TypeError):/g)]
+      const cause=causes.length?details.slice(causes.at(-1).index).trim().split(/\nTraceback \(most recent call last\)/)[0]:undefined
+      const message=failed.length?failed.join('\n'):cause??details.split('\n').slice(-9).join('\n')
       throw new Error(message.trim().slice(0,7000))
     }
   }
   const nextResult=output=>{
     const parsed=JSON.parse(output)
     current=parsed
-    setStage(parsed.status==='analysis_ready'?'build':'submit')
+    setStage(parsed.status==='analysis_ready'?'build':parsed.part?.task==='executive'?'core':'submit')
     return {content:[{type:'text',text:output}],details:{status:parsed.status}}
   }
   pi.registerTool({name:'report_next',label:'读取报告写作任务',promptSnippet:'获取当前短批次、事实和分析问题。仅开始或恢复时调用。',
@@ -55,51 +59,73 @@ export default function registerReportWorkflow(pi) {
       }
       return nextResult(await invoke(ctx,'next',[],signal))
     })})
-  pi.registerTool({name:'report_submit',label:'提交报告分析章节',promptSnippet:'提交当前批次文案。程序保存进度并返回下一批，直到analysis_ready。',
-    description:'只填写当前任务的章节或核心发现文案。不要填写schema/hash/task，程序自动绑定；findingIds可不填以保留已给事实。校验失败修正本批，禁止改脚本。每章解释至少四十字，行动/验证/调整条件各至少三十字。',
-    parameters:Type.Object({purpose,sections:Type.Optional(Type.Array(section)),
-      executive:Type.Optional(Type.Object({opening:prose(40,'总体判断与主要决策矛盾'),claims:Type.Array(claim,{minItems:3,maxItems:3}),closing:prose(40,'综合三项结论，提出有条件的执行顺序')})),
-      limitations:Type.Optional(Type.Array(prose(20,'具体说明数据边界及不能推出什么')))}),
-    execute:(id,params,signal,_update,ctx)=>serial(async()=>{
+  const submitPart=(id,params,signal,ctx)=>serial(async()=>{
       if(!current || current.status!=='writing_required')return nextResult(await invoke(ctx,'next',[],signal))
       const part=JSON.parse(JSON.stringify(current.part))
       if(part.task.startsWith('sections:')) {
         if(!Array.isArray(params.sections))throw new Error('当前批次需要sections，填写返回任务中的全部章节')
-        part.sections=params.sections.map(row=>({...row,findingIds:row.findingIds??part.sections.find(template=>template.key===row.key)?.findingIds??[]}))
+        if(params.sections.length!==part.sections.length || new Set(params.sections.map(row=>row.key)).size!==part.sections.length || params.sections.some(row=>!part.sections.some(template=>template.key===row.key)))throw new Error('必须填写本批所有章节，各key只出现一次')
+        part.sections=part.sections.map(template=>{
+          const row=params.sections.find(row=>row.key===template.key)
+          return {...template,action:row.action,validation:row.validation,decisionRule:row.decisionRule}
+        })
       } else {
         if(!params.executive)throw new Error('当前批次需要executive、三条跨维度claims和limitations')
-        part.executive={...params.executive,claims:params.executive.claims.map((row,i)=>({...row,findingIds:row.findingIds??part.executive.claims[i]?.findingIds??[]}))}
+        part.executive={...part.executive,closing:params.executive.closing,
+          claims:part.executive.claims.map((template,i)=>({...template,implication:params.executive.claims[i]?.implication}))}
         part.limitations=params.limitations??[]
       }
       const folder=join(ctx.cwd,'wechat-report/output/analysis/submissions');mkdirSync(folder,{recursive:true})
       const file=join(folder,String(id).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,120)+'.json')
       writeFileSync(file,JSON.stringify(part),'utf8')
       return nextResult(await invoke(ctx,'accept',[file],signal))
-    })})
+    })
+
+  pi.registerTool({name:'report_submit',label:'提交报告行动章节',
+    promptSnippet:'补充当前章节的行动、验证与调整条件，工具返回下一阶段。',
+    description:'程序已给定结构分析，只填本批全部章节key/action/validation/decisionRule。每项至少三十字，不写数字，不改事实和分析，不按学历或工资直接分配技能层次。收到executive阶段后改用report_core。',
+    parameters:Type.Object({purpose,sections:Type.Array(section)}),
+    execute:(id,params,signal,_update,ctx)=>submitPart(id,params,signal,ctx)})
+  pi.registerTool({name:'report_core',label:'汇总核心发现与决策建议',
+    promptSnippet:'核心阶段只写三条决策启示、综合启示和研究边界。',
+    description:'总体判断与三项结构论证由程序给定。claims按顺序各填implication，closing说明先后步骤与调整依据，limitations说明未测变量如何限制结论。不改总体判断/标题/事实/分析，不写数字或内部写作提示。',
+    parameters:Type.Object({purpose,claims:Type.Array(claim,{minItems:3,maxItems:3}),
+      closing:prose(40,'综合三项结论，说明有条件的执行顺序'),limitations:Type.Array(prose(20,'读者需要的研究边界与未观测变量'),{minItems:2,maxItems:5})}),
+    execute:(id,params,signal,_update,ctx)=>submitPart(id,{executive:params,limitations:params.limitations},signal,ctx)})
   pi.registerTool({name:'report_build',label:'生成并检查报告图片',promptSnippet:'所有批次完成后生成最终图片、参考文献、图片网页与ZIP。',
     description:'在analysis_ready后调用，使用固定代码连续完成真实数据/文案/图表/图片验收与交付。成功后直接结束，不再复述统计数字。',
     parameters:Type.Object({purpose}),execute:(_id,_params,signal,_update,ctx)=>serial(async()=>{
-      const output=await invoke(ctx,'build',[],signal)
-      return {content:[{type:'text',text:output}],details:{status:'images_built'},terminate:true}
+      try {
+        const output=await invoke(ctx,'build',[],signal)
+        return {content:[{type:'text',text:output}],details:{status:'images_built'},terminate:true}
+      } catch(error) {
+        return {content:[{type:'text',text:'构建未完成，数据和文案已保留。不得连续重试同一错误：'+error.message}],details:{status:'build_failed'},terminate:true}
+      }
     })})
   pi.on('before_agent_start',(_event,ctx)=>{
     if(!baseTools)baseTools=pi.getActiveTools()
+    if(!baseThinking)baseThinking=pi.getThinkingLevel()
     const task=reportTask(ctx.cwd)
     if(task?.runId!==runId){runId=task?.runId;requests=0;current=undefined}
-    if(active(ctx)){pi.setThinkingLevel('low');setStage('next')}
-    else pi.setActiveTools(baseTools)
+    if(active(ctx)){pi.setThinkingLevel(actionThinking);setStage('next')}
+    else {pi.setActiveTools(baseTools);pi.setThinkingLevel(baseThinking)}
   })
   pi.on('tool_result',(_event,ctx)=>{
-    if(active(ctx) && !current && !reportBuildReady(ctx.cwd,reportTask(ctx.cwd))) {pi.setThinkingLevel('low');setStage('next')}
+    if(active(ctx) && !current && !reportBuildReady(ctx.cwd,reportTask(ctx.cwd))) {pi.setThinkingLevel(actionThinking);setStage('next')}
   })
   pi.on('before_provider_request',(event,ctx)=>{
     if(!active(ctx))return
     const task=reportTask(ctx.cwd)
     if(reportBuildReady(ctx.cwd,task))return
     requests++
-    // After the bound, let the server return a truthful failure instead of looping.
-    if(requests>40)return
     const payload=event.payload
+    // No more tools after the bound. The server then reports a truthful failure
+    // if the agent has still produced no valid deliverable.
+    if(requests>40 && payload && typeof payload==='object') {
+      pi.setActiveTools([])
+      const stopped={...payload,tool_choice:'none'};delete stopped.tools
+      return stopped
+    }
     if(!payload || typeof payload!=='object' || !Array.isArray(payload.tools) || !payload.tools.length)return
     const tools=payload.tools.map(tool=>{
       if(tool.function?.name!=='report_submit'||!current?.part)return tool
@@ -118,6 +144,8 @@ export default function registerReportWorkflow(pi) {
       }
       return {...tool,function:{...tool.function,parameters:schema}}
     })
+    appendFileSync(join(ctx.cwd,'report-tool-contract.jsonl'),JSON.stringify({runId,request:requests,task:current?.part?.task??current?.status??'start',
+      names:tools.map(tool=>tool.function?.name??tool.name),required:tools.map(tool=>(tool.function?.parameters??tool.parameters)?.required),toolChoice:'required'})+'\n')
     return {...payload,tools,tool_choice:'required'}
   })
 }

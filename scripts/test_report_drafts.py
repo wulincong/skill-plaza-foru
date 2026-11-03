@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import importlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -75,6 +76,33 @@ class DraftTests(unittest.TestCase):
   prose=drafts.text_before_images(report)
   self.assertEqual(prose.count('核查同类岗位'),1)
   self.assertIn('国家统计局公报',prose)
+
+ def test_large_page_is_losslessly_tiled_without_changing_confirmed_archive(self):
+  from PIL import Image,ImageDraw
+  source=self.store/'large.png'
+  original=Image.frombytes('RGB',(480,800),os.urandom(480*800*3))
+  draw=ImageDraw.Draw(original)
+  for row in (200,400,600):draw.rectangle((0,row,479,row+3),fill='white')
+  original.save(source)
+  before=hashlib.sha256(source.read_bytes()).hexdigest()
+  parts=drafts.upload_image_parts([source],self.store,limit=300000)
+  self.assertGreater(len(parts),1)
+  joined=Image.new('RGB',original.size);offset=0
+  for part in parts:
+   self.assertLess(part.stat().st_size,300000)
+   with Image.open(part) as image:joined.paste(image,(0,offset));offset+=image.height
+  self.assertEqual(offset,original.height)
+  self.assertEqual(joined.tobytes(),original.tobytes())
+  self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),before)
+
+ def test_oversized_prose_fails_before_token_or_upload(self):
+  self.meta['screens'][1]['paragraphs']=['正文'*11000]
+  with lib.database() as db:db.execute('UPDATE reports SET metadata=?',(json.dumps(self.meta),))
+  from unittest.mock import Mock
+  token=Mock(return_value='fake')
+  with patch.object(drafts,'_post') as network:
+   self.assertEqual(drafts.save_report('session1',self.id,'account',token)['state'],'failed')
+   token.assert_not_called();network.assert_not_called()
 
  def test_whitelist_failure_never_reports_success(self):
   def unavailable():raise RuntimeError('40164 invalid ip')

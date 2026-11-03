@@ -31,7 +31,8 @@ def errors(cfg,observed):
         check('本科要求比例',values(1),[[i,row[4]] for i,row in enumerate(data)])
         rendered=observed.get('texts',[])
         for row in data:
-            if 'n='+format(row[1],',') not in rendered:problems.append('岗位规模标签未实际显示')
+            if '岗n='+format(row[1],',') not in rendered:problems.append('岗位规模标签未实际显示')
+            if '薪n='+format(row[2],',') not in rendered:problems.append('城市有效薪酬样本量未实际显示')
     elif kind=='requirements_flow':
         check('门槛节点频数',sorted([[row['name'],row['value']] for row in raw(0)]),sorted([[row['name'],row['value']] for row in cfg['nodes']]))
         actual=series[0].get('links',[]) if series else []

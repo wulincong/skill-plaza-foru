@@ -6,7 +6,7 @@ import runpy
 import sys
 
 SCRIPTS=Path(__file__).resolve().parent
-TASKS={'analyze':'report_analysis.py','assemble':'report_analysis.py','build':'generate_report.py','check':'verify_data.py'}
+TASKS={'preflight':'report_preflight.py','analyze':'report_analysis.py','assemble':'report_analysis.py','build':'generate_report.py','check':'verify_data.py'}
 
 
 def main():

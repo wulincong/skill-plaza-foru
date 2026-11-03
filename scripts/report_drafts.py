@@ -2,6 +2,7 @@
 from contextlib import closing
 import hashlib
 import html
+import io
 import json
 import time
 from pathlib import Path
@@ -46,6 +47,45 @@ def text_before_images(report):
     return html_prose(report)
 
 
+def upload_image_parts(images,folder,limit=960000):
+    """Conservative upload budget, preserving every source pixel and its order.
+
+    Long pages are losslessly tiled, preferably at white gaps. The original
+    confirmed PNG archive is never modified or downsampled.
+    """
+    from PIL import Image
+    output=[]
+    target=folder/'draft-image-parts'
+    for source in images:
+        if source.stat().st_size<limit:
+            output.append(source);continue
+        target.mkdir(mode=0o700,exist_ok=True)
+        with Image.open(source) as original:
+            gray=original.convert('L');number=0
+            def write_part(top,bottom):
+                nonlocal number
+                part=original.crop((0,top,original.width,bottom))
+                buffer=io.BytesIO();part.save(buffer,format='PNG',optimize=True)
+                if len(buffer.getvalue())<limit:
+                    number+=1;file=target/(source.stem+f'_part_{number:03}.png')
+                    file.write_bytes(buffer.getvalue());output.append(file);return
+                if bottom-top<64:raise DraftError('图片无法在上传预算内完整分段，已停止保存，原成品保留')
+                middle=(top+bottom)//2;cut=None;span=(bottom-top)//3
+                # Ignore the report's thin coloured page edge, while retaining
+                # it in the actual tiles. No rows or pixels are discarded.
+                left=min(42,original.width//5);right=max(left+1,original.width-left)
+                for distance in range(span):
+                    for row in (middle+distance,middle-distance):
+                        if row<=top or row>=bottom:continue
+                        if gray.crop((left,row,right,row+1)).getextrema()[0]>=248:
+                            cut=row;break
+                    if cut is not None:break
+                cut=cut or middle
+                write_part(top,cut);write_part(cut,bottom)
+            write_part(0,original.height)
+    return output
+
+
 def save_report(session_id,report_id,account,token_provider):
     session_id=checked_session(session_id)
     if not report_id or any(ch not in '0123456789abcdef' for ch in report_id) or len(report_id)!=32:
@@ -72,13 +112,16 @@ def save_report(session_id,report_id,account,token_provider):
         if len(images)!=report['pageCount']: raise DraftError('归档图片不完整')
         if [hashlib.sha256(p.read_bytes()).hexdigest() for p in images]!=report.get('imageHashes'):
             raise DraftError('归档图片与已确认版本不一致，拒绝保存草稿')
+        prose=text_before_images(report)
+        if len(prose)>=20000 or len(prose.encode())>=1000000:raise DraftError('完整文字超过当前草稿预算，已停止保存，原成品保留')
+        upload_images=upload_image_parts(images,folder)
         try: token=token_provider()
         except Exception as exc:
             # Existing token module may include request details. Only return a known status.
             message='微信接口40164：主机出口IP不在公众号白名单' if '40164' in str(exc) else '公众号调用凭据暂不可用'
             raise DraftError(message) from None
         urls=[]
-        for image in images:
+        for image in upload_images:
             result=_post('media/uploadimg',token,image=image)
             url=result.get('url','')
             if not url.startswith(('http://mmbiz.qpic.cn/','https://mmbiz.qpic.cn/','http://mmbiz.qlogo.cn/','https://mmbiz.qlogo.cn/','https://mmbiz.qq.com/','http://mmbiz.qq.com/')):
@@ -91,7 +134,8 @@ def save_report(session_id,report_id,account,token_provider):
         make_card_cover(report['title'],lead,'产业人才数据观察',str(cover))
         media=_post('material/add_material?type=image',token,image=cover).get('media_id')
         if not media: raise DraftError('微信未返回封面素材标识')
-        content=text_before_images(report)+''.join('<p><img style="width:100%;display:block" src="'+html.escape(url,quote=True)+'"></p>' for url in urls)
+        content=prose+''.join('<p style="margin:0;line-height:0"><img style="width:100%;display:block" src="'+html.escape(url,quote=True)+'"></p>' for url in urls)
+        if len(content)>=20000 or len(content.encode())>=1000000:raise DraftError('图片链接与完整文字超过当前草稿预算，已停止创建，原成品保留')
         title=report['title']
         while len(title.encode())>64:title=title[:-1]
         phase='draft'

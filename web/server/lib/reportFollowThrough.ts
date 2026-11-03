@@ -34,7 +34,7 @@ export function reportRuntimeHint(installed:string,workspace:string,hasData:bool
   const q=(value:string)=>"'"+value.replaceAll("'","'\\''")+"'"
   const directory=workspace+'/wechat-report'
   const command=`${q(installed+'/.venv/bin/python')} ${q(installed+'/scripts/report.py')} --workdir ${q(directory)}`
-  return `\n\n【平台报告执行环境】\n受信数据目录：${directory}。不要复制或修改Python脚本，不修补BASE。\n${hasData?'已有数据只用于同范围续写或修订；先核对地区、产业和筛选口径，改变范围必须重新准备plan并取数。':'尚未取数时先运行 '+command+' init；按技能准备plan.json后，在该数据目录运行安装目录collect_data.mjs。'}\n有report_next/report_submit/report_build专用工具时必须优先调用：report_next读取任务→report_submit填写当前批次→按返回任务持续提交→analysis_ready后report_build。程序负责保存与绑定，无需文件工具。\n文案完全不含阿拉伯数字；程序会展开findingIds事实。解释指标之间的关系，行动明确对象/任务/产出，decisionRule说明哪些复核结果会改变建议；不能仅据高薪建议扩招。\n仅无专用工具时使用受信CLI：${command} next，再填写 ${directory}/report_part.json，用 ${command} accept report_part.json提交；analysis_ready后运行 ${command} build。\n不得以计划或承诺结束，不请求大纲确认。`
+  return `\n\n【平台报告执行环境】\n受信数据目录：${directory}。不要复制或修改Python脚本，不修补BASE。\n${hasData?'已有数据只用于同范围续写或修订；先核对地区、产业和筛选口径，改变范围必须重新准备plan并取数。':'尚未取数时先运行 '+command+' init；按技能准备plan.json后，在该数据目录运行安装目录collect_data.mjs。'}\n有report_next/report_submit/report_core/report_build专用工具时必须优先调用：report_next读取任务→report_submit填写章节行动、验证与调整条件→report_core提交三条决策启示、综合启示和局限→analysis_ready后report_build。标题、事实选择、总体判断和结构分析由程序按当前数据计算，不改写这些受信字段。程序负责保存与绑定，无需文件工具。\n文案完全不含阿拉伯数字；程序会展开findingIds事实。解释指标之间的关系，行动明确对象/任务/产出，decisionRule说明哪些复核结果会改变建议；不能仅据高薪建议扩招。\n仅无专用工具时使用受信CLI：${command} next，再填写 ${directory}/report_part.json，用 ${command} accept report_part.json提交；analysis_ready后运行 ${command} build。\n不得以计划或承诺结束，不请求大纲确认。`
 }
 
 export function omitReportContinuations(trace:any,runs:Array<{runId:string;reportContinuations?:number}>):any {

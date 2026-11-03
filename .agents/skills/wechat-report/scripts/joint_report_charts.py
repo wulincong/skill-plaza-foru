@@ -7,7 +7,7 @@ def requirement_label(value):return '未知枚举' if value.startswith('未知�
 def city_comparison(data):
     rows=[row for row in data.get('city_profiles',[]) if row.get('valid',0)>=30 and row.get('median') is not None]
     rows=sorted(rows,key=lambda row:(-row['count'],row['name']))[:6]
-    return {'kind':'city_combo','caption':'城市联合比较｜薪酬中位数、本科要求比例、岗位规模；n为全部岗位数',
+    return {'kind':'city_combo','caption':'城市联合比较｜薪酬中位数、本科要求比例、岗位规模；岗n为岗位数，薪n为有效薪酬数',
             'data':[[row['name'],row['count'],row['valid'],row['median'],row['bachelorShare']] for row in rows],
             'metrics':['salary_median','bachelor_share','positions'],'unit':'K/月、%、条'} if rows else None
 

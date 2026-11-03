@@ -4,6 +4,9 @@ import tempfile
 import unittest
 import time
 import json
+import hashlib
+import sys
+from datetime import datetime,timezone
 
 ROOT=Path(__file__).resolve().parent
 spec=importlib.util.spec_from_file_location('library',ROOT/'report_library.py')
@@ -39,6 +42,13 @@ class CatalogTests(unittest.TestCase):
   lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
   self.assertEqual(lib.consent({'sessionId':'s1','text':'不需要'})['status'],'declined')
   self.assertEqual(lib.consent({'sessionId':'s1','text':'好的'})['status'],'unhandled')
+
+ def test_natural_affirmatives_are_bound_to_a_pending_report_and_questions_are_not(self):
+  for text in ['可以啊','可以的','好呀','保存吧','存一下','好的，保存吧']:
+   lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
+   self.assertEqual(lib.consent({'sessionId':'s1','text':text})['status'],'confirmed',text)
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'可以啊？'})['status'],'unhandled')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'可以啊'})['status'],'unhandled')
  def test_expiry_uses_data_date_not_registration_date(self):
   with lib.database() as db:db.execute("UPDATE reports SET data_at='2020-01-01T00:00:00Z'")
   self.assertEqual(lib.lookup({'text':'广东人工智能报告'})['status'],'miss')
@@ -46,6 +56,28 @@ class CatalogTests(unittest.TestCase):
   for value in ['../other','a/b','',None]:
    with self.assertRaises(ValueError):lib.checked_session(value)
   self.assertIsNone(lib.parse_brief('广东人工智能今年报告'))
+
+ def test_new_profile_requires_matching_execution_code_and_successful_ordered_stages(self):
+  scripts=ROOT.parent/'.agents/skills/wechat-report/scripts';sys.path.insert(0,str(scripts))
+  from generate_report import PIPELINE_FILES
+  base=Path(self.tmp.name)/'build';report=base/'output/report';report.mkdir(parents=True)
+  (base/'report_data.json').write_text('{}');(base/'report_analysis.json').write_text('{}')
+  digest=lambda value:hashlib.sha256(value).hexdigest()
+  stamp=datetime.now(timezone.utc).isoformat()
+  stages=['report_preflight.py','report_analysis.py','gen_outline.py','verify_data.py','render_report.py','verify_data.py','build_article.py','evidence_sheet.py','pack_delivery.py']
+  receipt={'schema':'wechat-build/1','startedAt':stamp,'finishedAt':stamp,
+   'stages':[{'script':name,'exitCode':0,'durationMs':1} for name in stages],
+   'pipelineFiles':{name:digest((scripts/name).read_bytes()) for name in PIPELINE_FILES},
+   'reportDataSha256':digest(b'{}'),'analysisSha256':digest(b'{}'),'outlineSha256':'outline','manifestSha256':'manifest'}
+  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/1'},'chart_selection':{'policy':'wechat-chart-selection/2'}}
+  quality={'outline_sha256':'outline','manifest_sha256':'manifest'}
+  file=report/'build_receipt.json'
+  file.write_text(json.dumps(receipt));lib.verify_build_receipt(base,outline,quality)
+  for change in [lambda row:row['stages'].pop(),lambda row:row['stages'][1].update(exitCode=1),lambda row:row['pipelineFiles'].update({'chart_recommender.py':'changed'}),lambda row:row.update(analysisSha256='stale')]:
+   broken=json.loads(json.dumps(receipt));change(broken);file.write_text(json.dumps(broken))
+   with self.assertRaises(ValueError):lib.verify_build_receipt(base,outline,quality)
+  file.write_text(json.dumps(receipt));(base/'report_analysis.json').write_text('{"changed":true}')
+  with self.assertRaises(ValueError):lib.verify_build_receipt(base,outline,quality)
 
 
 if __name__=='__main__': unittest.main()

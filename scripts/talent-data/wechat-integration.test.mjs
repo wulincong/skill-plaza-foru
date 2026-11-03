@@ -8,7 +8,30 @@ import {spawnSync} from 'node:child_process'
 import {createHash} from 'node:crypto'
 import {result,analysis} from './test-fixtures/analysis-fixture.mjs'
 import {persistResult} from './artifacts.mjs'
-import {buildRequest} from '../../.agents/skills/wechat-report/scripts/collect_data.mjs'
+import {buildRequest,reportSections,applyProfile,validateProfileScope} from '../../.agents/skills/wechat-report/scripts/collect_data.mjs'
+
+test('industry profiles add explicit rules without changing filters or silently selecting an industry',()=>{
+  const profile={name:'智能制造',sections:['requirements','salary'],audience:'院校管理者与产教融合负责人',analysis:{tracks:[{key:'a',label:'设备',titleAny:['设备']}],skills:['PLC']}}
+  const plan={schema:'wechat-report-plan/1',filters:{region:{level:'province',name:'广东省'},industries:[{id:'17',includeDescendants:true}]}}
+  const before=structuredClone(plan),applied=applyProfile(plan,profile)
+  assert.deepEqual(plan,before);assert.deepEqual(applied.filters,before.filters)
+  validateProfileScope(plan,profile,[{id:'17',name:'智能制造',level:0}])
+  assert.throws(()=>validateProfileScope({...plan,filters:{...plan.filters,industries:[{id:'26'}]}},profile,[{id:'17',name:'智能制造',level:0}]))
+  assert.throws(()=>validateProfileScope({...plan,filters:{...plan.filters,industries:[]}},profile,[{id:'17',name:'智能制造',level:0}]))
+  assert.throws(()=>applyProfile({...plan,industryLabel:'人工智能'},profile))
+})
+
+test('first query includes city render prerequisites without widening a city and degree filter',()=>{
+  const filters={region:{level:'city',province:'广东省',name:'深圳市'},education:['SHUOSHI'],industries:[{id:'26',includeDescendants:true}]}
+  const plan={schema:'wechat-report-plan/1',filters,sections:['requirements','salary','vocational']}
+  const before=structuredClone(plan)
+  const request=buildRequest(plan)
+  assert.deepEqual(plan,before)
+  assert.deepEqual(request.cohorts,[{id:'all',filters}])
+  assert(request.metrics.includes('city_salary.summary'))
+  assert(request.metrics.includes('city_education.cross'))
+  assert.deepEqual(reportSections(plan),['overview','geography','requirements','salary','vocational'])
+})
 
 const installed=fileURLToPath(new URL('../../.agents/skills/wechat-report/',import.meta.url))
 const queryCli=fileURLToPath(new URL('../talent-data-query.mjs',import.meta.url))

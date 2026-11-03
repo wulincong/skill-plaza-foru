@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -17,7 +18,7 @@ PIPELINE_FILES=['gen_outline.py','verify_data.py','render_report.py','render_che
     'browser_renderer.py','bound_report.py','report_analysis.py','build_article.py',
     'evidence_sheet.py','pack_delivery.py','generate_report.py','adapt_query_result.mjs',
     'joint_report_charts.py','joint_chart_layout.py','joint_findings.py','executive_analysis.py',
-    'deep_outline.py','report_references.py','report_runtime.py','report.py','analysis_quality.py','article_content.py','writing_batches.py']
+    'deep_outline.py','report_references.py','report_runtime.py','report.py','analysis_quality.py','article_content.py','writing_batches.py','report_preflight.py','analytical_reasoning.py']
 
 
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -34,6 +35,7 @@ def main():
              ('build_article.py', []), ('evidence_sheet.py', []),
              ('pack_delivery.py', ['--workspace',str(Path(args.workspace).resolve())])]
     if (BASE/'report_writing.json').exists():steps.insert(0,('report_analysis.py',['--assemble',str(BASE/'report_writing.json')]))
+    if 'city_profiles' in json.loads((BASE/'report_data.json').read_text('utf-8')):steps.insert(0,('report_preflight.py',[]))
     # A failed revision must not leave an old declaration looking like the new result.
     declaration = Path(args.workspace).resolve()/'delivery.json'
     declaration.unlink(missing_ok=True)

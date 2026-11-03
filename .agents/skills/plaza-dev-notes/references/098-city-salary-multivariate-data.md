@@ -21,3 +21,5 @@ wechat-adapter/3仅在新指标存在时生成city_profiles，将城市薪酬与
 **可选入门池与城市统计组合（同次续跑核对，待修）。** 仅取深圳硕士且未请求职教入门池时，补上 geography 后仍没有 `voc_pool`。运行 `20261103-222148-dwhh` 的写作任务却出现“全省同口径为 0.0%”。`wechat-report/scripts/joint_findings.py:27` 将缺失池当作空字典，为有效薪酬城市派生零覆盖率和 vocational 事实；`report_analysis.py:222` 按事实归属收集必写章节。`gen_outline.py:138` 按实际池生成页面，两处口径不同。核对该次首次补查后的分析稿和大纲，唯一有稿无对应页面的章节是 vocational，数据验收返回“报告缺少分析章节”。后续应让派生事实、写作任务和页面按同一实际可用样本决定，覆盖“城市统计齐全、可选池缺失”的组合；未查的统计保留缺失，另行验证有池且实测为零的情况。
 
 仅在计划中追加 vocational 章节也无法取得该池。`collect_data.mjs:22` 只在用户的学历、经验条件都与入门池规则有交集时才创建对应样本组。本次后续请求的实际差异是多了 city.distribution，样本组仍只有 all；重复取数没有解决章节分歧所需的依据。
+
+**后续修复（2026-11-04）：已实现并验证，替代上述待修状态。** collect_data.mjs首次查询即补齐overview/geography必要指标；report_preflight.py在写作前检查城市字段。joint_findings.py仅在实际存在voc_pool时派生相关事实，analysis、writing与outline按相同实际章节生成。深圳硕士限定1918条真实样本未请求职教池，保持地域和学历筛选完成原生Pi写作及17张图片。单城不要求多城市，不把缺失池补零。规则与验证详见102。

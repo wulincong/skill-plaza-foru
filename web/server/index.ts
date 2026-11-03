@@ -1516,18 +1516,19 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       if (cleaned || clientGone) return
       if (local) {
         runFinalized=true
+        const localOutcome=local.kind==='draft-failed'?'error':'success'
         const durationMs = Date.now() - startedAt
         const content = local.content + (params.protocol === 'openai' && local.question ? '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。' : '')
         recorder.note({ reportLibrary: {kind:local.kind, reportId:local.reportId} })
-        recorder.end('success', {durationMs, source:'report-library'})
+        recorder.end(localOutcome, {durationMs, source:'report-library'})
         appendIndex({runId, ts:new Date(startedAt).toISOString(), clientSessionId, engine,
           protocol:params.protocol, skill, taskTitle:taskTitle || undefined, userMessage:digestSource,
-          promptDigest, outcome:'success', durationMs, promptNotSent:true, localReply:content,
+          promptDigest, outcome:localOutcome, durationMs, promptNotSent:true, localReply:content,
           question:local.question, answerTo:params.answerTo, requestId:params.requestId,
           files:{events:recorder.file}, webLinks:local.webLinks, downloads:local.downloads})
         wire.session(clientSessionId)
         wire.textDelta(content)
-        wire.done({runId,durationMs,content,resultType:'success',question:local.question,
+        wire.done({runId,durationMs,content,resultType:localOutcome,question:local.question,
                    webLinks:local.webLinks,downloads:local.downloads})
         cleanup()
         if(params.requestId && browserTurns.get(clientSessionId)?.requestId===params.requestId)browserTurns.delete(clientSessionId)

@@ -22,6 +22,11 @@ class DeepReportTests(unittest.TestCase):
         self.assertTrue(problems('城市分层决定校企对接有效性','分结论标题'))
         self.assertFalse(problems('学历占比不能解释为企业知识偏好，需要核查岗位任务。','education.interpretation'))
         self.assertFalse(problems('校企对接名单需按岗位条件分层，而非推断城市产业阶段或企业重视程度。','geography.interpretation'))
+        self.assertTrue(problems('方向薪酬差异显著，但不能直接转化为扩招建议。','track_salary.interpretation'))
+        self.assertFalse(problems('不同学历组反映招聘条件不同，而非实践深度或能力回报。','experience.interpretation'))
+        self.assertTrue(problems('应以上四分位作为上限制定薪酬目标。','salary.action'))
+        self.assertFalse(problems('确认未把上四分位当作薪酬封顶。','salary.validation'))
+        self.assertFalse(problems('确认上四分位仅作为分布区间边界而非薪酬封顶。','salary.validation'))
 
     def test_cross_domain_decision_facts_keep_distinct_denominators(self):
         from joint_findings import derive
@@ -40,6 +45,58 @@ class DeepReportTests(unittest.TestCase):
         self.assertIn('-6 K/月',facts['salary.entry_upper_bound']['text'])
         self.assertIn('有效 35 条',facts['vocational.track_tradeoff']['text'])
         self.assertIn('/edu_exp',facts['experience.education_contrast']['paths'])
+        del data['voc_pool']
+        without_pool=derive(data)
+        self.assertFalse(any(row['section']=='vocational' for row in without_pool))
+        self.assertFalse(any('entry_coverage' in row['id'] for row in without_pool))
+        data['voc_pool']={'count':0}
+        zero=derive(data)
+        self.assertTrue(any('entry_coverage' in row['id'] for row in zero))
+        self.assertFalse(any(row['section']=='jobtype' for row in zero))
+
+    def test_preflight_rejects_missing_city_metrics_before_writing_and_single_city_omits_comparisons(self):
+        from report_preflight import check
+        from chart_recommender import recommend_multivariate
+        data={'meta':{'region':'深圳市','industry':'人工智能','filters':{'region':{'level':'city'}}},'total':{'positions':100}}
+        pack={'findings':[{'section':'education'},{'section':'salary'}]}
+        with self.assertRaisesRegex(ValueError,'写作前预检'):check(data,pack)
+        data['city_profiles']=[{'valid':100,'median':20}]
+        self.assertTrue(check(data,pack)['ready'])
+        self.assertIsNone(recommend_multivariate('招聘地域分布',data)['spec'])
+        self.assertIsNone(recommend_multivariate('地域方向集中程度',data)['spec'])
+
+    def test_missing_core_preferences_fall_back_to_different_domains(self):
+        from writing_batches import task
+        facts=[{'id':key+str(i),'section':key,'kind':'comparison'} for key in ['geography','education','salary'] for i in range(2)]
+        part=task({'requiredSections':[],'findings':facts},{'sections':{},'executive':None})['part']
+        lookup={row['id']:row['section'] for row in facts}
+        for claim in part['executive']['claims']:
+            self.assertEqual(len({lookup[fid] for fid in claim['findingIds']}),2)
+        self.assertEqual(len({lookup[fid] for claim in part['executive']['claims'] for fid in claim['findingIds']}),3)
+
+    def test_reasoning_changes_with_salary_distribution_and_respects_city_degree_scope(self):
+        from analytical_reasoning import section,opening
+        data={'meta':{'region':'深圳市','industry':'人工智能','filters':{'region':{'level':'city'},'education':['SHUOSHI']},'enum_labels':{'education':{'SHUOSHI':'硕士'}}},
+              'salary':{'median':10},'voc_pool':{'salary':{'valid':100,'p75':8}}}
+        self.assertEqual(section(data,'salary')['title'],'总体中位数超过入门池上四分位')
+        data['voc_pool']['salary']['p75']=12
+        self.assertEqual(section(data,'salary')['title'],'入门薪酬目标仍需按分布与岗位匹配')
+        text=opening(data)
+        self.assertIn('硕士学历条件',text)
+        self.assertIn('不能把筛选形成的地域范围解释成产业集聚',text)
+
+    def test_canonical_analysis_overrides_model_claims_but_preserves_proposals(self):
+        from analytical_reasoning import normalize,verify
+        data={'meta':{'region':'广东省','industry':'人工智能','filters':{'region':{'level':'province'}}},'salary':{'median':10}}
+        writing={'sections':[{'key':'salary','title':'错误标题','interpretation':'企业存在人才短缺','findingIds':['fake'],'action':'保留行动方案'}],
+                 'executive':{'opening':'本地化高度聚集','claims':[{'title':'错误','findingIds':['fake'],'interpretation':'假因果','implication':'保留决策建议'} for _ in range(3)],'closing':'综合步骤'}}
+        ids={'salary':['salary.quantiles','salary.coverage']};pairs=[['geography.a','jobtype.a'],['salary.a','education.a'],['tracks.a','skills.a']]
+        result=normalize(data,writing,ids,pairs)
+        self.assertEqual(result['sections'][0]['action'],'保留行动方案')
+        self.assertEqual(writing['sections'][0]['title'],'错误标题')
+        verify(data,result,ids,pairs)
+        result['sections'][0]['interpretation']='企业存在人才短缺'
+        with self.assertRaises(ValueError):verify(data,result,ids,pairs)
 
     def test_explicit_revision_archives_prose_preserves_data_and_is_idempotent(self):
         import writing_batches as batches

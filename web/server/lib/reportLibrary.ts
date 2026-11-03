@@ -79,5 +79,6 @@ export async function localReportReply(sessionId: string, skill: string, text: s
 
 export async function registerReport(input: {workspace:string;sessionId:string;runId:string} & DeliveryLinks): Promise<CatalogReport | undefined> {
   const result=await catalog('register',input)
-  return result.status==='ready'?result.report:undefined
+  if(result.status!=='ready'||!result.report)throw new Error('当前报告仍待复核，尚未进入可交付成品库')
+  return result.report
 }
