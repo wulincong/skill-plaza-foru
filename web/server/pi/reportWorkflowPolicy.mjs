@@ -21,6 +21,12 @@ export function reportScopeMatches(meta,text) {
  return true
 }
 
+export function dataRefreshRequested(text) {
+ const positive=text.replace(/(?:不需要|无需|不要|不用|不必|不再|不|别)(?:再|去)?(?:重新查询|重新取数|重查数据|更新数据|刷新(?:数据)?|获取最新(?:数据)?)/g,'')
+ const dataInstruction=positive.replace(/最新(?:图片|图表|排版|代码|脚本|样式)/g,'')
+ return /最新|刷新|重新查询|重新取数|重查数据|更新数据/.test(dataInstruction)
+}
+
 export function reportDataReady(workspace) {
  try {
   const task=reportTask(workspace)
@@ -32,7 +38,7 @@ export function reportDataReady(workspace) {
   // New collection during this turn is authoritative. Saved data is reused only
   // for an explicit same-scope revision/resume or a plain default-scope request.
   if(statSync(file).mtimeMs>=task.startedAt)return true
-  if(/最新|刷新|重新查询|重新取数|重查数据|更新数据/.test(text))return false
+  if(dataRefreshRequested(text))return false
   if(/(?:只看|筛选|限定|改为|换成|改成|变更).*(?:学历|经验|本科|专科|大专|硕士|博士|岗位|地区|行业)|(?:近|过去|最近)[一二三四五六七八九十两\d]+(?:年|月|天)/.test(text))return false
   if(task.revision||/^(?:请)?继续(?:生成|完成)?[。！!\s]*$/.test(text.trim())||/本会话(?:已保存的|真实)数据|数据已准备好/.test(text))return true
   if(!text.includes(shortRegion(data.meta.region))||!text.includes(data.meta.industry))return false

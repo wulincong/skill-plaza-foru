@@ -148,7 +148,12 @@ class DeepReportTests(unittest.TestCase):
 
     def test_trusted_init_keeps_only_workspace_assets(self):
         with tempfile.TemporaryDirectory() as directory:
-            prepare(directory)
+            result=prepare(directory)
+            self.assertEqual(result['planTemplate']['schema'],'wechat-report-plan/1')
+            self.assertIsInstance(result['planTemplate']['filters']['region'],dict)
+            self.assertIsInstance(result['planTemplate']['filters']['industries'],list)
+            self.assertIn('智能制造',result['profiles'])
+            self.assertNotIn('profile',result['planTemplate'])
             folder=Path(directory)/'wechat-report'
             self.assertTrue((folder/'assets/brand.json').is_file())
             self.assertFalse((folder/'scripts').exists())

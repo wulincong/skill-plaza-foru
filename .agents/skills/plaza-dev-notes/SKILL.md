@@ -57,7 +57,9 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 096 | 公众号报告直接图片交付、统一选图与渲染质检 | 首轮已实现；用户指出分析与图型不足，新规范见099 | [096-wechat-images-direct-delivery.md](references/096-wechat-images-direct-delivery.md) |
 | 097 | 已验证报告成品库、公众号自然消息与草稿确认桥 | 已实现（真实草稿受IP白名单限制） | [097-report-library-and-wechat-drafts.md](references/097-report-library-and-wechat-drafts.md) |
 | 099 | 多维图片报告、总分总论证与官方参考资料 | 代码与真实Pi构建已验证；文案持续加强、用户待验收 | [099-multivariate-report-evidence-and-references.md](references/099-multivariate-report-evidence-and-references.md) |
-| 100 | 受信报告入口、Pi短批次工具、修订与完成判定 | 真实Pi生成/修订及回归通过；生产新流程待完整复验 | [100-native-report-writing-and-trusted-runtime.md](references/100-native-report-writing-and-trusted-runtime.md) |
+| 100 | 受信报告入口、Pi短批次工具、修订与完成判定 | Pi生成/修订与双入口复验通过；真实草稿受限 | [100-native-report-writing-and-trusted-runtime.md](references/100-native-report-writing-and-trusted-runtime.md) |
+| 102 | 数据约束的结构分析、短批次原生工具与适用图型 | 八范围真实Pi构建通过；用户待验收 | [102-report-structural-reasoning.md](references/102-report-structural-reasoning.md) |
+| 103 | 新版成品缓存、自然确认与草稿真实失败 | 端到端已验证；真实草稿受白名单限制 | [103-report-cache-version-and-draft-failure.md](references/103-report-cache-version-and-draft-failure.md) |
 
 ### 报告输出协议（就业指导）
 
@@ -136,7 +138,3 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 057 | 公网入口 origin 白名单 PLAZA_ALLOWED_ORIGINS | 已实现（curl 四场景验证；公网浏览器回归待确认） | [057-public-origin-allowlist.md](references/057-public-origin-allowlist.md) |
 | 076 | 开发手记重组：清除运行观察、合并同主题、分区索引（删并映射表） | 已实现 | [076-dev-notes-reorg.md](references/076-dev-notes-reorg.md) |
 | 101 | 技能文档的原文目录、仓库索引与公开阅读入口 | 已实现 | [101-skill-documentation.md](references/101-skill-documentation.md) |
-
-| 102 | 数据约束的结构分析、短批次原生工具与适用图型 | 六范围真实Pi构建通过；用户待验收 | [102-report-structural-reasoning.md](references/102-report-structural-reasoning.md) |
-
-| 103 | 新版成品缓存、自然确认与草稿真实失败 | 端到端已验证；真实草稿受白名单限制 | [103-report-cache-version-and-draft-failure.md](references/103-report-cache-version-and-draft-failure.md) |

@@ -48,10 +48,16 @@ export default function registerReportWorkflow(pi) {
     setStage(parsed.status==='analysis_ready'?'build':parsed.part?.task==='executive'?'core':'submit')
     return {content:[{type:'text',text:output}],details:{status:parsed.status}}
   }
-  pi.registerTool({name:'report_next',label:'读取报告写作任务',promptSnippet:'获取当前短批次、事实和分析问题。仅开始或恢复时调用。',
+  pi.registerTool({name:'report_next',label:'读取报告写作任务',promptSnippet:'开始或恢复报告；尚未取得本次范围数据时初始化并返回正确采集模板，数据就绪时返回短写作任务。',
     description:'获取报告的当前短批次，事实与不可变来源字段由程序提供。收到任务后调用report_submit填写文案，不要回复将要做什么。',
     parameters:Type.Object({purpose}),execute:(_id,_params,signal,_update,ctx)=>serial(async()=>{
       const task=reportTask(ctx.cwd)
+      if(!reportDataReady(ctx.cwd)) {
+        current=undefined
+        const prepared=JSON.parse(await invoke(ctx,'init',[],signal))
+        return {content:[{type:'text',text:JSON.stringify({...prepared,status:'collection_required',
+          next:'按当前用户范围resolve产业，照planTemplate填写plan.json，再执行collect。已有文件不代表当前范围已就绪；不得用旧范围写作。'})}],details:{status:'collection_required'}}
+      }
       if(task?.revision && revisionApplied!==task.runId) {
         const output=await invoke(ctx,'revise',[task.runId],signal)
         revisionApplied=task.runId
@@ -60,6 +66,7 @@ export default function registerReportWorkflow(pi) {
       return nextResult(await invoke(ctx,'next',[],signal))
     })})
   const submitPart=(id,params,signal,ctx)=>serial(async()=>{
+      if(!reportDataReady(ctx.cwd))throw new Error("本次范围数据尚未就绪，请先report_next并按模板取数，不能沿用旧范围写作")
       if(!current || current.status!=='writing_required')return nextResult(await invoke(ctx,'next',[],signal))
       const part=JSON.parse(JSON.stringify(current.part))
       if(part.task.startsWith('sections:')) {
@@ -95,6 +102,7 @@ export default function registerReportWorkflow(pi) {
   pi.registerTool({name:'report_build',label:'生成并检查报告图片',promptSnippet:'所有批次完成后生成最终图片、参考文献、图片网页与ZIP。',
     description:'在analysis_ready后调用，使用固定代码连续完成真实数据/文案/图表/图片验收与交付。成功后直接结束，不再复述统计数字。',
     parameters:Type.Object({purpose}),execute:(_id,_params,signal,_update,ctx)=>serial(async()=>{
+      if(!reportDataReady(ctx.cwd))throw new Error('本次范围数据尚未就绪，请先report_next并按模板取数，不能构建旧范围报告')
       try {
         const output=await invoke(ctx,'build',[],signal)
         return {content:[{type:'text',text:output}],details:{status:'images_built'},terminate:true}

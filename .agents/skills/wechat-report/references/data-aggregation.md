@@ -4,14 +4,14 @@
 
 ## 报告计划
 
-基础取数示例（只演示请求格式，不等于完整研究计划；分析流程见 [research-analysis.md](research-analysis.md)）：
+基础取数模板（ID占位符必须替换；不硬编码历史产业ID；分析流程见 [research-analysis.md](research-analysis.md)）：
 
 ~~~json
 {
   "schema": "wechat-report-plan/1",
   "filters": {
     "region": {"level": "province", "name": "广东省"},
-    "industries": [{"id": "15", "includeDescendants": true}]
+    "industries": [{"id": "替换为本次resolve返回的唯一根节点字符串ID", "includeDescendants": true}]
   },
   "sections": ["overview", "geography", "requirements", "salary", "vocational"],
   "audience": "院校管理者",
@@ -24,7 +24,7 @@ filters 与 execution 使用共享查询契约；先读 talent-data-query/refere
 | 章节 | 共享指标 |
 |---|---|
 | overview | positions.count、companies.count、data_quality.summary |
-| geography | city_education.cross（完整频数用于城市数和分布） |
+| geography | city_education.cross + city_salary.summary（完整同口径城市频数） |
 | requirements | 学历、经验、招聘类型分布与 education_experience.cross |
 | salary | salary.summary、salary.distribution |
 | vocational | 同一范围叠加明确学历×经验交集，统计独立子样本 |
@@ -34,7 +34,7 @@ filters 与 execution 使用共享查询契约；先读 talent-data-query/refere
 | skills | skills.distribution |
 | track_skills | track.distribution、skills.distribution、track_skills.cross |
 
-方向/技能章节需在计划中显式增加 analysis。下例为“名称规则”，不能称为官方产业赛道；规则按顺序取第一个命中，未命中保留未分类。可先用共享 resolve 获得岗位类型ID，再用 roleIds（完整ID，非产业ID）设置规则。
+人工智能和智能制造可以在collect命令加`--profile 对应产业名`，由只读产业规则补入analysis及默认完整章节；profile不写进plan，不代替用户产业条件。其他主题的方向/技能章节需在计划中显式增加 analysis。下例为“名称规则”，不能称为官方产业赛道；规则按顺序取第一个命中，未命中保留未分类。可先用共享 resolve 获得岗位类型ID，再用 roleIds（完整ID，非产业ID）设置规则。
 
 ~~~json
 {

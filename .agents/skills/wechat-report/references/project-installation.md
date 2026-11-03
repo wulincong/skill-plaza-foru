@@ -6,7 +6,7 @@ Pi调用安装目录的绝对路径：`.venv/bin/python scripts/report.py --work
 
 | 任务 | 行为 |
 |---|---|
-| init | 只复制必要资产，不复制脚本、.venv、凭据或历史输出 |
+| init | 只复制必要资产，返回planTemplate与profile命令说明；不复制脚本、.venv、凭据或历史输出 |
 | next | 返回下一个短写作批次、模板、已绑定事实和分析问题 |
 | accept report_part.json | 校验片段、持久保存进度，返回下一批；全部完成后自动组装analysis |
 | analyze | 可选完整稿入口：输出写作简报与writing_draft |

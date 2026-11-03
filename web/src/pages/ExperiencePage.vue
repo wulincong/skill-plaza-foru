@@ -1096,6 +1096,7 @@ onBeforeUnmount(() => {
           <button type="button" :disabled="sending" @click="recoveryFailed ? retryRecovery() : continueTask()">
             {{ recoveryFailed ? '重新读取' : '继续任务' }}<Icon name="chev" :size="13" />
           </button>
+          <button v-if="recoveryFailed" type="button" :disabled="sending" @click="newChat">新建对话</button>
         </div>
         <div class="exp-input">
           <div class="exp-input-box">

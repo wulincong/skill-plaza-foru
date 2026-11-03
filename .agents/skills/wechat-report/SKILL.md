@@ -15,6 +15,12 @@ description: 以真实人才统计、可复核结构分析、多维多类型图�
 4. 在数据目录写最小plan.json：schema=wechat-report-plan/1、filters包含地域及已确认的产业ID。人工智能和智能制造可在安装目录collect_data.mjs调用时加`--profile 人工智能`或`--profile 智能制造`，程序从只读`assets/industry_profiles.json`补入对应方向规则、词表、完整默认章节和院校读者。**profile不替你选择产业、不改变filters**；产业不符即失败。其他主题需显式提供适用analysis，不能回退AI词表。
 5. 在该数据目录执行安装目录的`collect_data.mjs --plan plan.json --profile 对应产业名`。不需要另行复制脚本或SQL。首次查询前会包含同筛选城市学历/薪酬必需指标，单城也不扩大范围。默认profile覆盖地域、学历×经验、薪酬、入门条件、方向、城市×方向、相对集中度及能力关联。细节见[data-aggregation.md](references/data-aggregation.md)。已有同范围真实数据直接复用，修改地区或筛选必须重取；未查询统计不补零。
 
+最小计划的结构如下，只替换地区、上一步已解析的产业ID并保留用户其他筛选；profile写在采集命令上，不放入JSON：
+
+```json
+{"schema":"wechat-report-plan/1","filters":{"region":{"level":"province","name":"用户指定省份"},"industries":[{"id":"本次resolve根节点字符串ID","includeDescendants":true}]}}
+```
+
 ## 数据就绪后使用专用工具
 
 平台提供`report_next / report_submit / report_core / report_build`时必须优先调用，不再用通用文件工具写整篇JSON。

@@ -4,7 +4,7 @@ import {mkdtempSync,mkdirSync,writeFileSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {createHash} from 'node:crypto'
-import {reportTask,reportDataReady,reportBuildReady,reportScopeMatches} from './reportWorkflowPolicy.mjs'
+import {reportTask,reportDataReady,reportBuildReady,reportScopeMatches,dataRefreshRequested} from './reportWorkflowPolicy.mjs'
 
 test('only server-enabled report turns activate workflow',()=>{
  const root=mkdtempSync(join(tmpdir(),'report-policy-'))
@@ -64,4 +64,10 @@ test('only a fresh successful build matching final manifest is complete',()=>{
   writeFileSync(join(folder,'quality.json'),JSON.stringify({all_pass:false,manifest_sha256:sha}))
   assert.equal(reportBuildReady(root,task),false)
  } finally {rmSync(root,{recursive:true,force:true})}
+})
+
+
+test('a negated refresh instruction preserves data, while a positive refresh still requires collection',()=>{
+ for(const text of ['数据已准备好，不重新取数','不要更新数据，只改核心发现','无需刷新数据，沿用本会话真实数据','使用本会话真实数据，生成当前代码版本的最新图片','按最新代码重绘图表，不重新取数'])assert.equal(dataRefreshRequested(text),false)
+ for(const text of ['请重新取数','使用最新岗位数据','不要刷新其他报告，请刷新本份数据'])assert.equal(dataRefreshRequested(text),true)
 })
