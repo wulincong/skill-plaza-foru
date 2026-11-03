@@ -6,11 +6,14 @@ import Icon from './Icon.vue'
 const props = defineProps<{ steps: ExecutionStep[]; durationMs?: number; running: boolean }>()
 const open = ref(false)
 const body = ref<HTMLElement>()
+const visibleSteps = computed(() => props.steps.filter(step => step.note || step.tools.length))
 const toolCount = computed(() => props.steps.reduce((n, step) => n + step.tools.length, 0))
 const times = computed(() => !props.running && props.durationMs !== undefined
   ? executionTimes(props.steps, props.durationMs) : undefined)
 
-watch(() => [props.steps.length, toolCount.value], async () => {
+const hasDetails = computed(() => Boolean(times.value || visibleSteps.value.length))
+
+watch(() => [visibleSteps.value.length, toolCount.value], async () => {
   const el = body.value
   if (!el || !props.running || el.scrollHeight - el.scrollTop - el.clientHeight > 12) return
   await nextTick()
@@ -30,22 +33,18 @@ const toolNames: Record<string, string> = { bash: '执行命令', read: '读取�
 
 <template>
   <div class="tool-group" :class="{ 'is-open': open }">
-    <button type="button" class="tool-group-head" :aria-expanded="open" @click="open = !open">
+    <button type="button" class="tool-group-head" :disabled="!hasDetails" :aria-expanded="open && hasDetails" @click="open = !open">
       <Icon name="wrench" :size="14" class="tool-group-wrench" />
       <span class="tool-group-title">执行过程</span>
       <span class="tool-group-status" :class="{ 'is-running': running }">
         <span v-if="running">进行中 · </span><span v-if="toolCount">{{ toolCount }} 次工具调用 · </span>
-        <span v-if="durationMs !== undefined">总用时 {{ fmt(durationMs) }}</span><span v-else>查看详情</span>
+        <span v-if="durationMs !== undefined">总用时 {{ fmt(durationMs) }}</span><span v-else-if="hasDetails">查看详情</span>
       </span>
-      <Icon name="chev-down" :size="14" class="tool-group-chev" />
+      <Icon v-if="hasDetails" name="chev-down" :size="14" class="tool-group-chev" />
     </button>
-    <div v-if="open" ref="body" class="tool-group-body">
+    <div v-if="open && hasDetails" ref="body" class="tool-group-body">
       <p v-if="times" class="tool-times" :title="`思考输出 ${times.thinkingMs}ms，工具执行 ${times.toolMs}ms（并行去重），其余时间 ${times.otherMs}ms`">思考输出 {{ fmt(times.thinkingMs) }} · 工具执行 {{ fmt(times.toolMs) }} · 等待与生成 {{ fmt(times.otherMs) }}</p>
-      <section v-for="(step, i) in steps" :key="i" class="tool-step">
-        <div v-for="(span, j) in step.thinking" :key="j" class="tool-row-line">
-          <Icon name="sparkles" :size="13" /><span>模型思考</span>
-          <span class="tool-row-status">{{ spanTime(span) || (running && span.startedAt !== undefined ? '进行中' : '') }}</span>
-        </div>
+      <section v-for="(step, i) in visibleSteps" :key="i" class="tool-step">
         <p v-if="step.note" class="tool-process-note">{{ step.note }}</p>
         <div v-for="tool in step.tools" :key="tool.id" class="tool-row-line">
           <Icon name="terminal" :size="13" /><span>{{ toolNames[tool.tool] ?? tool.tool }}</span>
