@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-render_report.py — 把 report_outline.json（人工确认后的文案脚本）渲染成报告图片
-一比一复刻参考文章版式（943px 宽，字号/行距/边距按原文测量值）。
+render_report.py — 把 report_outline.json（经数据校验的内部排版结构）渲染成报告图片
+以 943px 为设计宽度，根据浏览器实测内容高度输出分屏。
 
 用法:
     python render_report.py --outline output/outline/report_outline.json
@@ -16,10 +16,11 @@ import re
 from pathlib import Path
 import shutil
 import subprocess
-import tempfile
 from bound_report import load_data, verify_outline, digest
 
 from PIL import Image
+from chart_layout import chart_js as modern_chart_js, chart_height, MEASURE_SCRIPT
+import html as html_module
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EDGE = os.environ.get('WECHAT_REPORT_BROWSER') or next(
@@ -34,9 +35,7 @@ ECHARTS_URL = Path(ASSETS, 'echarts.min.js').resolve().as_uri()
 PAGE_W = 943            # 与原文一致
 PAD_X = 42              # 左右边距（原文 40-45）
 PAD_TOP = 60
-PAD_BOTTOM = 96         # 预留页脚
-SCREEN_H = 2000         # 每屏高度（原文 ~2000）
-COVER_H = 1600
+PAD_BOTTOM = 34
 CONTENT_W = PAGE_W - PAD_X * 2   # 859
 
 C_PRIMARY = '#1E3A8A'
@@ -82,7 +81,8 @@ html,body { width:%(W)dpx; background:%(PBG)s;
 .chapter { display:flex; align-items:center; gap:14px; }
 .chapter .no { background:%(PRI)s; color:#fff; font-size:26px; font-weight:700;
   border-radius:12px; padding:6px 18px; letter-spacing:2px; }
-.chapter .tt { font-size:38px; font-weight:700; color:%(HEAD)s; }
+.chapter .no { flex:none; }
+.chapter .tt { font-size:47px; line-height:1.32; font-weight:700; color:%(HEAD)s; }
 /* V4：短章节名 + 结论标题（读者问题式） */
 .kicker2 { font-size:22px; color:%(SUB)s; letter-spacing:3px; font-weight:600;
   margin-bottom:10px; }
@@ -116,17 +116,18 @@ html,body { width:%(W)dpx; background:%(PBG)s;
 /* 章末灵活小标题总结框（主题色系，区别于正文与图卡） */
 .sbox { background:%(SBG)s; border-left:8px solid %(ACC)s;
   border-radius:14px; padding:24px 28px; margin-top:10px; }
-.sbox .st { color:%(STT)s; font-weight:700; font-size:23px;
+.sbox .st { color:%(STT)s; font-weight:700; font-size:30px;
   letter-spacing:1px; margin-bottom:8px; }
-.sbox .sx { font-size:24px; color:%(STX)s; line-height:1.7;
+.sbox .sx { font-size:36px; color:%(STX)s; line-height:1.55;
   text-align:justify; }
 .subtitle { margin-top:14px; font-size:23px; color:%(SUB)s; letter-spacing:1px; }
 .hr { margin:20px 0 24px; height:5px; width:120px;
   background:linear-gradient(90deg,%(PRI)s,%(ACC)s); border-radius:3px; }
 /* 段落式正文（复刻原文：27px/1.85/两端对齐） */
 .paras { margin-bottom:26px; }
-.paras p { font-size:27px; line-height:1.85; color:%(TXT)s; text-align:justify;
+.paras p { font-size:38px; line-height:1.55; color:%(TXT)s; text-align:left;
   margin-bottom:18px; letter-spacing:.3px; }
+.paras .label { display:block; margin:26px 0 6px; color:%(PRI)s; font-size:29px; font-weight:700; }
 .paras b { color:%(PRI)s; }
 /* 数据卡 */
 .stats { display:flex; gap:16px; margin-bottom:24px; }
@@ -140,14 +141,14 @@ html,body { width:%(W)dpx; background:%(PBG)s;
 /* 图表卡片 */
 .card { background:%(CARD)s; border-radius:16px; padding:24px 24px 10px;
   margin-bottom:20px; }
-.card .cap { font-size:21px; color:%(SUB)s; text-align:center; margin-bottom:4px; }
+.card .cap { font-size:30px; font-weight:600; color:%(SUB)s; text-align:center; margin-bottom:4px; }
 /* 数据表格（kind=table） */
 .dtable { width:100%%; border-collapse:collapse; margin:10px 0 14px; }
-.dtable th { background:%(PRI)s; color:#fff; font-size:21px; padding:15px 12px;
+.dtable th { background:%(PRI)s; color:#fff; font-size:30px; padding:15px 12px;
   font-weight:600; text-align:center; }
 .dtable th:first-child { border-radius:12px 0 0 0; }
 .dtable th:last-child { border-radius:0 12px 0 0; }
-.dtable td { font-size:22px; padding:14px 12px; border-bottom:1px solid #E5E7EB;
+.dtable td { text-align:center; font-size:30px; padding:14px 12px; border-bottom:1px solid #E5E7EB;
   color:%(TXT)s; }
 .dtable tr:nth-child(even) td { background:%(ZEB)s; }
 .dtable tr:last-child td { border-bottom:none; }
@@ -176,12 +177,12 @@ html,body { width:%(W)dpx; background:%(PBG)s;
   margin:10px auto 0; width:70%%; }
 .minibar i { display:block; height:100%%; background:%(PRI)s; border-radius:8px; }
 /* 图表卡来源脚注 */
-.src { font-size:16px; color:#9CA3AF; text-align:center;
+.src { font-size:25px; color:%(SUB)s; text-align:center;
   margin:0 0 12px; letter-spacing:.5px; }
 /* 页脚 */
-.footer { position:absolute; left:%(PX)dpx; right:52px; bottom:30px;
+.footer { border-top:2px solid #e5e7eb; margin-top:32px; padding-top:18px;
   display:flex; justify-content:space-between; align-items:center; }
-.footer .org { font-size:19px; color:#9CA3AF; }
+.footer .org { font-size:24px; color:%(SUB)s; }
 .footer .dots { display:flex; gap:9px; }
 .footer .d { width:11px; height:11px; border-radius:50%%; background:#E5E7EB; }
 .footer .d.on { background:%(PRI)s; }
@@ -204,7 +205,7 @@ CSS = CSS_TMPL % _css_params()
 COVER_CSS_TMPL = """
 * { margin:0; padding:0; box-sizing:border-box; }
 html,body { width:943px; font-family:'Microsoft YaHei',sans-serif; }
-.cover { width:943px; height:1600px; position:relative; overflow:hidden;
+.cover { width:943px; height:1120px; position:relative; overflow:hidden;
   background: linear-gradient(160deg,%(COV1)s 0%%,%(COV2)s 45%%,%(COV3)s 100%%);
   color:#fff; }
 .cover::before { content:''; position:absolute; width:860px; height:860px;
@@ -223,13 +224,13 @@ html,body { width:943px; font-family:'Microsoft YaHei',sans-serif; }
 .kicker { display:inline-block; align-self:flex-start;
   border:2px solid rgba(255,255,255,.65); border-radius:999px;
   padding:8px 22px; font-size:22px; letter-spacing:4px; margin-bottom:34px; }
-h1 { font-size:66px; line-height:1.35; font-weight:700; letter-spacing:2px; }
+h1 { text-wrap:balance; font-size:70px; line-height:1.35; font-weight:700; letter-spacing:2px; }
 .sub { margin-top:26px; font-size:28px; opacity:.88; letter-spacing:1px; }
 .chips { margin-top:50px; display:flex; flex-wrap:wrap; gap:14px; }
 .chip { background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.28);
-  border-radius:12px; padding:14px 20px; font-size:20px;
+  border-radius:12px; padding:14px 20px; font-size:28px;
   white-space:nowrap; }
-.chip b { font-size:24px; margin-right:8px; color:%(CHIPT)s; }
+.chip b { font-size:36px; margin-right:8px; color:%(CHIPT)s; }
 .bottom { display:flex; justify-content:space-between; align-items:flex-end;
   font-size:22px; opacity:.85; letter-spacing:2px; }
 """
@@ -242,10 +243,22 @@ COVER_CSS = COVER_CSS_TMPL % {
 BASE_JS_TMPL = """
 function chart(el, opt, fs) {
   var c = echarts.init(document.getElementById(el), null,
-                       {devicePixelRatio: window.__DPR__, animation: false});
-  opt.textStyle = {fontFamily: 'Microsoft YaHei', fontSize: (fs || 19)};
+                       {devicePixelRatio: window.__DPR__, renderer: 'svg', animation: false});
+  opt.animation = false;
+  opt.textStyle = {fontFamily: 'sans-serif', fontSize: (fs || 19)};
   c.setOption(opt);
+  (window.__reportCharts ||= []).push(c);
   return c;
+}
+function wrapChartLabel(text, width, size) {
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = size + 'px sans-serif';
+  const lines = []; let line = '';
+  for (const ch of text) {
+    if (line && ctx.measureText(line + ch).width > width) {lines.push(line);line=ch;}
+    else line += ch;
+  }
+  lines.push(line);return lines.join('\\n');
 }
 var PALETTE = %(PALETTE)s;
 """
@@ -286,49 +299,11 @@ def smart_wrap(text, max_chars, seps='：，、；｜——·（）()'):
 CHART_H = {'heatmap': 600, 'funnel': 560, 'line': 460, 'scatter': 500}
 
 
-def est_screen_height(s):
-    """按内容估算页高（内容服从信息；V5 图放大、含洞察框/金句框）"""
-    h = 60 + (90 if s.get('section') else 64) + 55 + 40
-    # 顶边距+章节头(kicker2双行更高)+hr+余量
-    if s.get('subtitle'):
-        h += 44
-    import math
-    h += sum(math.ceil(len(p.replace('<b>', '').replace('</b>', '')) / 29) * 50 + 18
-             for p in (s.get('paragraphs') or []) + (s.get('lead') or [])
-             + (s.get('tail') or []))
-    h += 200 * len(s.get('cards') or [])
-    if s.get('stats') or s.get('kpis'):
-        h += 150
-    if s.get('note'):
-        h += 130
-    for ck in ('chart', 'chart2', 'chartA', 'chartB'):
-        c = s.get(ck)
-        if not c:
-            continue
-        k = c.get('kind')
-        if k == 'table':
-            h += 90 + len(c.get('rows', [])) * 54 + 40
-        elif k == 'bignum':
-            h += 300
-        elif ck in ('chartA', 'chartB'):
-            h += 330 + 90
-        else:
-            h += CHART_H.get(k, 620) + 120
-    if s.get('insight'):
-        h += 190
-    if s.get('summary'):
-        h += 100 + math.ceil(len(s['summary'].get('text', '')) / 29) * 45
-    if s.get('quote'):
-        h += 210
-    if s.get('blocks'):
-        h += sum(95 + math.ceil(len(text) / 35) * 42 for _, text in s['blocks']) + 170
-    h += 130                        # 页脚
-    # Analysis must fit on the page; a fixed cap silently cuts longer findings.
-    return max(1500, h)
-
-
 def chart_js(cfg, el, height):
     """按 outline 里的 chart 配置生成 ECharts 代码。字号按原文：轴19 标签21 图例19"""
+    modern = modern_chart_js(cfg, el, THEME)
+    if modern is not None:
+        return modern
     kind = cfg.get('kind', 'hbar')
     data = cfg.get('data', [])
     unit = cfg.get('unit', '')
@@ -342,19 +317,19 @@ chart('%s', {
   yAxis: {type: 'category', inverse: true,
     data: D.map(function(d){return d[0]}),
     axisLine: {show:false}, axisTick: {show:false},
-    axisLabel: {fontSize: 19, color: '#374151'}},
+    axisLabel: {fontSize: 29, interval: 0, color: '#374151'}},
   series: [{type: 'bar', barWidth: 22,
     data: D.map(function(d, i){
       var v = %s ? d[2] : d[1];
       return {value: v,
         itemStyle: {color: %s, borderRadius: [0,6,6,0]},
-        label: {show: true, position: 'right', fontSize: 21, color: '%s',
+        label: {show: true, position: 'right', fontSize: 30, color: '%s',
           formatter: function(p){ return %s ? (p.value + '%%')
             : (p.value.toLocaleString() + '%s'); }}};})}]
 });
 """ % (el,
-       max(150, 19 * max(len(str(d[0])) for d in data) + 20) if data else 150,
-       100,
+       max(120, min(400, 30 * max(len(str(d[0])) for d in data) + 20)) if data else 120,
+       140,
        'true' if pct else 'false',
        ("(i < %d ? '%s' : (D[0][2] !== undefined && D[i][0] === '%s' "
         "? '%s' : '%s'))" % (cfg.get('top', 0), TH('accent'),
@@ -589,12 +564,12 @@ def assign_els(screen):
 
 
 def render_screen(s, idx, total, org, scale, meta=None):
-    """返回 (html, height)"""
+    """生成页面 HTML，内容高度在浏览器完成布局后测量。"""
     src_line = ''
     if meta:
-        src_line = ('<div class="src">数据来源：%s｜样本 N=%s｜统计周期：%s</div>'
+        src_line = ('<div class="src">数据来源：%s｜全报告 %s 条岗位记录</div>'
                     % (meta.get('data_source', '优才知路').replace('的数据库', ''),
-                       meta.get('sample_n', '-'), meta.get('period', '-')))
+                       format(meta.get('sample_n'), ',') if isinstance(meta.get('sample_n'), int) else '—'))
     if s['type'] == 'cover':
         date_cn = s.get('date') or ''
         html = """<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -611,12 +586,12 @@ def render_screen(s, idx, total, org, scale, meta=None):
 </div></div></body></html>""" % {
             'css': COVER_CSS,
             'issuer': s['issuer'], 'co': s['co_issuer'],
-            'series': s['series'], 'title': s['title'], 'sub': s['subtitle'],
+            'series': s['series'], 'title': html_module.escape(s['title']).replace('人才需求观察报告', '<br>人才需求观察报告'), 'sub': s['subtitle'],
             'chips': ''.join('<div class="chip"><b>%s</b>%s</div>'
                              % (c['value'], c['label']) for c in s['chips']),
             'org': org, 'date': date_cn,
         }
-        return html, COVER_H
+        return html
 
     if s['type'] == 'summary':
         dots = ''.join('<div class="d%s"></div>' % (' on' if i == idx else '')
@@ -636,7 +611,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
             for c in s.get('cards', []))
         html = """<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>%(css)s</style></head>
-<body><div class="page" style="height:%(H)dpx">
+<body><div class="page">
 <div class="edgebar"></div>
 <div class="chapter"><div class="tt" style="font-size:44px">%(title)s</div></div>
 <div class="hr"></div>
@@ -645,11 +620,11 @@ def render_screen(s, idx, total, org, scale, meta=None):
 %(cards)s
 %(tail)s
 <div class="footer"><div class="org">%(org)s</div><div class="dots">%(dots)s</div></div>
-</div></body></html>""" % {'css': CSS, 'H': est_screen_height(s),
+</div></body></html>""" % {'css': CSS,
                              'title': s.get('title', '摘要'), 'lead': lead,
                              'cards': cards, 'tail': tail,
                              'org': org, 'dots': dots}
-        return html, est_screen_height(s)
+        return html
 
     if s['type'] == 'backcover':
         html = """<!DOCTYPE html><html><head><meta charset="utf-8">
@@ -667,7 +642,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
                                    'slogan': s.get('slogan', ''),
                                    'c1': s.get('contact_name', ''),
                                    'c2': s.get('contact_phone', '')}
-        return html, 1000
+        return html
 
     # 内容屏骨架
     s = assign_els(s)
@@ -713,7 +688,14 @@ def render_screen(s, idx, total, org, scale, meta=None):
     elif s['type'] == 'chart':
         # 图位置规则：仅一张图时紧跟第一段；多图时图组在全部段落之后——
         # 总结框（summary）永远在最后
-        paras_html = ['<p>%s</p>' % p for p in s.get('paragraphs', [])]
+        paras_html = []
+        for paragraph in s.get('paragraphs', []):
+            label, _, body = paragraph.partition('：')
+            if s.get('analysis_key') == 'recommendations' or label in ('综合分析', '结构解读与分析推断'):
+                label = '解读' if label == '结构解读与分析推断' else label
+                paras_html.append(f'<p><span class="label">{label}</span>{body}</p>')
+            else:
+                paras_html.append(f'<p>{paragraph}</p>')
         singles = [k for k in ('chart', 'chart2', 'chartA', 'chartB')
                    if s.get(k)]
         single = len(singles) == 1
@@ -729,8 +711,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
             elif c1.get('kind') == 'bignum':
                 body_parts.append(render_bignum(c1, src_line))
             else:
-                h1 = CHART_H.get(c1.get('kind'),
-                                 460 if s.get('chart2') else 620)
+                h1 = chart_height(c1)
                 js_parts.append(chart_js(c1, 'c1', h1))
                 body_parts.append('<div class="card"><div class="cap">%s</div>%s%s</div>'
                                   % (cap(c1),
@@ -753,20 +734,20 @@ def render_screen(s, idx, total, org, scale, meta=None):
             else:
                 js_parts.append(chart_js(ca, 'a1', 330))
                 duo.append('<div class="card" style="flex:1"><div class="cap">%s</div>'
-                           '%s</div>' % (cap(ca), chart_div(ca, 366, 330)))
+                           '%s</div>' % (cap(ca), chart_div(ca, CONTENT_W - 48, chart_height(ca))))
         if s.get('chartB'):
             js_parts.append(chart_js(s['chartB'], 'b1', 330))
             duo.append('<div class="card" style="flex:1.55"><div class="cap">%s'
                        '</div>%s%s</div>' % (cap(s['chartB']),
-                                             chart_div(s['chartB'], 444, 330),
+                                             chart_div(s['chartB'], CONTENT_W - 48, chart_height(s['chartB'])),
                                              src_line))
-        body_parts.append('<div style="display:flex;gap:18px;margin-bottom:4px">%s'
+        body_parts.append('<div style="display:block;margin-bottom:4px">%s'
                           '</div>' % ''.join(duo))
     elif s['type'] == 'notes':
         blocks = ''.join(
-            '<div style="margin-bottom:26px"><div style="font-size:26px;'
+            '<div style="margin-bottom:26px"><div style="font-size:32px;'
             'font-weight:700;color:%s;margin-bottom:10px;padding-left:14px;'
-            'border-left:7px solid %s">%s</div><div style="font-size:22px;'
+            'border-left:7px solid %s">%s</div><div style="font-size:32px;'
             'line-height:1.75;color:#4B5563;text-align:justify">%s</div></div>'
             % (TH('primary'), TH('accent'), t, c)
             for t, c in s.get('blocks', []))
@@ -778,7 +759,8 @@ def render_screen(s, idx, total, org, scale, meta=None):
                    % (TH('cover2'), TH('cover3'),
                       s.get('contact_name', ''), s.get('contact_phone', '')))
         body_parts.append(blocks)
-        body_parts.append(contact)
+        if s.get('contact_name') or s.get('contact_phone'):
+            body_parts.append(contact)
     else:
         body_parts.append('<div class="paras">%s</div>' % paras)
 
@@ -810,7 +792,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
 
     html = """<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>%(css)s</style></head>
-<body><div class="page" style="height:%(H)dpx">
+<body><div class="page">
 <div class="edgebar"></div>
 %(chapter)s
 %(subtitle)s
@@ -821,39 +803,37 @@ def render_screen(s, idx, total, org, scale, meta=None):
 <script src="%(ech)s"></script>
 <script>%(js)s</script>
 </body></html>""" % {
-        'css': CSS, 'H': est_screen_height(s), 'chapter': chapter,
+        'css': CSS, 'chapter': chapter,
         'subtitle': ('<div class="subtitle">%s</div>' % s['subtitle'])
                     if s.get('subtitle') else '',
         'body': '\n'.join(body_parts), 'org': org, 'dots': dots,
         'ech': ECHARTS_URL, 'js': '\n'.join(js_parts),
     }
-    return html, est_screen_height(s)
+    return html
 
 
-_VIEWPORT_OVERHEAD = None
-
-
-def shoot(html_path, png_path, w, h, scale):
-    global _VIEWPORT_OVERHEAD
+def shoot(html_path, png_path, w, scale):
     if not EDGE:
         raise RuntimeError('未找到 Edge / Chrome / Chromium；请设置 WECHAT_REPORT_BROWSER')
-    if _VIEWPORT_OVERHEAD is None:
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', dir=Path(png_path).parent, delete=False) as f:
-            f.write("<body><script>document.body.textContent='VIEWPORT_HEIGHT='+innerHeight</script>")
-            probe_file = Path(f.name)
-        try:
-            probe = subprocess.run([EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars',
-                '--window-size=943,1000', '--dump-dom', probe_file.resolve().as_uri()],
-                capture_output=True, text=True, timeout=30, check=True)
-        finally:
-            probe_file.unlink(missing_ok=True)
-        match = re.search(r'VIEWPORT_HEIGHT=(\d+)', probe.stdout)
-        if not match:
-            raise RuntimeError('无法测量浏览器截图视口')
-        _VIEWPORT_OVERHEAD = max(0, 1000-int(match.group(1)))
+    uri = Path(html_path).resolve().as_uri()
+    probe = subprocess.run([EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars',
+        f'--force-device-scale-factor={scale}', f'--window-size={w},1000',
+        '--virtual-time-budget=6000', '--dump-dom', uri],
+        capture_output=True, text=True, timeout=60, check=True)
+    size = re.search(r'data-report-layout="(\d+),(\d+)"', probe.stdout)
+    if not size:
+        raise RuntimeError('无法测量报告内容或浏览器视口')
+    h, viewport = map(int, size.groups())
+    evidence = re.search(r'data-report-audit="([^"]+)"', probe.stdout)
+    if not evidence:
+        raise RuntimeError('缺少浏览器布局质检证据')
+    audit = json.loads(html_module.unescape(evidence.group(1)))
+    if audit['errors']:
+        raise RuntimeError('布局检查失败：'+str(audit['errors']))
+    overhead = max(0, 1000 - viewport)
     cmd = [EDGE, '--headless=new', '--disable-gpu', '--hide-scrollbars',
            '--force-device-scale-factor=%d' % scale,
-           '--window-size=%d,%d' % (w, h+_VIEWPORT_OVERHEAD),
+           '--window-size=%d,%d' % (w, h+overhead),
            '--default-background-color=FFFFFFFF',
            '--virtual-time-budget=6000',
            '--screenshot=%s' % png_path,
@@ -867,6 +847,7 @@ def shoot(html_path, png_path, w, h, scale):
             raise RuntimeError('截图尺寸与预期不一致')
         cropped = image.crop((0, 0, w*scale, h*scale))
     cropped.save(png_path)
+    return h, audit
 
 
 def main():
@@ -914,20 +895,26 @@ def main():
     pages_dir = os.path.join(args.outdir, 'pages')
     os.makedirs(pages_dir, exist_ok=True)
 
+    chapter_keys = {item['key'] for item in ol['analysis']['sections']} if binding else set()
     manifest = []
     for idx, s in enumerate(screens):
         if s['type'] == 'cover' and not s.get('date'):
             s['date'] = ol.get('generated_at', '')[:7].replace('-', '年') + '月'
-        html, h = render_screen(s, idx, total, ol.get('org', ''), args.scale,
+        # Bound reports collect all chapter actions on the recommendations page.
+        if s.get('analysis_key') in chapter_keys:
+            s = dict(s, paragraphs=[p for p in s['paragraphs'] if not p.startswith('行动建议：')])
+        html = render_screen(s, idx, total, ol.get('org', ''), args.scale,
                                 meta=ol.get('meta'))
         hp = os.path.join(pages_dir, 'page_%02d.html' % idx)
+        measure = MEASURE_SCRIPT
         with open(hp, 'w', encoding='utf-8') as f:
-            f.write(html)
+            f.write(html.replace('</body>', measure + '</body>'))
         png = os.path.join(pages_dir, 'page_%02d.png' % idx)
-        shoot(hp, png, PAGE_W, h, args.scale)
+        h, audit = shoot(hp, png, PAGE_W, args.scale)
         manifest.append({'index': idx, 'name': s.get('title', 'screen'),
                          'file': 'pages/page_%02d.png' % idx,
-                         'height': h, 'width': PAGE_W})
+                         'height': h, 'width': PAGE_W, 'scale': args.scale,
+                         'sha256': digest(Path(png).read_bytes()), 'layout': audit})
         print('[%d/%d] %s%s -> %s' % (idx + 1, total, s.get('no', ''),
                                       s.get('title', ''), png))
 
@@ -946,7 +933,7 @@ def main():
                                     W, H))
 
     with open(os.path.join(args.outdir, 'manifest.json'), 'w', encoding='utf-8') as f:
-        json.dump({'pages': manifest, 'title': ol['title'],
+        json.dump({'schema': 'wechat-render/2', 'theme': args.theme, 'pages': manifest, 'title': ol['title'],
                    'outline_sha256': digest(Path(args.outline).read_bytes()),
                    'source_content_hash': ol.get('source_content_hash'),
                    'generated_at': ol.get('generated_at')}, f,

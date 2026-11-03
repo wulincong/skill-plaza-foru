@@ -8,6 +8,7 @@ import stat
 import tempfile
 from pathlib import Path
 import zipfile
+from PIL import Image
 from bound_report import load_data, verify_outline, digest
 BASE = Path(__file__).resolve().parent.parent
 
@@ -22,19 +23,24 @@ def prepare_delivery(workspace, report, outline, manifest, archive):
         # mkdtemp defaults to 0700; the web server uses the shared workspace group.
         temporary.chmod(temporary.stat().st_mode | stat.S_IRGRP | stat.S_IXGRP)
         (temporary/'assets').mkdir()
-        blocks = ['<h1>'+html.escape(outline['title'])+'</h1>']
+        blocks = []
         for i, screen in enumerate(outline['screens']):
-            blocks.append('<section><h2>'+html.escape(screen['title'])+'</h2>')
-            for paragraph in screen.get('paragraphs', []):
-                blocks.append('<p>'+html.escape(paragraph)+'</p>')
-            if screen.get('summary'):
-                blocks.append('<p>'+html.escape(screen['summary']['text'])+'</p>')
             source = (report/manifest['pages'][i]['file']).resolve()
             image = 'page_'+str(i+1).zfill(2)+source.suffix
             shutil.copyfile(source, temporary/'assets'/image)
-            blocks.append('<img loading="lazy" decoding="async" src="assets/'+image+'" alt="'+html.escape(screen['title'], quote=True)+'"></section>')
+            with Image.open(source) as page:
+                width, height = page.size
+            alt = html.escape(screen['title'], quote=True)
+            loading = 'eager' if i == 0 else 'lazy'
+            blocks.append(f'<img src="assets/{image}" width="{width}" height="{height}" '
+                          f'loading="{loading}" alt="第{i+1}页 {alt}">')
         title = html.escape(outline['title'])
-        document = '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+title+'</title><style>body{margin:0;background:#f4f6f8;color:#172033;font:16px/1.8 system-ui,sans-serif}main{max-width:900px;margin:auto;padding:32px 20px;background:white}h1{font-size:28px;line-height:1.5}h2{font-size:22px;margin-top:36px}p{white-space:pre-wrap}img{display:block;width:100%;height:auto;margin:20px auto}section{margin-bottom:32px}@media(max-width:600px){main{padding:20px 12px}h1{font-size:23px}}</style></head><body><main>'+''.join(blocks)+'</main></body></html>'
+        document = ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+                    '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                    f'<title>{title}</title><style>body{{margin:0;background:#edf0f4}}'
+                    'main{max-width:720px;margin:auto;background:white}'
+                    'img{display:block;width:100%;height:auto}</style></head><body>'
+                    '<main>'+''.join(blocks)+'</main></body></html>')
         (temporary/'index.html').write_text(document, 'utf-8')
         site = public/'site'
         if site.is_symlink():
@@ -75,28 +81,30 @@ def main():
     manifest = json.loads((report/'manifest.json').read_text('utf-8'))
     if manifest.get('outline_sha256') != digest(outline_path.read_bytes()) or len(manifest['pages']) != len(outline['screens']):
         raise ValueError('图片清单与当前大纲不一致')
+    quality = json.loads((report/'quality.json').read_text('utf-8'))
+    if (quality.get('schema') != 'wechat-quality/1' or quality.get('all_pass') is not True
+            or quality.get('outline_sha256') != digest(outline_path.read_bytes())
+            or quality.get('manifest_sha256') != digest((report/'manifest.json').read_bytes())):
+        raise ValueError('最终质检未通过或产物版本已变化')
     files = []
-    for page in manifest['pages']:
+    seen = set()
+    for i, page in enumerate(manifest['pages']):
         source = (report/page['file']).resolve()
-        if not source.is_relative_to(report) or not source.is_file():
-            raise ValueError('清单图片缺失或路径无效')
-        files.append(('report/'+page['file'], source))
-    for name in ['report_full.jpg', 'manifest.json']:
-        if (report/name).is_file():
-            files.append(('report/'+name, report/name))
-    for name in ['article.md', 'article.html']:
-        source = report.parent/'article'/name
-        if source.is_file():
-            files.append(('article/'+name, source))
-    data.pop('provenance', None)
-    outline.pop('bindings', None)
-    outline.pop('analysis', None)  # Internal research protocol; prose is already on each page.
+        if (page['index'] != i or page['name'] != outline['screens'][i]['title']
+                or source in seen or not source.is_relative_to(report) or not source.is_file()):
+            raise ValueError('清单图片缺失、重复或顺序与大纲不符')
+        if page.get('sha256') != digest(source.read_bytes()):
+            raise ValueError('图片在质检后已改变')
+        with Image.open(source) as image:
+            if source.suffix != '.png' or image.format != 'PNG':
+                raise ValueError('报告分屏必须是 PNG 图片')
+            image.verify()
+        seen.add(source)
+        files.append((f'page_{i+1:02}.png', source))
     out = report.parent/(args.name+'.zip')
-    with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
+    with zipfile.ZipFile(out, 'w') as z:
         for name, source in files:
             z.write(source, args.name+'/'+name)
-        z.writestr(args.name+'/report_data.json', json.dumps(data, ensure_ascii=False, indent=2))
-        z.writestr(args.name+'/outline/report_outline.json', json.dumps(outline, ensure_ascii=False, indent=2))
     prepare_delivery(workspace, report, outline, manifest, out)
     print(str(out))
 

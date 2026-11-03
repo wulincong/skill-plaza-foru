@@ -18,8 +18,12 @@ def recommend_composition(items):
     """构成类：items=[{name,count,pct}] → kind + 附注"""
     if not items:
         return None
+    items = sorted(items, key=lambda r: -r['count'])
+    total = sum(r['count'] for r in items)
+    if total <= 0:
+        return None
     top = items[0]
-    top_share = top.get('pct', 0)
+    top_share = top['count'] / total * 100
     n = len(items)
     if top_share > EXTREME_SHARE:
         return {'kind': 'bignum',
@@ -50,6 +54,6 @@ def check_chart_choice(cfg):
                                 % (top, kind))
         if kind == 'donut' and len(data) > 7:
             problems.append('环形图 %d 类超过 7 类可读上限' % len(data))
-    if kind == 'hbar' and data and cfg.get('sorted') is False:
+    if kind == 'hbar' and data and (cfg.get('sorted') is False or any(a[1] < b[1] for a, b in zip(data, data[1:]))):
         problems.append('条形图未按值排序')
     return problems

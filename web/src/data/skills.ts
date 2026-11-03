@@ -246,13 +246,13 @@ export const SKILLS: Skill[] = [
     identifier: 'wechat-report',
     categoryId: 'industry',
     audiences: ['manager', 'teacher', 'data'],
-    summary: '把地区与行业的岗位数据整理为公众号报告大纲、图文页面、文章和证据核查表。',
+    summary: '把地区与行业的岗位数据整理为已质检的公众号报告图片和纯图片分享页。',
     tags: ['公众号图文', '人才需求', '产业报告'],
     preconditions: '地区、行业、目标读者与可用数据',
-    outputs: ['可审阅的报告大纲', '报告分屏图片与长图', '公众号文章 Markdown / HTML', '证据核查表 XLSX'],
+    outputs: ['报告分屏图片', '纯图片分享网页与图片下载包'],
     dependencies: ['目标地区与行业', '报告读者及希望回答的问题'],
-    limitations: ['未配置数据库时仅可使用明确标注的离线示例。', '大纲确认后生成图文；推送草稿需要明确要求，不自动群发或发布。'],
-    minimalInput: '使用 $wechat-report，为广东省人工智能产业拟一份公众号报告大纲，读者是院校管理者；先说明所需数据。',
+    limitations: ['未配置数据库时仅可使用明确标注的离线示例。', '直接生成图片成品供审核；存草稿需要明确要求，不自动群发或发布。'],
+    minimalInput: '使用 $wechat-report，为广东省人工智能产业生成一份人才需求报告，读者是院校管理者；直接交付报告图片。',
   },
 ]
 

@@ -52,6 +52,10 @@ def main():
                    '--out', str(Path(args.out).with_suffix('.render.json'))]
             subprocess.run(cmd, check=True)
             checks.append(('实际渲染检查', True, '通过'))
+            receipt = {'schema':'wechat-quality/1', 'all_pass':True,
+                       'outline_sha256':digest(Path(args.outline).read_bytes()),
+                       'manifest_sha256':digest(manifest_path.read_bytes())}
+            (Path(args.report_dir)/'quality.json').write_text(json.dumps(receipt), 'utf-8')
         else:
             checks.append(('实际渲染检查', None, '待渲染后执行 --stage final'))
     except Exception as exc:

@@ -119,13 +119,22 @@ test('public delivery contains a standalone website and ZIP, excluding internal 
   const pages=[]
   for(let i=0;i<reportOutline.screens.length;i++) {
     const file=`pages/page_${i}.png`
-    await writeFile(join(f.cwd,'output/report',file),Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1kAAAAASUVORK5CYII=','base64'))
     pages.push({index:i,file,name:reportOutline.screens[i].title})
   }
-  await writeFile(join(f.cwd,'output/report/manifest.json'),JSON.stringify({pages,outline_sha256:createHash('sha256').update(outlineBytes).digest('hex')}))
+  const generated=spawnSync(python,['-c',
+    'from PIL import Image\nimport sys\nfor i, path in enumerate(sys.argv[1:]): Image.new("RGB",(8,12),(i,0,0)).save(path)',
+    ...pages.map(p=>join(f.cwd,'output/report',p.file))],{encoding:'utf8'})
+  assert.equal(generated.status,0,generated.stderr)
+  for(const page of pages) page.sha256=createHash('sha256').update(await readFile(join(f.cwd,'output/report',page.file))).digest('hex')
+  const manifestPath=join(f.cwd,'output/report/manifest.json')
+  const manifest={pages,outline_sha256:createHash('sha256').update(outlineBytes).digest('hex')}
+  await writeFile(manifestPath,JSON.stringify(manifest))
   await mkdir(join(f.cwd,'output/internal'),{recursive:true})
   await writeFile(join(f.cwd,'output/internal/evidence.xlsx'),'PRIVATE SQL')
   run(f.cwd,'build_article.py')
+  run(f.cwd,'pack_delivery.py',['--workspace',f.cwd],1) // No final quality receipt: refuse delivery.
+  // Protocol fixture only, not a visual-quality or renderer test.
+  await writeFile(join(f.cwd,'output/report/quality.json'),JSON.stringify({schema:'wechat-quality/1',all_pass:true,outline_sha256:manifest.outline_sha256,manifest_sha256:createHash('sha256').update(await readFile(manifestPath)).digest('hex')}))
   run(f.cwd,'pack_delivery.py',['--workspace',f.cwd])
   const delivery=JSON.parse(await readFile(join(f.cwd,'delivery.json')))
   assert.equal(delivery.web[0].entry,'index.html')
@@ -139,11 +148,18 @@ test('public delivery contains a standalone website and ZIP, excluding internal 
   assert.equal(references.length,reportOutline.screens.length)
   for(const asset of references) assert((await readFile(join(site,asset))).length>0)
   assert.doesNotMatch(html,/file:\/\/|PRIVATE SQL|report_binding/)
-  const zip=spawnSync(python,['-c','import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); print("\\n".join(z.namelist())); assert all("internal" not in x and "binding" not in x and "evidence" not in x for x in z.namelist())',join(f.cwd,delivery.files[0].path)],{encoding:'utf8'})
+  assert.match(html,/<main>(?:<img [^>]+>)+<\/main>/)
+  assert.doesNotMatch(html,/<(?:p|section|h[1-6])\b/)
+  assert.deepEqual(references,pages.map((_,i)=>`assets/page_${String(i+1).padStart(2,'0')}.png`))
+  const zip=spawnSync(python,['-c',[
+    'import sys,zipfile,pathlib',
+    'z=zipfile.ZipFile(sys.argv[1]); files=sys.argv[2:]; names=z.namelist()',
+    'assert [pathlib.Path(n).name for n in names] == [pathlib.Path(f).name for f in files]',
+    'assert all(z.read(n)==pathlib.Path(f).read_bytes() for n,f in zip(names,files))'
+  ].join('\n'),join(f.cwd,delivery.files[0].path),...references.map(p=>join(site,p))],{encoding:'utf8'})
   assert.equal(zip.status,0,zip.stderr)
-  assert.match(zip.stdout,/article\/article.html/)
-  const internal=spawnSync(python,['-c','import json,sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); p=next(n for n in z.namelist() if n.endswith("outline/report_outline.json")); assert "analysis" not in json.loads(z.read(p))',join(f.cwd,delivery.files[0].path)],{encoding:'utf8'})
-  assert.equal(internal.status,0,internal.stderr)
+  await writeFile(manifestPath,JSON.stringify({...manifest,pages:[...pages].reverse()}))
+  run(f.cwd,'pack_delivery.py',['--workspace',f.cwd],1)
 })
 test('collector plan executes only the public shared CLI, including its framed adapter and evidence',async t=>{
   const plan={schema:'wechat-report-plan/1',filters:{region:{level:'national'}},sections:['overview','geography','requirements','salary','vocational','tracks','city_tracks','track_salary','skills','track_skills'],analysis,execution:{freshness:'live'}}

@@ -1,6 +1,7 @@
 """Build an evidence-bound outline from shared query aggregates."""
 import argparse
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from bound_report import load_data, project, CLAIMS
 
@@ -87,7 +88,11 @@ def _build_skeleton(data, brand, binding=None):
                   {'n': value('/total/cities')})
     for key, title1 in [('jobtype', '招聘类型'), ('edu', '学历要求'), ('exp', '经验要求')]:
         if data.get(key):
-            i = chart(title1, title1+'岗位记录数', '/'+key)
+            if key == 'jobtype':
+                i = screen(type='chart', no='%02d' % len(ol['screens']), title=title1, paragraphs=[])
+                bind(i, 'chart', {'path': '/jobtype', 'op': 'composition'})
+            else:
+                i = chart(title1, title1+'岗位记录数', '/'+key)
             paragraph(i, '各类别统计使用同一组 {n} 条岗位记录，缺失与未知类别单独保留。',
                       {'n': value('/total/positions')})
     if data.get('edu_exp'):
@@ -95,7 +100,7 @@ def _build_skeleton(data, brand, binding=None):
               'table', ['学历要求', '经验要求', '岗位记录数'])
     salary = data.get('salary') or {}
     if salary.get('valid'):
-        i = chart('薪酬结构', '招聘声明薪资区间中点分布', '/salary_hist')
+        i = chart('薪酬结构', '薪酬分档岗位数（不等宽分档，非密度；K = 千元）', '/salary_hist', kind='vbar')
         paragraph(i, '共有 {n} 条记录符合薪酬有效性规则，中位数为 {m} K/月。',
                   {'n': value('/salary/valid'), 'm': value('/salary/median')})
         ol['screens'][i]['summary'] = {'title': '培养与岗位定位',
@@ -103,8 +108,12 @@ def _build_skeleton(data, brand, binding=None):
     if data.get('subtrack'):
         chart('岗位方向结构', '按显式有序规则的互斥归类', '/subtrack')
     if any(r.get('valid') for r in data.get('salary_by_track', [])):
-        chart('方向薪酬比较', '同一薪酬规则下的方向摘要', '/salary_by_track',
-              'track_salary_table', 'table', ['岗位方向', '有效薪酬记录', '中位数K/月'])
+        if any(r.get('valid', 0) >= 30 for r in data['salary_by_track']):
+            chart('方向薪酬比较', '方向薪酬：线段为中间一半，圆点为中位数（有效样本≥30）',
+                  '/salary_by_track', 'salary_ranges', 'range_dot')
+        else:
+            chart('方向薪酬比较', '有效样本较小，仅供描述', '/salary_by_track',
+                  'track_salary_table', 'table', ['岗位方向', '有效薪酬记录', '中位数K/月'])
     sections = {c['section'] for c in data.get('coverage', [])}
     if data.get('city_track_rows'):
         if 'city_tracks' in sections:
@@ -146,13 +155,27 @@ def _build_skeleton(data, brand, binding=None):
                 scope += '；'+title1+'：'+'、'.join(f['title'][key])
     period = f.get('updatedAt', {})
     scope += '；平台更新时间：'+('至'.join([period.get('from', '不限起点'), period.get('to', '不限终点（上界不含）')]) if period else '未限制')
+    read_at = data['meta']['generated_at']
+    if binding:
+        instant = datetime.fromisoformat(read_at.replace('Z', '+00:00'))
+        read_at = instant.astimezone(timezone(timedelta(hours=8))).strftime('%Y年%m月%d日 %H:%M（北京时间）')
     blocks = [('数据来源', '优才知路平台数据库。统计单位为岗位记录，地址来自企业关联地址。'),
               ('筛选范围', scope),
               ('薪酬方法', ('两端为有效数值，最低薪酬为正且不大于最高薪酬，最高不超过100 K/月；以区间中点计算加权线性分位数。' if binding and salary else '历史样例算法；不代表当前实时薪酬统计方法。' if salary else '本次没有可用薪酬统计。')),
               ('方向与技能', ('方向采用显式首个命中规则。' if data.get('subtrack') else '本次未完成岗位方向统计。')+
                ('技能为描述子串提及，多个词可重叠。' if data.get('skill_described_n') else '本次无可用技能提及统计。')),
-              ('数据日期', data['meta']['generated_at']+'；该日期是统计读取日期，平台更新时间不等同职位发布时间。'),
+              ('数据日期', read_at+'。该时间为统计读取时间，岗位发布时间未作限定。' if not period else read_at+'。时间筛选针对平台更新时间。'),
               ('未覆盖项', '；'.join(gaps) if gaps else '本次声明的统计章节已完成。')]
+    if binding and pool is not None:
+        cohort = next((c for c in binding['_result']['cohorts'] if c['id'] == 'vocational'), None)
+        if cohort:
+            labels = data['meta'].get('enum_labels', {})
+            rules = []
+            for key, title1 in [('education', '学历'), ('experience', '经验')]:
+                values = cohort['filters'].get(key, [])
+                names = [labels.get(key, {}).get(v, v) for v in values]
+                rules.append(title1+'类别选取'+('、'.join(names) if names else '全部类别'))
+            blocks.insert(2, ('职教入门岗位筛选', '；'.join(rules)+'。两项条件须同时满足。'))
     if not binding:
         blocks.insert(0, ('样例说明', '本报告为离线演示，不代表当前真实查询。'))
     screen(type='notes', no='附录', title='数据与研究方法', blocks=blocks)
@@ -168,7 +191,7 @@ def build_outline(data, brand, binding=None, analysis=None):
 
 
 def outline_to_md(ol):
-    lines = ['# '+ol['title'], '', '> 请审阅数据与分析后再渲染。', '']
+    lines = ['# '+ol['title'], '', '> 内部排版数据；不向用户请求大纲确认。', '']
     for s in ol['screens']:
         lines += ['## '+s['title'], '']+s.get('paragraphs', [])
         if s.get('summary'):

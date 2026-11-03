@@ -79,6 +79,24 @@ def project(data, spec):
         if not fact or spec.get('inputs') != {str(i): {'path': p} for i, p in enumerate(fact['paths'])}:
             raise ValueError('分析事实的统计对象或输入字段不一致')
         return fact['text']
+    if op == 'composition':
+        from chart_recommender import recommend_composition
+        choice = recommend_composition(value)
+        if not choice:
+            raise ValueError('构成图缺少有效样本')
+        rows = sorted(value, key=lambda r: -r['count'])
+        cfg = {'kind': choice['kind'], 'caption': '招聘类型构成', 'choiceReason': choice['reason']}
+        if cfg['kind'] == 'bignum':
+            total = sum(r['count'] for r in rows)
+            clean = lambda r: dict(r, pct=round(r['count']/total*100, 2))
+            cfg.update(top=clean(rows[0]), rest=[clean(r) for r in rows[1:]], total=total)
+        else:
+            cfg['data'] = [[r['name'], r['count']] for r in rows]
+        return cfg
+    if op == 'salary_ranges':
+        return [[r['name'], r['valid'], r['p25'], r['median'], r['p75']]
+                for r in sorted(value, key=lambda r: -(r.get('median') or 0))
+                if r.get('valid', 0) >= 30 and all(r.get(k) is not None for k in ('p25','median','p75'))]
     if op == 'number':
         return '未提供' if value is None else format(value, ',')
     if op == 'name_count':
@@ -92,13 +110,14 @@ def project(data, spec):
     if op == 'requirements_table':
         return sorted(value, key=lambda r: -r[2])[:limit]
     if op == 'skill_matrix':
-        tracks = list(dict.fromkeys(r['label'] for r in value))[:6]
+        totals = {r['label']: r['positions'] for r in value}
+        tracks = sorted(totals, key=lambda t: (-totals[t], t))[:6]
         words = {}
         for r in value:
             words[r['skill']] = words.get(r['skill'], 0) + r['count']
-        cols = sorted(words, key=lambda w: -words[w])[:8]
+        cols = sorted(words, key=lambda w: (-words[w], w))[:6]
         lookup = {(r['label'], r['skill']): r for r in value}
-        return {'kind': 'heatmap', 'caption': '方向内技能提及率（%）', 'rows': tracks, 'cols': cols, 'cells': [[i, j, round((lookup.get((t, w), {}).get('share') or 0)*100, 2)] for i, t in enumerate(tracks) for j, w in enumerate(cols)]}
+        return {'kind': 'heatmap', 'caption': '方向内技能提及率（%）；展示岗位量前六组与提及量前六词', 'rows': tracks, 'cols': cols, 'cells': [[i, j, round((lookup.get((t, w), {}).get('share') or 0)*100, 2)] for i, t in enumerate(tracks) for j, w in enumerate(cols)]}
     if op == 'lq_table':
         totals, tracks, cells = {}, {}, {}
         for r in value:

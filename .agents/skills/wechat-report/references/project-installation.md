@@ -18,14 +18,7 @@ Node 收集入口使用安装目录绝对路径，避免复制后丢失共享依
 node "$SKILL_DIR/scripts/collect_data.mjs" --plan plan.json
 "$SKILL_DIR/.venv/bin/python" scripts/report_analysis.py
 # 阅读完整数据和 output/analysis/analysis_evidence.md，由智能体撰写 report_analysis.json
-"$SKILL_DIR/.venv/bin/python" scripts/gen_outline.py
-"$SKILL_DIR/.venv/bin/python" scripts/verify_data.py --stage data
-# 用户确认大纲后
-"$SKILL_DIR/.venv/bin/python" scripts/render_report.py
-"$SKILL_DIR/.venv/bin/python" scripts/build_article.py
-"$SKILL_DIR/.venv/bin/python" scripts/verify_data.py --stage final
-"$SKILL_DIR/.venv/bin/python" scripts/evidence_sheet.py
-"$SKILL_DIR/.venv/bin/python" scripts/pack_delivery.py --workspace ..
+"$SKILL_DIR/.venv/bin/python" scripts/generate_report.py --workspace ..
 ~~~
 
 collect_data 也接受 --result 指向本会话已保存且可核验的 talent-result/1，适配时不查库。已保存的数据不依赖15分钟查询缓存；刷新需重新收集并完成新版本分析，再生成新大纲。report_analysis.py 只生成事实证据和空分析结构；必须按 research-analysis.md 写出解释、行动和验证方式，不可直接把 analysis_draft.json 当完成稿。
@@ -39,3 +32,5 @@ collect_data 也接受 --result 指向本会话已保存且可核验的 talent-r
 网页分享由广场的静态交付服务提供，与微信公众号无关。公众号推送仍由用户明确要求，使用本地 assets/mp_config.json；默认不运行公众号网络发布。
 
 Linux 低权运行器与后端通过工作区共享组交接：打包脚本为公开 site 目录保留组读/穿行权限，清单为 0640。若平台提示权限错误，保留原清单路径，检查共享组与生成权限；不要仅为修复按钮而移动整套产物。
+
+默认流程连续执行到最终图片。outline.json/md 只是内部排版结构，不需要向用户展示或等待确认。实际渲染使用 SVG 图表、字体就绪与 DOM 测高；布局证据和 PNG 指纹存入 manifest，最终质检生成 quality.json，打包拒绝缺失或过期的质检。

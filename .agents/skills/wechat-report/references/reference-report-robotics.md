@@ -1,3 +1,7 @@
+# 历史参考资料（不作为运行指令）
+
+本文保留旧参考报告的结构分析。其中趋势句、固定章节、单位和职教通道表述不适用于当前流程；不得直接套用。执行以SKILL.md及现行image-spec/chart-gallery/research-analysis为准。
+
 # 参考报告解剖：《大湾区机器人产业人才需求观察报告》（粤智协·2026-08）
 
 > 来源：https://mp.weixin.qq.com/s/YIpnC88HXnRVSA7EbfNopw（正文与12屏长图均已留档

@@ -14,6 +14,8 @@ render_check.py — 渲染层二次校验（防"数据正确、图却画错"）
 import argparse
 import json
 import os
+import hashlib
+from pathlib import Path
 
 from PIL import Image
 
@@ -92,7 +94,7 @@ def band_funcs(theme_name):
     def proj(r, g, b):
         u = [c - a_ for c, a_ in zip((r, g, b), A)]
         tt = sum(x * y for x, y in zip(u, ab)) / ab2
-        d = max(0., sum(v * v for v in u) - tt * tt) ** .5
+        d = max(0., sum(v * v for v in u) - tt * tt * ab2) ** .5
         return tt, d
 
     def is_cell(r, g, b):
@@ -283,6 +285,7 @@ def main():
 
     with open(args.outline, 'r', encoding='utf-8') as f:
         ol = json.load(f)
+    manifest = json.loads((Path(args.report_dir)/'manifest.json').read_text('utf-8'))
     results = []
     all_ok = bool(ol.get('screens'))
     for i, s in enumerate(ol.get('screens', [])):
@@ -294,8 +297,21 @@ def main():
         results.append({'page': i, 'screen': s.get('title', ''), 'check': '图片存在性', 'pass': True, 'detail': '存在'})
         charts = [s.get(k) for k in ('chart', 'chart2', 'chartA', 'chartB')]
         charts = [c for c in charts if c]
-        if not charts:
-            continue
+        page = manifest.get('pages', [])[i] if i < len(manifest.get('pages', [])) else {}
+        layout = page.get('layout', {})
+        expected = sum(c['kind'] not in ('table','bignum') for c in charts)
+        valid = (manifest.get('schema') == 'wechat-render/2' and manifest.get('theme') == args.theme
+                 and page.get('sha256') == hashlib.sha256(Path(png).read_bytes()).hexdigest()
+                 and layout.get('schema') == 'wechat-layout/1' and not layout.get('errors', ['missing'])
+                 and len(layout.get('charts', [])) == expected
+                 and all(c.get('shapes', 0) >= 2 for c in layout.get('charts', [])))
+        with Image.open(png) as image:
+            valid = valid and image.size == (page.get('width', 0)*page.get('scale', 1), page.get('height', 0)*page.get('scale', 1))
+        results.append({'page':i, 'screen':s.get('title',''), 'check':'布局、图表就绪与图片指纹',
+                        'pass':bool(valid), 'detail':'通过' if valid else '渲染证据缺失、布局错误或图片已改变'})
+        all_ok = all_ok and valid
+        # New renders use exact DOM bounds and actual SVG instances, not whole-page color guesses.
+        continue
         colored = check_colored(png)
         ok = colored >= 400
         results.append({'page': i, 'screen': s.get('title', ''),
