@@ -12,13 +12,15 @@ const serverDir = dirname(fileURLToPath(import.meta.url))
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms))
 const fixture = String.raw`#!/usr/bin/env node
 import {createInterface} from 'node:readline';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync,readFileSync,existsSync,chmodSync} from 'node:fs';
 if(process.argv.includes('--version')) {console.log('delivery-test');process.exit(0)}
-let messages=[],last='';
+const stateFile='.pi-sessions/fixture.json';
+let saved=process.argv.includes('--continue')&&existsSync(stateFile)?JSON.parse(readFileSync(stateFile,'utf8')):null;
+let messages=saved?.messages||[],nativeId=saved?.nativeId||String(Date.now()),last='';
 const send=x=>process.stdout.write(JSON.stringify(x)+'\n');
 for await(const line of createInterface({input:process.stdin})) {
  const c=JSON.parse(line); let data={};
- if(c.type==='get_state')data={sessionId:'test',model:{id:'test',provider:'test',contextWindow:1000}};
+ if(c.type==='get_state')data={sessionId:nativeId,messageCount:messages.length,model:{id:'test',provider:'test',contextWindow:1000}};
  if(c.type==='get_messages')data={messages};
  if(c.type==='get_last_assistant_text')data={text:last};
  if(c.type==='prompt') {
@@ -31,9 +33,12 @@ for await(const line of createInterface({input:process.stdin})) {
    writeFileSync('output/public/site/data.json','{"value":42}');
    writeFileSync('output/public/site/script.js',"addEventListener('load',async()=>{const d=document.body.dataset;d.image=String(document.querySelector('img').naturalWidth);d.color=getComputedStyle(document.body).color;try{localStorage.getItem('test');d.storage='leaked'}catch{d.storage='blocked'}try{d.data=String((await(await fetch('data.json')).json()).value)}catch{d.data='failed'}try{await fetch('/api/health');d.api='leaked'}catch{d.api='blocked'}d.complete='true'})");
    writeFileSync('output/public/report.zip','test archive');
+   if(existsSync('delivery.json'))chmodSync('delivery.json',0o640);
    writeFileSync('delivery.json',JSON.stringify({web:[{name:'测试网页',directory:'output/public/site',entry:'index.html'}],files:[{name:'测试交付包',path:c.message.includes('invalid')?'missing.zip':'output/public/report.zip'}]}));
+   if(c.message.includes('unreadable'))chmodSync('delivery.json',0);
   }
   last='完成';messages.push({role:'assistant',content:[{type:'text',text:last}]});
+  mkdirSync('.pi-sessions',{recursive:true});writeFileSync(stateFile,JSON.stringify({messages,nativeId}));
  }
  send({type:'response',id:c.id,command:c.type,success:true,data});
  if(c.type==='prompt') {send({type:'agent_start'});send({type:'message_start',message:{role:'assistant'}});send({type:'message_update',assistantMessageEvent:{type:'text_delta',delta:last}});send({type:'message_end',message:messages.at(-1)});send({type:'agent_settled'})}
@@ -67,10 +72,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     throw new Error('server not ready: ' + logs)
   }
   await start()
-  const request = async (message, protocol = 'plaza', stream = true) => {
+  const request = async (message, protocol = 'plaza', stream = true, history = []) => {
     const response = await fetch(base + (protocol === 'plaza' ? '/api/chat' : '/v1/chat/completions'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base },
-      body: JSON.stringify({ skill: 'general', messages: [{ role: 'user', content: message }], sessionId, stream }),
+      body: JSON.stringify({ skill: 'general', messages: [...history, { role: 'user', content: message }], sessionId, stream }),
     })
     const body = await response.text()
     if (!stream && protocol === 'openai') return JSON.parse(body)
@@ -98,6 +103,40 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   assert.equal(detail.conversation[1].webLinks[0].url, url)
   assert.equal(detail.conversation[3].webLinks, undefined)
 
+  await stop(); await start()
+  await request('follow-up after restart', 'openai', false, [{ role: 'user', content: 'generate' }, { role: 'assistant', content: '完成' }])
+  for (let i = 0; i < 100; i++) {
+    const runs = await fetch(base + '/api/runs').then(r => r.json())
+    const resumed = runs.runs.find(run => run.userMessage === 'follow-up after restart')
+    if (!resumed) { await pause(20); continue }
+    detail = await fetch(base + '/api/runs/' + resumed.runId).then(r => r.json())
+    if (detail.item?.files?.trace) break
+    await pause(20)
+  }
+  assert.equal(detail.trace.messages.filter(m => m.role === 'user').length, 3, 'engine must resume persisted context')
+  assert.equal(detail.trace.messages.filter(m => m.role === 'user').at(-1).parts[0].text, 'follow-up after restart', 'a resumed context must not receive duplicate flattened history')
+  assert.equal(detail.conversation.length, 6, 'resumed cumulative snapshots must not duplicate history')
+  assert.equal(detail.conversation[1].webLinks[0].url, url)
+
+  // Legacy resets can start a different native session in the same conversation.
+  await stop()
+  rmSync(join(serverDir, 'workspace', sessionId, '.pi-sessions'), { recursive: true, force: true })
+  await start()
+  await request('follow-up with reset engine', 'openai', false, [{ role: 'user', content: 'original user context' }, { role: 'assistant', content: 'original answer context' }])
+  for (let i = 0; i < 100; i++) {
+    const runs = await fetch(base + '/api/runs').then(r => r.json())
+    const reset = runs.runs.find(run => run.userMessage === 'follow-up with reset engine')
+    if (!reset) { await pause(20); continue }
+    detail = await fetch(base + '/api/runs/' + reset.runId).then(r => r.json())
+    if (detail.item?.files?.trace) break
+    await pause(20)
+  }
+  assert.equal(detail.trace.messages.filter(m => m.role === 'user').length, 1)
+  assert.match(detail.trace.messages.find(m => m.role === 'user').parts[0].text, /【对话历史】.*用户：original user context[\s\S]*【当前消息】\nfollow-up with reset engine/s)
+  assert.equal(detail.conversation.at(-2).text, 'follow-up with reset engine', 'the injected history must stay out of the user bubble')
+  assert.equal(detail.conversation.length, 8, 'history must retain both old and new engine sessions')
+  assert.equal(detail.conversation[1].downloads[0].url, done.downloads[0].url)
+
   // Chrome is optional in CI; installed on the Linux deployment used for acceptance.
   if (process.env.DELIVERY_BROWSER) {
     const browser = spawn(process.env.DELIVERY_BROWSER, ['--headless', '--no-sandbox', '--disable-gpu', '--no-proxy-server', '--disable-dev-shm-usage', '--user-data-dir=' + join(temp, 'chrome'), '--dump-dom', '--virtual-time-budget=5000', url])
@@ -118,6 +157,11 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   const failed = await request('invalid')
   assert.match(failed.content, /产物交付失败/)
   assert.equal(failed.webLinks, undefined)
+  if (process.getuid?.() !== 0) {
+    const denied = await request('unreadable')
+    assert.match(denied.content, /产物交付失败.*无法读取 delivery.json/)
+    assert.equal(denied.downloads, undefined)
+  }
   assert.equal(readdirSync(store).filter(s => !s.startsWith('.')).length, 3)
   rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true })
   await stop(); await start()

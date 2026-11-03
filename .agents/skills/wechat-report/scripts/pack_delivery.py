@@ -4,6 +4,7 @@ import json
 import html
 import os
 import shutil
+import stat
 import tempfile
 from pathlib import Path
 import zipfile
@@ -18,6 +19,8 @@ def prepare_delivery(workspace, report, outline, manifest, archive):
     public.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix='.site-', dir=public))
     try:
+        # mkdtemp defaults to 0700; the web server uses the shared workspace group.
+        temporary.chmod(temporary.stat().st_mode | stat.S_IRGRP | stat.S_IXGRP)
         (temporary/'assets').mkdir()
         blocks = ['<h1>'+html.escape(outline['title'])+'</h1>']
         for i, screen in enumerate(outline['screens']):
@@ -45,6 +48,7 @@ def prepare_delivery(workspace, report, outline, manifest, archive):
         # Manifest is the last write: the server never receives a partial delivery.
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=workspace, prefix='.delivery-', delete=False) as pending:
             json.dump(declaration, pending, ensure_ascii=False, indent=2)
+            os.fchmod(pending.fileno(), 0o640)
         os.replace(pending.name, workspace/'delivery.json')
     finally:
         if temporary.exists():

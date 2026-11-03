@@ -51,12 +51,16 @@ export function deliveryFingerprint(workspace: string, filename = 'delivery.json
     const stat = lstatSync(path)
     if (!stat.isFile() || stat.size > 64 * 1024) return `invalid:${stat.ino}:${stat.mtimeMs}`
     return `${stat.ino}:${stat.mtimeMs}:${stat.ctimeMs}:${createHash('sha256').update(readFileSync(path)).digest('hex')}`
-  } catch { return undefined }
+  } catch (error: any) {
+    // A permission error is a failed declaration, not an absent deliverable.
+    return error?.code === 'ENOENT' ? undefined : `unreadable:${error?.code || 'UNKNOWN'}`
+  }
 }
 
 /** Undefined means no new declaration in this turn. Invalid declarations throw. */
 export function readDeliveryManifest(workspace: string, previous?: string): DeliveryManifest | undefined {
   const fingerprint = deliveryFingerprint(workspace)
+  if (fingerprint?.startsWith('unreadable:')) throw new Error(`无法读取 delivery.json（${fingerprint.slice(11)}），请检查交付文件的共享组读取权限`)
   if (!fingerprint || fingerprint === previous) return undefined
   const path = checkedPath(workspace, 'delivery.json')
   const stat = lstatSync(path)

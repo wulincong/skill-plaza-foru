@@ -11,7 +11,7 @@
 ### 输入来源与历史投影
 
 - `RunRecord.userMessage?: string`（`web/server/lib/traceExport.ts:148`）保存注入附件/技能说明之前的用户输入，`index.ts:1148` 随运行记录持久化。它不替代历史列表的 `taskTitle/promptDigest`，也不改变引擎实际 prompt 或权威 trace。
-- 详情路由 `index.ts:370` 按同 clientSessionId、同 engineSessionId 和不晚于当前运行的时间收集原始输入。只有记录数与 trace 用户轮数一致时才按顺序使用快照；数量不一致则保守回退，避免将未发送/失败请求错配到另一轮。附件在用户视图仅显示 `[附件] 文件名`。
+- 详情路由按同 clientSessionId 和不晚于当前运行的时间收集原始输入；2026-11-03 起跨引擎进程合并、按 Pi 原生会话累计快照去重（见 [089](089-conversation-restart-and-delivery-permissions.md)），不再仅取同 engineSessionId。各快照对应的记录数与 trace 用户轮数一致时才按顺序使用原始输入；数量不一致则保守回退，避免将未发送/失败请求错配到另一轮。附件在用户视图仅显示 `[附件] 文件名`。
 - `conversation.ts:23` 只兼容能明确识别的旧格式：先去 Pi `<skill ... location=...>` 展开块，再清理 buildPrompt 包装与附件注入；空前后缀不能作为提前返回条件。原始输入快照优先，因此用户自己输入的类似技能标签不会被误删。不批量迁移/改写历史 trace。
 - `conversation.ts:48` 按每个 user 轮次聚合 assistant：最后一条无工具消息才是正文；此前的可见 text 进入 `process?: string[]`，该轮所有工具汇总为 `tools`，保留真实起止时间与成败。仅有工具而没有最终回答的中断轮不把前置说明提升成答案；不同用户轮的回答与工具不能混并。system、reasoning 和工具 input/output 不进入用户对话投影。
 

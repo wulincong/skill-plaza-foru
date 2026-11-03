@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, utimesSync } from 'node:fs'
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, utimesSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createServer } from 'node:http'
@@ -107,4 +107,16 @@ test('only a new complete manifest is captured on follow-up turns', t => {
   rmSync(file)
   symlinkSync(join(f.workspace, 'output/public/file.pdf'), file)
   assert.throws(() => readDeliveryManifest(f.workspace, fingerprint), /符号链接/)
+})
+
+test('an unreadable declaration fails explicitly even when it predates this turn', t => {
+  if (process.getuid?.() === 0) { t.skip('root bypasses mode bits'); return }
+  const f = setup(t), path = join(f.workspace, 'delivery.json')
+  writeFileSync(path, JSON.stringify(f.manifest))
+  chmodSync(path, 0)
+  try {
+    const previous = deliveryFingerprint(f.workspace)
+    assert.match(previous, /^unreadable:EACCES/)
+    assert.throws(() => readDeliveryManifest(f.workspace, previous), /无法读取 delivery.json.*EACCES/)
+  } finally { chmodSync(path, 0o600) }
 })

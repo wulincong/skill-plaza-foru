@@ -138,6 +138,7 @@ interface PiSession {
   lastUsed: number
   /** pi 自己的会话标识（get_state 返回，trace 导出用） */
   piSessionId?: string
+  hasContext?: boolean
   /** 从 pi model 配置 / get_session_stats 得到的上下文元数据。 */
   modelInfo: ModelContextInfo
 }
@@ -217,6 +218,10 @@ export class PiRunner extends AgentRunner {
 
   modelInfoForSession(sessionId: string): ModelContextInfo {
     return this.modelInfoOf(sessionId)
+  }
+
+  hasConversationContext(sessionId: string): boolean {
+    return this.sessions.get(sessionId)?.hasContext === true
   }
 
   private modelInfoOf(sid: string): ModelContextInfo {
@@ -516,6 +521,8 @@ export class PiRunner extends AgentRunner {
       '--thinking', this.thinking,
       /* 会话文件落在沙箱内，兼作权威 trace 来源 */
       '--session-dir', join(workspaceDir, '.pi-sessions'),
+      /* A process restart must reopen this workspace's persisted Pi context. */
+      '--continue',
       '-n', sid.slice(0, 8),
       /* 关闭扩展自动发现；自部署 provider 仅按需显式加载 */
       '--no-extensions',
@@ -550,6 +557,7 @@ export class PiRunner extends AgentRunner {
     const s = this.sessions.get(sid)
     if (s) {
       if (state?.sessionId) s.piSessionId = String(state.sessionId)
+      s.hasContext = Number(state?.messageCount) > 0
       this.updateModelInfo(sid, this.modelInfoFromState(state))
     }
     return sid
@@ -557,6 +565,8 @@ export class PiRunner extends AgentRunner {
 
   async send(sessionId: string, content: string): Promise<void> {
     await this.request({ type: 'prompt', message: content }, sessionId)
+    const session = this.sessions.get(sessionId)
+    if (session) session.hasContext = true
   }
 
   stop(sessionId: string) {

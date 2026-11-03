@@ -731,7 +731,7 @@ async function selectHistory(group: HistoryGroup) {
     stopTyping()
     currentConvId.value = Date.now()
     convSlugs.set(currentConvId.value, group.skill)
-    /* 服务端会话仍在内存时续聊带完整上下文；被回收则透明重开（旧上下文丢失） */
+    /* 后端优先复用内存会话，重启/回收后从同一工作区恢复持久上下文。 */
     if (run.clientSessionId) convSessions.set(`pi:${currentConvId.value}`, run.clientSessionId)
     activeSkill.value = skill
     let lastAi = -1

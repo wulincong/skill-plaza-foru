@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {mkdtemp,readFile,writeFile,mkdir,cp,rm} from 'node:fs/promises'
+import {mkdtemp,readFile,writeFile,mkdir,cp,rm,stat} from 'node:fs/promises'
 import {tmpdir} from 'node:os'
 import {join} from 'node:path'
 import {fileURLToPath} from 'node:url'
@@ -110,6 +110,8 @@ test('public delivery contains a standalone website and ZIP, excluding internal 
   assert.equal(delivery.web[0].entry,'index.html')
   assert.equal(delivery.files.length,1)
   const site=join(f.cwd,delivery.web[0].directory)
+  assert.equal((await stat(join(f.cwd,'delivery.json'))).mode & 0o777,0o640)
+  assert.equal((await stat(site)).mode & 0o050,0o050)
   const html=await readFile(join(site,'index.html'),'utf8')
   assert.match(html,/<meta name="viewport"/)
   const references=[...html.matchAll(/src="([^"]+)"/g)].map(m=>m[1])

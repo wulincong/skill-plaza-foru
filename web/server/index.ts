@@ -50,7 +50,7 @@ import {
 import { PiRunner, resolvePiCli, piModelRef } from './lib/piRunner.ts'
 import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
-import { deriveConversation } from './lib/conversation.ts'
+import { deriveSessionConversation } from './lib/conversation.ts'
 import { deliveryBaseUrl, deliveryFingerprint, handleDelivery, publishDelivery, publishLegacyDelivery, readDeliveryManifest, type DeliveryLinks } from './lib/delivery.ts'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -154,6 +154,7 @@ function sandboxAgentsMd(): string {
     '',
     '生成文件后，在会话工作区根目录写 delivery.json：{"web":[{"name":"报告","directory":"output/public/site","entry":"index.html"}],"files":[{"name":"报告交付包","path":"output/public/report.zip"}]}。仅填写实际生成的项目；没有的数组可省略。网页 directory 是只含公开内容的独立目录，入口与 CSS/JS/图片/数据使用相对路径；数据请求只能访问同一 /p/ 静态路径，外部服务、嵌入页面与动态后端不支持。',
     '所有路径相对于会话根目录，不允许绝对路径、符号链接、隐藏目录或 internal/uploads。网页目录整份公开，SQL证据、密码、配置、核查表和原始追踪不要放入。其余资源由 files 统一下载，不建设 PDF/图片/Excel 在线预览。',
+    'Linux 下运行器与后端通过工作区共享组交接：公开目录至少组读和穿行、公开文件及 delivery.json 至少组读（如目录2750、文件0640）。临时文件默认0600、临时目录0700，原子替换前须补齐共享组权限。',
     '先生成完整产物，再原子写入/替换 delivery.json。只有本轮新生成交付时更新清单，追问说明时不要重写。平台在任务结束后保存并返回真实访问/下载链接，不能自行编造 URL 或以磁盘路径代替交付链接。',
     '',
     '## 工程边界',
@@ -389,11 +390,12 @@ function handleRunsApi(req: any, res: any, seg: string[]) {
     } catch {
       /* 文件损坏按无详情处理 */
     }
-    const originalMessages = records
-      .filter(run => run.clientSessionId === record.clientSessionId && run.engineSessionId === record.engineSessionId && run.ts <= record.ts)
-      .sort((a, b) => a.ts.localeCompare(b.ts))
-      .map(run => ({ text: run.userMessage, attachments: run.attachments, webLinks: run.webLinks, downloads: run.downloads }))
-    sendJson(res, 200, { item: record, trace, conversation: deriveConversation(trace, promptWrappers(record.skill), originalMessages) })
+    const conversation = deriveSessionConversation(record, records, run => {
+      if (run.runId === record.runId) return trace
+      try { return run.files.trace ? JSON.parse(readFileSync(run.files.trace, 'utf8')) : null }
+      catch { return null }
+    }, promptWrappers)
+    sendJson(res, 200, { item: record, trace, conversation })
     return
   }
 
@@ -575,7 +577,7 @@ interface TurnParams {
   /** openai 非流式时终态一次性回 JSON；plaza 恒为流式 */
   stream: boolean
   skill: string
-  /** 已完成协议侧预处理（附件注入、历史拍平）的消息，最后一条必须是 user */
+  /** 最后一条必须是 user；历史是否注入由引擎恢复状态决定。 */
   messages: any[]
   sessionId?: unknown
   taskTitle: string
@@ -632,19 +634,8 @@ async function handleOpenAiChat(req: any, res: any) {
     sendJson(res, 400, openAiErrorBody('messages 最后一条必须是内容非空的 user 消息。', 'invalid_request_error'))
     return
   }
-  /* 无状态客户端每次带全量历史：新会话（未提供或服务端不认识的 sessionId）时
-     拍平进本轮 prompt；复用已知会话则按多轮只发最新一条。 */
-  const knownSession = typeof sessionId === 'string' && Boolean(sessionId) && sessions.has(sessionId)
-  let coreMessages = messages
-  if (!knownSession && messages.length > 1) {
-    const history = messages.slice(0, -1)
-      .filter((m: any) => (m?.role === 'user' || m?.role === 'assistant') && typeof m?.content === 'string' && m.content.trim())
-      .map((m: any) => `${m.role === 'user' ? '用户' : '助手'}：${m.content.trim()}`)
-      .join('\n\n')
-    if (history) {
-      coreMessages = [{ role: 'user', content: `【对话历史】\n${history}\n\n【当前消息】\n${latest.content}` }]
-    }
-  }
+  /* History injection is decided after opening Pi: a resumed disk session may
+     already contain the history even though the server's memory map is empty. */
   /* taskTitle 同 plaza 入口的清洗规则；不传则运行记录回退 promptDigest */
   const taskTitle = typeof body?.taskTitle === 'string'
     ? body.taskTitle.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
@@ -653,7 +644,7 @@ async function handleOpenAiChat(req: any, res: any) {
     protocol: 'openai',
     stream: body.stream === true,
     skill,
-    messages: coreMessages,
+    messages,
     sessionId,
     taskTitle,
     /* 附件与 plaza 同规：{name, path}，path 为 /api/upload 返回的相对路径；
@@ -1480,13 +1471,21 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     }
     unlisten = runner.listen(entry.engineSessionId, onEvent)
 
+    const turnPrompt = (first: boolean) => {
+      let input = messages
+      if (params.protocol === 'openai' && !runner.hasConversationContext(entry!.engineSessionId) && messages.length > 1) {
+        const history = messages.slice(0, -1)
+          .filter(m => (m?.role === 'user' || m?.role === 'assistant') && typeof m?.content === 'string' && m.content.trim())
+          .map(m => `${m.role === 'user' ? '用户' : '助手'}：${m.content.trim()}`).join('\n\n')
+        if (history) input = [{ role: 'user', content: `【对话历史】\n${history}\n\n【当前消息】\n${latest.content}` }]
+      }
+      return runner.buildPrompt(skill, input, first)
+    }
     try {
       runner.beginTurn(entry.engineSessionId)
-      await runner.send(entry.engineSessionId, runner.buildPrompt(skill, messages, !existingEntry))
+      await runner.send(entry.engineSessionId, turnPrompt(!existingEntry && !runner.hasConversationContext(entry.engineSessionId)))
     } catch (exc: any) {
-      /* pi 会话进程被空闲回收/退出后，浏览器仍持旧 sessionId——此前每次运行都会
-         立刻报错，只能刷新页面。这里透明重建引擎会话并按首轮重注入技能指令
-         （引擎侧多轮上下文已随进程丢失，无法恢复），替代报错要求手动刷新。 */
+      /* Reopen the persisted Pi session after process exit/idle collection. */
       const gone = /会话不存在|会话进程已退出/.test(String(exc?.message ?? ''))
       if (!gone) throw exc
       runner.disposeSession(entry.engineSessionId)
@@ -1499,7 +1498,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       untap = runner.tapSession(engineSessionId, (dir, msg) => recorder.proto(dir, msg))
       unlisten = runner.listen(engineSessionId, onEvent)
       runner.beginTurn(engineSessionId)
-      await runner.send(engineSessionId, runner.buildPrompt(skill, messages, true))
+      await runner.send(engineSessionId, turnPrompt(!runner.hasConversationContext(engineSessionId)))
     }
   } catch (exc: any) {
     wire.error(exc.message || '执行失败，请稍后重试。')

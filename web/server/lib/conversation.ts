@@ -1,3 +1,5 @@
+import type { RunRecord } from './traceExport.ts'
+
 export interface ConversationTool {
   tool: string
   failed: boolean
@@ -23,6 +25,49 @@ export interface OriginalUserMessage {
 }
 
 export interface PromptWrapper { prefix: string; suffix: string }
+
+/** Client conversations outlive engine processes. Merge persisted snapshots once
+ * per native Pi session; a resumed process can expose the same cumulative trace. */
+export function deriveSessionConversation(
+  record: RunRecord,
+  records: RunRecord[],
+  loadTrace: (run: RunRecord) => unknown,
+  wrappersFor: (skill: string) => PromptWrapper[],
+): ConversationTurn[] {
+  const runs = records.filter(run => (record.clientSessionId
+    ? run.clientSessionId === record.clientSessionId : run.runId === record.runId) && run.ts <= record.ts)
+    .sort((a, b) => a.ts.localeCompare(b.ts) || a.runId.localeCompare(b.runId))
+  const groups = new Map<string, { runs: RunRecord[]; trace: unknown; captured: number }>()
+  const nativeIds = new Map<string, string>()
+  const snapshots = runs.map(run => ({ run, trace: loadTrace(run) as any }))
+  // A later intact snapshot can identify an engine whose earlier trace is missing.
+  for (const { run, trace } of snapshots) {
+    const engineKey = run.engineSessionId || run.runId
+    const nativeId = trace?.session?.id
+    if (typeof nativeId === 'string' && nativeId) nativeIds.set(engineKey, `native:${nativeId}`)
+  }
+  for (const { run, trace } of snapshots) {
+    const engineKey = run.engineSessionId || run.runId
+    const key = nativeIds.get(engineKey) || `engine:${engineKey}`
+    const group = groups.get(key) || { runs: [], trace: null, captured: 0 }
+    group.runs.push(run)
+    if (Array.isArray(trace?.messages) && trace.messages.some((message: any) => message?.role === 'user')) {
+      group.trace = trace; group.captured = group.runs.length
+    }
+    groups.set(key, group)
+  }
+  return [...groups.values()].flatMap(group => {
+    const turns = deriveConversation(group.trace, wrappersFor(group.runs[0]!.skill), group.runs.slice(0, group.captured).map(run => ({
+      text: run.userMessage, attachments: run.attachments, webLinks: run.webLinks, downloads: run.downloads,
+    })))
+    // A missing trace must not remove a saved user message or its published files.
+    for (const run of group.runs.slice(group.captured)) {
+      turns.push({ role: 'user', text: (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '') })
+      if (run.webLinks?.length || run.downloads?.length) turns.push({ role: 'assistant', text: '', webLinks: run.webLinks, downloads: run.downloads })
+    }
+    return turns
+  })
+}
 
 export function stripUserPrompt(text: string, wrappers: PromptWrapper[]): string {
   let body = text.trimStart()

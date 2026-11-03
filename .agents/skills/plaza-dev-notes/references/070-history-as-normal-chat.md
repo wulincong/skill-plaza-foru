@@ -13,7 +13,7 @@
 
 ### 从历史续聊（069 路线落地）
 
-- restore 时同时重建运行态：`convSessions.set('pi:'+新convId, run.clientSessionId)`、`convSlugs.set(convId, group.skill)`、`activeSkill` 挂对应技能 chip。用户在恢复的对话里直接发消息即多轮续聊——服务端会话存活时带完整上下文；被空闲回收/重启则走服务端透明重开（旧上下文丢失，不报错），均为既有服务端行为。
+- restore 时同时重建运行态：`convSessions.set('pi:'+新convId, run.clientSessionId)`、`convSlugs.set(convId, group.skill)`、`activeSkill` 挂对应技能 chip。用户在恢复的对话里直接发消息即多轮续聊。2026-11-03 起，空闲回收/重启后使用 Pi `--continue` 恢复同工作区持久上下文；历史页面跨引擎进程合并，具体边界与验证见 [089](089-conversation-restart-and-delivery-permissions.md)。旧版“透明重开即丢上下文”的行为已修订。
 - 请求守卫从 per-runId token map 简化为单调 `selectionSeq`：快速切换历史对话时旧请求结果作废。
 
 ### 报告链接与 html 模式解耦（ReportOutput）
