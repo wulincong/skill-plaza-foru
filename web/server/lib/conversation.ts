@@ -9,6 +9,7 @@ export interface ConversationTool {
 
 export interface ConversationTurn {
   role: 'user' | 'assistant'
+  provider?: string
   text: string
   tools?: ConversationTool[]
   /** 工具调用前面向用户的过程说明；不包含模型 reasoning 或工具输入/输出。 */
@@ -18,6 +19,7 @@ export interface ConversationTurn {
 }
 
 export interface OriginalUserMessage {
+  provider?: string
   text?: string
   attachments?: string[]
   webLinks?: Array<{ name: string; url: string }>
@@ -58,6 +60,7 @@ export function deriveSessionConversation(
   }
   return [...groups.values()].flatMap(group => {
     const turns = deriveConversation(group.trace, wrappersFor(group.runs[0]!.skill), group.runs.slice(0, group.captured).map(run => ({
+      provider: run.outcome === 'success' ? run.tokenUsage?.provider ?? undefined : undefined,
       text: run.userMessage, attachments: run.attachments, webLinks: run.webLinks, downloads: run.downloads,
     })))
     // A missing trace must not remove a saved user message or its published files.
@@ -114,7 +117,7 @@ export function deriveConversation(
     const last = pending.at(-1)
     const final = last && !last.hasTools ? last.text : ''
     const process = pending.slice(0, final ? -1 : undefined).map(message => message.text).filter(Boolean)
-    turns.push({ role: 'assistant', text: final, ...(tools.length ? { tools } : {}), ...(process.length ? { process } : {}), ...(original?.webLinks?.length ? { webLinks: original.webLinks } : {}), ...(original?.downloads?.length ? { downloads: original.downloads } : {}) })
+    turns.push({ role: 'assistant', text: final, ...(original?.provider ? { provider: original.provider } : {}), ...(tools.length ? { tools } : {}), ...(process.length ? { process } : {}), ...(original?.webLinks?.length ? { webLinks: original.webLinks } : {}), ...(original?.downloads?.length ? { downloads: original.downloads } : {}) })
     pending = []
     tools = []
   }

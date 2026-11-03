@@ -14,13 +14,19 @@ const fixture = String.raw`#!/usr/bin/env node
 import {createInterface} from 'node:readline';
 import {mkdirSync,writeFileSync,readFileSync,existsSync,chmodSync} from 'node:fs';
 if(process.argv.includes('--version')) {console.log('delivery-test');process.exit(0)}
+const [provider,id]=process.argv[process.argv.indexOf('--model')+1].split('/');
+let model={provider,id,contextWindow:1000};
 const stateFile='.pi-sessions/fixture.json';
 let saved=process.argv.includes('--continue')&&existsSync(stateFile)?JSON.parse(readFileSync(stateFile,'utf8')):null;
 let messages=saved?.messages||[],nativeId=saved?.nativeId||String(Date.now()),last='';
 const send=x=>process.stdout.write(JSON.stringify(x)+'\n');
 for await(const line of createInterface({input:process.stdin})) {
  const c=JSON.parse(line); let data={};
- if(c.type==='get_state')data={sessionId:nativeId,messageCount:messages.length,model:{id:'test',provider:'test',contextWindow:1000}};
+ if(c.type==='get_state')data={sessionId:nativeId,messageCount:messages.length,model};
+ if(c.type==='set_model') {
+  if(c.provider==='youcai' && !process.argv.some(a=>a.endsWith('/pi/youcai.js'))) throw Error('youcai extension missing');
+  model={provider:c.provider,id:c.modelId,contextWindow:2000};data=model;
+ }
  if(c.type==='get_messages')data={messages};
  if(c.type==='get_last_assistant_text')data={text:last};
  if(c.type==='prompt') {
@@ -60,7 +66,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   t.after(stop)
   const start = async () => {
     child = spawn(process.execPath, [join(serverDir, 'index.ts')], {
-      cwd: dirname(serverDir), env: { ...process.env, PORT: String(port), PI_CLI: cli, PI_SANDBOX_USER: '', PI_IDLE_MS: '1000', DELIVERY_PUBLIC_BASE_URL: base, DELIVERIES_DIR: store, TRACES_DIR: join(temp, 'traces') },
+      cwd: dirname(serverDir), env: { ...process.env, PORT: String(port), PI_MODEL: 'deepseek/deepseek-v4-pro', PI_CLI: cli, PI_SANDBOX_USER: '', PI_IDLE_MS: '1000', DELIVERY_PUBLIC_BASE_URL: base, DELIVERIES_DIR: store, TRACES_DIR: join(temp, 'traces') },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     child.stdout.on('data', d => { logs += d }); child.stderr.on('data', d => { logs += d })
@@ -72,10 +78,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     throw new Error('server not ready: ' + logs)
   }
   await start()
-  const request = async (message, protocol = 'plaza', stream = true, history = []) => {
+  const request = async (message, protocol = 'plaza', stream = true, history = [], model) => {
     const response = await fetch(base + (protocol === 'plaza' ? '/api/chat' : '/v1/chat/completions'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base },
-      body: JSON.stringify({ skill: 'general', messages: [...history, { role: 'user', content: message }], sessionId, stream }),
+      body: JSON.stringify({ skill: 'general', messages: [...history, { role: 'user', content: message }], sessionId, stream, model }),
     })
     const body = await response.text()
     if (!stream && protocol === 'openai') return JSON.parse(body)
@@ -84,7 +90,12 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     assert(!frames.some(f => f.type === 'error'), body)
     return frames.findLast(f => f.type === 'done' || f.webLinks)
   }
-  const done = await request('generate')
+  const health = await fetch(base + '/api/health').then(r => r.json())
+  assert.deepEqual(health.chatModels.map(m => m.id), ['deepseek', 'youcai'])
+  assert.equal(health.defaultChatModel, 'deepseek')
+  const invalidModel = await fetch(base + '/api/chat', { method: 'POST', body: JSON.stringify({ skill: 'general', model: 'unknown' }) })
+  assert.equal(invalidModel.status, 400)
+  const done = await request('generate', 'plaza', true, [], 'deepseek')
   assert(done?.webLinks?.length, JSON.stringify(done) + logs)
   const url = done.webLinks[0].url
   assert.equal((await fetch(url)).status, 200)
@@ -92,7 +103,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   assert.match(download.headers.get('content-disposition'), /^attachment;/)
   assert.equal(await download.text(), 'test archive')
 
-  const followUp = await request('follow-up')
+  const followUp = await request('follow-up', 'plaza', true, [], 'youcai')
   assert.equal(followUp.webLinks, undefined)
   let detail
   for (let i = 0; i < 100; i++) {
@@ -100,6 +111,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     if (detail.conversation) break
     await pause(20)
   }
+  assert.deepEqual(detail.conversation.filter(t => t.role === 'assistant').map(t => t.provider), ['deepseek', 'youcai'])
+  assert.equal(detail.item.tokenUsage.provider, 'youcai')
+  assert.equal(detail.item.agentEnv.model, 'youcai/youcai')
+  assert.equal(detail.item.tokenUsage.contextWindowTokens, 2000)
   assert.equal(detail.conversation[1].webLinks[0].url, url)
   assert.equal(detail.conversation[3].webLinks, undefined)
 

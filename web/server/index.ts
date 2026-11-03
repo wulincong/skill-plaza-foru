@@ -47,7 +47,7 @@ import {
   type MetaChart,
   type SidecarExtract,
 } from './lib/reportMeta.ts'
-import { PiRunner, resolvePiCli, piModelRef } from './lib/piRunner.ts'
+import { PiRunner, resolvePiCli, piModelRef, type PiModelRef } from './lib/piRunner.ts'
 import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } from './lib/pdfReport.ts'
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
 import { deriveSessionConversation } from './lib/conversation.ts'
@@ -83,7 +83,13 @@ if (!piCli) {
   process.exit(1)
 }
 const DEFAULT_ENGINE: EngineName = 'pi'
-const runner = new PiRunner(piModelRef(), piCli)
+const defaultModel = piModelRef()
+const runner = new PiRunner(defaultModel, piCli)
+const chatModels = [
+  { id: 'deepseek', name: 'DeepSeek', route: defaultModel.provider === 'deepseek' ? defaultModel : { provider: 'deepseek', modelId: 'deepseek-v4-pro' } },
+  { id: 'youcai', name: '优才之路产教融合大模型', route: { provider: 'youcai', modelId: 'youcai' } },
+]
+const defaultChatModel = chatModels.find(m => m.id === defaultModel.provider)?.id ?? 'deepseek'
 
 /* ------------------------------------------------------------
    会话管理：浏览器 sessionId → 引擎会话 + 沙箱目录
@@ -92,8 +98,9 @@ const runner = new PiRunner(piModelRef(), piCli)
 
 const sessions = new Map<
   string,
-  { engine: EngineName; engineSessionId: string; workspaceDir: string; busy: boolean }
+  { engine: EngineName; engineSessionId: string; workspaceDir: string }
 >()
+const activeTurns = new Set<string>()
 
 /* ------------------------------------------------------------
    沙箱 AGENTS.md：会话工作目录的服务端说明。pi 以 --no-context-files
@@ -245,6 +252,8 @@ const server = createServer((req, res) => {
     sendJson(res, 200, {
       ok: true,
       model: runner.describe(),
+      chatModels: chatModels.map(({ id, name }) => ({ id, name })),
+      defaultChatModel,
       runner: DEFAULT_ENGINE,
       // 保留数组形状兼容旧客户端，但只公布 Pi。
       engines: [{ id: DEFAULT_ENGINE, available: true, model: runner.describe(), version: runner.envInfo().agentVersion }],
@@ -573,6 +582,7 @@ async function handleUpload(req: any, res: any) {
 type ChatProtocol = 'plaza' | 'openai'
 
 interface TurnParams {
+  model?: PiModelRef
   protocol: ChatProtocol
   /** openai 非流式时终态一次性回 JSON；plaza 恒为流式 */
   stream: boolean
@@ -667,7 +677,12 @@ async function handleChat(req: any, res: any) {
     return
   }
 
-  const { skill, messages, sessionId } = body || {}
+  const { skill, messages, sessionId, model } = body || {}
+  const selected = chatModels.find(choice => choice.id === model)
+  if (model !== undefined && !selected) {
+    sendJson(res, 400, { error: '未知的对话模型，请选择 DeepSeek 或优才之路产教融合大模型。' })
+    return
+  }
   /* taskTitle 由结构化表单生成，仅作为用户可见标题；不信任过长或带控制字符的输入。 */
   const taskTitle = typeof body?.taskTitle === 'string'
     ? body.taskTitle.replace(/[\u0000-\u001f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 120)
@@ -694,6 +709,7 @@ async function handleChat(req: any, res: any) {
 
   await runChatTurn(req, res, {
     protocol: 'plaza',
+    model: selected?.route,
     stream: true,
     skill,
     messages,
@@ -954,6 +970,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     finish()
     return
   }
+  if (activeTurns.has(clientSessionId)) {
+    wire.busy()
+    finish()
+    return
+  }
+  const target = params.model ?? defaultModel
   let entry = existingEntry
   let unlisten: () => void = () => {}
   let untap: () => void = () => {}
@@ -1000,7 +1022,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       latest.content = `${latest.content}\n\n${attachmentNotes.join('\n\n')}`
     }
   }
-  let contextInfo: ModelContextInfo = runner.modelInfo()
+  let contextInfo: ModelContextInfo = { ...runner.modelInfo(), provider: target.provider, model: target.modelId }
   const usageRounds: UsageRound[] = []
   const initialTokenUsage: TokenUsageSnapshot = tokenUsageFrom(undefined, contextInfo)
   const recorder = new RunRecorder(runId, {
@@ -1039,10 +1061,6 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     }
   }
   const currentTokenUsage = (): TokenUsageSnapshot => tokenUsageFrom(lastUsage, contextInfo, usageRounds)
-  if (entry) {
-    mergeContextInfo(runner.modelInfoForSession(entry.engineSessionId))
-    recorder.updateStart({ ...currentTokenUsage(), usageRounds: [] })
-  }
   let finalText = ''
   let runFinalized = false
   /* 侧车流式隐藏（仅 maskSidecar 技能累积，见 onEvent）：围栏标记可能跨 delta
@@ -1276,7 +1294,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         }
       }
       /* 环境快照：版本探测首次触发（此后命中缓存）；失败字段自然缺省 */
-      const agentEnv = { ...serverEnv(), ...runner.envInfo() }
+      const agentEnv = { ...serverEnv(), ...runner.envInfo(), model: `${tokenUsage.provider}/${tokenUsage.model}` }
       record.agentEnv = agentEnv
       recorder.note({ agentEnv })
       appendIndex(record)
@@ -1289,7 +1307,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     clearTimeout(timeout)
     unlisten()
     untap()
-    if (entry) entry.busy = false
+    activeTurns.delete(clientSessionId)
   }
 
   timeout = setTimeout(() => {
@@ -1321,7 +1339,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   res.on('close', () => {
     if (res.writableEnded) return
     clientGone = true
-    if (entry?.busy) {
+    if (entry && !cleaned) {
       runner.stop(entry.engineSessionId)
       /* The browser has already disconnected; only persist any report that was
          flushed before the abort. A future history lookup can recover it. */
@@ -1333,25 +1351,17 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     wire.stopHeartbeat()
   })
 
+  activeTurns.add(clientSessionId)
   try {
     if (!entry) {
       const dir = workspaceDirFor(clientSessionId)
-      const engineSessionId = await runner.createSession(dir, { skill })
-      entry = { engine, engineSessionId, workspaceDir: dir, busy: false }
+      const engineSessionId = await runner.createSession(dir, { skill, model: target })
+      if (cleaned) { runner.disposeSession(engineSessionId); return }
+      entry = { engine, engineSessionId, workspaceDir: dir }
       sessions.set(clientSessionId, entry)
-      mergeContextInfo(runner.modelInfoForSession(engineSessionId))
-      recorder.updateStart({ ...currentTokenUsage(), usageRounds: [] })
       recorder.note({ created: engineSessionId, engine, workspaceDir: dir })
       wire.session(clientSessionId)
     }
-    if (entry.busy) {
-      wire.busy()
-      finalizeRun('error')
-      cleanup()
-      finish()
-      return
-    }
-    entry.busy = true
     turnStarted = true
     untap = runner.tapSession(entry.engineSessionId, (dir, msg) => recorder.proto(dir, msg))
 
@@ -1481,15 +1491,24 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       }
       return runner.buildPrompt(skill, input, first)
     }
+    const sendTurn = async () => {
+      const sid = entry!.engineSessionId
+      contextInfo = { ...await runner.selectModel(sid, target), peakContextTokens: null }
+      if (cleaned || clientGone) return
+      recorder.updateStart({ ...currentTokenUsage(), usageRounds: [] })
+      runner.beginTurn(sid)
+      await runner.send(sid, turnPrompt(!runner.hasConversationContext(sid)))
+    }
     try {
-      runner.beginTurn(entry.engineSessionId)
-      await runner.send(entry.engineSessionId, turnPrompt(!existingEntry && !runner.hasConversationContext(entry.engineSessionId)))
+      await sendTurn()
     } catch (exc: any) {
       /* Reopen the persisted Pi session after process exit/idle collection. */
       const gone = /会话不存在|会话进程已退出/.test(String(exc?.message ?? ''))
+      if (cleaned) return
       if (!gone) throw exc
       runner.disposeSession(entry.engineSessionId)
-      const engineSessionId = await runner.createSession(entry.workspaceDir, { skill })
+      const engineSessionId = await runner.createSession(entry.workspaceDir, { skill, model: target })
+      if (cleaned) { runner.disposeSession(engineSessionId); return }
       entry.engineSessionId = engineSessionId
       sessions.set(clientSessionId, entry)
       recorder.note({ sessionRecreated: engineSessionId })
@@ -1497,8 +1516,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       untap()
       untap = runner.tapSession(engineSessionId, (dir, msg) => recorder.proto(dir, msg))
       unlisten = runner.listen(engineSessionId, onEvent)
-      runner.beginTurn(engineSessionId)
-      await runner.send(engineSessionId, turnPrompt(!runner.hasConversationContext(engineSessionId)))
+      await sendTurn()
     }
   } catch (exc: any) {
     wire.error(exc.message || '执行失败，请稍后重试。')

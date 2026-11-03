@@ -1,4 +1,4 @@
-/* 自部署 vLLM / Qwen 服务：由 PiRunner 按 provider 显式加载。
+/* 自部署 vLLM / Qwen 服务：由 PiRunner 显式注册以支持会话内切换。
    保留 Pi 内置的流式、工具调用、取消与 usage 转换，不另写模型客户端。 */
 import { loadLocalEnv } from '../lib/env.ts'
 

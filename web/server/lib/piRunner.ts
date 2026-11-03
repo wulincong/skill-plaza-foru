@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    pi RPC 是单会话协议，因此【每个引擎会话一个
    常驻子进程】，cwd 即沙箱 workspace；模型经 --model provider/id
-   钉死（默认 GPT-6 Astra）。命令/事件协议见 docs/pi-runner.md 与
+   指定启动模型，后续可经 set_model 切换。命令/事件协议见 docs/pi-runner.md 与
    samples/pi-rpc-events-sample.jsonl（照真实输出写的解析）。
    会话进程空闲回收（PI_IDLE_MS），进程内天然保留多轮上下文。
    ============================================================ */
@@ -56,7 +56,9 @@ export function resolvePiCli(): string | null {
 }
 
 /** PI_MODEL（格式 provider/model），默认 GPT-6 Astra；思考档位默认 medium */
-export function piModelRef(): { provider: string; modelId: string } {
+export type PiModelRef = { provider: string; modelId: string }
+
+export function piModelRef(): PiModelRef {
   loadLocalEnv()
   const raw = process.env.PI_MODEL?.trim() || 'openai-codex/gpt-6-astra'
   const i = raw.indexOf('/')
@@ -163,7 +165,7 @@ export class PiRunner extends AgentRunner {
   private toolTiming = new Map<string, Map<string, { startedAt: number; endedAt?: number }>>()
   private toolTimingRound = new Map<string, number>()
 
-  private readonly model: { provider: string; modelId: string }
+  private readonly model: PiModelRef
   private readonly cli: string | null
   private readonly thinking: string
 
@@ -176,7 +178,7 @@ export class PiRunner extends AgentRunner {
     }
   }
 
-  constructor(model?: { provider: string; modelId: string }, cli?: string | null) {
+  constructor(model?: PiModelRef, cli?: string | null) {
     super()
     this.model = model ?? piModelRef()
     this.cli = cli === undefined ? resolvePiCli() : cli
@@ -228,15 +230,28 @@ export class PiRunner extends AgentRunner {
     return this.sessions.get(sid)?.modelInfo ?? this.modelInfo()
   }
 
-  private modelInfoFromState(state: any): ModelContextInfo {
-    const model = state?.model
+  private contextForModel(model: any): ModelContextInfo {
     const contextWindowTokens = numberOrUndefined(model?.contextWindow)
     return {
-      model: typeof model?.id === 'string' ? model.id : this.model.modelId,
-      provider: typeof model?.provider === 'string' ? model.provider : this.model.provider,
+      model: typeof model?.id === 'string' ? model.id : null,
+      provider: typeof model?.provider === 'string' ? model.provider : null,
       contextWindowTokens: contextWindowTokens ?? null,
       contextWindowSource: contextWindowTokens !== undefined ? 'model_config' : 'provider_metadata_unavailable',
     }
+  }
+
+  /** Confirm the requested route before sending the user's prompt. */
+  async selectModel(sid: string, target: PiModelRef) {
+    const session = this.sessions.get(sid)
+    if (!session) throw new Error('pi 会话不存在')
+    if (session.modelInfo.provider !== target.provider || session.modelInfo.model !== target.modelId) {
+      const model = await this.request({ type: 'set_model', ...target }, sid)
+      if (model?.provider !== target.provider || model?.id !== target.modelId) {
+        throw new Error('Pi 未确认所选模型，请重新选择后重试。')
+      }
+      session.modelInfo = this.contextForModel(model)
+    }
+    return session.modelInfo
   }
 
   /**
@@ -511,12 +526,13 @@ export class PiRunner extends AgentRunner {
     }
   }
 
-  async createSession(workspaceDir: string, opts: { skill?: string } = {}): Promise<string> {
+  async createSession(workspaceDir: string, opts: { skill?: string; model?: PiModelRef } = {}): Promise<string> {
     if (!this.cli) throw new Error('未找到 pi CLI：请安装 pi（npm i -g @earendil-works/pi-coding-agent）或在 web/.env 配置 PI_CLI。')
     const sid = randomUUID()
+    const target = opts.model ?? this.model
     const args = [
       '--mode', 'rpc',
-      '--model', `${this.model.provider}/${this.model.modelId}`,
+      '--model', `${target.provider}/${target.modelId}`,
       /* 思考档位默认 medium */
       '--thinking', this.thinking,
       /* 会话文件落在沙箱内，兼作权威 trace 来源 */
@@ -524,8 +540,9 @@ export class PiRunner extends AgentRunner {
       /* A process restart must reopen this workspace's persisted Pi context. */
       '--continue',
       '-n', sid.slice(0, 8),
-      /* 关闭扩展自动发现；自部署 provider 仅按需显式加载 */
+      /* 关闭扩展自动发现，只注册受支持的仓库 provider */
       '--no-extensions',
+      '--extension', fileURLToPath(new URL('../pi/youcai.js', import.meta.url)),
       /* 关闭 AGENTS.md/CLAUDE.md 目录链发现：沙箱 cwd 在仓库内，pi 会沿父目录
          把仓库根的开发 AGENTS.md（开发手记强制读写等工程约定）收进用户运行
          上下文，沙箱智能体曾据此写开发手记、改仓库文件（2026-10-19 实证，手记 075） */
@@ -534,9 +551,6 @@ export class PiRunner extends AgentRunner {
          resolvePromptInput）；会话 AGENTS.md 由 workspaceDirFor 建目录时生成 */
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
-    if (this.model.provider === 'youcai') {
-      args.push('--extension', fileURLToPath(new URL('../pi/youcai.js', import.meta.url)))
-    }
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
@@ -558,7 +572,7 @@ export class PiRunner extends AgentRunner {
     if (s) {
       if (state?.sessionId) s.piSessionId = String(state.sessionId)
       s.hasContext = Number(state?.messageCount) > 0
-      this.updateModelInfo(sid, this.modelInfoFromState(state))
+      s.modelInfo = this.contextForModel(state?.model)
     }
     return sid
   }
@@ -662,7 +676,7 @@ export class PiRunner extends AgentRunner {
     const trace: SessionTrace = {
       session: {
         id: state?.sessionId ?? info?.piSessionId ?? sessionId,
-        title: `pi ${this.model.modelId}`,
+        title: `pi ${tokenUsage.model ?? this.model.modelId}`,
         workspace: info?.workspaceDir ?? '',
         created: messages[0]?.time ?? new Date().toISOString(),
         updated: messages[messages.length - 1]?.time ?? new Date().toISOString(),

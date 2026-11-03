@@ -16,7 +16,12 @@ export type EngineId = 'pi'
 export interface DeliveryLink { name: string; url: string }
 import type { ReportChart } from '../data/runsMock'
 
+export type ChatModelId = 'deepseek' | 'youcai'
+export interface ChatModelOption { id: ChatModelId; name: string }
+
 export interface HealthResult {
+  chatModels?: ChatModelOption[]
+  defaultChatModel?: ChatModelId
   ok: boolean
   model?: string
   runner?: EngineId
@@ -51,7 +56,7 @@ export async function checkHealth(): Promise<HealthResult> {
       const message = data.message || 'API 未配置'
       return { ok: false, reason: message.includes('密钥') ? 'nokey' : 'offline', message }
     }
-    return { ok: true, model: data.model, runner: data.runner }
+    return { ok: true, model: data.model, runner: data.runner, chatModels: data.chatModels, defaultChatModel: data.defaultChatModel }
   } catch {
     return { ok: false, reason: 'offline', message: '需要启动本地服务' }
   }
@@ -65,6 +70,7 @@ export interface ChatAttachment {
 }
 
 export interface StreamChatOptions {
+  model?: ChatModelId
   skill: string
   /** 结构化任务生成的用户可读标题，用于运行历史和报告文件名。 */
   taskTitle?: string
@@ -79,11 +85,11 @@ export interface StreamChatOptions {
 
 /** 流式对话：消费 /api/chat 的 SSE，逐事件回调。 */
 export async function streamChat(options: StreamChatOptions): Promise<void> {
-  const { skill, taskTitle, messages, sessionId, attachments, onEvent, signal } = options
+  const { skill, model, taskTitle, messages, sessionId, attachments, onEvent, signal } = options
   const response = await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ skill, taskTitle, messages, sessionId, attachments }),
+    body: JSON.stringify({ skill, model, taskTitle, messages, sessionId, attachments }),
     signal,
   })
   if (!response.ok || !response.body) {

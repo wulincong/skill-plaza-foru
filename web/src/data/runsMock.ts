@@ -25,6 +25,7 @@ export type ReportChart = {
 }
 
 export interface RunListItem {
+  tokenUsage?: { provider?: string | null; model?: string | null }
   webLinks?: Array<{ name: string; url: string }>
   downloads?: Array<{ name: string; url: string }>
   runId: string

@@ -8,7 +8,7 @@
 
 ## 约定细节
 
-- 模型路由仍使用 `PI_MODEL=provider/model`；本次为 `youcai/youcai`。`web/server/lib/piRunner.ts:530` 仅在 provider 为 `youcai` 时显式传 `--extension <repo>/web/server/pi/youcai.js`。保留 `--no-extensions` 的自动发现关闭行为和 075/078 的上下文、低权用户边界。
+- 模型路由仍使用 `PI_MODEL=provider/model`；本次为 `youcai/youcai`。`web/server/lib/piRunner.ts:530` 初版仅在 provider 为 `youcai` 时显式传 `--extension <repo>/web/server/pi/youcai.js`。保留 `--no-extensions` 的自动发现关闭行为和 075/078 的上下文、低权用户边界。
 - `web/server/pi/youcai.js:5` 注册 `youcai`，API 类型为 `openai-completions`，复用 Pi 的消息转换、流式、工具结果、usage、取消机制；没有引入第二个模型执行引擎。
 - 默认 `baseUrl` 为 `https://u496025-7845e5610890.bjb2.seetacloud.com:8443/v1`，请求路径为 `/v1/chat/completions`。可用 `YOUCAI_BASE_URL` 覆盖（`web/server/pi/youcai.js:9`）；值须包含 `/v1`，从 `web/.env` 读取时保持外部环境优先。低权部署将覆盖值放在 `web/.env`，不增加 sudo 环境透传项。
 - Pi / OpenAI SDK 要求非空 API Key，内部使用非凭据占位值 `unused`（`web/server/pi/youcai.js:12`）。`authHeader: false` 本身不会阻止 SDK 默认 Bearer 头，因此还通过 `before_provider_headers` 将所有大小写形式的 Authorization 显式设为 `null`（`:31`）。仅作用于 `ctx.model.provider === 'youcai'`，切换其他 provider 时保留其认证头。
@@ -19,7 +19,7 @@
 
 ## 成本与取舍
 
-- 选择按需加载的仓库 provider，使普通用户和低权 Pi 共用同一代码，且不修改 `~/.pi`、`/opt` 或 sudoers。否决修改全局 `models.json` / `PI_AGENT_DIR`：它们需要同步两个用户的目录，并容易影响既有认证与设置。
+- 初版选择按需加载的仓库 provider，使普通用户和低权 Pi 共用同一代码，且不修改 `~/.pi`、`/opt` 或 sudoers。否决修改全局 `models.json` / `PI_AGENT_DIR`：它们需要同步两个用户的目录，并容易影响既有认证与设置。
 - 否决重写 OpenAI SDK 客户端或直连模型替代 Pi：会重复实现工具循环、会话、流式和 trace。扩展只声明模型与认证差异。
 - 使用 Pi 已安装版本提供的 `qwen-chat-template` 与请求头钩子；本机低权运行时 v0.87.1 已实测。旧版 Pi 若不支持这些接口需先验证/升级，不将兼容性推定为已完成。
 - 服务地址与上下文元数据是当前部署快照；迁移地址用配置覆盖，换模型/上下文需重新核实。图像能力不依据目录名推定为已经验证。
@@ -40,3 +40,17 @@
 - 如需图像能力，先验证普通图片与工具返回图片，再登记 `image` 输入。
 - 专项验证取消、上下文溢出、断流与自动重试；复用 Pi 已有实现不等于这些场景已对当前部署实测。
 - 需要更多自部署模型时再提取通用 provider 配置，不因单个服务预建动态模型管理系统。
+
+## 2026-11-03 在线对话切换模型（已实现）
+
+原体验页菜单包含模拟选项，发送时始终使用服务的全局模型。现在每次发送都能独立指定提供方，同一对话沿用当前 Pi 进程、工具上下文及附件目录。
+
+- `web/server/index.ts:88` 维护两个服务端别名。健康接口（同文件第 255 行）返回 `chatModels: [{id,name}]` 与 `defaultChatModel`。网页默认匹配配置的提供方，否则选 DeepSeek。DeepSeek 优先复用部署配置的 DeepSeek 型号，否则为 `deepseek/deepseek-v4-pro`。优才使用 `youcai/youcai`。
+- `POST /api/chat` 在 `web/server/index.ts:681` 校验可选 `model`，接受 `deepseek`、`youcai`，其他值返回 HTTP 400。省略字段及 OpenAI 兼容入口继续使用部署默认模型。已有 SSE 帧可直接复用。
+- `web/server/lib/piRunner.ts:545` 在创建每个 Pi 会话时显式注册仓库 youcai 扩展，取代初版的按提供方加载。保留禁用扩展自动发现和按 provider 隔离认证头的规则。启动选定模型或恢复会话后，每轮先核对会话状态，再按需发送 `set_model` 并检查 Pi 返回的 provider/id（第 244 行），确认后才发送 prompt。会话标识互斥覆盖异步创建和换模（`web/server/index.ts:973`），相互独立的会话各自选模型。
+- `web/src/pages/ExperiencePage.vue:1101` 使用原生有标签的下拉框与现有明暗主题令牌，键盘或触屏均可选择，运行时禁用。第 435 行把当前选择传给真实聊天请求。旧服务未声明能力时仅展示其模型，离线显示演示模式。
+- 运行用量与环境快照记录本轮模型。恢复对话时按最近运行选中模型；历史回答的标签仅在原始输入与轮次数量吻合且有成功运行的提供方记录时显示（`web/server/lib/conversation.ts:63`）。历史数据未记录提供方时不补猜。
+
+**取舍与后续。** 统一注册一个本地扩展，换取同一会话内即时切换。重建进程会额外付出启动与重载成本；修改全局环境变量会让其他用户的请求串用提供方。若以后加入新模型，先验证 Pi 工具、鉴权与可切换性，再扩充服务端白名单。当前验收限于短对话，跨模型长报告质量仍待专项验证。
+
+**验证。** 50 项服务端、HTTP/SSE、提供方与前端回归通过（含 Chrome 交付测试），Vue 类型检查与 Vite 构建通过。在使用实际低权 Pi 与单独 trace 目录的 390px Chrome 会话中，先选 DeepSeek 发送口令，再选优才追问，第二轮正确复述；两条记录的 clientSessionId 和 engineSessionId 均相同，环境快照分别为 `deepseek/deepseek-v4-pro` 和 `youcai/youcai`。重启验证服务、重新进入历史对话后，两条回答保留各自的模型标签。现有 4188 页面加载新的模型列表，窄屏深色布局无横向溢出。

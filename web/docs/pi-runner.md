@@ -21,7 +21,7 @@ pi --mode rpc \
    --session-dir <workspace>/.pi-sessions \  # 会话文件落沙箱，兼作权威 trace 来源
    -n <短id> \
    --no-extensions \                         # 关闭扩展自动发现
-   [--extension <repo>/web/server/pi/youcai.js] # provider=youcai 时显式加载
+   --extension <repo>/web/server/pi/youcai.js # 显式注册可切换的 provider
    [--skill <repo>/.agents/skills/<slug>]    # 已安装技能（SKILL.md 格式两边通用）
 ```
 
@@ -41,6 +41,17 @@ pi --mode rpc \
 - 收尾信号：`agent_settled`（重试/压缩/排队全部落定）；`agent_end` 只是单次低层运行结束。
 - 常用命令：`get_state`（就绪探测）、`get_last_assistant_text`（终文本）、
   `get_messages`（trace 导出）、`get_session_stats`（会话级 token/成本）、`abort`（停止当前执行）。
+
+## 在线对话选模型
+
+`/api/health` 的 `chatModels` 和 `defaultChatModel` 供聊天输入框展示。
+`POST /api/chat` 可传 `model: "deepseek"` 或 `model: "youcai"`。
+DeepSeek 使用已配置的 DeepSeek 型号，否则使用 `deepseek/deepseek-v4-pro`。
+优才之路产教融合大模型使用 `youcai/youcai`。网页优先选中配置的提供方，
+其他配置下初选 DeepSeek。省略字段时，后端沿用 `PI_MODEL`。
+
+Pi 会在下一轮 prompt 前通过 RPC `set_model` 切换当前会话。
+选定模型不可用时，该轮返回错误。模型提供方的认证与服务地址由后端管理。
 
 ## usage 字段（DeepSeek 实测）
 
@@ -84,7 +95,7 @@ PI_THINKING=off
 #YOUCAI_BASE_URL=https://u496025-7845e5610890.bjb2.seetacloud.com:8443/v1
 ```
 
-`PiRunner` 只在 provider 为 `youcai` 时显式加载 `server/pi/youcai.js`，
+`PiRunner` 启动时显式加载 `server/pi/youcai.js`，
 不需要改全局 `~/.pi/agent/models.json`，也不需要给沙箱用户配置凭据。
 自部署接口使用 Pi 内置 `openai-completions` 转换，实际请求路径为
 `/v1/chat/completions`。Pi / SDK 的非空 key 检查使用内部占位值，

@@ -43,7 +43,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 027 | Pi-only 执行链与就业报告固定用户结构 | 已实现（真实报告回归待用户执行） | [027-pi-only-user-report-structure.md](references/027-pi-only-user-report-structure.md) |
 | 030 | 在线运行安全进度时间线：只登记真实工具调用，工具参数/SQL/路径不进前端 DOM | 已实现（066 起以 ToolCallGroup 工具组形态呈现） | [030-stream-progress-timeline.md](references/030-stream-progress-timeline.md) |
 | 035 | Pi 通用模型选择与计费来源（全局 Skill，防误走第三方计费） | 已实现 Skill，项目运行时接入待实现 | [035-pi-model-selection-and-billing-source.md](references/035-pi-model-selection-and-billing-source.md) |
-| 082 | 自部署 youcai 模型：Pi 显式 provider、无认证请求、Qwen 思考开关与低权沙箱接入 | 已实现（真实服务/Pi 工具/API/请求头验证、18 项回归与构建通过） | [082-youcai-model-provider.md](references/082-youcai-model-provider.md) |
+| 082 | 自部署 youcai 与在线对话模型切换（DeepSeek / 优才之路产教融合大模型） | 已实现（浏览器跨模型续聊、逐轮历史标注、50 项回归与构建通过） | [082-youcai-model-provider.md](references/082-youcai-model-provider.md) |
 | 036 | OpenAI 兼容端点 /v1/chat/completions：外部项目统一接入入口 | 接口已实现；2026-11-03 追加微信机器人两阶段报告接入设计（待实现） | [036-openai-compat-chat-endpoint.md](references/036-openai-compat-chat-endpoint.md) |
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |

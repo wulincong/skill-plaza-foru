@@ -2,10 +2,10 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { bySlug, catOf, SKILLS, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
-import { checkHealth, streamChat, type ChatAttachment, type ChatEvent } from '../composables/useChatApi'
+import { checkHealth, streamChat, type ChatAttachment, type ChatEvent, type ChatModelId, type ChatModelOption } from '../composables/useChatApi'
 import { takePendingFormTask } from '../composables/pendingTask'
 import { uploadFile, validateUploadFile, formatSize, type UploadedFile } from '../composables/useUpload'
-import { fetchRunDetail, fetchRuns, runReportUrl, setConversationArchived, deleteConversation } from '../api/runsApi'
+import { fetchRunDetail, fetchRuns, runReportUrl, setConversationArchived, deleteConversation, type RunDetailResult } from '../api/runsApi'
 import { OUTCOME_LABEL, type RunListItem } from '../data/runsMock'
 import type { ReportChart as ReportChartData } from '../data/runsMock'
 import Icon from '../components/Icon.vue'
@@ -16,7 +16,7 @@ import { collectConversationResources } from '../composables/conversationResourc
 import { toast } from '../composables/toast'
 
 /* 在线对话：广场的唯一对话与运行呈现面。
-   后端就绪时真实流式运行（Pi + DeepSeek）：默认通用智能体，$ 挂载技能；
+   后端就绪时真实流式运行（Pi）：默认通用智能体，$ 挂载技能；
    「任务配置」表单页提交的任务也交接到这里运行。
    历史展示服务端运行记录（/api/runs），后端未启动时回落为演示摘要输出。 */
 
@@ -26,6 +26,7 @@ interface Msg {
   skill?: Skill
   done: boolean
   real?: boolean
+  modelName?: string
   /** done 事件带回的图表与报告链接（表单任务/报告技能） */
   charts?: ReportChartData[]
   reportUrl?: string
@@ -192,30 +193,20 @@ function handleProgressStatus(event: Extract<ChatEvent, { type: 'status' }>) {
 const apiReady = ref(false)
 const apiModel = ref('')
 
+const models = ref<ChatModelOption[]>([])
+const selectedModel = ref<ChatModelId>()
+let defaultChatModel: ChatModelId | undefined
+
 async function probeApi() {
   const result = await checkHealth()
   apiReady.value = result.ok
-  apiModel.value = result.ok ? (result.model ?? '') : ''
-  if (result.ok) {
-    MODELS[0].name = '智能体搭子 Agent（真实运行）'
-  }
+  apiModel.value = result.model ?? ''
+  models.value = result.chatModels ?? []
+  defaultChatModel = result.defaultChatModel
+  selectedModel.value = defaultChatModel
 }
 
-/* 模型选择器：演示选项，仅影响显示 */
-const MODELS = [
-  { id: 'skill-agent', name: '智能体搭子 Agent' },
-  { id: 'deepseek', name: 'DeepSeek V4 Pro' },
-  { id: 'gpt', name: 'GPT-5' },
-  { id: 'qwen', name: '通义千问 Max' },
-]
-const model = ref(MODELS[0])
-const modelOpen = ref(false)
-function pickModel(id: string) {
-  model.value = MODELS.find(m => m.id === id) ?? MODELS[0]
-  modelOpen.value = false
-}
 function onDocClick(event: MouseEvent) {
-  if (modelOpen.value && !(event.target as HTMLElement | null)?.closest('.exp-model')) modelOpen.value = false
   if (skillMenu.value && !(event.target as HTMLElement | null)?.closest('.exp-input-box')) skillMenu.value = false
 }
 
@@ -438,14 +429,17 @@ async function runReal(text: string, slug: string, skill: Skill | undefined, opt
   const sessionKey = `pi:${convId}`
   beginRun()
   try {
+    const choice = models.value.find(m => m.id === selectedModel.value)
     await streamChat({
       skill: slug,
+      model: choice?.id,
       taskTitle: opts.taskTitle,
       messages: [{ role: 'user', content: text }],
       sessionId: convSessions.get(sessionKey),
       attachments: opts.attachments,
       onEvent: makeStreamHandler(msg, sessionKey),
     })
+    msg.modelName = choice?.name ?? apiModel.value
     msg.done = true
   } catch (error) {
     const reason = error instanceof Error ? error.message : '请求失败，请稍后重试。'
@@ -582,7 +576,7 @@ interface HistoryGroup {
 interface HistoryDetail {
   webLinks?: Array<{ name: string; url: string }>
   downloads?: Array<{ name: string; url: string }>
-  conversation: Array<{ role: 'user' | 'assistant'; text: string; tools?: Array<{ tool: string; failed: boolean; startedAt?: number; endedAt?: number }>; process?: string[]; webLinks?: Array<{ name: string; url: string }>; downloads?: Array<{ name: string; url: string }> }>
+  conversation: NonNullable<RunDetailResult['conversation']>
   /** 该对话生成的 HTML 报告（内联在最后一条 AI 消息上，与实时对话一致） */
   reportUrl?: string
 }
@@ -742,11 +736,12 @@ async function selectHistory(group: HistoryGroup) {
     /* 后端优先复用内存会话，重启/回收后从同一工作区恢复持久上下文。 */
     if (run.clientSessionId) convSessions.set(`pi:${currentConvId.value}`, run.clientSessionId)
     activeSkill.value = skill
+    selectedModel.value = models.value.find(m => m.id === run.tokenUsage?.provider)?.id ?? defaultChatModel
     let lastAi = -1
     detail.conversation.forEach((turn, i) => { if (turn.role === 'assistant') lastAi = i })
     messages.value = detail.conversation.map((turn, i) => turn.role === 'user'
       ? { role: 'user', text: turn.text, done: true }
-      : { role: 'ai', text: turn.text, skill, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), tools: turn.tools, process: turn.process })
+      : { role: 'ai', text: turn.text, skill, modelName: models.value.find(m => m.id === turn.provider)?.name, done: true, real: true, reportUrl: i === lastAi ? detail.reportUrl : undefined, webLinks: turn.webLinks ?? (i === lastAi ? detail.webLinks : undefined), downloads: turn.downloads ?? (i === lastAi ? detail.downloads : undefined), tools: turn.tools, process: turn.process })
     progressOwner.value = null
     progressEvents.value = []
     scrollTop()
@@ -1019,7 +1014,7 @@ onBeforeUnmount(() => {
                   <Icon name="file" :size="13" />{{ resourceCount(msg) }} 项生成资源<span>查看资源<Icon name="chev" :size="12" /></span>
                 </button>
                 <p v-if="msg.done && !msg.real" class="exp-ai-note">演示输出仅展示结果形态，完整产物请在本地 AI 工具中运行获得。</p>
-                <p v-else-if="msg.done" class="exp-ai-note">{{ msg.skill ? '以上为 SKILL 真实运行输出' : '以上为通用智能体真实输出' }}（pi · {{ apiModel || '本地 Agent' }}）。</p>
+                <p v-else-if="msg.done && msg.modelName" class="exp-ai-note">由 {{ msg.modelName }} 生成</p>
               </div>
             </div>
           </template>
@@ -1102,25 +1097,13 @@ onBeforeUnmount(() => {
                 <Icon name="paperclip" :size="16" />
               </button>
               <span class="exp-agent">
-                <span class="exp-model">
-                  <button type="button" class="exp-model-btn" :aria-expanded="modelOpen" aria-haspopup="menu" @click.stop="modelOpen = !modelOpen">
-                    {{ model.name }}
-                    <Icon name="chev-down" :size="13" />
-                  </button>
-                  <div v-if="modelOpen" class="exp-model-menu" role="menu">
-                    <button
-                      v-for="m in MODELS"
-                      :key="m.id"
-                      type="button"
-                      class="exp-model-item"
-                      :class="{ 'is-on': m.id === model.id }"
-                      role="menuitem"
-                      @click.stop="pickModel(m.id)"
-                    >{{ m.name }}<span v-if="m.id !== 'skill-agent'" class="exp-model-tag">模拟</span></button>
-                  </div>
-                </span>
-                <span class="exp-agent-dot" aria-hidden="true">·</span>
-                <span class="exp-agent-label" :class="{ 'is-real': apiReady }">{{ apiReady ? (apiModel || '在线 Agent') : '演示' }}</span>
+                <label v-if="models.length" class="exp-model">
+                  <select v-model="selectedModel" aria-label="选择对话模型" :disabled="sending || loadingConversation">
+                    <option v-for="m in models" :key="m.id" :value="m.id">{{ m.name }}</option>
+                  </select>
+                  <Icon name="chev-down" :size="13" />
+                </label>
+                <span v-else>{{ apiReady ? (apiModel || '在线 Agent') : '演示模式' }}</span>
               </span>
               <button type="button" class="exp-send" :disabled="!textarea.trim() || sending || attachUploading" aria-label="发送" @click="send()">
                 <Icon name="arrow-up" :size="16" />
