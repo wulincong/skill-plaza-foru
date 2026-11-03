@@ -5,9 +5,11 @@ import { pathToFileURL } from 'node:url'
 import { capabilities, fail, QueryError } from './talent-data/core.mjs'
 import { planQuery, resolveEntity, query } from './talent-data/service.mjs'
 import { withinWorkspace, preview, readResult, persistExport } from './talent-data/artifacts.mjs'
+import { lookupCatalog } from './talent-data/position-catalog.mjs'
 
 const HELP=`人才数据库查询（talent-query/1）
   node scripts/talent-data-query.mjs capabilities
+  node scripts/talent-data-query.mjs catalog [--job 目录岗位] [--industry 产业名或ID] [--match exact|contains] [--offset 0]
   node scripts/talent-data-query.mjs resolve --kind region|industry|role --name 名称
   node scripts/talent-data-query.mjs plan --request request.json
   node scripts/talent-data-query.mjs query --request request.json
@@ -18,7 +20,7 @@ const HELP=`人才数据库查询（talent-query/1）
 
 function argumentsFor(argv) {
   const command=argv[0]
-  const allowed={capabilities:[],resolve:['kind','name'],plan:['request'],query:['request'],inspect:['result'],export:['result','format']}[command]
+  const allowed={capabilities:[],catalog:['job','industry','match','offset'],resolve:['kind','name'],plan:['request'],query:['request'],inspect:['result'],export:['result','format']}[command]
   if(!allowed)fail('INVALID_REQUEST','未知操作，请使用 --help')
   const options={}
   for(let i=1;i<argv.length;i+=2) {
@@ -26,7 +28,7 @@ function argumentsFor(argv) {
     if(!allowed.includes(key)||options[key]!==undefined||argv[i+1]===undefined)fail('INVALID_REQUEST',`不支持或重复的参数：${argv[i]}`)
     options[key]=argv[i+1]
   }
-  for(const key of allowed)if(!options[key])fail('INVALID_REQUEST',`缺少 --${key}`)
+  if(command!=='catalog')for(const key of allowed)if(!options[key])fail('INVALID_REQUEST',`缺少 --${key}`)
   return {command,options}
 }
 export async function runCli(argv=process.argv.slice(2),{workspace=process.cwd(),emit=value=>process.stdout.write(JSON.stringify(value)+'\n'),...serviceOptions}={}) {
@@ -35,6 +37,7 @@ export async function runCli(argv=process.argv.slice(2),{workspace=process.cwd()
     const {command,options}=argumentsFor(argv)
     let output,code=0
     if(command==='capabilities')output=capabilities()
+    if(command==='catalog')output=await lookupCatalog(options)
     if(command==='resolve')output=await resolveEntity(options.kind,options.name,serviceOptions)
     if(command==='plan'||command==='query') {
       const file=await withinWorkspace(options.request,workspace)

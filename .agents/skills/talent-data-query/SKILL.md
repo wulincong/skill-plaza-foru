@@ -1,6 +1,6 @@
 ---
 name: talent-data-query
-description: 按地域、产业、岗位类型与名称、学历和经验查询平台真实人才数据库，统一输出岗位与企业统计、薪酬、分布、交叉分析及可追溯证据。用于独立数据问答或为就业指导、技术预测、公众号报告提供数据。
+description: 离线查产业链岗位目录与对应产业，按地域、产业、岗位类型与名称、学历和经验查询平台真实人才数据库，输出统计、薪酬、分布、交叉分析及可追溯证据。用于独立数据问答或为就业指导、技术预测、公众号报告提供数据。
 ---
 
 # 人才数据库查询
@@ -13,6 +13,8 @@ description: 按地域、产业、岗位类型与名称、学历和经验查询�
 
 ```bash
 node <skill-dir>/scripts/query.mjs capabilities
+node <skill-dir>/scripts/query.mjs catalog --job 质量检验员 --match exact
+node <skill-dir>/scripts/query.mjs catalog --industry 机器人
 node <skill-dir>/scripts/query.mjs resolve --kind industry --name 机器人
 node <skill-dir>/scripts/query.mjs plan --request request.json
 node <skill-dir>/scripts/query.mjs query --request request.json
@@ -24,6 +26,7 @@ node <skill-dir>/scripts/query.mjs export --result data/<requestId>/result.json 
 
 ## 使用规则
 
+- 问“某产业有哪些目录岗位”或“某岗位在哪些产业链出现”，直接用本地 `catalog` 双向检索并标记快照日期；可组合 `--job` 与 `--industry`。问实时需求量、企业数或薪酬则用 `query`。本地节点 ID 不能传入 `roles`。涉及专业、毕业去向、年度目录或拿不准数据源时，取数前查[目录与选表指引](references/catalog-and-sources.md)。
 - 明确地域；全国显式写 national。未指定行业或岗位词时不添加 AI、Java 等默认条件。产业、岗位类型和“名称包含”是不同筛选；用户问整个产业时，先 resolve 并依据语义选择唯一的 level=0 产业候选 ID，同名细链不自动替代整个产业。岗位名检索用 title，仅明确要按岗位类型筛选时用 roles；范围仍有歧义时只澄清会改变结果的事项。
 - 一次请求声明所需指标与具名比较组。query 内部完成解析、计划和执行；普通问题不必分别调用所有操作。plan 用于核对复杂范围，执行元数据查询但不跑统计聚合。只传受支持字段与指标，不传 SQL。
 - 只需数量时使用 `positions.count`；同一产业的地域、学历、经验等对比尽量放在一次请求的最多四个 cohort 中。执行器在共同条件相同时合并计数，不读取岗位明细。缺失率和平台最大更新时间仅在需要时请求 `data_quality.summary`；未计算的质量元数据为 null/未评估，不解释为没有缺失。

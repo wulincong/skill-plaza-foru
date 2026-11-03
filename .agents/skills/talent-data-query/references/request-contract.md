@@ -68,4 +68,4 @@ executedAt 是原任务时间，dataReadAt 是原统计事务的客户端观察�
 
 退出码 complete/empty=0、partial=3、需澄清/修正=2、failed=1。始终检查结构化状态及逐指标 status；无岗位为 empty，没有有效薪资为 unavailable，未识别地域为 needs_clarification，查询超时不是 0 岗位。失败结果不缓存为可复用统计。
 
-capabilities 不连接数据库；resolve 查字典/地址候选；plan 不执行岗位聚合；query 执行并落盘；inspect/export 只读本会话经校验的结果。数据库配置和共享状态目录由部署者提供，业务请求不能指定客户端、密码或缓存根目录。
+capabilities 不连接数据库；catalog 读取随技能安装的[岗位与产业快照](catalog-and-sources.md)，不读取数据库或写工作区；resolve 查字典/地址候选；plan 不执行岗位聚合；query 执行并落盘；inspect/export 只读本会话经校验的结果。数据库配置和共享状态目录由部署者提供，业务请求不能指定客户端、密码或缓存根目录。
