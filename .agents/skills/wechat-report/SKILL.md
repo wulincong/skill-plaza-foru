@@ -27,7 +27,7 @@ description: 基于共享人才数据库统计生成地区与产业的微信公�
 - 由 Pi 调用统一入口 `scripts/generate_report.py --workspace ..`（工作副本为会话根时传当前根绝对路径）；自动完成排版构建、数据校验、图片渲染、最终质检、文章/核查表和公开打包，任一步失败立即停止。前置校验中的渲染状态为 pending，不能作为最终通过。工作副本保留数据；继续生成即使超过15分钟也直接读本地结果，不重新查库。
 - evidence_sheet.py 从实际 evidence 生成 output/internal/evidence_核查表.xlsx，包含真实SQL和查询引用，仅供内部审计。pack_delivery.py 依据本次图片 manifest 打包公开产物，并生成 output/public/site、output/public/report.zip 和会话根 delivery.json；工作副本在 wechat-report/ 时传 --workspace ..。网页只排列已验证图片；公开 ZIP 只含有序 PNG，不含文字正文、分析、内部核查表、来源绑定和查询证据。打包必须消费匹配当前排版和图片的最终质检结果。
 - 输出先正文与图表一致，再检查实际图片、裁切、缺图和热力图。报告末尾保留数据来源、方法、日期与缺口；章末总结写洞察和行动启示。
-- 在广场运行时，由平台读取 delivery.json 保存产物并提供网页分享和资源下载按钮，不自行拼接URL；本地工具运行时保留同样文件供调用方接管。仅当用户明确要求推送且已配置公众号时执行 publish_draft.py，只存草稿，不自动群发或发布。密钥、令牌只留本地。
+- 在广场运行时，由平台读取 delivery.json 保存产物并提供网页分享和资源下载按钮，不自行拼接URL；本地工具运行时保留同样文件供调用方接管。广场与公众号会在成品交付后询问是否保存；用户明确确认后，由平台验证已绑定成品并调用私有草稿桥。智能体不读取公众号凭据、不直接调用 publish_draft.py；草稿全部文字总结在前、有序图片在后，只存草稿。独立离线维护入口见微信操作说明。密钥、令牌只留服务端。
 
 文案、图表与微信操作按需读 [copywriting.md](references/copywriting.md)、[chart-gallery.md](references/chart-gallery.md)、[image-spec.md](references/image-spec.md)、[article-styles.md](references/article-styles.md)、[wechat-publishing.md](references/wechat-publishing.md)。公众号草稿用文章从同一已绑定内部排版结构生成，不作为广场公开正文；引用范文时以本次真实指标替换并核验。
 

@@ -8,6 +8,7 @@
    ============================================================ */
 
 import { createHash } from 'node:crypto'
+import { localReportReply, registerReport, saveQuestion } from './lib/reportLibrary.ts'
 import { createServer } from 'node:http'
 import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
@@ -1155,6 +1156,33 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     ...initialTokenUsage,
     usageRounds: [],
   })
+  // Library hits and explicit draft confirmations do not need a model process.
+  if (['wechat-report', 'general'].includes(skill) && !params.resumeSource) {
+    activeTurns.add(clientSessionId)
+    try {
+      const local = await localReportReply(clientSessionId, skill, String(latest.content), Boolean(attachmentFiles.length))
+      if (local) {
+        const durationMs = Date.now() - startedAt
+        const content = local.content + (params.protocol === 'openai' && local.question ? '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。' : '')
+        recorder.note({ reportLibrary: {kind:local.kind, reportId:local.reportId} })
+        recorder.end('success', {durationMs, source:'report-library'})
+        appendIndex({runId, ts:new Date(startedAt).toISOString(), clientSessionId, engine,
+          protocol:params.protocol, skill, taskTitle:taskTitle || undefined, userMessage:digestSource,
+          promptDigest, outcome:'success', durationMs, promptNotSent:true, localReply:content,
+          question:local.question, answerTo:params.answerTo, requestId:params.requestId,
+          files:{events:recorder.file}, webLinks:local.webLinks, downloads:local.downloads})
+        wire.session(clientSessionId)
+        wire.textDelta(content)
+        wire.done({runId,durationMs,content,resultType:'success',question:local.question,
+                   webLinks:local.webLinks,downloads:local.downloads})
+        activeTurns.delete(clientSessionId)
+        finish()
+        return
+      }
+    } catch (error) {
+      recorder.note({reportLibraryError:error instanceof Error ? error.message : '报告库不可用'})
+    }
+  }
   let lastUsage: UsageSummary | undefined
   const mergeContextInfo = (next?: ModelContextInfo) => {
     if (!next) return
@@ -1342,6 +1370,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       taskTitle: taskTitle || undefined,
       userMessage: digestSource,
       question, answerTo: params.answerTo,
+      localReply: skill === 'wechat-report' && delivery.webLinks?.length ? finalText : undefined,
       promptDigest,
       outcome,
       durationMs,
@@ -1518,8 +1547,9 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
        （SIDECAR_SKILLS 当前为空集合 = 全员即时透传） */
     const maskSidecar = SIDECAR_SKILLS.has(skill)
     // 归一事件 → SSE（引擎差异已在各 Runner 内消化，这里统一映射）
-    const onEvent = (ev: RunnerEvent) => {
+    const onEvent = async (ev: RunnerEvent) => {
       if (ev.kind === 'text_delta') {
+        if (skill === 'wechat-report') return // Only the verified terminal answer is public.
         if (!maskSidecar) {
           /* 非侧车技能直接透传：扣留层滞后 18 字符（SIDECAR_MARKER.length-1）且
              放行时机不定（可跨消息、词中断裂），曾致 wire 叙述定性跨消息错分 */
@@ -1587,6 +1617,20 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         }
         const workspacePdf = captureWorkspacePdfReport()
         captureDelivery()
+        if (skill === 'wechat-report' && delivery.webLinks?.length && !deliveryError && entry?.workspaceDir) {
+          try {
+            const saved = await registerReport({workspace:entry.workspaceDir,sessionId:clientSessionId,runId,...delivery})
+            if (saved) {
+              finalText = '报告图片已生成，请审核成品。'
+              question = saveQuestion()
+              if (params.protocol === 'openai') finalText += '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。'
+              recorder.note({reportLibrary:{kind:'registered',reportId:saved.id}})
+            }
+          } catch (error) {
+            recorder.note({reportLibraryRegistrationError:error instanceof Error?error.message:'报告入库失败'})
+          }
+        }
+        if (skill === 'wechat-report') wire.textDelta(finalText)
         const reportFailure = htmlReportError
           ? `报告未生成：${htmlReportError}`
           : '报告未生成：未找到有效的 workspace/report.html，且最终回复未包含可转换内容。'

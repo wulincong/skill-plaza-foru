@@ -134,6 +134,8 @@ export interface AgentEnvInfo {
 export type RunOutcome = 'success' | 'timeout' | 'error' | 'aborted' | 'historical'
 
 export interface RunRecord {
+  /** Trusted local/report-library answer; no model prompt was needed for cache hits. */
+  localReply?: string
   question?: import('../../shared/chatQuestion.ts').ChatQuestion
   answerTo?: string
   /** 索引与文件名共用的运行标识：YYYYMMDD-HHMMSS-xxxx */

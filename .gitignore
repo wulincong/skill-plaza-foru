@@ -8,3 +8,5 @@ node_modules/
 *.log
 .zcode/*
 web/server/workspace/.talent-query-state/
+
+/web/server/report-library/

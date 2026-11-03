@@ -94,12 +94,16 @@ export function deriveSessionConversation(
     const following = new Set(runs.slice(i + 1).map(next => next.runId))
     const at = conversation.findIndex(turn => turn.runId && following.has(turn.runId))
     const text = (run.userMessage ?? run.promptDigest) + (run.attachments?.length ? `\n[附件] ${run.attachments.join('、')}` : '')
-    conversation.splice(at < 0 ? conversation.length : at, 0, { role: 'user', runId: run.runId, text })
+    const localTurns: ConversationTurn[] = [{role:'user',runId:run.runId,text}]
+    if (run.localReply !== undefined) localTurns.push({role:'assistant',runId:run.runId,text:run.localReply,
+      question:run.question,webLinks:run.webLinks,downloads:run.downloads})
+    conversation.splice(at < 0 ? conversation.length : at, 0, ...localTurns)
   }
   const byRun = new Map(runs.map(run => [run.runId, run]))
   for (const [i, turn] of conversation.entries()) {
     const run = turn.runId && byRun.get(turn.runId)
     if (!run) continue
+    if (turn.role === 'assistant' && run.localReply !== undefined) turn.text = run.localReply
     if (turn.role === 'user') {
       if (run.answerTo) turn.answerTo = run.answerTo
     } else if (run.question || (run.protocol !== 'openai' && run.engine === 'pi' && run.outcome === 'success')) {
