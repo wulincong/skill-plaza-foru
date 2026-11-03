@@ -1,0 +1,38 @@
+{
+  "schema": "wechat-official-context/1",
+  "verifiedOn": "2026-11-03",
+  "sources": [
+    {
+      "id": "nbs-rd-2025",
+      "title": "2025年全国科技经费投入统计公报",
+      "authors": "国家统计局、科学技术部、财政部",
+      "published": "2026-10-16",
+      "url": "https://www.stats.gov.cn/sj/zxfb/202610/t20261016_1965512.html",
+      "locator": "附表2：2025年各地区研究与试验发展（R&D）经费情况",
+      "year": 2025,
+      "scope": "全社会、跨产业研发活动；不是人工智能专项投入或岗位样本",
+      "national": {"expenditure100mCny": 39288.2, "intensityPct": 2.8},
+      "regions": {
+        "广东省": {"expenditure100mCny": 5510.4, "intensityPct": 3.78},
+        "山东省": {"expenditure100mCny": 2825.7, "intensityPct": 2.74},
+        "浙江省": {"expenditure100mCny": 3177.2, "intensityPct": 3.36},
+        "江苏省": {"expenditure100mCny": 4948.2, "intensityPct": 3.48},
+        "湖北省": {"expenditure100mCny": 1635.3, "intensityPct": 2.61},
+        "四川省": {"expenditure100mCny": 1555.8, "intensityPct": 2.3},
+        "安徽省": {"expenditure100mCny": 1513.1, "intensityPct": 2.86},
+        "北京市": {"expenditure100mCny": 3696.1, "intensityPct": 7.1},
+        "上海市": {"expenditure100mCny": 2580.5, "intensityPct": 4.55}
+      }
+    },
+    {
+      "id": "ai-boundary-2026",
+      "title": "人工智能 基础共性 人工智能产业边界界定",
+      "authors": "工业和信息化部（主管）；中国通信标准化协会（归口）",
+      "published": "2026-07-15",
+      "effective": "2026-11-01",
+      "standard": "YD/T 7167—2026",
+      "url": "https://std.samr.gov.cn/hb/search/stdHBDetailed?id=5A166B0E8BF12BDAE06397BE0A0A0423",
+      "scope": "仅核对公开标准元数据及适用范围；本报告的平台产业标签尚未与标准逐项映射"
+    }
+  ]
+}

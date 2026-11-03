@@ -1,36 +1,37 @@
 ---
 name: wechat-report
-description: 基于共享人才数据库统计生成地区与产业的微信公众号人才需求报告，直接交付已质检的报告图片与纯图片网页；内部保留分析、排版数据与核查表；适用于产业人才观察和院校人才培养分析。
+description: 用真实地区与产业人才统计生成有证据论证、多维多类型图表和参考文献的公众号人才报告，直接交付质检后的纯图片网页与图片包，不审核大纲。
 ---
 
 # 微信公众号人才需求报告
 
-本技能负责研究问题、深入分析和呈现；真实统计唯一依赖 **talent-data-query**。共享工具负责解析实体、统计、薪酬、方向分类、技能词和证据；本技能不维护数据库连接、SQL、行业字典或第二套统计算法。**先完成真实数据分析，再生成报告；图表、数字罗列和固定建议不算完成分析。**
+真实数据唯一依赖talent-data-query；Pi负责解释、决策取舍与行动建议，程序负责统计投影、来源绑定、图片与交付。用户只审核最终图片，不询问大纲确认。已有同范围数据直接复用，不能为续写反复查库。
 
-## 环境与取数
+## 固定入口，先执行再回复
 
-先读 [project-installation.md](references/project-installation.md)，按本次实际加载目录取得安装路径、创建会话工作副本。安装目录只读；Node 收集入口优先使用安装目录的绝对路径，Python 脚本在工作副本运行，解释器使用安装目录 .venv/bin/python。
+**平台提供report_next / report_submit / report_build专用工具时优先使用**：有同范围真实数据后调用report_next，直接用report_submit填写本批文案，工具自动绑定事实并保存；返回下一批就继续提交，analysis_ready后report_build。无需创建写作文件或重复执行CLI。用户明确修改/优化时专用工具会重开文案任务并保留真实数据；不能仅重渲染旧文案。以下CLI用于未提供专用工具的环境。
 
-1. 根据用户要求明确省/市/全国、产业或岗位名范围、时间范围、读者与分析角度。产业、岗位类型、名称包含是不同条件；先用 talent-data-query 的 resolve 选择实体。未要求时间窗时统计全时间范围的在招记录，不能自动添加旧版近365天或AI条件。
-2. 先读 [research-analysis.md](references/research-analysis.md)，按需要回答的问题拟定研究维度，再读共享 Skill 的请求/指标规范，写 wechat-report-plan/1 计划。格式、章节与方向/技能规则见 [data-aggregation.md](references/data-aggregation.md)。通常应研究地域差异、学历×经验、总体与职教子样本薪酬、岗位方向及能力组合；按相关性选择，不只照抄基础示例。
-3. 调用安装目录 scripts/collect_data.mjs --plan plan.json，通过共享 CLI 获得统计并生成工作副本的 report_data.json、report_binding.json。部署路径由 TALENT_DATA_QUERY_CLI 或受信 --query-cli 指定；不要读取密码或创建本技能数据库配置。
-4. 读取完整结果与 coverage，失败或缺失不填零、不回退旧数据。方向及技能按研究主题提出显式规则/词表并核实适用性，不套用固定AI分类；规则归类须披露覆盖率。需要新增统计时通过共享查询补齐。维度未请求或不可用必须说明原因，不能把基础统计称作完整产业分析。
-5. 只有用户明确要求演示时才使用 example/report_data.json，后续命令均带 --demo，并标注离线样例。
+本次加载的技能目录为SKILL_DIR。所有Python操作只通过安装目录的`.venv/bin/python`与`scripts/report.py --workdir 当前会话/wechat-report`执行。工作区只存数据、文案、资产和输出，不复制或修改脚本，不直接运行安装目录的gen_outline.py、report_analysis.py等底层脚本。平台会提供真实绝对路径命令，照实际路径调用，不猜BASE、不补丁脚本。步骤见[安装与命令](references/project-installation.md)。
 
-业务指标只读完整结果，stdout 为预览。数据读取时间不是岗位发布时间；企业关联地址不是已核验的实际工作地，岗位记录数不是实际招聘人数。跨产业样本可能重叠，不能直接加总。
+1. 必需地域与产业缺失时才询问。其他一般人才报告默认面向院校人才培养与校企合作，时间未指定则用全时间范围在招记录，不自动添加近一年或AI条件。先用共享工具resolve确认唯一level=0产业；产业、岗位类型、岗位名称是不同条件。
+2. `report.py ... init`初始化资产。写plan.json并从安装目录collect_data.mjs调用共享查询，取数在工作数据目录执行。研究维度和计划见[data-aggregation.md](references/data-aggregation.md)。通常覆盖地域、城市薪酬、学历×经验、总体与职教候选池薪酬、岗位方向、城市×方向、LQ、能力词及方向×技能。规则和词表必须适用于本次主题，披露未分类率；不套用不相干行业的AI词表。失败、缺失、空样本不回退样例、不补零。
+3. 有真实数据后，**优先短批次写作**：运行`report.py ... next`。输出包含本批task、evidenceHash、二至三个章节模板、已计算事实和需要回答的分析问题。只完成这一小批，写入工作目录report_part.json，保留任务标识，正文不写测量数字、事实ID或花括号；系统会展开findingIds中的事实。
+4. 运行`report.py ... accept report_part.json`。校验失败只修改本批文案，一次性修正全部问题，禁止改检查器。校验通过会保存进度并**直接返回下一批**，继续写report_part.json并accept，直到status=analysis_ready。无需每批重新读取整个数据文件或全部长文稿，不要在中途以“将继续生成”结束。已有进度可以用next恢复，不重新取数。
+5. 最后一批写核心发现：opening总体判断、三条跨维度claims分结论、closing综合启示，使用总分总结构。每条分结论至少两个不同维度的事实，写具体结构意义及决策取舍，不能是统计清单；每章还要写decisionRule，说明哪些复核结果会改变建议及如何改变。写作规范见[研究分析](references/research-analysis.md)。
+6. analysis_ready后直接运行`report.py ... build`，连续到排版、数据验收、渲染、最终验收、私有文章、核查表及公开打包。统一入口自动重验最新文案并产生真实步骤/代码指纹回执。任一步失败停止，保留数据和进度，不能用旧交付清单声称成功。
 
-## 连续生成与最终图片交付
+完整写作方式仍可用：analyze生成writing_draft，写report_writing.json，再assemble与build；短批次优先，避免长稿修格式时牺牲分析。两种方式最终都必须通过相同wechat-analysis/2约束。
 
-- 运行 scripts/report_analysis.py，读取 output/analysis/analysis_evidence.md、完整 report_data.json 及必要的共享结果。脚本只整理可复核事实，**不会替你完成分析**。按研究规范独立撰写 report_analysis.json，逐维度形成“具体发现与比较 → 结构解释/待验证推断 → 面向读者的行动 → 验证方式”，并做跨维度综合判断。空样本直接反馈缺口，不生成研究报告。
-- scripts/gen_outline.py 必须消费已完成的分析稿，缺失、占位、数据版本不符或章节缺项即停止。排版结构只作内部构建工件，不向用户交付大纲，不请求大纲确认；分析完成后直接连续生成最终图片。用户只审核最终成品。旧工作副本需同步本次 scripts/references，保留原数据和用户品牌/文案。
-- 正文数字使用带字段、分母和公式的 findingIds，图表绑定 metricId；量化事实由保存数据重新计算校验。新增所需事实应扩充报告侧派生投影，新增原始统计仍走共享查询。解释和建议由智能体结合证据撰写，不能恢复固定行业/地区结论；单次横截面不生成市场增速或招聘趋势。检查器可验证分析结构和数字引用，解释合理性仍须逐章审阅。
-- 由 Pi 调用统一入口 `scripts/generate_report.py --workspace ..`（工作副本为会话根时传当前根绝对路径）；自动完成排版构建、数据校验、图片渲染、最终质检、文章/核查表和公开打包，任一步失败立即停止。前置校验中的渲染状态为 pending，不能作为最终通过。工作副本保留数据；继续生成即使超过15分钟也直接读本地结果，不重新查库。
-- evidence_sheet.py 从实际 evidence 生成 output/internal/evidence_核查表.xlsx，包含真实SQL和查询引用，仅供内部审计。pack_delivery.py 依据本次图片 manifest 打包公开产物，并生成 output/public/site、output/public/report.zip 和会话根 delivery.json；工作副本在 wechat-report/ 时传 --workspace ..。网页只排列已验证图片；公开 ZIP 只含有序 PNG，不含文字正文、分析、内部核查表、来源绑定和查询证据。打包必须消费匹配当前排版和图片的最终质检结果。
-- 输出先正文与图表一致，再检查实际图片、裁切、缺图和热力图。报告末尾保留数据来源、方法、日期与缺口；章末总结写洞察和行动启示。
-- 在广场运行时，由平台读取 delivery.json 保存产物并提供网页分享和资源下载按钮，不自行拼接URL；本地工具运行时保留同样文件供调用方接管。广场与公众号会在成品交付后询问是否保存；用户明确确认后，由平台验证已绑定成品并调用私有草稿桥。智能体不读取公众号凭据、不直接调用 publish_draft.py；草稿全部文字总结在前、有序图片在后，只存草稿。独立离线维护入口见微信操作说明。密钥、令牌只留服务端。
+## 内容与图表门槛
 
-文案、图表与微信操作按需读 [copywriting.md](references/copywriting.md)、[chart-gallery.md](references/chart-gallery.md)、[image-spec.md](references/image-spec.md)、[article-styles.md](references/article-styles.md)、[wechat-publishing.md](references/wechat-publishing.md)。公众号草稿用文章从同一已绑定内部排版结构生成，不作为广场公开正文；引用范文时以本次真实指标替换并核验。
+解释要连接不同指标并服务名单筛选、任务设计、薪酬预期和校企合作，行动包含对象、任务、产出，验证包含具体核查与调整条件。学历要求比例不是企业重视知识程度；分类未覆盖首先是规则问题；总体/候选池薪酬差未控制岗位结构；单次快照不能证明稳定需求、显著性、人才短缺、产业因果优势。正文数字只来自findingIds，不把事实ID写成占位文字。[文案](references/copywriting.md)
 
-图片生产只调用本技能代码，不要求模型临时写另一套绘图脚本。选图由 chart_recommender.py 与 bound_report.py 的已绑定投影完成；chart_layout.py 定义移动端图表与布局证据，render_report.py 负责排版截图。缺少必要地域/产业时才询问，不把内部分析步骤当成人工确认关口。
+整份报告最多一张柱状图，且必须联合薪酬中位数、学历要求比例、岗位规模三个指标，地区作为比较维度。其余图依据真实数据使用门槛连接、条件比例点图/矩阵、方向面积与薪酬定位、分位区间、城市方向集中度、能力关联等；不以凑类型虚构关联或把频数当人才流量。参考[图表](references/chart-gallery.md)。Qwen只填写分析，不临时编写另一套生图代码。
 
-最终回复只写“报告图片已生成，请审核成品”，链接由平台交付，不复述统计数字、内部路径或完整章节清单；修订时继续复用本会话保存的数据和分析。
+## 交付与公众号
+
+build输出图片、纯图片网页、仅有序PNG的ZIP和会话根delivery.json。平台持久保存并返回链接；不自行拼URL。SQL、来源绑定、文案和内部核查表不进入公开网页或ZIP。官方统计背景与参考文献由核验目录自动附后，按年份、范围、分母独立说明，不与岗位样本混算；数据读取时间不是岗位发布时间。
+
+成品后由平台询问是否存入公众号草稿，用户明确确认后使用私有草稿桥；全部可见段落/总结/方法在前，全部图片在后。智能体不读取公众号凭据，不直接执行publish_draft.py，不群发发布。网页仍为纯图片。
+
+最终回复只写“报告图片已生成，请审核成品”，资源链接由平台交付；没有有效产物时不能说完成。用户修订沿用当前数据版本，先改文案再build，不手改图片或HTML隐藏问题。

@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-render_check.py — 渲染层二次校验（防"数据正确、图却画错"）
-用法:
-    python render_check.py            # 读 output/outline + output/report
-
-做什么:
-    1. 热力图方向校验：从渲染后的 PNG 中提取单元格色深矩阵，与大纲中的数值矩阵
-       做秩相关——行列转置、漏画、错位都会导致相关度骤降（>=0.85 通过）；
-    2. 图表存在性校验：每个带图表的内容页，图表区必须有足量彩色像素
-       （防 ECharts 报错后静默出空白图）；
-    3. 结果写 output/render_check.json；verify_data.py 的第 5 道 Gate 会调用本脚本。
+render_check.py — 复核本次PNG、DOM布局、实际SVG图元和浏览器系列数据。
+矩阵行列、类别顺序、计数/比例、中位点与区间必须匹配已绑定规格。
+旧像素采样函数保留供人工定位问题，主验收不依赖整页颜色猜测。
 """
 import argparse
 import json
@@ -18,8 +11,10 @@ import hashlib
 from pathlib import Path
 
 from PIL import Image
+from chart_semantics import errors as semantic_errors
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from report_runtime import report_root
+BASE = str(report_root(__file__))
 OUTLINE = os.path.join(BASE, 'output', 'outline', 'report_outline.json')
 REPORT = os.path.join(BASE, 'output', 'report')
 
@@ -276,13 +271,6 @@ def main():
                     help='与 render_report.py --theme 一致；热力图判据跟随主题')
     args = ap.parse_args()
 
-    is_cell, depth_fn, card_rgb = None, None, (245, 247, 251)
-    if args.theme != 'zhengwu':
-        is_cell, depth_fn = band_funcs(args.theme)
-        with open(os.path.join(BASE, 'assets', 'themes.json'),
-                  'r', encoding='utf-8') as f:
-            card_rgb = _rgb(json.load(f)[args.theme]['card'])
-
     with open(args.outline, 'r', encoding='utf-8') as f:
         ol = json.load(f)
     manifest = json.loads((Path(args.report_dir)/'manifest.json').read_text('utf-8'))
@@ -302,7 +290,7 @@ def main():
         expected = sum(c['kind'] not in ('table','bignum') for c in charts)
         valid = (manifest.get('schema') == 'wechat-render/2' and manifest.get('theme') == args.theme
                  and page.get('sha256') == hashlib.sha256(Path(png).read_bytes()).hexdigest()
-                 and layout.get('schema') == 'wechat-layout/1' and not layout.get('errors', ['missing'])
+                 and layout.get('schema') == 'wechat-layout/2' and not layout.get('errors', ['missing'])
                  and len(layout.get('charts', [])) == expected
                  and all(c.get('shapes', 0) >= 2 for c in layout.get('charts', [])))
         with Image.open(png) as image:
@@ -310,21 +298,12 @@ def main():
         results.append({'page':i, 'screen':s.get('title',''), 'check':'布局、图表就绪与图片指纹',
                         'pass':bool(valid), 'detail':'通过' if valid else '渲染证据缺失、布局错误或图片已改变'})
         all_ok = all_ok and valid
-        # New renders use exact DOM bounds and actual SVG instances, not whole-page color guesses.
-        continue
-        colored = check_colored(png)
-        ok = colored >= 400
-        results.append({'page': i, 'screen': s.get('title', ''),
-                        'check': '图表存在性', 'pass': bool(ok),
-                        'detail': '彩色像素 %d（阈值400）' % colored})
-        all_ok = all_ok and ok
-        for c in charts:
-            if c.get('kind') == 'heatmap':
-                ok, detail = check_heatmap(png, c, is_cell, depth_fn, card_rgb)
-                results.append({'page': i, 'screen': s.get('title', ''),
-                                'check': '热力图方向/完整性', 'pass': bool(ok),
-                                'detail': detail})
-                all_ok = all_ok and ok
+        visual=[c for c in charts if c['kind'] not in ('table','bignum')]
+        for cfg,actual in zip(visual,layout.get('charts',[])):
+            problems=semantic_errors(cfg,actual)
+            results.append({'page':i,'screen':s.get('title',''),'check':'实际系列数据与图表方向',
+                            'pass':not problems,'detail':'通过' if not problems else '；'.join(problems)})
+            all_ok=all_ok and not problems
 
     out = {'all_pass': bool(all_ok), 'checks': results}
     with open(args.out, 'w', encoding='utf-8') as f:

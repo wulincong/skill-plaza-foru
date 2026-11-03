@@ -10,7 +10,8 @@ from pathlib import Path
 import zipfile
 from PIL import Image
 from bound_report import load_data, verify_outline, digest
-BASE = Path(__file__).resolve().parent.parent
+from report_runtime import report_root
+BASE = report_root(__file__)
 
 
 def prepare_delivery(workspace, report, outline, manifest, archive):

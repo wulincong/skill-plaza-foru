@@ -9,6 +9,7 @@
 
 import { createHash } from 'node:crypto'
 import { localReportReply, registerReport, saveQuestion } from './lib/reportLibrary.ts'
+import { needsReportFollowThrough,reportRequested,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
 import { createServer } from 'node:http'
 import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
@@ -41,7 +42,7 @@ import {
 } from './lib/htmlReport.ts'
 import { serverEnv } from './lib/agentEnv.ts'
 import { loadLocalEnv } from './lib/env.ts'
-import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills } from './lib/skills.ts'
+import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills, skillDir } from './lib/skills.ts'
 import {
   extractSidecar,
   validateMeta,
@@ -1156,34 +1157,10 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     ...initialTokenUsage,
     usageRounds: [],
   })
-  // Library hits and explicit draft confirmations do not need a model process.
-  if (['wechat-report', 'general'].includes(skill) && !params.resumeSource) {
-    activeTurns.add(clientSessionId)
-    try {
-      const local = await localReportReply(clientSessionId, skill, String(latest.content), Boolean(attachmentFiles.length))
-      if (local) {
-        const durationMs = Date.now() - startedAt
-        const content = local.content + (params.protocol === 'openai' && local.question ? '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。' : '')
-        recorder.note({ reportLibrary: {kind:local.kind, reportId:local.reportId} })
-        recorder.end('success', {durationMs, source:'report-library'})
-        appendIndex({runId, ts:new Date(startedAt).toISOString(), clientSessionId, engine,
-          protocol:params.protocol, skill, taskTitle:taskTitle || undefined, userMessage:digestSource,
-          promptDigest, outcome:'success', durationMs, promptNotSent:true, localReply:content,
-          question:local.question, answerTo:params.answerTo, requestId:params.requestId,
-          files:{events:recorder.file}, webLinks:local.webLinks, downloads:local.downloads})
-        wire.session(clientSessionId)
-        wire.textDelta(content)
-        wire.done({runId,durationMs,content,resultType:'success',question:local.question,
-                   webLinks:local.webLinks,downloads:local.downloads})
-        activeTurns.delete(clientSessionId)
-        finish()
-        return
-      }
-    } catch (error) {
-      recorder.note({reportLibraryError:error instanceof Error ? error.message : '报告库不可用'})
-    }
-  }
   let lastUsage: UsageSummary | undefined
+  let completedReportUsage: UsageSummary | undefined
+  let reportRoundOffset=0
+  let reportContinuations=0
   const mergeContextInfo = (next?: ModelContextInfo) => {
     if (!next) return
     const hasWindow = typeof next.contextWindowTokens === 'number' && next.contextWindowTokens > 0
@@ -1204,7 +1181,8 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     }
   }
   const addUsageRounds = (rounds: UsageRound[] | undefined) => {
-    for (const round of rounds ?? []) {
+    for (const sourceRound of rounds ?? []) {
+      const round={...sourceRound,round:sourceRound.round+reportRoundOffset}
       if (usageRounds.some((existing) => existing.round === round.round)) continue
       usageRounds.push(round)
       recorder.note({ roundUsage: round })
@@ -1370,6 +1348,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       taskTitle: taskTitle || undefined,
       userMessage: digestSource,
       question, answerTo: params.answerTo,
+      reportContinuations: reportContinuations || undefined,
       localReply: skill === 'wechat-report' && delivery.webLinks?.length ? finalText : undefined,
       promptDigest,
       outcome,
@@ -1464,7 +1443,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         }
       }
       /* 环境快照：版本探测首次触发（此后命中缓存）；失败字段自然缺省 */
-      const agentEnv = { ...serverEnv(), ...runner.envInfo(), model: `${tokenUsage.provider}/${tokenUsage.model}` }
+      const agentEnv = { ...serverEnv(), ...runner.envInfo(entry?.engineSessionId), model: `${tokenUsage.provider}/${tokenUsage.model}` }
       record.agentEnv = agentEnv
       recorder.note({ agentEnv })
       appendIndex(record)
@@ -1530,6 +1509,36 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   if (params.requestId) browserTurns.set(clientSessionId, { requestId: params.requestId, interrupt })
 
   activeTurns.add(clientSessionId)
+  // Library hits and explicit draft confirmations do not need a model process.
+  if (['wechat-report', 'general'].includes(skill) && !params.resumeSource) {
+    try {
+      const local = await localReportReply(clientSessionId, skill, String(latest.content), Boolean(attachmentFiles.length))
+      if (cleaned || clientGone) return
+      if (local) {
+        runFinalized=true
+        const durationMs = Date.now() - startedAt
+        const content = local.content + (params.protocol === 'openai' && local.question ? '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。' : '')
+        recorder.note({ reportLibrary: {kind:local.kind, reportId:local.reportId} })
+        recorder.end('success', {durationMs, source:'report-library'})
+        appendIndex({runId, ts:new Date(startedAt).toISOString(), clientSessionId, engine,
+          protocol:params.protocol, skill, taskTitle:taskTitle || undefined, userMessage:digestSource,
+          promptDigest, outcome:'success', durationMs, promptNotSent:true, localReply:content,
+          question:local.question, answerTo:params.answerTo, requestId:params.requestId,
+          files:{events:recorder.file}, webLinks:local.webLinks, downloads:local.downloads})
+        wire.session(clientSessionId)
+        wire.textDelta(content)
+        wire.done({runId,durationMs,content,resultType:'success',question:local.question,
+                   webLinks:local.webLinks,downloads:local.downloads})
+        cleanup()
+        if(params.requestId && browserTurns.get(clientSessionId)?.requestId===params.requestId)browserTurns.delete(clientSessionId)
+        finish()
+        return
+      }
+    } catch (error) {
+      recorder.note({reportLibraryError:error instanceof Error ? error.message : '报告库不可用'})
+    }
+  }
+  if(cleaned || clientGone)return
   try {
     if (!entry) {
       const dir = workspaceDirFor(clientSessionId)
@@ -1583,12 +1592,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         /* 思考/工具阶段的过程信号：正文 delta 之前前端也有"正在推进"的体感 */
         wire.status(ev)
       } else if (ev.kind === 'usage') {
-        lastUsage = ev.usage ?? lastUsage
+        lastUsage = ev.usage ? sumUsage(completedReportUsage,ev.usage) : lastUsage
         mergeContextInfo(ev.context)
         addUsageRounds(ev.round ? [ev.round] : undefined)
-        wire.usage(ev.usage, ev.content)
+        wire.usage(lastUsage, ev.content)
       } else if (ev.kind === 'terminal') {
-        lastUsage = ev.usage ?? lastUsage
+        lastUsage = ev.usage ? sumUsage(completedReportUsage,ev.usage) : lastUsage
         mergeContextInfo(ev.context)
         addUsageRounds(ev.rounds)
         /* 剥离侧车：done 只发干净正文；全文见 traces/<runId>.events.jsonl */
@@ -1599,7 +1608,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
              非侧车技能未扣留，直接透传过，再补发会双重转发 */
           wire.textDelta(fullText.slice(forwarded))
         }
-        wire.usage(ev.usage)
+        wire.usage(lastUsage)
         if (params.interactive) {
           const projected = projectQuestion(finalText)
           if (projected.question) {
@@ -1617,6 +1626,24 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         }
         const workspacePdf = captureWorkspacePdfReport()
         captureDelivery()
+        const hasReportData=Boolean(entry && existsSync(join(entry.workspaceDir,'wechat-report','report_data.json')))
+        if (skill==='wechat-report' && !question && !hasReportData && reportScopeQuestion(finalText)) question={kind:'input',question:finalText,options:[]}
+        if (skill==='wechat-report' && question && /大纲|目录.*确认|章节.*确认/.test(question.question)) question=undefined
+        if (!deliveryError && ev.resultType==='success' && needsReportFollowThrough({skill,request:String(latest.content),answer:finalText,
+            hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations}) && entry) {
+          reportContinuations++
+          recorder.note({reportFollowThrough:{attempt:reportContinuations,reason:'no-verified-report'}})
+          completedReportUsage=lastUsage
+          reportRoundOffset=Math.max(0,...usageRounds.map(round=>round.round))
+          deliveryCaptured=false
+          const dir=join(entry.workspaceDir,'wechat-report')
+          const installed=skillDir('wechat-report')
+          const command=`${installed}/.venv/bin/python ${installed}/scripts/report.py --workdir ${dir}`
+          try { await runner.send(entry.engineSessionId,`${continuationMarker(runId)}
+用户已要求直接交付报告，本轮尚未产生可验证的报告。继续完成任务，不能以计划或承诺结束，不请求大纲审核。已有数据不重查，使用受信入口，不复制或修改脚本。数据目录：${dir}。若有专用工具，优先调用report_next、report_submit持续完成批次，到analysis_ready后report_build；否则使用 ${command} next、accept和build。若必需范围或数据确实缺失，明确说明缺口；禁止样例回退或跳过检查。`) }
+          catch {wire.error('报告继续执行失败，请沿用当前会话重试。',elapsed());finalizeRun('error');cleanup();finish()}
+          return
+        }
         if (skill === 'wechat-report' && delivery.webLinks?.length && !deliveryError && entry?.workspaceDir) {
           try {
             const saved = await registerReport({workspace:entry.workspaceDir,sessionId:clientSessionId,runId,...delivery})
@@ -1628,8 +1655,14 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
             }
           } catch (error) {
             recorder.note({reportLibraryRegistrationError:error instanceof Error?error.message:'报告入库失败'})
+            delivery = {}
+            question = undefined
+            finalText = '本轮报告未通过平台质检或入库确认，请修正后继续生成。'
+            deliveryError = '成品尚不能确认为可交付与保存的版本。'
           }
         }
+        const missingWechatReport=skill==='wechat-report' && reportRequested(String(latest.content),Boolean(entry && existsSync(join(entry.workspaceDir,'wechat-report/report_data.json')))) && !question && !delivery.webLinks?.length
+        if (missingWechatReport) finalText='报告尚未完成，已保留本轮数据和会话，可继续完成。'
         if (skill === 'wechat-report') wire.textDelta(finalText)
         const reportFailure = htmlReportError
           ? `报告未生成：${htmlReportError}`
@@ -1640,7 +1673,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         /* HTML_REPORT_SKILLS 泛化重构漏定义的局部布尔（wlc 分支终态 ReferenceError 修复） */
         const isHtmlReportSkill = HTML_REPORT_SKILLS.has(skill)
         const isPdfReportSkill = PDF_REPORT_SKILLS.has(skill)
-        const missingReport = !question && ((isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length))
+        const missingReport = missingWechatReport || !question && ((isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length))
         const doneContent = question ? finalText : isHtmlReportSkill
           ? htmlReportFile || delivery.webLinks?.length ? '' : reportFailure
           : isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length
@@ -1648,12 +1681,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         const sendDone = () => wire.done({
           durationMs: elapsed(), question,
           content: doneContent + (deliveryError ? `\n\n${deliveryError}` : ''),
-          resultType: ev.resultType,
+          resultType: missingReport || deliveryError ? 'error' : ev.resultType,
           charts: checkedCharts,
           runId,
           reportUrl: htmlReportFile || pdfReportFile || workspacePdf ? `/api/reports/${encodeURIComponent(runId)}` : undefined,
           ...delivery,
-          usage: ev.usage ?? lastUsage,
+          usage: lastUsage,
           failure: Boolean(missingReport || deliveryError),
         })
         const finalOutcome: RunOutcome = clientGone
@@ -1692,7 +1725,13 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         if (history) input = [{ role: 'user', content: `【对话历史】\n${history}\n\n【当前消息】\n${latest.content}` }]
       }
       const prompt = runner.buildPrompt(skill, input, first)
-      return params.interactive ? prompt + '\n\n' + QUESTION_INSTRUCTION : prompt
+      if(skill==='wechat-report' && entry) {
+        const file=join(entry.workspaceDir,'report-turn.json')
+        writeFileSync(file,JSON.stringify({schema:'plaza-report-turn/1',runId,startedAt,enabled:reportRequested(String(latest.content),existsSync(join(entry.workspaceDir,'wechat-report/report_data.json'))),revision:reportRevisionRequested(String(latest.content)),requestText:String(latest.content).slice(0,12000)}))
+        chmodSync(file,0o640)
+      }
+      const basePrompt=params.interactive ? prompt + '\n\n' + QUESTION_INSTRUCTION : prompt
+      return skill==='wechat-report' && entry ? basePrompt+reportRuntimeHint(skillDir(skill),entry.workspaceDir,existsSync(join(entry.workspaceDir,'wechat-report','report_data.json'))) : basePrompt
     }
     const sendTurn = async () => {
       const sid = entry!.engineSessionId

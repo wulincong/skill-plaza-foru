@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from bound_report import load_data, project, CLAIMS
 
-BASE = Path(__file__).resolve().parent.parent
+from report_runtime import report_root
+BASE = report_root(__file__)
 
 
 def _build_skeleton(data, brand, binding=None):
@@ -84,6 +85,8 @@ def _build_skeleton(data, brand, binding=None):
 
     if data.get('city'):
         i = chart('招聘地域分布', '企业关联地址的城市岗位数', '/city', 'pairs')
+        if len(data['city'])>=3:
+            bind(i,'chart2',{'path':'/city','op':'city_concentration','inputs':{'total':value('/total/positions')}})
         paragraph(i, '完整样本可归属 {n} 个省市组合；图表展示数量靠前的城市。',
                   {'n': value('/total/cities')})
     for key, title1 in [('jobtype', '招聘类型'), ('edu', '学历要求'), ('exp', '经验要求')]:
@@ -96,8 +99,8 @@ def _build_skeleton(data, brand, binding=None):
             paragraph(i, '各类别统计使用同一组 {n} 条岗位记录，缺失与未知类别单独保留。',
                       {'n': value('/total/positions')})
     if data.get('edu_exp'):
-        chart('学历与经验交叉', '学历×经验岗位记录数', '/edu_exp', 'requirements_table',
-              'table', ['学历要求', '经验要求', '岗位记录数'])
+        i=screen(type='chart',no='%02d'%len(ol['screens']),title='学历与经验交叉',paragraphs=[])
+        bind(i,'chart',{'path':'/edu_exp','op':'requirements_composition'})
     salary = data.get('salary') or {}
     if salary.get('valid'):
         i = chart('薪酬结构', '薪酬分档岗位数（不等宽分档，非密度；K = 千元）', '/salary_hist', kind='vbar')
@@ -105,6 +108,9 @@ def _build_skeleton(data, brand, binding=None):
                   {'n': value('/salary/valid'), 'm': value('/salary/median')})
         ol['screens'][i]['summary'] = {'title': '培养与岗位定位',
             'text': '薪酬可辅助识别不同方向的招聘定位，实际收入仍取决于岗位职责、经验和录用条件。'}
+        from report_charts import salary_cohorts
+        if salary_cohorts(data):
+            bind(i,'chart2',{'path':'/salary','op':'salary_cohorts','inputs':{'entry':{'path':'/voc_pool/salary','op':'value'}}})
     if data.get('subtrack'):
         chart('岗位方向结构', '按显式有序规则的互斥归类', '/subtrack')
     if any(r.get('valid') for r in data.get('salary_by_track', [])):
@@ -139,7 +145,20 @@ def _build_skeleton(data, brand, binding=None):
         if pool.get('track'):
             ol['screens'][i]['chart'] = {'kind': 'hbar', 'caption': '职教入门池的岗位方向'}
             bind(i, 'chart/data', {'path': '/voc_pool/track', 'op': 'name_count', 'limit': 10})
-    i = screen(type='chart', no='%02d' % len(ol['screens']), title='人才培养与合作建议',
+        from report_charts import cohort_cities
+        if cohort_cities(data):
+            bind(i,'chart2',{'path':'/city','op':'cohort_cities','inputs':{
+                'total':value('/total/positions'),'entryCount':value('/voc_pool/count'),
+                'entryCities':{'path':'/voc_pool/city','op':'value'}}})
+    if binding:
+        # Keep every agent-written action while preventing one exceptionally long image.
+        from report_analysis import evidence_pack
+        count=len(evidence_pack(data,binding)['requiredSections'])
+        for start in range(0,count,6):
+            screen(type='chart',no='%02d'%len(ol['screens']),title='人才培养与合作建议'+('（续）' if start else ''),
+                   recommendation_start=start,recommendation_stop=min(start+6,count),paragraphs=[])
+    else:
+        screen(type='chart',no='%02d'%len(ol['screens']),title='人才培养与合作建议',
                paragraphs=['将样本中数量较多的岗位方向转化为典型工作任务，结合企业访谈验证课程与实训项目。',
                            '把学历、经验与技能要求分别纳入培养方案，优先选择条件清楚的企业开展项目合作。'])
     gaps = [c['section']+'：'+c['status'] for c in data.get('coverage', []) if c['status'] not in ('complete', 'empty')]
@@ -186,7 +205,15 @@ def build_outline(data, brand, binding=None, analysis=None):
     if binding:
         from report_analysis import apply_analysis, validate_analysis
         validate_analysis(data, binding, analysis)
-        return apply_analysis(_build_skeleton(data, brand, binding), data, binding, analysis)
+        skeleton=_build_skeleton(data,brand,binding)
+        if analysis.get('schema')=='wechat-analysis/2':
+            from deep_outline import upgrade
+            skeleton=upgrade(skeleton,data,binding)
+        result=apply_analysis(skeleton,data,binding,analysis)
+        if analysis.get('schema')=='wechat-analysis/2':
+            from report_references import attach
+            result=attach(result,data)
+        return result
     return _build_skeleton(data, brand)
 
 

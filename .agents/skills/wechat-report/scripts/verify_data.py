@@ -7,7 +7,8 @@ import subprocess
 import sys
 from bound_report import load_data, verify_outline, digest
 
-BASE = Path(__file__).resolve().parent.parent
+from report_runtime import report_root
+BASE = report_root(__file__)
 BANNED = r'可投递|增长最快|快速增长|增速|保持稳定|持续释放|招聘节奏|显著高于|远高于|溢价|样本代表性'
 
 
@@ -47,7 +48,7 @@ def main():
             for page in manifest['pages']:
                 if not (Path(args.report_dir)/page['file']).is_file():
                     raise ValueError('渲染图片缺失')
-            cmd = [sys.executable, str(BASE/'scripts/render_check.py'), '--outline', args.outline,
+            cmd = [sys.executable, str(Path(__file__).with_name('render_check.py')), '--outline', args.outline,
                    '--report-dir', args.report_dir, '--theme', args.theme,
                    '--out', str(Path(args.out).with_suffix('.render.json'))]
             subprocess.run(cmd, check=True)

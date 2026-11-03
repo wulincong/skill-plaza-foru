@@ -41,16 +41,9 @@ def _post(path, token, payload=None, image=None):
 
 def text_before_images(report):
     """All report prose precedes images. No internal field paths or query evidence."""
-    blocks=['<section style="font-size:16px;line-height:1.9;color:#263248">']
-    blocks.append('<p><strong>'+html.escape(report['title'])+'</strong></p>')
-    for screen in report['screens'][1:]:
-        if screen.get('paragraphs') or screen.get('blocks'):
-            blocks.append('<h2 style="font-size:18px;color:#1E3A8A">'+html.escape(screen['title'])+'</h2>')
-        for paragraph in screen.get('paragraphs',[]):blocks.append('<p>'+html.escape(paragraph)+'</p>')
-        if screen.get('summary'):blocks.append('<p>'+html.escape(screen['summary']['text'])+'</p>')
-        for title,text in screen.get('blocks',[]):blocks.append('<p><strong>'+html.escape(title)+'：</strong>'+html.escape(text)+'</p>')
-    blocks.append('</section>')
-    return ''.join(blocks)
+    sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'.agents/skills/wechat-report/scripts'))
+    from article_content import html_prose
+    return html_prose(report)
 
 
 def save_report(session_id,report_id,account,token_provider):
@@ -63,6 +56,7 @@ def save_report(session_id,report_id,account,token_provider):
         session=db.execute('SELECT * FROM sessions WHERE id=? AND report_id=?',(session_id,report_id)).fetchone()
         previous=db.execute('SELECT * FROM drafts WHERE report_id=? AND account_hash=?',(report_id,account_hash)).fetchone()
         if previous and previous['state']=='saved':
+            db.execute('UPDATE sessions SET pending=0,updated_at=? WHERE id=? AND report_id=?',(time.time(),session_id,report_id))
             return {'state':'saved','message':'这份报告已在公众号草稿箱中，已保留原草稿，没有重复创建。'}
         if not session or session['pending']!=2: raise DraftError('缺少对这份成品的明确保存确认')
         if previous and previous['state'] in ('running','unknown'):
@@ -74,15 +68,15 @@ def save_report(session_id,report_id,account,token_provider):
     folder=STORE/'reports'/report_id
     phase='token'
     try:
+        images=sorted((folder/'images').glob('page_*.png'))
+        if len(images)!=report['pageCount']: raise DraftError('归档图片不完整')
+        if [hashlib.sha256(p.read_bytes()).hexdigest() for p in images]!=report.get('imageHashes'):
+            raise DraftError('归档图片与已确认版本不一致，拒绝保存草稿')
         try: token=token_provider()
         except Exception as exc:
             # Existing token module may include request details. Only return a known status.
             message='微信接口40164：主机出口IP不在公众号白名单' if '40164' in str(exc) else '公众号调用凭据暂不可用'
             raise DraftError(message) from None
-        images=sorted((folder/'images').glob('page_*.png'))
-        if len(images)!=report['pageCount']: raise DraftError('归档图片不完整')
-        if [hashlib.sha256(p.read_bytes()).hexdigest() for p in images]!=report.get('imageHashes'):
-            raise DraftError('归档图片与已确认版本不一致，拒绝保存草稿')
         urls=[]
         for image in images:
             result=_post('media/uploadimg',token,image=image)

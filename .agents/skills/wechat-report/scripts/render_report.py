@@ -16,13 +16,17 @@ import re
 from pathlib import Path
 import shutil
 import subprocess
+from contextlib import nullcontext
+from importlib.util import find_spec
+from time import perf_counter
 from bound_report import load_data, verify_outline, digest
 
 from PIL import Image
 from chart_layout import chart_js as modern_chart_js, chart_height, MEASURE_SCRIPT
 import html as html_module
 
-BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from report_runtime import report_root
+BASE = str(report_root(__file__))
 EDGE = os.environ.get('WECHAT_REPORT_BROWSER') or next(
     (p for p in (shutil.which('msedge'), shutil.which('google-chrome'),
                  shutil.which('chromium'), shutil.which('chromium-browser'),
@@ -47,7 +51,7 @@ C_SUB = '#6B7280'
 C_CARD = '#F5F7FB'
 
 # ---------- 配色主题（assets/themes.json，--theme 手选；zhengwu=历史默认） ----------
-THEME_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+THEME_FILE = os.path.join(BASE,
                           'assets', 'themes.json')
 
 
@@ -162,7 +166,7 @@ html,body { width:%(W)dpx; background:%(PBG)s;
 /* 准入矩阵：职教可进入区域 */
 .dtable td.zone { background:%(ZBG)s !important; color:%(STT)s; font-weight:700; }
 .dtable td.zone::after { content:' ★'; font-size: 18px; }
-/* 大数字卡（极端不均衡构成，FT 规则替代饼图） */
+/* 大数字卡（极端不均衡构成，本项目可读性策略替代饼图） */
 .bignum { background:%(CARD)s; border-radius:16px; padding:34px 30px 26px;
   margin-bottom:20px; text-align:center; }
 .bignum .big { font-size:96px; font-weight:700; color:%(PRI)s; line-height:1.1; }
@@ -244,6 +248,7 @@ BASE_JS_TMPL = """
 function chart(el, opt, fs) {
   var c = echarts.init(document.getElementById(el), null,
                        {devicePixelRatio: window.__DPR__, renderer: 'svg', animation: false});
+  c.on('finished', () => { c.__reportFinished = true; });
   opt.animation = false;
   opt.textStyle = {fontFamily: 'sans-serif', fontSize: (fs || 19)};
   c.setOption(opt);
@@ -300,7 +305,7 @@ CHART_H = {'heatmap': 600, 'funnel': 560, 'line': 460, 'scatter': 500}
 
 
 def chart_js(cfg, el, height):
-    """按 outline 里的 chart 配置生成 ECharts 代码。字号按原文：轴19 标签21 图例19"""
+    """按 outline 里的 chart 配置生成 ECharts 代码。数据与样式来自统一图表模块；保留明确的历史类型兼容"""
     modern = modern_chart_js(cfg, el, THEME)
     if modern is not None:
         return modern
@@ -308,123 +313,7 @@ def chart_js(cfg, el, height):
     data = cfg.get('data', [])
     unit = cfg.get('unit', '')
     js = "var D = %s;\n" % json.dumps(data, ensure_ascii=False)
-    if kind == 'hbar':
-        pct = cfg.get('pct_label', False)
-        js += """
-chart('%s', {
-  grid: {left: %d, right: %d, top: 10, bottom: 10},
-  xAxis: {type: 'value', show: false},
-  yAxis: {type: 'category', inverse: true,
-    data: D.map(function(d){return d[0]}),
-    axisLine: {show:false}, axisTick: {show:false},
-    axisLabel: {fontSize: 29, interval: 0, color: '#374151'}},
-  series: [{type: 'bar', barWidth: 22,
-    data: D.map(function(d, i){
-      var v = %s ? d[2] : d[1];
-      return {value: v,
-        itemStyle: {color: %s, borderRadius: [0,6,6,0]},
-        label: {show: true, position: 'right', fontSize: 30, color: '%s',
-          formatter: function(p){ return %s ? (p.value + '%%')
-            : (p.value.toLocaleString() + '%s'); }}};})}]
-});
-""" % (el,
-       max(120, min(400, 30 * max(len(str(d[0])) for d in data) + 20)) if data else 120,
-       140,
-       'true' if pct else 'false',
-       ("(i < %d ? '%s' : (D[0][2] !== undefined && D[i][0] === '%s' "
-        "? '%s' : '%s'))" % (cfg.get('top', 0), TH('accent'),
-                             cfg.get('highlight', ''), TH('accent'),
-                             TH('secondary'))) if not pct
-       else "'%s'" % TH('secondary'),
-       TH('text'),
-       'true' if pct else 'false',
-       ' ' + unit if unit else '')
-    elif kind == 'vbar':
-        js += """
-chart('%s', {
-  grid: {left: 20, right: 20, top: 40, bottom: 34, containLabel: true},
-  xAxis: {type: 'category', data: D.map(function(d){return d[0]}),
-    axisLabel: {fontSize: 19, color: '#374151', interval: 0},
-    axisLine: {lineStyle: {color: '#D1D5DB'}}, axisTick: {show: false}},
-  yAxis: {show: false},
-  series: [{type: 'bar', barWidth: 44,
-    data: D.map(function(d){
-      var max = Math.max.apply(null, D.map(function(x){return x[1]}));
-      return {value: d[1], itemStyle: {color: d[1]===max ? '%s' : '%s',
-        borderRadius: [6,6,0,0]},
-        label: {show: true, position: 'top', fontSize: 21, color: '%s',
-          formatter: function(p){ return p.value + '%%'; }}}})}]
-});
-""" % (el, TH('accent'), TH('primary'), TH('text'))
-    elif kind == 'donut':
-        js += """
-chart('%s', {
-  legend: {orient: 'vertical', right: 8, top: 'middle', itemWidth: 20,
-    itemHeight: 20, itemGap: 20, textStyle: {fontSize: 19, color: '#374151'},
-    formatter: function(name){ var it = D.filter(function(d){return d[0]==name})[0];
-      return name + '  ' + (it ? it[2] : 0) + '%%'; }},
-  series: [{type: 'pie', radius: ['46%%','72%%'], center: ['30%%','50%%'],
-    label: {show: false},
-    data: D.map(function(d, i){ return {name: d[0], value: d[1],
-      itemStyle: {color: PALETTE[i %% 7]}};})}]
-});
-""" % el
-    elif kind == 'pie':
-        js += """
-var JT_TOTAL = D.reduce(function(s, d){return s + d[1]}, 0);
-chart('%s', {
-  legend: {bottom: 0, itemWidth: 18, itemHeight: 18, itemGap: 22,
-    textStyle: {fontSize: 19, color: '#374151'},
-    formatter: function(name){ var it = D.filter(function(d){return d[0]==name})[0];
-      return name + ' ' + (it ? (it[1]*100/JT_TOTAL).toFixed(1) : '0.0') + '%%'; }},
-  series: [{type: 'pie', radius: ['40%%','68%%'], center: ['50%%','42%%'],
-    label: {fontSize: 19, color: '#374151',
-      formatter: function(p){ return p.percent >= 3
-        ? p.name + ' ' + p.percent + '%%' : ''; }},
-    data: D.map(function(d, i){ return {name: d[0], value: d[1],
-      itemStyle: {color: %s[i %% 3]}}})}]
-});
-""" % (el, json.dumps(TH('pie3')))
-    elif kind == 'heatmap':
-        rows = cfg.get('rows', [])
-        cols = cfg.get('cols', [])
-        unit = cfg.get('unit', '%')
-        vals = [c[2] for c in cfg.get('cells', [])] or [1]
-        vmax, vmin = max(vals), max(0, min(vals))
-        js += """
-var ROWS = %s, COLS = %s;
-var CELLS = %s;
-var VMAX = %s, VMIN = %s;
-chart('%s', {
-  grid: {left: 10, right: 24, top: 20, bottom: 96, containLabel: true},
-  xAxis: {type: 'category', data: COLS, splitArea: {show: true},
-    axisLine: {show: false}, axisTick: {show: false},
-    axisLabel: {fontSize: 18, interval: 0, rotate: 0, lineHeight: 22,
-      margin: 14, color: '#374151',
-      formatter: function(v){
-        var i = v.indexOf('/');
-        if (i > 0 && i < v.length - 1) return v.slice(0, i + 1) + '\\n' + v.slice(i + 1);
-        return v.length > 5 ? v.slice(0, 5) + '\\n' + v.slice(5) : v; }}},
-  yAxis: {type: 'category', data: ROWS, inverse: true,
-    splitArea: {show: true},
-    axisLine: {show: false}, axisTick: {show: false},
-    axisLabel: {fontSize: 18, color: '#374151'}},
-  visualMap: {min: VMIN, max: VMAX, calculable: false, orient: 'horizontal',
-    left: 'center', bottom: 0, itemWidth: 18, itemHeight: 150,
-    textStyle: {fontSize: 16, color: '%s'},
-    inRange: {color: %s}},
-  series: [{type: 'heatmap',
-    // ECharts 热力图数据格式为 [x=列索引, y=行索引, 值]；大纲 cells 存的是 [行,列,值]，此处必须换位
-    data: CELLS.map(function(c){return [c[1], c[0], c[2]];}),
-    label: {show: true, fontSize: 18, color: '#111827',
-      formatter: function(p){ return p.data[2] + '%s'; }},
-    itemStyle: {borderColor: '#fff', borderWidth: 4, borderRadius: 8},
-    emphasis: {itemStyle: {shadowBlur: 6, shadowColor: 'rgba(0,0,0,.3)'}}}]
-});
-""" % (json.dumps(rows, ensure_ascii=False), json.dumps(cols, ensure_ascii=False),
-       json.dumps(cfg.get('cells', []), ensure_ascii=False), vmax, vmin, el,
-       TH('sub'), json.dumps(TH('heat')), unit)
-    elif kind == 'scatter':
+    if kind == 'scatter':
         unit_x = cfg.get('unit_x', '')
         unit_y = cfg.get('unit_y', '')
         # 规范（chart-gallery）：气泡按方向分色 + 底部图例；仅岗位量最大的气泡保留名称标注
@@ -532,7 +421,7 @@ def render_table(cfg, src_line=''):
 
 
 def render_bignum(cfg, src_line=''):
-    """kind=bignum：极端不均衡构成的大数字卡（FT 规则：替代饼图）"""
+    """kind=bignum：极端不均衡构成的大数字卡（本项目可读性策略：替代饼图）"""
     top = cfg.get('top') or {}
     rest = cfg.get('rest') or []
     total = cfg.get('total', 0) or (top.get('count', 0)
@@ -673,7 +562,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
                 '<div style="font-size:23px;font-weight:700;color:%s;'
                 'margin-bottom:8px">口径说明</div>'
                 '<div style="font-size:21px;line-height:1.7;color:%s;'
-                'text-align:justify">%s</div></div>'
+                'text-align:justify;overflow-wrap:anywhere">%s</div></div>'
                 % (TH('sbox_bg'), TH('sbox_title'), TH('sbox_text'),
                    s['note']))
 
@@ -686,21 +575,23 @@ def render_screen(s, idx, total, org, scale, meta=None):
         body_parts.append('<div class="paras">%s</div>' % paras)
         body_parts.append(note)
     elif s['type'] == 'chart':
-        # 图位置规则：仅一张图时紧跟第一段；多图时图组在全部段落之后——
-        # 总结框（summary）永远在最后
+        # 先给事实，再给图组与解释；总结框始终在最后。
         paras_html = []
         for paragraph in s.get('paragraphs', []):
+            if s.get('executive_structure') and paragraph.startswith('结论') and '｜' in paragraph:
+                number,title=paragraph.split('｜',1)
+                paras_html.append('<h3 style="font-size:33px;line-height:1.55;color:%s;margin:30px 0 14px"><span style="color:%s">%s</span>｜%s</h3>'%(TH('primary'),TH('accent'),number,title))
+                continue
             label, _, body = paragraph.partition('：')
-            if s.get('analysis_key') == 'recommendations' or label in ('综合分析', '结构解读与分析推断'):
+            if s.get('analysis_key') == 'recommendations' or label in ('综合分析', '结构解读与分析推断','总体判断','分析','决策启示'):
                 label = '解读' if label == '结构解读与分析推断' else label
                 paras_html.append(f'<p><span class="label">{label}</span>{body}</p>')
             else:
                 paras_html.append(f'<p>{paragraph}</p>')
         singles = [k for k in ('chart', 'chart2', 'chartA', 'chartB')
                    if s.get(k)]
-        single = len(singles) == 1
-        first_paras = paras_html[:1] if (single and paras_html) else paras_html
-        rest_paras = paras_html[1:] if (single and paras_html) else []
+        first_paras = paras_html[:1] if singles else paras_html
+        rest_paras = paras_html[1:] if singles else []
         body_parts.append('<div class="paras">%s</div>' % ''.join(first_paras))
         body_parts.append(stats)
         if s.get('chart'):
@@ -716,13 +607,16 @@ def render_screen(s, idx, total, org, scale, meta=None):
                 body_parts.append('<div class="card"><div class="cap">%s</div>%s%s</div>'
                                   % (cap(c1),
                                      chart_div(c1, CONTENT_W - 48, h1), src_line))
+        if s.get('chart2'):
+            c2=s['chart2'];h2=chart_height(c2)
+            if c2.get('kind')=='table':body_parts.append(render_table(dict(c2,caption=cap(c2)),src_line))
+            elif c2.get('kind')=='bignum':body_parts.append(render_bignum(c2,src_line))
+            else:
+                js_parts.append(chart_js(c2,'c2',h2))
+                body_parts.append('<div class="card"><div class="cap">%s</div>%s%s</div>'
+                    % (cap(c2),chart_div(c2,CONTENT_W-48,h2),src_line))
         if rest_paras:
             body_parts.append('<div class="paras">%s</div>' % ''.join(rest_paras))
-        if s.get('chart2'):
-            js_parts.append(chart_js(s['chart2'], 'c2', 400))
-            body_parts.append('<div class="card"><div class="cap">%s</div>%s</div>'
-                              % (cap(s['chart2']),
-                                 chart_div(s['chart2'], CONTENT_W - 48, 400)))
     elif s['type'] == 'duo':
         body_parts.append('<div class="paras">%s</div>' % paras)
         duo = []
@@ -748,7 +642,7 @@ def render_screen(s, idx, total, org, scale, meta=None):
             '<div style="margin-bottom:26px"><div style="font-size:32px;'
             'font-weight:700;color:%s;margin-bottom:10px;padding-left:14px;'
             'border-left:7px solid %s">%s</div><div style="font-size:32px;'
-            'line-height:1.75;color:#4B5563;text-align:justify">%s</div></div>'
+            'line-height:1.75;color:#4B5563;text-align:justify;overflow-wrap:anywhere">%s</div></div>'
             % (TH('primary'), TH('accent'), t, c)
             for t, c in s.get('blocks', []))
         contact = ('<div style="background:linear-gradient(135deg,%s,'
@@ -860,6 +754,8 @@ def main():
                     help='1=与原文一致(943px宽)；2=高清(1886px宽，公众号里字号'
                          '会显得只有原文一半)')
     ap.add_argument('--no-stitch', action='store_true')
+    ap.add_argument('--renderer',choices=['auto','persistent','cli'],default='auto',
+                    help='auto优先复用一个浏览器，cli保留逐页命令行兼容方式')
     ap.add_argument('--data', default=os.path.join(BASE, 'report_data.json'))
     ap.add_argument('--demo', action='store_true')
     ap.add_argument('--theme', default='zhengwu',
@@ -897,26 +793,33 @@ def main():
 
     chapter_keys = {item['key'] for item in ol['analysis']['sections']} if binding else set()
     manifest = []
-    for idx, s in enumerate(screens):
-        if s['type'] == 'cover' and not s.get('date'):
-            s['date'] = ol.get('generated_at', '')[:7].replace('-', '年') + '月'
-        # Bound reports collect all chapter actions on the recommendations page.
-        if s.get('analysis_key') in chapter_keys:
-            s = dict(s, paragraphs=[p for p in s['paragraphs'] if not p.startswith('行动建议：')])
-        html = render_screen(s, idx, total, ol.get('org', ''), args.scale,
-                                meta=ol.get('meta'))
-        hp = os.path.join(pages_dir, 'page_%02d.html' % idx)
-        measure = MEASURE_SCRIPT
-        with open(hp, 'w', encoding='utf-8') as f:
-            f.write(html.replace('</body>', measure + '</body>'))
-        png = os.path.join(pages_dir, 'page_%02d.png' % idx)
-        h, audit = shoot(hp, png, PAGE_W, args.scale)
-        manifest.append({'index': idx, 'name': s.get('title', 'screen'),
-                         'file': 'pages/page_%02d.png' % idx,
-                         'height': h, 'width': PAGE_W, 'scale': args.scale,
-                         'sha256': digest(Path(png).read_bytes()), 'layout': audit})
-        print('[%d/%d] %s%s -> %s' % (idx + 1, total, s.get('no', ''),
-                                      s.get('title', ''), png))
+    backend='persistent' if args.renderer=='persistent' or (args.renderer=='auto' and find_spec('playwright')) else 'cli'
+    started=perf_counter()
+    if backend=='persistent':
+        from browser_renderer import ReportBrowser
+        renderer=ReportBrowser(EDGE,PAGE_W,args.scale)
+    else:renderer=nullcontext(None)
+    with renderer as browser:
+        for idx, s in enumerate(screens):
+            if s['type'] == 'cover' and not s.get('date'):
+                s['date'] = ol.get('generated_at', '')[:7].replace('-', '年') + '月'
+            # Bound reports collect all chapter actions on the recommendations page.
+            if s.get('analysis_key') in chapter_keys:
+                s = dict(s, paragraphs=[p for p in s['paragraphs'] if not p.startswith('行动建议：')])
+            html = render_screen(s, idx, total, ol.get('org', ''), args.scale,
+                                    meta=ol.get('meta'))
+            hp = os.path.join(pages_dir, 'page_%02d.html' % idx)
+            measure = MEASURE_SCRIPT
+            with open(hp, 'w', encoding='utf-8') as f:
+                f.write(html.replace('</body>', measure + '</body>'))
+            png = os.path.join(pages_dir, 'page_%02d.png' % idx)
+            h, audit = browser.capture(hp,png) if browser else shoot(hp, png, PAGE_W, args.scale)
+            manifest.append({'index': idx, 'name': s.get('title', 'screen'),
+                             'file': 'pages/page_%02d.png' % idx,
+                             'height': h, 'width': PAGE_W, 'scale': args.scale,
+                             'sha256': digest(Path(png).read_bytes()), 'layout': audit})
+            print('[%d/%d] %s%s -> %s' % (idx + 1, total, s.get('no', ''),
+                                          s.get('title', ''), png))
 
     if not args.no_stitch:
         imgs = [Image.open(os.path.join(args.outdir, m['file'])) for m in manifest]
@@ -934,6 +837,7 @@ def main():
 
     with open(os.path.join(args.outdir, 'manifest.json'), 'w', encoding='utf-8') as f:
         json.dump({'schema': 'wechat-render/2', 'theme': args.theme, 'pages': manifest, 'title': ol['title'],
+                   'renderer':backend,'render_seconds':round(perf_counter()-started,3),
                    'outline_sha256': digest(Path(args.outline).read_bytes()),
                    'source_content_hash': ol.get('source_content_hash'),
                    'generated_at': ol.get('generated_at')}, f,

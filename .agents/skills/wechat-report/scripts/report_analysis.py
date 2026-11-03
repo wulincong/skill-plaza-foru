@@ -9,7 +9,8 @@ import json
 from pathlib import Path
 import re
 
-BASE = Path(__file__).resolve().parent.parent
+from report_runtime import report_root
+BASE = report_root(__file__)
 VERSION = 'wechat-analysis/1'
 LABELS = {
     'overview': '核心发现', 'geography': '地域分布', 'jobtype': '招聘类型',
@@ -207,6 +208,8 @@ def derive_findings(data):
         add('track_skills.group_'+str(i), 'track_skills',
             f"{key[1]}方向共 {number(a['positions'])} 条岗位，其中 {a['skill']}被 {number(a['count'])} 条提及，方向内提及率为 {pct(a['count'], a['positions'])}%；分母包含该方向缺少描述的记录。",
             ['/job_skill_rows'], 'comparison', denominator=a['positions'])
+    from joint_findings import derive as joint_findings
+    out.extend(joint_findings(data))
     return out
 
 
@@ -230,10 +233,13 @@ def _narrative(value, field, minimum=20, labels=()):
     checked = value
     for label in sorted(labels, key=len, reverse=True):
         checked = checked.replace(label, '')
-    if re.search(r'待填写|TODO|填写这里|<[^>]+>', value, re.I) or re.search(r'\d', checked):
+    if re.search(r'待填写|TODO|填写这里|<[^>]+>|\{[A-Za-z_][A-Za-z0-9_.:-]*\}|\b(?:geography|salary|vocational|tracks|track_skills|jobtype|education|experience|access|skills|lq|track_salary|city_tracks)\.[a-z_0-9.]+', value, re.I) or re.search(r'\d', checked):
         raise ValueError(field+'含占位、HTML或未绑定数字；数字请选用 findingIds 中的事实')
     if re.search(r'增长最快|快速增长|增速|持续释放|招聘节奏|显著高于|溢价|样本代表性', value):
         raise ValueError(field+'包含当前横截面无法证明的判断')
+    for sentence in re.split(r'[。！？；]',value):
+        if re.search(r'源于|得益于|导致|带动了|必然|证明了',sentence) and not re.search(r'可能|假设|待核|需核|待验证|不能|无法|尚不|是否|核实|核对|检验|避免|防止|若|如果',sentence):
+            raise ValueError(field+'把解释写成已证实因果，请改为待核实假设并给出验证方式：'+sentence[:160])
     return value.strip()
 
 
@@ -252,7 +258,7 @@ def entity_labels(data):
 def validate_analysis(data, binding, analysis):
     if not data['total']['positions']:
         raise ValueError('当前范围无岗位记录，应说明空样本，不能生成研究报告')
-    if not isinstance(analysis, dict) or analysis.get('schema') != VERSION:
+    if not isinstance(analysis, dict) or analysis.get('schema') not in (VERSION,'wechat-analysis/2'):
         raise ValueError('缺少已完成的真实数据分析；先运行 report_analysis.py 并撰写 report_analysis.json')
     pack = evidence_pack(data, binding)
     for key in ('sourceDataSha256', 'sourceContentHash'):
@@ -264,16 +270,25 @@ def validate_analysis(data, binding, analysis):
     if not any(f['kind'] == 'comparison' for f in facts.values()):
         raise ValueError('现有结果只有规模或单项计数，需补充比较或交叉统计后再分析')
     labels = entity_labels(data)
+    problems=[]
 
     def narrative(value, field, minimum=20):
-        return _narrative(value, field, minimum, labels)
+        try:
+            checked=_narrative(value, field, minimum, labels)
+            if analysis.get('schema')=='wechat-analysis/2':
+                from analysis_quality import problems as quality_problems
+                problems.extend(quality_problems(checked,field))
+            return checked
+        except ValueError as exc:
+            problems.append(str(exc));return ''
 
     def selected(item, section=None, minimum=2):
         ids = item.get('findingIds', [])
         allowed = [f for f in facts.values() if section is None or f['section'] == section]
         if not isinstance(ids, list) or any(not isinstance(x, str) for x in ids) or len(set(ids)) != len(ids):
             raise ValueError('分析事实引用须为不重复的 findingIds')
-        if not min(minimum, len(allowed)) <= len(ids) <= 5 or any(x not in facts for x in ids):
+        maximum=12 if section is None and analysis.get('schema')=='wechat-analysis/2' else 5
+        if not min(minimum, len(allowed)) <= len(ids) <= maximum or any(x not in facts for x in ids):
             raise ValueError('分析需要相关事实与比较证据，且不能引用不存在的事实')
         if section and any(facts[x]['section'] != section for x in ids):
             raise ValueError('章节引用了其他主题的事实')
@@ -285,33 +300,89 @@ def validate_analysis(data, binding, analysis):
     domains = {f['section'] for f in facts.values()}
     if len({facts[x]['section'] for x in executive['findingIds']}) < min(3, len(domains)):
         raise ValueError('综合判断需结合不同维度，不能只罗列同一主题的事实')
-    narrative(executive.get('synthesis'), '跨维度综合判断', 40)
+    if analysis.get('schema')=='wechat-analysis/2':
+        from executive_analysis import validate as validate_executive
+        try:validate_executive(executive,facts,narrative)
+        except ValueError as exc:problems.append(str(exc))
+    else:narrative(executive.get('synthesis'), '跨维度综合判断', 40)
     insights = analysis.get('sections', [])
     if not isinstance(insights, list) or any(not isinstance(s, dict) for s in insights):
         raise ValueError('sections 必须为分析章节列表')
     keys = [s.get('key') for s in insights]
     if len(set(keys)) != len(keys) or set(keys) != set(pack['requiredSections']):
-        raise ValueError('分析章节未覆盖已有统计：'+', '.join(pack['requiredSections']))
+        missing=set(pack['requiredSections'])-set(keys)
+        extra=set(keys)-set(pack['requiredSections'])
+        raise ValueError('分析章节不完整；缺少：'+', '.join(sorted(missing))+'；多余：'+', '.join(sorted(extra)))
     seen = set()
     for s in insights:
         selected(s, s['key'])
         narrative(s.get('title'), '结论式标题', 4)
-        if len(s['title']) > 40:
-            raise ValueError('结论式标题过长，请压缩为可读的页面标题')
+        if isinstance(s.get('title'),str) and len(s['title']) > 40:
+            problems.append(s['key']+'结论式标题过长，请压缩为可读的页面标题')
         for field in ('interpretation', 'action', 'validation'):
-            value = narrative(s.get(field), s['key']+'.'+field)
+            minimum={'interpretation':40,'action':30,'validation':30}[field] if analysis.get('schema')=='wechat-analysis/2' else 20
+            value = narrative(s.get(field), s['key']+'.'+field,minimum)
             normalized = re.sub(r'\W', '', value)
-            if normalized in seen:
-                raise ValueError('不同章节不能复用同一句分析或建议')
+            if normalized and normalized in seen:
+                problems.append(s['key']+'不同章节不能复用同一句分析或建议')
             seen.add(normalized)
+        if analysis.get('schema')=='wechat-analysis/2':
+            narrative(s.get('decisionRule'),s['key']+'.decisionRule',30)
     limitations = analysis.get('limitations')
     if not isinstance(limitations, list) or not limitations:
         raise ValueError('分析需列明证据边界与待验证解释')
     for text in limitations:
         narrative(text, '研究边界')
     if analysis.get('coverageGaps') != pack['coverageGaps']:
-        raise ValueError('分析未如实列出未请求或不可用的维度')
+        problems.append('coverageGaps应原样保留：'+json.dumps(pack['coverageGaps'],ensure_ascii=False))
+    if problems:raise ValueError('分析稿需一次性修正以下项目：\n- '+'\n- '.join(problems))
     return pack
+
+
+def default_findings(pack,key=None):
+    """A compact starting selection, always including comparison evidence if present."""
+    rows=[f for f in pack['findings'] if key is None or f['section']==key]
+    preferred={'geography':['geography.joint_contrast','geography.entry_coverage_0'],
+        'jobtype':['jobtype.leading','jobtype.entry_definition'],
+        'education':['education.leading','education.experience_contrast'],
+        'experience':['experience.leading','experience.education_contrast'],
+        'tracks':['tracks.coverage','tracks.classified_leaders'],
+        'salary':['salary.quantiles','salary.entry_upper_bound'],
+        'track_salary':['track_salary.qualified_extremes','track_salary.entry_tradeoff'],
+        'vocational':['vocational.size','vocational.track_tradeoff'],
+        'track_skills':['track_skills.conditional_contrast','track_skills.group_0']}
+    if key in preferred:
+        available={f['id'] for f in rows};choice=[fid for fid in preferred[key] if fid in available]
+        if len(choice)>=2:return choice[:4]
+    selected=[]
+    if key is None:
+        domains=set()
+        for fact in rows:
+            if fact['section'] not in domains and fact['kind']=='comparison':
+                selected.append(fact['id']);domains.add(fact['section'])
+            if len(selected)>=4:break
+    else:
+        if rows:selected.append(rows[0]['id'])
+        comparison=next((f['id'] for f in rows if f['kind']=='comparison' and f['id'] not in selected),None)
+        if comparison:selected.append(comparison)
+        elif len(rows)>1:selected.append(rows[1]['id'])
+    return selected
+
+
+def assemble_analysis(data,binding,writing):
+    pack=evidence_pack(data,binding)
+    if writing.get('schema') not in ('wechat-analysis-writing/1','wechat-analysis-writing/2') or writing.get('evidenceHash')!=fingerprint(pack):
+        raise ValueError('分析文案须来自本次writing_draft并保留evidenceHash')
+    result={key:pack[key] for key in ('sourceDataSha256','sourceContentHash')}
+    deep=writing.get('schema')=='wechat-analysis-writing/2'
+    result.update(schema='wechat-analysis/2' if deep else VERSION,evidenceHash=fingerprint(pack),coverageGaps=pack['coverageGaps'],
+                  executive=writing.get('executive',{}),sections=writing.get('sections',[]),limitations=writing.get('limitations',[]))
+    result['executive']=dict(result['executive'])
+    if deep:result['executive']['findingIds']=list(dict.fromkeys(fid for claim in result['executive'].get('claims',[]) for fid in claim.get('findingIds',[])))
+    result['executive'].setdefault('findingIds',default_findings(pack))
+    result['sections']=[dict(section,findingIds=section.get('findingIds',default_findings(pack,section.get('key')))) for section in result['sections']]
+    validate_analysis(data,binding,result)
+    return result
 
 
 def finding_spec(fact, binding):
@@ -326,12 +397,18 @@ def finding_spec(fact, binding):
 
 
 def analysis_payload(item, facts, executive=False):
+    if executive and item.get('claims'):
+        from executive_analysis import payload
+        ps,summary,_=payload(item,facts)
+        return ps,summary
     paragraphs = [facts[x]['text'] for x in item['findingIds']]
     if executive:
         paragraphs.append('综合分析：'+item['synthesis'])
         return paragraphs, None
     paragraphs += ['结构解读与分析推断：'+item['interpretation'], '行动建议：'+item['action']]
-    return paragraphs, {'title': '落实与验证', 'text': item['validation']}
+    verification=item['validation']
+    if item.get('decisionRule'):verification+=' 调整条件：'+item['decisionRule']
+    return paragraphs, {'title': '落实与验证', 'text': verification}
 
 
 def apply_analysis(outline, data, binding, analysis):
@@ -362,11 +439,18 @@ def apply_analysis(outline, data, binding, analysis):
             screen.pop('summary', None)
             if summary:
                 screen['summary'] = summary
-            for j, fact_id in enumerate(item['findingIds']):
+            fact_indices=dict(enumerate(item['findingIds']))
+            if key=='overview' and item.get('claims'):
+                from executive_analysis import payload
+                _,_,fact_indices=payload(item,facts)
+                screen['executive_structure']='total-parts-total'
+            for j, fact_id in fact_indices.items():
                 refs[f'/screens/{i}/paragraphs/{j}'] = finding_spec(facts[fact_id], binding)
-        elif title == '人才培养与合作建议':
+        elif title.startswith('人才培养与合作建议'):
             screen['analysis_key'] = 'recommendations'
-            screen['paragraphs'] = [LABELS[s['key']]+'：'+s['action'] for s in analysis['sections']]
+            start=screen.get('recommendation_start',0)
+            stop=screen.get('recommendation_stop',len(analysis['sections']))
+            screen['paragraphs'] = [LABELS[s['key']]+'：'+s['action'] for s in analysis['sections'][start:stop]]
         elif screen['type'] == 'notes':
             screen['blocks'] = [b for b in screen['blocks'] if b[0] != '未覆盖项']
             gaps = '；'.join(LABELS.get(g['section'], '学历与经验要求')+'：'+STATUS_LABELS.get(g['status'], g['status'])
@@ -385,6 +469,7 @@ def verify_analysis_outline(data, binding, outline):
     items = {s['key']: s for s in analysis['sections']}
     items['overview'] = analysis['executive']
     seen = []
+    recommendations=[]
     for i, screen in enumerate(outline['screens']):
         key = screen.get('analysis_key')
         if key in items:
@@ -395,14 +480,22 @@ def verify_analysis_outline(data, binding, outline):
                 raise ValueError('报告未完整保留分析正文：'+key)
             if key != 'overview' and screen['title'] != item['title']:
                 raise ValueError('报告标题与分析稿不一致')
-            for j, fid in enumerate(item['findingIds']):
+            fact_indices=dict(enumerate(item['findingIds']))
+            if key=='overview' and item.get('claims'):
+                from executive_analysis import payload
+                _,_,fact_indices=payload(item,facts)
+            for j, fid in fact_indices.items():
                 if outline['bindings'].get(f'/screens/{i}/paragraphs/{j}') != finding_spec(facts[fid], binding):
                     raise ValueError('分析事实引用与统计对象不一致')
         elif key == 'recommendations':
-            ps = [LABELS[s['key']]+'：'+s['action'] for s in analysis['sections']]
+            start=screen.get('recommendation_start',0)
+            stop=screen.get('recommendation_stop',len(analysis['sections']))
+            ps = [LABELS[s['key']]+'：'+s['action'] for s in analysis['sections'][start:stop]]
             if screen.get('paragraphs') != ps:
                 raise ValueError('报告缺少已分析的行动建议')
-    if sorted(seen) != sorted(items) or sum(s.get('analysis_key') == 'recommendations' for s in outline['screens']) != 1:
+            recommendations.extend(ps)
+    expected_recommendations=[LABELS[s['key']]+'：'+s['action'] for s in analysis['sections']]
+    if sorted(seen) != sorted(items) or recommendations!=expected_recommendations:
         raise ValueError('报告缺少分析章节，不能只交付统计骨架')
 
 
@@ -411,8 +504,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--data', default=str(BASE/'report_data.json'))
     ap.add_argument('--out', default=str(BASE/'output/analysis'))
+    ap.add_argument('--assemble',help='合并智能体文案与受信元数据，校验后写report_analysis.json')
+    ap.add_argument('--analysis-out',default=str(BASE/'report_analysis.json'))
     args = ap.parse_args()
     data, binding = load_data(args.data)
+    if args.assemble:
+        result=assemble_analysis(data,binding,json.loads(Path(args.assemble).read_text('utf-8')))
+        Path(args.analysis_out).write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n','utf-8')
+        print(json.dumps({'status':'analysis_ready','analysis':args.analysis_out},ensure_ascii=False))
+        return
     pack = evidence_pack(data, binding)
     if not data['total']['positions']:
         raise ValueError('当前范围无岗位记录，请反馈空样本，不生成研究报告')
@@ -424,16 +524,49 @@ def main():
         lines += ['## '+f['id'], f['text'], '输入字段：'+', '.join(f['paths']), '']
     lines += ['## 未覆盖维度', json.dumps(pack['coverageGaps'], ensure_ascii=False)]
     (out/'analysis_evidence.md').write_text('\n'.join(lines), 'utf-8')
+    brief=['# 本次写作简报','',
+           '真实事实已由程序计算。先完成下面全部章节的解释、行动、验证，再连续生成图片。不要复制整份分析证据或手工填写来源指纹。',
+           '从writing_draft.json复制结构，保留evidenceHash与全部章节key；默认事实已包含比较，可选择证据中的其他同主题findingIds。',
+           '解释只回答本样本意味着什么，不能虚构产业原因、学校层次或市场趋势；因果机制须写成待核实假设。文字内不重复测量数字；量化事实由findingIds插入。',
+           '每章title控制在简短结论；interpretation/action/validation各写具体内容，避免反复免责声明和通用口号。',
+           '文案完成后调用report_analysis.py --assemble report_writing.json；程序补来源与覆盖字段、一次性列出文案错误。通过后调用generate_report.py --workspace ..。','']
+    facts={f['id']:f for f in pack['findings']}
+    for key in pack['requiredSections']:
+        brief += ['## '+key+' · '+LABELS[key]]
+        brief += [f"- {fid}: {facts[fid]['text']}" for fid in default_findings(pack,key)]
+    brief += ['','## 数据覆盖缺口',json.dumps(pack['coverageGaps'],ensure_ascii=False)]
+    (out/'analysis_brief.md').write_text('\n'.join(brief),'utf-8')
     draft = dict(schema=VERSION, sourceDataSha256=pack['sourceDataSha256'],
                  sourceContentHash=pack['sourceContentHash'], evidenceHash=fingerprint(pack),
-                 executive={'findingIds': [], 'synthesis': ''},
-                 sections=[dict(key=key, title='', findingIds=[], interpretation='', action='', validation='')
+                 executive={'findingIds': default_findings(pack), 'synthesis': ''},
+                 sections=[dict(key=key, title='', findingIds=default_findings(pack,key), interpretation='', action='', validation='')
                            for key in pack['requiredSections']],
                  limitations=[], coverageGaps=pack['coverageGaps'])
     # Never overwrite an agent's existing analysis with an empty scaffold.
     (out/'analysis_draft.json').write_text(json.dumps(draft, ensure_ascii=False, indent=2), 'utf-8')
-    print(json.dumps({'status': 'analysis_required', 'evidence': str(out/'analysis_evidence.md'),
-                      'draft': str(out/'analysis_draft.json'), 'next': '阅读完整数据与证据，撰写 report_analysis.json 后再生成大纲'}, ensure_ascii=False))
+    writing={key:draft[key] for key in ('evidenceHash','executive','sections','limitations')}
+    writing['schema']='wechat-analysis-writing/1'
+    if data.get('city_profiles'):
+        writing['schema']='wechat-analysis-writing/2'
+        for section in writing['sections']:section['decisionRule']=''
+        candidates=[['geography.joint_contrast','vocational.city_coverage_0'],
+                    ['salary.entry_upper_bound','vocational.salary_comparison'],
+                    ['tracks.classified_leaders','track_skills.conditional_contrast','tracks.coverage']]
+        known={f['id']:f for f in pack['findings']}
+        pairs=[]
+        for ids in candidates:
+            chosen=[fid for fid in ids if fid in known]
+            if len(chosen)<2:
+                domains={known[fid]['section'] for fid in chosen}
+                chosen += [f['id'] for f in pack['findings'] if f['kind']=='comparison' and f['section'] not in domains][:2-len(chosen)]
+            pairs.append(chosen)
+        writing['executive']={'opening':'','claims':[{'title':'','findingIds':ids,'interpretation':'','implication':''} for ids in pairs],'closing':''}
+        brief_path=out/'analysis_brief.md'
+        brief_path.write_text(brief_path.read_text('utf-8')+'\n\n## 核心发现的总分总写法\n先写opening总判断，再完成三条claims，每条用跨维度事实论证、写清结构意义和决策取舍，最后closing综合启示。findingIds由--assemble汇总，不能把核心发现写成统计清单。各章还必须写decisionRule：哪些复核结果会使你调整建议、如何调整，不能只写一句免责声明。\n不要从城市学历份额推测企业更重视知识、不要把未分类率归因于产业命名灵活、不要从单次快照判断稳定需求或人才短缺。比较意义应落到名单怎么筛、课程任务怎么拆、薪酬预期怎么校准；可能机制须作为假设并说明替代解释。\n下面为每条分结论默认事实，需先核对再写解释：\n'+'\n'.join(f"- {fid}: {known[fid]['text']}" for ids in pairs for fid in ids),'utf-8')
+    (out/'writing_draft.json').write_text(json.dumps(writing,ensure_ascii=False,indent=2),'utf-8')
+    print(json.dumps({'status': 'analysis_required', 'brief':str(out/'analysis_brief.md'),
+                      'evidence': str(out/'analysis_evidence.md'),'draft':str(out/'writing_draft.json'),
+                      'next': '读简报与统计后完成report_writing.json，--assemble合并校验，直接生成图片'}, ensure_ascii=False))
 
 
 if __name__ == '__main__':

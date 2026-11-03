@@ -61,8 +61,20 @@ class DraftTests(unittest.TestCase):
  def test_tampered_image_never_uploads(self):
   (self.store/'reports'/self.id/'images/page_01.png').write_bytes(b'changed')
   with patch.object(drafts,'_post') as network:
-   self.assertEqual(drafts.save_report('session1',self.id,'account',lambda:'fake')['state'],'failed')
+   from unittest.mock import Mock
+   token=Mock(return_value='fake')
+   self.assertEqual(drafts.save_report('session1',self.id,'account',token)['state'],'failed')
+   token.assert_not_called()
    network.assert_not_called()
+
+ def test_shared_prose_deduplicates_actions_and_keeps_references(self):
+  report={**self.meta,'analysis':{'sections':[{'key':'salary'}]},'screens':[
+   {'title':'封面'},{'title':'薪酬','analysis_key':'salary','paragraphs':['薪酬解释','行动建议：核查同类岗位']},
+   {'title':'建议','blocks':[['行动','核查同类岗位']]},
+   {'title':'参考文献','paragraphs':['国家统计局公报 https://www.stats.gov.cn/']} ]}
+  prose=drafts.text_before_images(report)
+  self.assertEqual(prose.count('核查同类岗位'),1)
+  self.assertIn('国家统计局公报',prose)
 
  def test_whitelist_failure_never_reports_success(self):
   def unavailable():raise RuntimeError('40164 invalid ip')

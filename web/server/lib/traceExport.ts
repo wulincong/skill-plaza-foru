@@ -134,6 +134,7 @@ export interface AgentEnvInfo {
 export type RunOutcome = 'success' | 'timeout' | 'error' | 'aborted' | 'historical'
 
 export interface RunRecord {
+  reportContinuations?: number
   /** Trusted local/report-library answer; no model prompt was needed for cache hits. */
   localReply?: string
   question?: import('../../shared/chatQuestion.ts').ChatQuestion

@@ -5,7 +5,8 @@ from pathlib import Path
 from openpyxl import Workbook
 from bound_report import load_data
 
-BASE = Path(__file__).resolve().parent.parent
+from report_runtime import report_root
+BASE = report_root(__file__)
 
 
 def cell(value):

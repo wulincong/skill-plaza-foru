@@ -1,36 +1,23 @@
-# 项目安装与运行
+# 安装与受信报告入口
 
-本技能使用共享人才查询工具取数，Python 仅负责报告、图片和核查工作簿。Node ≥20 与 MySQL 客户端属于 talent-data-query 的部署依赖；连接配置只由共享工具读取。
+开发者在安装技能目录创建.venv，安装requirements.txt与系统Chrome/Chromium。Playwright复用系统浏览器，WECHAT_REPORT_BROWSER可指定路径。Node≥20及MySQL只读配置仅由共享talent-data-query部署持有。
 
-## 安装与工作副本
+Pi调用安装目录的绝对路径：`.venv/bin/python scripts/report.py --workdir <会话根>/wechat-report <任务>`。这里scripts/report.py必须指向**安装目录**，不是数据目录。平台已提供实际完整命令时直接使用，不再猜路径或复制代码。report.py在进入底层脚本前设置WECHAT_REPORT_WORKDIR并切换数据目录，底层Python通过report_runtime读取数据根；代码仍来自安装目录。数据目录不能落在安装目录内。
 
-开发者在技能目录创建 Linux .venv 并安装 requirements.txt；报告使用已安装的 Pillow、openpyxl，以及系统 Chrome/Chromium。浏览器可通过 WECHAT_REPORT_BROWSER 指定。
+| 任务 | 行为 |
+|---|---|
+| init | 只复制必要资产，不复制脚本、.venv、凭据或历史输出 |
+| next | 返回下一个短写作批次、模板、已绑定事实和分析问题 |
+| accept report_part.json | 校验片段、持久保存进度，返回下一批；全部完成后自动组装analysis |
+| analyze | 可选完整稿入口：输出写作简报与writing_draft |
+| assemble report_writing.json | 可选完整稿合并与统一校验 |
+| build | 连续重验当前稿、排版、质检、出图、私有文章与公开打包 |
+| check --stage final | 最终复验，不能替代实际生成 |
 
-将本次加载的技能目录作为 SKILL_DIR。首次执行只复制 scripts、references、example 和必要资产到会话的 wechat-report/；不要复制 .venv、历史输出或真实微信配置。资产白名单：brand.json、themes.json、curriculum_map.json、echarts.min.js、mp_config.example.json。已有副本沿用，避免覆盖用户编辑。
+取数仍使用安装目录scripts/collect_data.mjs，在数据目录执行并传--plan plan.json；共享CLI由安装关系或TALENT_DATA_QUERY_CLI定位，不复制密码配置。新增城市薪酬必须来自city_salary.summary，同城市学历基数对账；不能从旧快照的城市计数推算薪酬。
 
-Node 收集入口使用安装目录绝对路径，避免复制后丢失共享依赖定位；或通过 TALENT_DATA_QUERY_CLI/--query-cli 指定部署提供的共享入口。执行 cwd 为会话工作副本，所有请求、结果和输出留在本次会话。
+工作目录只存assets、data、plan.json、report_part.json/最终文案及output。短批次进度在output/analysis/writing_progress.json，数据指纹改变不能混用旧进度。已有真实数据在续写、修订、重启后直接读取，不因查询缓存过十五分钟重查。旧副本脚本不再作为正常入口；prepare_session.py --legacy-scripts仅保留独立离线兼容方式。
 
-## 真实数据流程
+公开交付output/public/site与report.zip，图片manifest和quality.json绑定实际PNG、数据、排版与系列数值；build_receipt.json记录真实子进程步骤及程序指纹，仅内部留存。生成期间代码版本改变则停止交付，沿用数据重试。公开产物最后才生成会话根delivery.json，平台收集并提供网页/下载。
 
-在工作副本写 plan.json，示例见 [data-aggregation.md](data-aggregation.md)，然后：
-
-~~~bash
-node "$SKILL_DIR/scripts/collect_data.mjs" --plan plan.json
-"$SKILL_DIR/.venv/bin/python" scripts/report_analysis.py
-# 阅读完整数据和 output/analysis/analysis_evidence.md，由智能体撰写 report_analysis.json
-"$SKILL_DIR/.venv/bin/python" scripts/generate_report.py --workspace ..
-~~~
-
-collect_data 也接受 --result 指向本会话已保存且可核验的 talent-result/1，适配时不查库。已保存的数据不依赖15分钟查询缓存；刷新需重新收集并完成新版本分析，再生成新大纲。report_analysis.py 只生成事实证据和空分析结构；必须按 research-analysis.md 写出解释、行动和验证方式，不可直接把 analysis_draft.json 当完成稿。
-
-以上命令在会话的 wechat-report/ 工作副本执行，--workspace .. 将 delivery.json 写到会话根；独立运行且技能目录就是工作区时省略该参数。pack_delivery 生成 output/public/site/index.html 和引用图片、output/public/report.zip，清单路径相对于会话根。广场在完成时统一持久保存，对话右侧资源栏显示“打开网页 / 复制链接”和“下载文件”；窄屏通过资源入口展开，回复下方保留“查看资源”，不暴露工作区。输出 report_data.json、report_binding.json、data/ 下共享原工件、output/outline、output/report、output/article。内部核查表位于 output/internal/，不进入公开ZIP或网页。不存在独立数据库配置或交互式连接设置流程；共享工具不可用时说明错误，不回退样例。
-
-## 演示与公众号
-
-用户明确要求演示时，将 example/report_data.json 复制到工作副本的 report_data.json，生成大纲、渲染、文章、校验和核查表时显式传 --demo。演示不证明真实查询通过，当前公开打包入口仅接受真实绑定结果。
-
-网页分享由广场静态交付服务提供，公开网页只含报告图片。成品入库与保存确认由平台处理，公众号凭据仅在wechat-ai-bot本地配置中，由私有草稿桥读取；工作副本不创建mp_config.json，不直接调用发布脚本。独立离线维护脚本保留旧本地配置方式，不能与在线流程混用。
-
-Linux 低权运行器与后端通过工作区共享组交接：打包脚本为公开 site 目录保留组读/穿行权限，清单为 0640。若平台提示权限错误，保留原清单路径，检查共享组与生成权限；不要仅为修复按钮而移动整套产物。
-
-默认流程连续执行到最终图片。outline.json/md 只是内部排版结构，不需要向用户展示或等待确认。实际渲染使用 SVG 图表、字体就绪与 DOM 测高；布局证据和 PNG 指纹存入 manifest，最终质检生成 quality.json，打包拒绝缺失或过期的质检。
+公众号账号凭据仅留wechat-ai-bot配置，明确确认后平台私有桥保存草稿。离线publish_draft.py操作记录不能作为在线成功证明；当前40164需官方账号IP白名单变更，不能用样例或模拟回执冒充成功。

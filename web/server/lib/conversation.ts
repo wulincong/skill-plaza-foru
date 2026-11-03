@@ -1,3 +1,4 @@
+import { omitReportContinuations } from './reportFollowThrough.ts'
 import type { ExecutionStep } from '../../shared/execution.ts'
 import { projectQuestion, QUESTION_INSTRUCTION } from './chatQuestion.ts'
 import type { ChatQuestion } from '../../shared/chatQuestion.ts'
@@ -74,7 +75,7 @@ export function deriveSessionConversation(
     groups.set(key, group)
   }
   const conversation = [...groups.values()].flatMap(group => {
-    const turns = deriveConversation(group.trace, wrappersFor(group.runs[0]!.skill), group.runs.slice(0, group.captured).map(run => ({
+    const turns = deriveConversation(omitReportContinuations(group.trace,group.runs), wrappersFor(group.runs[0]!.skill), group.runs.slice(0, group.captured).map(run => ({
       runId: run.runId, durationMs: run.durationMs, execution: executionByRun.get(run.runId),
       model: run.outcome === 'success' ? run.tokenUsage?.model ?? undefined : undefined,
       provider: run.outcome === 'success' ? run.tokenUsage?.provider ?? undefined : undefined,

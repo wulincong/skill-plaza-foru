@@ -71,7 +71,7 @@ export class ExecutionTracker {
       }
       if (msg.type === 'tool_execution_start') {
         tool.startedAt = at
-        tool.purpose = publicToolPurpose(msg.args?.purpose)
+        tool.purpose = publicToolPurpose(msg.args?.purpose) ?? ({report_next:'读取已核实报告证据',report_submit:'校验并保存分析章节',report_build:'生成并检查报告图片'} as Record<string,string>)[msg.toolName]
       } else {
         tool.endedAt = at
         tool.state = msg.isError ? 'failed' : 'completed'

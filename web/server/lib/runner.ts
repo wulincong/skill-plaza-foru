@@ -120,7 +120,7 @@ export abstract class AgentRunner {
   /** 健康描述（/api/health 的 model 字段与启动日志） */
   abstract describe(): string
   /** 运行环境快照（run 记录落盘用）；子类补充版本/思考档位等引擎特有字段 */
-  envInfo(): Partial<AgentEnvInfo> {
+  envInfo(_sessionId?: string): Partial<AgentEnvInfo> {
     return { model: this.describe() }
   }
 

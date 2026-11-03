@@ -73,6 +73,10 @@ def project(data, spec):
     value = pointer(data, spec['path'])
     op = spec.get('op', 'value')
     limit = spec.get('limit', 10)
+    if op.startswith('joint_'):
+        from joint_report_charts import PROJECTIONS
+        if op not in PROJECTIONS:raise ValueError('未知多维投影：'+op)
+        return PROJECTIONS[op](data)
     if op == 'finding':
         from report_analysis import derive_findings
         fact = next((f for f in derive_findings(data) if f['id'] == spec.get('findingId')), None)
@@ -93,6 +97,10 @@ def project(data, spec):
         else:
             cfg['data'] = [[r['name'], r['count']] for r in rows]
         return cfg
+    if op in ('requirements_composition','city_concentration','salary_cohorts','cohort_cities'):
+        from report_charts import requirements_composition,city_concentration,salary_cohorts,cohort_cities
+        if op=='requirements_composition':return requirements_composition(value)
+        return {'city_concentration':city_concentration,'salary_cohorts':salary_cohorts,'cohort_cities':cohort_cities}[op](data)
     if op == 'salary_ranges':
         return [[r['name'], r['valid'], r['p25'], r['median'], r['p75']]
                 for r in sorted(value, key=lambda r: -(r.get('median') or 0))
@@ -179,4 +187,9 @@ def verify_outline(data, binding, outline):
             if c and not any(p == '/screens/%d/%s' % (i, key) or p.startswith('/screens/%d/%s/' % (i, key)) for p in refs):
                 raise ValueError('图表缺少指标引用')
     verify_analysis_outline(data, binding, outline)
+    if outline.get('presentation')=='wechat-multivariate/1':
+        from deep_outline import verify_policy
+        verify_policy(outline)
+        from report_references import verify as verify_references
+        verify_references(outline,data)
     return True

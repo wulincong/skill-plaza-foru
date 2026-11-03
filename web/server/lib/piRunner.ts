@@ -135,6 +135,7 @@ function sumUsage(prev?: UsageSummary, add?: UsageSummary): UsageSummary {
 const PI_IDLE_MS = Number(process.env.PI_IDLE_MS || 30 * 60_000)
 
 interface PiSession {
+  thinking?: string
   channel: JsonlChannel
   workspaceDir: string
   lastUsed: number
@@ -306,10 +307,10 @@ export class PiRunner extends AgentRunner {
   }
 
   /** 运行环境快照：模型引用/思考档位/CLI 版本（run 记录落盘用） */
-  envInfo(): Partial<AgentEnvInfo> {
+  envInfo(sessionId?:string): Partial<AgentEnvInfo> {
     return {
       model: `${this.model.provider}/${this.model.modelId}`,
-      thinking: this.thinking,
+      thinking: sessionId ? this.sessions.get(sessionId)?.thinking ?? this.thinking : this.thinking,
       agentVersion: piCliVersion(this.cli),
     }
   }
@@ -455,11 +456,13 @@ export class PiRunner extends AgentRunner {
     try {
       /* 每个 message_end 的 stats 查询必须先完成，避免最终 trace 丢最后一轮上下文。 */
       await this.waitForRoundContexts(sid)
-      const [last, stats] = await Promise.all([
+      const [last, stats, state] = await Promise.all([
         this.request({ type: 'get_last_assistant_text' }, sid),
         this.request({ type: 'get_session_stats' }, sid).catch(() => null),
+        this.request({ type: 'get_state' },sid).catch(()=>null),
       ])
       const session = this.sessions.get(sid)
+      if(session && typeof state?.thinkingLevel==='string')session.thinking=state.thinkingLevel
       const statsContextWindow = numberOrUndefined(stats?.contextUsage?.contextWindow)
       const statsPeak = numberOrUndefined(stats?.contextUsage?.tokens)
       if (statsContextWindow !== undefined || statsPeak !== undefined) {
@@ -516,7 +519,7 @@ export class PiRunner extends AgentRunner {
       '--mode', 'rpc',
       '--model', `${target.provider}/${target.modelId}`,
       /* 思考档位默认 medium */
-      '--thinking', this.thinking,
+      '--thinking', opts.skill==='wechat-report' && target.provider==='youcai' ? process.env.WECHAT_REPORT_THINKING?.trim() || this.thinking : this.thinking,
       /* 会话文件落在沙箱内，兼作权威 trace 来源 */
       '--session-dir', join(workspaceDir, '.pi-sessions'),
       /* A process restart must reopen this workspace's persisted Pi context. */
@@ -535,6 +538,7 @@ export class PiRunner extends AgentRunner {
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
+    if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
     const sudo = piSandboxPrefix()
@@ -542,6 +546,7 @@ export class PiRunner extends AgentRunner {
       ? new JsonlChannel('sudo', [...sudo, this.cli, ...args], { cwd: workspaceDir })
       : new JsonlChannel(this.cli, args, { cwd: workspaceDir })
     this.sessions.set(sid, {
+      thinking:opts.skill==='wechat-report' && target.provider==='youcai' ? process.env.WECHAT_REPORT_THINKING?.trim() || this.thinking : this.thinking,
       channel,
       workspaceDir,
       lastUsed: Date.now(),
