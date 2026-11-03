@@ -1,6 +1,6 @@
 # 092 主仓库远程地址迁移至 wulincong
 
-- 状态：主仓库迁移及 chart 技能内置已实现（2026-11-03，SSH 读写、前端构建、21 文件一致性与区域资源校验通过）；内置后的新远端递归克隆待提交推送后验收。
+- 状态：已实现（2026-11-03，SSH 读写、分支与标签同步、前端构建、新远端全新递归克隆、21 文件一致性与区域资源校验全部通过）。
 - 动机：主仓库现为 `git@github.com:wulincong/skill-plaza-foru.git`，本机 `origin` 和用户可复制的安装入口仍指向旧所有者；需要衔接现有历史并保留运行环境。
 
 ## 约定与接入点
@@ -18,12 +18,13 @@
 ## 验证
 
 - 新地址 `ls-remote --symref`、fetch、push dry-run 成功；随后真实 `git push origin HEAD:refs/heads/wlc` 将 `a6bb2ae..ea983f2` 推送成功，推送后左右差为 `0 0`。
+- 迁移实现提交 `962a270`（标签 `repo-migration-wulincong-20261103`）使用 `git push --atomic origin HEAD:refs/heads/wlc --tags` 成功发布。随后用 `ls-remote` 对照本地全部标签，实测当时 38 个标签的 SHA 全部一致，远端 `wlc` 与本机 HEAD 一致。验收记录的后续文档提交按相同约定另行 commit/tag 并推送。
 - `cd web && npm run build` 通过（vue-tsc + Vite）；`git diff --check` 通过。仅 URL、说明和技能分发方式变更，无后端协议或数据库查询变更。
 - 内置前在全新临时目录执行 `git clone --branch wlc --recurse-submodules git@github.com:wulincong/skill-plaza-foru.git …`，主仓库和 `career-guidance` 固定提交成功，随后 chart 子模块失败：`upload-pack: not our ref 75e10d00fbbcbc7c60cf50e678385afbfe434eb8`。临时目录已清理；这是现有子模块不可恢复的实测原因。
 - 本机在已有对象的 chart 子仓库执行 `git fetch origin <完整SHA>` 曾返回成功；全新克隆证伪了它作为远端可恢复性证据的有效性。已持有对象的 fetch 不能替代独立仓库取回固定 SHA 的验收。
 - 使用当前 SSH 身份 `wulincong` 对旧 chart 子仓库新建分支做 push dry-run，明确返回 `Permission … denied to wulincong`；新地址 `git@github.com:wulincong/chart-visualization-skill.git` 返回 `Repository not found`（不存在或当前身份不可访问）。没有实际写入原子仓库。用户选择内置后才执行分发方式变更。
 - 内置前登记全部 21 个文件的 SHA-256、Git blob 与 mode，内置后逐项比对全部一致，没有遗漏或文件内容变化。`node .agents/skills/chart-visualization/scripts/validate-resources.mjs` 通过：广东 21/21 边界、42 别名，浙江 11/11 边界、22 别名。
-- 内置后的远端全新递归克隆待推送后验证：应仅剩三个外部子模块，chart 的 21 个普通文件应与内置前 SHA-256 完全相同，工作目录应 clean，区域资源脚本应再次通过。
+- 从新远端全新执行 `git clone --branch wlc --recurse-submodules …`，实测提交 `962a270b025194448a58c2bdba70e550f0c71b0c` 检出成功，剩余三个外部子模块均正常取回原固定 SHA，工作目录 clean。chart 目录为主仓库普通文件，全部 21 个文件的 SHA-256 与内置前一致；新副本中区域资源校验再次通过（两省 2/2）。临时克隆已清理。验收证据保留于 gitignored 的 `web/server/traces/repository-migration-acceptance-20261103.json`，包含实际远端、检出提交、子模块 SHA、21 文件哈希及通过状态。
 
 ## 成本与取舍
 
