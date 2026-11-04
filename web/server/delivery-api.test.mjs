@@ -372,6 +372,8 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     await save('skills',{id,enabled:true})
     const a=randomBytes(32).toString('hex'), b=randomBytes(32).toString('hex')
     const sharedSkill = 'ai-interview'
+    const catalog = await fetch(base + '/api/skills').then(r => r.json())
+    assert.equal(catalog.skills.find(skill => skill.id === sharedSkill)?.installed, true)
     const run = async (key, text, options = {}) => {
       const response = await chat('/api/chat', {skill:sharedSkill, interactive:true, requestId:randomBytes(16).toString('hex'),
         messages:[{role:'user',content:text}], ...options}, key)
@@ -385,6 +387,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     }
     const history=(path,key,method='GET')=>fetch(base+'/api/conversations'+path,{method,headers:key?{'X-Plaza-Browser':key}:{}})
     const first=await run(a,'follow-up ask-fixture-single')
+    assert.match(first.detail.trace.messages.find(m => m.role === 'user').parts[0].text, /^\/skill:ai-interview /)
     const sid=first.detail.item.clientSessionId, runId=first.done.runId
     assert.match(sid,/^web-/)
     t.after(()=>rmSync(join(serverDir,'workspace',sid),{recursive:true,force:true}))

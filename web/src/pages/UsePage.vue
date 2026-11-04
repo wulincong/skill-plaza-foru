@@ -156,9 +156,7 @@ function buildPrompt(): string {
     ...(fileList ? [`- 已上传附件（随任务提供）：${fileList}`] : []),
     ...(config.value.knowledge.length ? [`- 参考知识库（前端 Mock 演示，本次运行未实际接入）：${picked.length ? picked.join('、') : '未选择'}`] : []),
     '',
-    skill.value.slug === 'doc-translate'
-      ? '请按所选范围翻译上传的 PDF；范围留空时翻译全文。生成译文 PDF 后只简短说明译文语言、页数和未覆盖项。'
-      : '请先复述任务边界与缺失信息，再按该 SKILL 的方法推进。',
+    config.value.promptInstruction ?? '请先复述任务边界与缺失信息，再按该 SKILL 的方法推进。',
   ].join('\n')
 }
 
@@ -335,8 +333,8 @@ const engineHint = '确认 Pi 所选模型的凭据已配置（如 DEEPSEEK_API_
 
       <ol class="use-steps">
         <li :class="{ 'is-on': completed > 0 }"><b>1</b>配置任务</li>
-        <li :class="{ 'is-on': knowledge.length > 0 }"><b>2</b>选择知识库</li>
-        <li :class="{ 'is-on': !missingField }"><b>3</b>提交任务</li>
+        <li v-if="config.knowledge.length" :class="{ 'is-on': knowledge.length > 0 }"><b>2</b>选择知识库</li>
+        <li :class="{ 'is-on': !missingField }"><b>{{ config.knowledge.length ? 3 : 2 }}</b>提交任务</li>
       </ol>
 
       <p v-if="apiState === 'offline'" class="use-setup">

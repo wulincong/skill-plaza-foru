@@ -49,6 +49,7 @@ export interface UseTaskConfig {
   eyebrow: string
   lead: string
   output: string
+  promptInstruction?: string
   sections: TaskSection[]
   example: Record<string, string | string[]>
   /** 进入页面时自动带入 example 作为默认值（方便直接运行测试） */
@@ -65,6 +66,7 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
     eyebrow: '文档翻译工作台',
     lead: '上传 PDF 并指定目标语言，翻译后可查看和下载译文 PDF。',
     output: '保留原文纸张、分栏和标题层级的译文 PDF',
+    promptInstruction: '请按所选范围翻译上传的 PDF；范围留空时翻译全文。生成译文 PDF 后只简短说明译文语言、页数和未覆盖项。',
     sections: [
       {
         number: '01',
@@ -224,7 +226,8 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
     slug: 'ai-interview',
     eyebrow: '模拟面试工作台',
     lead: '补充目标岗位与练习方式，让每轮提问都围绕岗位要求和真实经历展开。',
-    output: '交互式模拟面试与证据化复盘',
+    output: '逐题模拟面试、回答复盘与同题重练',
+    promptInstruction: '请从第一道面试题开始，等我回答后再继续。',
     sections: [
       {
         number: '01',
@@ -232,8 +235,9 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
         description: '岗位信息越具体，问题和追问越贴近真实场景。',
         fields: [
           { id: 'role', label: '目标岗位', type: 'text', required: true, placeholder: '例如：Java 后端实习生' },
-          { id: 'stage', label: '求职阶段', type: 'select', required: true, options: ['实习', '校招', '社招转岗', '升职竞聘'] },
-          { id: 'mode', label: '练习模式', type: 'choice', required: true, span: 'full', options: ['完整模拟', '专项突破', '压力追问'] },
+          { id: 'stage', label: '求职阶段', type: 'select', options: ['实习', '校招', '社招转岗', '升职竞聘'] },
+          { id: 'jd', label: '岗位要求', type: 'textarea', span: 'full', placeholder: '粘贴招聘说明中最想练习的一两条职责，例如“能定位故障并向客户解释处理方案”。' },
+          { id: 'mode', label: '练习模式', type: 'choice', span: 'full', options: ['完整模拟', '专项突破', '压力追问'], help: '默认完整模拟，结束后集中复盘。' },
         ],
       },
       {
@@ -241,28 +245,25 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
         title: '配置面试节奏',
         description: '选择题量和希望重点观察的能力。',
         fields: [
-          { id: 'questions', label: '基础题量', type: 'choice', required: true, options: ['3 题', '5 题', '8 题'] },
-          { id: 'language', label: '面试语言', type: 'select', required: true, options: ['中文', '中英混合', '英文'] },
+          { id: 'questions', label: '主问题数', type: 'choice', options: ['3 题', '5 题', '8 题'], help: '默认 3 题，追问和同题重答不占题数。' },
+          { id: 'language', label: '面试语言', type: 'select', options: ['中文', '中英混合', '英文'] },
           { id: 'focus', label: '重点能力', type: 'multi', span: 'full', options: ['专业基础', '项目经历', '问题解决', '沟通表达', '职业动机', '压力应对'] },
-          { id: 'resume', label: '匿名经历摘要', type: 'textarea', required: true, span: 'full', placeholder: '简述教育背景、项目和实习经历；请删除姓名、电话等敏感信息。' },
+          { id: 'resume', label: '匿名经历摘要', type: 'textarea', span: 'full', placeholder: '可写一段项目、实习或课程经历，说明你本人负责哪一步。' },
         ],
       },
     ],
     example: {
       role: 'Java 后端实习生',
       stage: '实习',
+      jd: '根据故障现象定位接口问题，并说明如何验证修复。',
       mode: '完整模拟',
       questions: '3 题',
       language: '中文',
       focus: ['专业基础', '项目经历', '问题解决'],
       resume: '计算机相关专业，完成过 Spring Boot 校园二手交易平台项目，负责接口设计与 MySQL 数据建模。',
     },
-    knowledge: [
-      { id: 'role-competency', title: '数字技术岗位能力库', meta: '岗位能力模型 · 42 类', tag: '岗位', default: true },
-      { id: 'interview-rubric', title: '结构化面试评价标准', meta: '评分维度与行为锚点 · 18 份', tag: '评价', default: true },
-      { id: 'question-bank', title: '企业面试题样例库', meta: '匿名真题与追问 · 326 题', tag: '题库' },
-      { id: 'resume-evidence', title: '简历证据识别规则', meta: '项目与经历核验规则 · 12 份', tag: '规则' },
-    ],
+    uploads: [{ id: 'materials', label: '匿名简历或岗位说明', accept: '.pdf,.docx,.doc,.md,.txt', help: '请先删除姓名、电话、客户名称等信息。每个文件最多 6 MB。' }],
+    knowledge: [],
   },
   {
     slug: 'career-guidance',

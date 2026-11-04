@@ -192,7 +192,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {'wechat-report':'talent-data-query'}

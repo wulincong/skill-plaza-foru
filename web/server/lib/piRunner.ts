@@ -718,6 +718,9 @@ export class PiRunner extends AgentRunner {
   buildPrompt(skill: string, messages: any[], isFirstTurn: boolean): string {
     // Pi 保留历史；HTML 报告技能的结构契约逐轮重申，避免追问或旧会话沿用旧结构。
     let content = messages[messages.length - 1].content
+    if (skill === 'ai-interview') {
+      content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'
+    }
     if (skill === 'resume-police') {
       const dir = skillDir(skill)
       content += `\n\n（简历警察本轮规则：审查时先读 ${dir}/references/review.md。凡要给可投递的经历句，先实际运行 python3 ${dir}/scripts/compose_bullets.py。文本附件直接用 --source，粘贴输入在 JSON 中传原话 source 和摘录 bullets。只把校验成功的经历写入改稿，缺证的结果留作追问。若只需出题，读取 ${dir}/references/interview.md 并从用户材料命题。没有简历则先请用户提供。）`

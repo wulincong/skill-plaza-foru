@@ -341,6 +341,8 @@ const USER_TEXT_SENTINEL = '\u0000PLAZA_USER_TEXT\u0000'
 function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }> {
   if (!(skill in SKILL_PROMPTS) && !INSTALLED_SKILLS.has(skill)) return []
   const wrappers: Array<{ prefix: string; suffix: string }> = []
+  // 旧面试记录的首轮使用回落提示，部分早期记录没有保存原始用户输入。
+  if (skill === 'ai-interview') wrappers.push({ prefix: SKILL_PROMPTS[skill] + '\n\n', suffix: '' })
   for (const first of [true, false]) {
     const composed = runner.buildPrompt(skill, [{ role: 'user', content: USER_TEXT_SENTINEL }], first)
     const at = composed.indexOf(USER_TEXT_SENTINEL)
