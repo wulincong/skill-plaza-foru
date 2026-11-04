@@ -7,7 +7,13 @@ declare module '*.vue' {
 }
 
 declare module 'virtual:skill-docs' {
-  interface DocPage { key: string; title: string; html: string }
+  type DocBlock = { kind: 'markdown'; html: string } | { kind: 'prompt'; text: string }
+  interface DocPage {
+    key: string
+    title: string
+    blocks: DocBlock[]
+    outline: { id: string; title: string }[]
+  }
   const skills: { id: string; summary: string; pages: DocPage[] }[]
   export default skills
 }

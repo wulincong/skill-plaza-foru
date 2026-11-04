@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite'
 import { dirname, resolve } from 'node:path'
-import { collectDocs, publicCatalog, publicIds, repoRoot, skillRoots } from './skill-docs.mjs'
+import { collectDocs, publicCatalog, publicIds, repoRoot, skillRoot } from './skill-docs.mjs'
 
 const moduleId = 'virtual:skill-docs'
 
@@ -17,9 +17,7 @@ export function skillDocsPlugin(): Plugin {
     },
     configureServer(server) {
       // Vite's watcher has globbing disabled. Directory watches catch new chapters too.
-      const dirs = new Set(skillRoots.flatMap(root =>
-        publicIds.map(id => resolve(repoRoot, root, id, 'docs')),
-      ))
+      const dirs = new Set(publicIds.map(id => resolve(repoRoot, skillRoot, id, 'docs')))
       server.watcher.add([...dirs])
       server.watcher.on('all', (event, file) => {
         if (!['change', 'add', 'unlink'].includes(event)) return

@@ -32,7 +32,13 @@ const adminPath = /^\/admin(?:\/|$)/.test(location.pathname)
 const router = createRouter({
   history: adminPath ? createWebHistory('/admin') : createWebHashHistory(),
   routes: adminPath ? adminRoutes : routes,
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior(to) {
+    if (to.name === 'skillDocs' && to.hash) {
+      document.getElementById(to.hash.slice(1))?.scrollIntoView()
+      return false
+    }
+    return { top: 0 }
+  },
 })
 
 /* 已注册但没有任务表单的技能直接进入对话，避免回落到其他技能的表单。 */

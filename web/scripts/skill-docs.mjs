@@ -6,26 +6,19 @@ import MarkdownIt from 'markdown-it'
 import { GENERAL_SKILL_ID, SKILL_PROMPTS } from '../server/lib/skills.ts'
 
 export const repoRoot = fileURLToPath(new URL('../../', import.meta.url))
-export const skillRoots = ['.agents/skills', 'docs/external-skills']
+export const skillRoot = '.agents/skills'
 export const publicIds = Object.keys(SKILL_PROMPTS).filter(id => id !== GENERAL_SKILL_ID)
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export function collectDocs(root = repoRoot, registered = publicIds) {
-  const [native, external] = skillRoots.map(path => join(root, path))
+  const parent = join(root, skillRoot)
   const ids = new Set(registered)
-  for (const parent of [native, external]) {
-    if (!existsSync(parent)) continue
-    for (const entry of readdirSync(parent, { withFileTypes: true })) {
-      if (entry.isDirectory() && (parent === external || existsSync(join(parent, entry.name, 'SKILL.md')))) {
-        ids.add(entry.name)
-      }
-    }
+  for (const entry of readdirSync(parent, { withFileTypes: true })) {
+    if (entry.isDirectory() && existsSync(join(parent, entry.name, 'SKILL.md'))) ids.add(entry.name)
   }
-
   return [...ids].sort().map(id => {
     if (!slugPattern.test(id)) throw Error(`无效的技能目录名 ${id}`)
-    const ownDocs = join(native, id, 'docs')
-    const dir = existsSync(ownDocs) ? ownDocs : join(external, id, 'docs')
+    const dir = join(parent, id, 'docs')
     if (!existsSync(join(dir, 'index.md'))) throw Error(`${id} 缺少 docs/index.md`)
     const pages = readdirSync(dir, { withFileTypes: true })
       .filter(entry => entry.isFile() && entry.name.endsWith('.md'))
@@ -61,15 +54,44 @@ markdown.renderer.rules.link_open = (tokens, idx, options, env, self) => {
   return self.renderToken(tokens, idx, options)
 }
 
+// Parse once so Markdown reference definitions work across prompt examples.
+function renderPage(skill, page) {
+  const env = { skill, file: page.file }
+  const tokens = markdown.parse(page.body, env)
+  const blocks = []
+  const outline = []
+  let start = 0
+  function appendMarkdown(end) {
+    if (end > start) {
+      const html = markdown.renderer.render(tokens.slice(start, end), markdown.options, env)
+      blocks.push({ kind: 'markdown', html })
+    }
+  }
+  tokens.forEach((token, i) => {
+    if (token.type === 'heading_open' && token.tag === 'h2' && token.level === 0) {
+      const title = tokens[i + 1].content
+      const id = 'section-' + (outline.length + 1)
+      token.attrSet('id', id)
+      outline.push({ id, title })
+    }
+    if (token.type === 'fence' && token.info.trim() === 'prompt') {
+      if (token.level !== 0 || !token.content.trim()) {
+        throw Error(`${page.file} 的 prompt 示例需要放在独立段落，且正文不能为空`)
+      }
+      appendMarkdown(i)
+      blocks.push({ kind: 'prompt', text: token.content.replace(/\n$/, '') })
+      start = i + 1
+    }
+  })
+  appendMarkdown(tokens.length)
+  return { key: page.key, title: page.title, blocks, outline }
+}
+
 export function publicCatalog(skills) {
   return skills.filter(skill => skill.public).map(skill => ({
     id: skill.id,
     summary: skill.pages[0].body.split('\n\n', 1)[0],
-    pages: skill.pages.map(page => ({
-      key: page.key,
-      title: page.title,
-      html: markdown.render(page.body, { skill, file: page.file }),
-    })),
+    pages: skill.pages.map(page => renderPage(skill, page)),
   }))
 }
 
