@@ -13,7 +13,7 @@
 - 配置字段为 `revision / runtimeRevision / disabledSkills / settings / activeKey / keys`。写入带版本号，过期返回 409。技能限已注册的专业技能，通用智能体及内部开发技能不作为卡片上下架。首页、广场、表单深链、聊天选择器读取公开目录；入口不可达时显示空态。服务端在目录、网页入口和兼容入口统一验证发布状态，Pi 只加载显式声明的技能。见 `web/src/composables/catalog.ts:9`、`web/server/index.ts:290`、`:706`、`:785`、`web/server/lib/piRunner.ts:547`。
 - 设置含默认模型、前台选模权限、思考档位、公众号报告使用优才时的可选专属档位、优才地址、两类任务超时及会话空闲回收。初始值继承部署配置，保存值持久化。CLI、目录、系统用户和数据库连接仍属于部署层。网页可选模型和默认值从健康接口取得。兼容 API 的 `skill` 字段语义保留，默认路由与网页一致。每轮固定一份配置，原运行完成后再应用凭据和进程配置变更，沿用工作目录及 Pi 的持久会话。见 `web/server/lib/adminStore.ts:154`、`web/server/index.ts:1128`。
 - DeepSeek 有部署凭据和命名密钥两种来源，后台只返回命名密钥的 ID 和名称。使用命名密钥时，Node 为 Pi 进程开启独占的回环转发地址，只接收带随机路径的 Chat Completions POST。后端向固定上游加入选定凭据，拒绝重定向，沙箱参数、环境及 trace 不包含此命名 Key。Pi 退出时关闭转发。优才保留无认证调用。见 `web/server/lib/modelRelay.ts:8`、`web/server/lib/piRunner.ts:563`、`web/server/pi/youcai.js:6`。数据库及其备份包含可恢复的模型密钥，必须以服务账号私有权限保存。
-- 全站 `/api/admin/runs` 从原索引读取，支持查询、分页、归档、恢复、删除索引和导出文件。无 trace 的旧记录显示已保存摘要。旧 `/api/runs` 返回 401。浏览器向对话、附件、恢复及 `/api/conversations` 发送本地随机能力值，服务器用摘要命名空间分隔公开会话，返回用户视图；其他能力值无法读写该会话。旧数据没有浏览器归属，只在后台列出。交付物链接仍按原协议分享。见 `web/server/index.ts:345`、`web/server/lib/browserHistory.ts:6`、`web/src/composables/browserHistory.ts:3`。Vite 禁止直接静态读取 server 目录，运行目录收紧为 0700，见 `web/vite.config.ts:25`、`web/server/lib/traceExport.ts:23`。
+- 全站 `/api/admin/runs` 从原索引读取，支持查询、分页、归档、恢复、删除索引和导出文件。无 trace 的旧记录显示已保存摘要。旧 `/api/runs` 返回 401。浏览器向对话、附件、恢复及 `/api/conversations` 发送本地随机能力值，服务器用摘要命名空间分隔公开会话，返回用户视图；其他能力值无法读写该会话。初版中旧数据没有浏览器归属，只在后台列出；其读取规则已由下节修订。交付物链接仍按原协议分享。见 `web/server/index.ts:345`、`web/server/lib/browserHistory.ts:6`、`web/src/composables/browserHistory.ts:3`。Vite 禁止直接静态读取 server 目录，运行目录收紧为 0700，见 `web/vite.config.ts:25`、`web/server/lib/traceExport.ts:23`。
 
 ## 成本与取舍
 
@@ -28,3 +28,13 @@ SQLite 利用现有 Node 运行时，在单服务进程下持久化设置和登�
 ## 后续扩展
 
 若需要多人运营，再拆分账号与角色、增加个人操作审计。如果迁移到多实例，应把配置修订与会话进程编排统一到共享存储，并为密钥增加独立的密钥管理服务。公网 HTTPS 终止和进程托管由部署层配置。
+
+## 修订 · 普通用户账号上线前共享对话历史
+
+**状态与动机**：已实现。当前只有管理员有服务端账号。前台手机号登录保存在 localStorage（`web/src/composables/session.ts:3`）。原来的浏览器筛选让新浏览器看到零段对话，旧记录仍在运行索引。按用户要求，访客现在共享读取全部会话。
+
+**读取与操作**：`GET /api/conversations` 和 `GET /api/conversations/:runId` 无需登录。读权限由入口判断，浏览器能力值只决定是否能操作此会话（`web/server/index.ts:313`、`:346`）。本浏览器仍可续聊、归档和删除。共享记录只发分组用的 `sharedKey`，隐藏真实会话标识、请求标识及工具执行内容，只提供对话正文、决策题和交付链接（`web/server/lib/browserHistory.ts:19`、`web/server/index.ts:475`）。完整运行留痕继续走管理员 API。
+
+**展示与取舍**：侧栏分页取完整目录再分组，保留归档区域（`web/src/api/runsApi.ts:12`）。历史正文沿用原对话气泡，其他会话提示只读，可新建对话；窄屏增加历史入口（`web/src/pages/ExperiencePage.vue:976`、`:1112`）。保留浏览器范围的写权限，避免访客修改他人的归档、任务或工作区；新任务的输入区提示正文会出现在共享历史中。
+
+**验证**：`cd web && npm run build` 通过。服务端和前端 composable 回归共 76 项通过，含共享读取、无原始文件权限、跨浏览器写操作被拒以及本浏览器归档后仍可在共享归档区看到记录。部署时将公网 API 的两页逐条对照运行索引，222 条一致。全新 Chrome 桌面显示 182 段会话，最早的会话可打开；390px 窄屏能打开历史、选择正文并收起侧栏。将来引入普通用户账号后再按真实账号归属和分享规则控制读取。

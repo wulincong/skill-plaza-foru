@@ -11,13 +11,20 @@ export interface RunsResult {
 
 export async function fetchRuns(opts: { archived?: boolean } = {}): Promise<RunsResult> {
   try {
-    const url = opts.archived ? '/api/conversations?limit=200&archived=1' : '/api/conversations?limit=200'
-    const res = await fetch(url, { headers: browserHeaders(), cache: 'no-store' })
-    if (!res.ok) throw new Error(String(res.status))
-    const data = (await res.json()) as { runs: RunListItem[] }
-    /* 归档列表为空是正常态，不回落演示数据 */
-    if (!Array.isArray(data.runs)) throw new Error('empty')
-    return { runs: data.runs, live: true }
+    const runs = new Map<string, RunListItem>()
+    let offset = 0
+    const limit = 200
+    while (true) {
+      const url = `/api/conversations?limit=${limit}&offset=${offset}&archived=${opts.archived ? 1 : 0}`
+      const res = await fetch(url, { headers: browserHeaders(), cache: 'no-store' })
+      if (!res.ok) throw new Error(String(res.status))
+      const data = (await res.json()) as { runs: RunListItem[]; total: number }
+      if (!Array.isArray(data.runs)) throw new Error('invalid history')
+      for (const run of data.runs) runs.set(run.runId, run)
+      offset += data.runs.length
+      if (!data.runs.length || offset >= data.total) break
+    }
+    return { runs: [...runs.values()], live: true }
   } catch {
     return { runs: [], live: false }
   }

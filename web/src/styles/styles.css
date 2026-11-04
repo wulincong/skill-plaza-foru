@@ -1100,7 +1100,16 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
 .exp-hist-archived .ic:last-child { margin-left: auto; transition: transform var(--dur-fast) var(--sk-ease); }
 .exp-hist-archived.is-open .ic:last-child { transform: rotate(180deg); }
 .exp-side-empty { padding: 12px 10px 0; font-size: 12.5px; line-height: 1.6; color: var(--sk-ink-3); }
-@media (max-width: 960px) { .exp-side { display: none; } }
+.exp-history-toggle { display: none; }
+@media (max-width: 960px) {
+  .page-exp { flex-direction: column; }
+  .exp-history-toggle {
+    display: flex; align-items: center; gap: 6px; padding: 9px 14px; border: 0;
+    background: var(--sk-sidebar); color: var(--sk-ink-2); font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .exp-side { display: none; }
+  .exp-side.is-open { display: flex; position: static; width: 100%; height: min(48dvh, 380px); border: 0; }
+}
 
 /* ---- 历史对话载入：无专门卡片，点开即正常消息流 ---- */
 .exp-history-loading { margin: 10px 0 26px; font-size: 13px; line-height: 1.7; color: var(--sk-ink-3); }

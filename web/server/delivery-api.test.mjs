@@ -329,7 +329,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     assert.match(restored.trace.messages[0].parts[0].text, /原始任务：\nfollow-up before Pi/)
   })
 
-  await t.test('administration, catalog enforcement and private browser history', async t => {
+  await t.test('administration, catalog enforcement and shared read-only history', async t => {
     const read = async path => (await adminRequest(path)).json()
     let {config} = await read('state')
     const save = async (section, fields) => {
@@ -339,7 +339,10 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     }
     assert.equal((await fetch(base + '/api/admin/runs')).status,401)
     assert.equal((await fetch(base + '/api/runs')).status,401)
-    assert.equal((await fetch(base + '/api/conversations')).status,403)
+    const legacy = await fetch(base + '/api/conversations').then(r => r.json())
+    assert(legacy.total > 0)
+    assert(legacy.runs.every(r => r.sharedKey && !r.clientSessionId))
+    assert.equal((await fetch(base + '/api/conversations/session/legacy', {method:'DELETE'})).status,403)
     assert.equal((await fetch(base + '/api/admin/settings',{method:'PUT',headers:{Cookie:cookie}})).status,403)
     const id = 'career-guidance'
     await save('skills',{id,enabled:false})
@@ -371,15 +374,28 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     t.after(()=>rmSync(join(serverDir,'workspace',sid),{recursive:true,force:true}))
     const runId=frames.find(f=>f.type==='done').runId
     const history=(path,key,method='GET')=>fetch(base+'/api/conversations'+path,{method,headers:{'X-Plaza-Browser':key}})
-    for(let i=0;i<80 && !(await history('',a).then(r=>r.json())).total;i++)await pause(25)
-    assert.equal((await history('',a).then(r=>r.json())).total,1)
-    assert.equal((await history('',b).then(r=>r.json())).total,0)
-    assert.equal((await history('/'+runId,b)).status,404)
+    for (let i=0; i<80 && (await history('/'+runId,a)).status===404; i++) await pause(25)
+    const ownList = await history('',a).then(r=>r.json())
+    const sharedList = await history('',b).then(r=>r.json())
+    assert.equal(ownList.total,sharedList.total)
+    assert.equal(ownList.runs.find(r=>r.runId===runId).clientSessionId,sid)
+    const shared = sharedList.runs.find(r=>r.runId===runId)
+    assert.match(shared.sharedKey,/^[a-f0-9]{64}$/)
+    assert.equal(shared.clientSessionId,undefined)
     assert.equal((await history('/'+runId+'/file/trace',a)).status,404)
+    assert.equal((await fetch(base+'/api/conversations/'+runId+'/file/trace')).status,404)
     assert.equal((await history('/session/'+sid,b,'DELETE')).status,404)
+    assert.equal((await history('/session/'+sid+'/archive',b,'POST')).status,404)
     const detail=await history('/'+runId,a).then(r=>r.json())
     assert.equal(detail.trace,undefined)
     assert(detail.conversation.some(m=>m.text==='follow-up private'))
+    const publicDetail=await fetch(base+'/api/conversations/'+runId).then(r=>r.json())
+    assert.equal(publicDetail.item.sharedKey,shared.sharedKey)
+    assert.equal(publicDetail.trace,undefined)
+    assert(publicDetail.conversation.some(m=>m.text==='follow-up private'))
+    assert(publicDetail.conversation.every(m=>!m.execution && !m.tools))
+    assert.equal((await history('/session/'+sid+'/archive',a,'POST')).status,200)
+    assert((await history('?archived=1',b).then(r=>r.json())).runs.some(r=>r.runId===runId))
     assert.equal((await chat('/v1/chat/completions',{skill:id,sessionId:sid,messages:[{role:'user',content:'takeover'}]})).status,400)
     assert.equal((await adminRequest('runs/'+runId+'/file/trace')).status,200)
     await save('settings',{settings:initial})

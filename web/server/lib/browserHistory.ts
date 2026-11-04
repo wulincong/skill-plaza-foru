@@ -16,7 +16,7 @@ export function scopedSession(raw: unknown, prefix?: string) {
   return prefix ? prefix + raw : raw
 }
 
-export function conversationItem(r: RunRecord) {
+export function conversationItem(r: RunRecord, owned: boolean) {
   const {
     runId,
     clientSessionId,
@@ -37,16 +37,16 @@ export function conversationItem(r: RunRecord) {
   } = r
   return {
     runId,
-    clientSessionId,
+    ...(owned ? { clientSessionId, userMessage, requestId } : {
+      sharedKey: createHash('sha256').update(clientSessionId || runId).digest('hex'),
+    }),
     ts,
     skill,
     engine,
     promptDigest,
     taskTitle,
-    userMessage,
     outcome,
     durationMs,
-    requestId,
     question,
     webLinks,
     downloads,

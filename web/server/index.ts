@@ -312,7 +312,8 @@ const server = createServer((req, res) => {
   }
   if (seg[0] === 'api' && seg[1] === 'conversations') {
     const prefix = historyPrefix(req)
-    if (!prefix || !originAllowed(req.headers.origin)) { sendJson(res, 403, { error: '缺少本浏览器的会话凭据' }); return }
+    if (!originAllowed(req.headers.origin)) { sendJson(res, 403, { error: '来源未获准访问' }); return }
+    if (req.method !== 'GET' && !prefix) { sendJson(res, 403, { error: '缺少本浏览器的会话凭据' }); return }
     void handleRunsApi(req, res, seg, prefix).catch(() => sendJson(res, 500, { error: '对话读取失败' }))
     return
   }
@@ -343,7 +344,8 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
 
 
 async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string) {
-  const owned = (r: RunRecord) => !prefix || Boolean(r.clientSessionId?.startsWith(prefix))
+  const publicHistory = seg[1] === 'conversations'
+  const owned = (r: RunRecord) => !publicHistory || Boolean(prefix && r.clientSessionId?.startsWith(prefix))
   if (seg[2] === 'session' && prefix) {
     const sessionId = scopedSession(seg[3], prefix)
     if (!sessionId) { sendJson(res, 404, { error: '会话不存在' }); return }
@@ -396,7 +398,7 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
     }
     const runs = readIndex().filter(run => run.clientSessionId === sessionId)
     const last = runs.at(-1)
-    const latest = prefix && last ? conversationItem(last) : last
+    const latest = publicHistory && last ? conversationItem(last, true) : last
     const retryId = createHash('sha256').update(requestId).digest('hex').slice(0, 32)
     if (runs.some(run => run.requestId === requestId || run.requestId === retryId)) {
       sendJson(res, 200, { state: 'saved', latest })
@@ -413,7 +415,7 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
   }
 
   /* 单条运行删除（运行记录页归档视图） */
-  if (!prefix && seg.length === 3 && req.method === 'DELETE') {
+  if (!publicHistory && seg.length === 3 && req.method === 'DELETE') {
     const all = readIndex()
     const kept = all.filter(r => r.runId !== seg[2])
     if (kept.length === all.length) {
@@ -434,18 +436,18 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
     const archivedOnly = query.get('archived') === '1'
     const offset = Math.max(0, Math.trunc(Number(query.get('offset')) || 0))
     const search = query.get('q')?.trim().toLowerCase()
-    const runs = readIndex().filter(owned)
+    const runs = readIndex()
       .reverse()
       .filter(r => !search || [r.promptDigest, r.taskTitle, r.runId].some(v => v?.toLowerCase().includes(search)))
       .filter(r => (!skill || r.skill === skill) && (!outcome || r.outcome === outcome))
       .filter(r => archivedOnly ? Boolean(r.archived) : !r.archived)
     const page = runs.slice(offset, offset + limit)
-    sendJson(res, 200, { runs: prefix ? page.map(conversationItem) : page, total: runs.length })
+    sendJson(res, 200, { runs: publicHistory ? page.map(r => conversationItem(r, owned(r))) : page, total: runs.length })
     return
   }
 
   const runId = seg[2]
-  const records = readIndex().filter(owned)
+  const records = readIndex()
   const record = records.find(r => r.runId === runId)
   if (!record) {
     sendJson(res, 404, { error: '运行记录不存在。' })
@@ -470,15 +472,22 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
       if (!snapshot?.execution && run.engine === 'pi' && run.files.events) legacyLogs.set(run.runId, run.files.events)
       return snapshot
     }, promptWrappers)
+    if (publicHistory && !owned(record)) {
+      // Shared readers see the transcript and its published outputs, not execution logs or write identifiers.
+      const transcript = conversation.map(({ role, text, question, runId, answerTo, webLinks, downloads }) =>
+        ({ role, text, question, runId, answerTo, webLinks, downloads }))
+      sendJson(res, 200, { item: conversationItem(record, false), conversation: transcript })
+      return
+    }
     for (const turn of conversation) {
       const log = turn.runId && legacyLogs.get(turn.runId)
       if (log) turn.execution = await readLegacyExecution(log) ?? turn.execution
     }
-    sendJson(res, 200, prefix ? { item: conversationItem(record), conversation } : { item: record, trace, conversation })
+    sendJson(res, 200, publicHistory ? { item: conversationItem(record, true), conversation } : { item: record, trace, conversation })
     return
   }
 
-  if (!prefix && seg.length === 5 && seg[3] === 'file') {
+  if (!publicHistory && seg.length === 5 && seg[3] === 'file') {
     const kind = seg[4]
     let file: string | null = null
     let type = 'text/plain; charset=utf-8'
