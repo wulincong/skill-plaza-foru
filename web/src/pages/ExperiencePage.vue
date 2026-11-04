@@ -962,12 +962,6 @@ onBeforeUnmount(() => {
         <Icon name="plus" :size="15" />
         新建对话
       </button>
-      <div class="exp-history-views" role="group" aria-label="对话列表">
-        <button type="button" :aria-pressed="!showArchived" @click="showArchived = false">最近对话</button>
-        <button type="button" :aria-pressed="showArchived" @click="showArchived = true">
-          <Icon name="archive" :size="13" />已归档 <span v-if="archivedLive">{{ archivedGroups.length }}</span>
-        </button>
-      </div>
       <div :key="showArchived ? 'archived' : 'recent'" class="exp-history">
         <template v-for="section in sidebarSections" :key="section.label">
           <p class="exp-hist-group">{{ section.label }}</p>
@@ -1029,6 +1023,17 @@ onBeforeUnmount(() => {
         <p v-else-if="!sidebarSections.length" class="exp-side-empty">
           {{ showArchived ? '暂无已归档对话。归档后的对话会出现在这里。' : '暂无最近对话。新建对话后会出现在这里。' }}
         </p>
+      </div>
+      <div class="exp-history-views" role="group" aria-label="对话列表">
+        <button type="button" aria-label="最近对话" title="最近对话" :aria-pressed="!showArchived" @click="showArchived = false">
+          <Icon name="chat" :size="17" />
+          <span class="exp-view-label">最近对话</span>
+        </button>
+        <button type="button" :aria-label="archivedLive ? `已归档（${archivedGroups.length} 段对话）` : '已归档'"
+          title="已归档" :aria-pressed="showArchived" @click="showArchived = true">
+          <Icon name="archive" :size="17" />
+          <span class="exp-view-label">已归档 <span v-if="archivedLive" class="exp-view-count">{{ archivedGroups.length }}</span></span>
+        </button>
       </div>
     </aside>
 
