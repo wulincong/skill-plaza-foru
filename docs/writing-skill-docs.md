@@ -1,6 +1,6 @@
 # 给技能写文档
 
-使用文档是可选的。需要发布指南时，在与技能实现同级的 `docs/` 下写 Markdown。网页和仓库索引都读取这里的原文。已有示例可直接参考 [PDF 翻译指南](../.agents/skills/doc-translate/docs/index.md) 与 [专题页](../.agents/skills/doc-translate/docs/review.md)。
+开发技能时，在技能目录中提交 `docs/index.md`，按需添加专题页。共享组件的指南进入仓库索引，公开注册技能的指南也进入网站文档中心。可参考 [PDF 翻译指南](../.agents/skills/doc-translate/docs/index.md) 与 [专题页](../.agents/skills/doc-translate/docs/review.md)。
 
 ## 新建一页
 

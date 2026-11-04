@@ -21,7 +21,7 @@
 
 早期为三个子模块设置的配套文档目录已随技能迁入主仓库，后续只维护技能内的 docs。章节位置锚点按页内次序生成，调整标题顺序可能改变小节直链，技能与专题的地址由文件名决定。
 
-要求每个技能随实现提交占位首页，会让没有读者指南的条目挤进目录。采用可选首页后，可以先写专题草稿，添加首页时整组发布，移除首页时整组撤下。开发服务按公开技能以 500ms 间隔检查各自 docs 目录的状态，目录存在时监听其文件修改。新增整棵技能目录也能被发现，无需递归扫描技能资源。实现见 `web/scripts/skill-docs-plugin.ts:9`。
+项目 `AGENTS.md` 要求开发技能时随实现提交有实际用例的 `docs/index.md`，共享基础组件也遵循此约定。加载器继续兼容缺少首页的历史条目。添加首页时整组文档进入索引，移除首页时整组撤下。开发服务按公开技能以 500ms 间隔检查各自 docs 目录的状态，目录存在时监听其文件修改。新增整棵技能目录也能被发现，无需递归扫描技能资源。实现见 `web/scripts/skill-docs-plugin.ts:9`。
 
 导航参考分层侧栏与独立的页内目录。示例块的复制按钮常态可见，作者明确标记可运行的提问，读者可以先看输入条件，再复制原文。[VitePress 侧栏](https://vitepress.dev/reference/default-theme-sidebar) · [Starlight 文档结构](https://starlight.astro.build/guides/authoring-content/) · [Docusaurus 示例复制](https://github.com/facebook/docusaurus/blob/main/packages/docusaurus-theme-classic/src/theme/CodeBlock/Buttons/CopyButton/index.tsx)
 
@@ -35,3 +35,4 @@
 - 章节导航按屏宽分栏，保留正文阅读宽度。Chrome 实测 1366px、1024px 时右栏位于正文之外且随滚动常驻；850px 和 390px 时从标题下展开，选择小节后收起。四种宽度均验证了小节定位、深链刷新、复制和下一页。无二级标题的专题不留空栏。生产构建、文档检查、公开指南的右栏位置均已复验。
 - 2026-11-04 以缺少 docs 的 `weknora-retrieval` 复现文档模块加载失败。修复后本机 Chrome 能打开目录中的 9 个公开技能入口及通用指南。文档校验共收录 14 个技能、15 页技能文档，3 项回归及生产构建通过。隔离实例实测无首页时详情保留运行与通用指南入口，目录和下一页跳过该技能；全部技能都缺文档时仍可阅读通用指南。两次增删此前不存在的整个技能目录，浏览器均自动更新首页及专题，修改专题标题也能同步。
 - 后续在单技能的专题数增长后再增加多级章节。涉及运行能力或交付方式变更时，在改技能的同一提交更新对应指南。
+- WeKnora 基础组件补齐使用指南（`.agents/skills/weknora-retrieval/docs/index.md:1`）后，`npm run docs:check` 验证 15 个技能的 16 页文档，文档加载器的 3 项回归通过。该组件进入仓库共享索引，公开文档目录和运行中 `GET /api/skills` 均未收录。
