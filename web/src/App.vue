@@ -8,7 +8,7 @@ import { computed } from 'vue'
 
 const route = useRoute()
 const admin = computed(() => route.meta.admin === true)
-const hideFoot = computed(() => admin.value || route.name === 'experience')
+const hideFoot = computed(() => admin.value || route.name === 'experience' || route.name === 'skillDocs')
 </script>
 
 <template>

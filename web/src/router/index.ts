@@ -6,7 +6,6 @@ import UsePage from '../pages/UsePage.vue'
 import { publishedSkills, refreshCatalog } from '../composables/catalog'
 import { adminRoutes } from '../admin/routes'
 import DetailPage from '../pages/DetailPage.vue'
-import GuidePage from '../pages/GuidePage.vue'
 import MissingPage from '../pages/MissingPage.vue'
 import { bySlug } from '../data/skills'
 import { configOf } from '../data/useTaskConfigs'
@@ -24,7 +23,7 @@ const routes = [
     return false
   } },
   { path: '/docs/:slug?/:topic?', name: 'skillDocs', component: () => import('../pages/SkillDocsPage.vue'), meta: { nav: 'guide' } },
-  { path: '/guide', name: 'guide', component: GuidePage, meta: { title: '使用指南 · 智能体搭子', nav: 'guide' } },
+  { path: '/guide', redirect: '/docs/guide' },
   { path: '/:pathMatch(.*)*', name: 'missing', component: MissingPage, meta: { title: '没有这个地址 · 智能体搭子', nav: 'skills' } },
 ]
 

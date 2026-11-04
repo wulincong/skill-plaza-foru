@@ -3,7 +3,7 @@
 供外部项目调用本服务（智能体广场后端，Pi 引擎）的接口说明。以 `web/server/index.ts` 实际实现为准。
 
 - **Base URL**：`http://127.0.0.1:8767`（服务只监听本机回环；端口可用环境变量 `PORT` 覆盖）
-- **公网部署**：API 服务 `http://biubiubiu.vip:18767`，网页使用指南位于 [智能体使用指南](http://biubiubiu.vip:14188/#/guide)。
+- **公网部署**：API 服务 `http://biubiubiu.vip:18767`，网页使用指南位于 [智能体使用指南](http://biubiubiu.vip:14188/#/docs/guide)。
 - **认证**：无鉴权
 - **数据格式**：对话请求为 JSON。对外端点默认返回 JSON，`stream: true` 时返回 SSE。
 - **跨域限制**：浏览器调用对话接口时 `Origin` 必须在部署的允许列表内，或为本机/内网地址（localhost、127.0.0.1、`*.local`、10.x、192.168.x、172.16-31.x）；服务端对服务端调用（不带 Origin 头）不受限制

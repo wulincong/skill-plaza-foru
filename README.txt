@@ -28,7 +28,7 @@ server.py：本地静态服务与 Youcai API 代理
 为提高小字可读性，部分弱说明用既有 #4E5969，未沿用过浅的日期色。
 预览是原生界面示意，不是实际运行结果。
 旧版直接使用页通过本地代理调用已配置的 Youcai API。
-平台的在线运行入口和 API 示例见 http://biubiubiu.vip:14188/#/guide 。
+平台的在线运行入口和 API 示例见 http://biubiubiu.vip:14188/#/docs/guide 。
 不生成推测版本、日期、评分、下载量。
 旧版 skill-plaza-static / skill-plaza-demo 保持不变。
 

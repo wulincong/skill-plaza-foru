@@ -351,7 +351,7 @@
   function route() {
     const raw=location.hash.startsWith('#/')?location.hash.slice(1):'/';const pos=raw.indexOf('?');const path=pos===-1?raw:raw.slice(0,pos);const p=new URLSearchParams(pos===-1?'':raw.slice(pos+1));
     closeNav();
-    if(path==='/guide'){showPage('guide');setCurrentNav('guide');document.title='使用指南 · 智能体广场';window.scrollTo(0,0);return;}
+    if(path==='/guide'){location.replace('http://biubiubiu.vip:14188/#/docs/guide');return;}
     if(path==='/use'||path.startsWith('/use/')){const requested=path==='/use'?'':decodeURIComponent(path.slice(5));const skill=skills.find(item=>item.slug===requested)||skills[0];if(path==='/use')history.replaceState(null,'',useHash(skill.slug));renderUse(skill);showPage('use');setCurrentNav('use');document.title='直接使用 '+skill.name+' · 智能体广场';window.scrollTo(0,0);return;}
     if(path.startsWith('/skill/')){const skill=skills.find(item=>item.slug===path.slice(7));if(skill){renderDetail(skill,p.get('return'));showPage('detail');setCurrentNav('catalog');document.title=skill.name+' · 智能体广场';window.scrollTo(0,0);return;}}
     state.q=p.get('q')||'';state.category=categories.includes(p.get('category'))?p.get('category'):'全部';state.sort=['featured','updated','name'].includes(p.get('sort'))?p.get('sort'):'featured';
@@ -363,7 +363,7 @@
     const safeReturn=returnTo&&(/^(#\/catalog(?:\?|$)|#\/use(?:\/[^?]+)?$)/.test(returnTo))?returnTo:'#/catalog';
     const returnLabel=safeReturn.startsWith('#/use')?'← 返回直接使用':'← 返回 SKILL 目录';
     const feature=features.find(item=>item.slug===skill.slug);
-    $('#detail-content').innerHTML=`<a class="back-link" href="${esc(safeReturn)}">${returnLabel}</a><header class="detail-header"><div><span class="detail-category">${esc(skill.category)}</span><h1>${esc(skill.name)}</h1><code>${esc(skill.identifier)}</code><p>${esc(skill.summary)}</p><div class="detail-actions"><a class="foru-primary" href="${useHash(skill.slug)}">直接使用这个 SKILL</a></div></div><div class="detail-info"><span>接入方式</span><strong>在线运行 / API</strong><a href="#/guide">查看接入指南 →</a></div></header><section class="detail-section"><div class="section-number">01</div><div><h2>产物与效果</h2><p>${esc(skill.output)}</p>${feature?`<div class="foru-preview">${previewMarkup(feature,true)}</div>`:`<div class="code-panel"><code>产物说明\n${esc(skill.output)}\n\n此条目尚未配置真实作品预览。</code></div>`}</div></section><section class="detail-section"><div class="section-number">02</div><div><h2>最小输入示例</h2><p>把示例中的地区、资料或附件替换成你的实际输入，再提交任务。</p><div class="code-panel"><code>${esc(skill.minimalInput)}</code><button type="button" class="copy-button" data-copy="minimalInput">复制示例</button></div></div></section><section class="detail-section"><div class="section-number">03</div><div class="split-content"><div><h2>必要依赖</h2><ul class="detail-list">${skill.dependencies.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div><div><h2>使用限制</h2><ul class="detail-list">${skill.limitations.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div></div></section>`;
+    $('#detail-content').innerHTML=`<a class="back-link" href="${esc(safeReturn)}">${returnLabel}</a><header class="detail-header"><div><span class="detail-category">${esc(skill.category)}</span><h1>${esc(skill.name)}</h1><code>${esc(skill.identifier)}</code><p>${esc(skill.summary)}</p><div class="detail-actions"><a class="foru-primary" href="${useHash(skill.slug)}">直接使用这个 SKILL</a></div></div><div class="detail-info"><span>接入方式</span><strong>在线运行 / API</strong><a href="http://biubiubiu.vip:14188/#/docs/guide">查看接入指南 →</a></div></header><section class="detail-section"><div class="section-number">01</div><div><h2>产物与效果</h2><p>${esc(skill.output)}</p>${feature?`<div class="foru-preview">${previewMarkup(feature,true)}</div>`:`<div class="code-panel"><code>产物说明\n${esc(skill.output)}\n\n此条目尚未配置真实作品预览。</code></div>`}</div></section><section class="detail-section"><div class="section-number">02</div><div><h2>最小输入示例</h2><p>把示例中的地区、资料或附件替换成你的实际输入，再提交任务。</p><div class="code-panel"><code>${esc(skill.minimalInput)}</code><button type="button" class="copy-button" data-copy="minimalInput">复制示例</button></div></div></section><section class="detail-section"><div class="section-number">03</div><div class="split-content"><div><h2>必要依赖</h2><ul class="detail-list">${skill.dependencies.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div><div><h2>使用限制</h2><ul class="detail-list">${skill.limitations.map(item=>`<li>${esc(item)}</li>`).join('')}</ul></div></div></section>`;
     $('#detail-content').querySelectorAll('[data-copy]').forEach(button=>button.addEventListener('click',event=>{
       copyText(skill.minimalInput,event.currentTarget,'最小输入示例已复制');
     }));
@@ -380,17 +380,8 @@
     finally{area?.remove();button.focus();setTimeout(()=>{if(button.isConnected)button.textContent=original;},2200);}
   }
   function notify(message) {clearTimeout(toastTimer);$('#toast').textContent=message;$('#toast').hidden=false;toastTimer=setTimeout(()=>$('#toast').hidden=true,2600);}
-  function renderGuide() {
-    $('#guide-content').innerHTML=`
-      <a class="back-link" href="#/catalog">← 返回智能体目录</a>
-      <header class="guide-header"><h1>智能体使用指南</h1><p>在网页上运行任务，或从自己的应用通过 API 接入。</p></header>
-      <div class="guide-steps">
-        <section class="guide-step"><div class="step-icon">1</div><div><h2>在线运行</h2><p>选择智能体，提交任务并查看回答和交付文件。</p><a href="http://biubiubiu.vip:14188/#/experience">打开在线对话 →</a></div></section>
-        <section class="guide-step"><div class="step-icon">2</div><div><h2>API 接入</h2><p>向 <code>POST /v1/chat/completions</code> 发送智能体标识和对话消息。使用指南提供当前服务地址和可直接复制的请求示例。</p><a href="http://biubiubiu.vip:14188/#/guide">查看 API 接入指南 →</a></div></section>
-      </div>`;
-  }
   window.addEventListener('hashchange',route);
-  selectFeature(0);renderGuide();route();frame=requestAnimationFrame(tick);
+  selectFeature(0);route();frame=requestAnimationFrame(tick);
   window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);observer.disconnect();});
   window.addEventListener('pageshow',event=>{if(event.persisted){observer.observe(area);previous=0;frame=requestAnimationFrame(tick);}});
 })();

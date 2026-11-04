@@ -35,7 +35,7 @@ const steps = [
       </div>
 
       <p class="how-more" v-reveal="300">
-        <RouterLink class="text-btn" to="/guide">还有疑问？查看完整使用指南 →</RouterLink>
+        <RouterLink class="text-btn" to="/docs/guide">还有疑问？查看完整使用指南 →</RouterLink>
       </p>
     </div>
   </section>

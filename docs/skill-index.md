@@ -2,6 +2,10 @@
 
 由各技能的 Markdown 自动汇总。新增或修改页面后，从 web 目录运行 `npm run docs:index` 更新此页。
 
+## 通用指南
+
+- [在线运行与 API 指南](guide.md)
+
 ## 广场技能
 
 - [AI 面试练习](../.agents/skills/ai-interview/docs/index.md) （`ai-interview`）

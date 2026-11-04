@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
-import { collectDocs, publicCatalog, repositoryIndex } from './skill-docs.mjs'
+import { collectDocs, publicCatalog, publicGuide, repositoryIndex } from './skill-docs.mjs'
 
 test('仓库收录内部技能，公开目录只渲染注册技能的 docs 页面', t => {
   const root = mkdtempSync(join(tmpdir(), 'plaza-skill-docs-'))
@@ -20,7 +20,14 @@ test('仓库收录内部技能，公开目录只渲染注册技能的 docs 页�
   write(native + 'examples.md', '# 示例\n\n正文')
   assert.throws(collect, /缺少 docs\/index.md/)
   write(native + 'index.md', '# 使用指南\n\n阅读[示例](./examples.md)。\n\n<script>alert(1)</script>')
-  assert.match(repositoryIndex(collect()), /内部文档/)
+  write('docs/guide.md', '# 在线运行与 API 指南\n\n## 在线运行\n\n[打开在线对话](#/experience)\n\n```bash\ncurl https://example.org\n```')
+  const guide = publicGuide(root)
+  const index = repositoryIndex(collect(), guide)
+  assert.match(index, /内部文档/)
+  assert.match(index, /\[在线运行与 API 指南\]\(guide.md\)/)
+  assert.deepEqual(guide.outline.map(section => section.title), ['在线运行'])
+  assert.match(guide.blocks[0].html, /href="#\/experience"/)
+  assert.deepEqual(guide.blocks[1], { kind: 'command', text: 'curl https://example.org' })
   assert.deepEqual(publicCatalog(collect()).map(s => s.id), ['demo'])
   assert.doesNotMatch(JSON.stringify(publicCatalog(collect())), /private/)
   const pages = publicCatalog(collect())[0].pages
@@ -43,11 +50,11 @@ test('示例逐块保留原文，普通引文和代码保持原位，小节链�
   const page = { key: 'index', title: '示例', file: 'demo.md', body }
   const [skill] = publicCatalog([{ id: 'demo', public: true, pages: [page] }])
   const { blocks, outline } = skill.pages[0]
-  assert.deepEqual(blocks.map(b => b.kind), ['markdown', 'prompt', 'markdown', 'prompt'])
+  assert.deepEqual(blocks.map(b => b.kind), ['markdown', 'prompt', 'markdown', 'command', 'prompt'])
   assert.equal(blocks[1].text, example)
-  assert.equal(blocks[3].text, '下一条')
+  assert.equal(blocks[4].text, '下一条')
   assert.match(blocks[0].html, /<blockquote>/)
-  assert.match(blocks[2].html, /class="language-sh"/)
+  assert.deepEqual(blocks[3], { kind: 'command', text: 'echo demo' })
   assert.match(blocks[2].html, /href="https:\/\/example.org\/guide"/)
   assert.deepEqual(outline.map(s => s.title), ['输入', '输入'])
   assert.notEqual(outline[0].id, outline[1].id)

@@ -1,17 +1,30 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
-import catalog from 'virtual:skill-docs'
+import catalog, { guide } from 'virtual:skill-docs'
 import Icon from '../components/Icon.vue'
 import Codebox from '../components/Codebox.vue'
-import { bySlug } from '../data/skills'
 
 const route = useRoute()
 const query = ref('')
 const menuOpen = ref(false)
 const menuButton = ref<HTMLButtonElement>()
 const skill = computed(() => catalog.find(s => s.id === route.params.slug))
-const page = computed(() => skill.value?.pages.find(p => p.key === (route.params.topic || 'index')))
+const guidePath = '/docs/guide'
+const articles = [
+  { path: guidePath, page: guide },
+  ...catalog.flatMap(s => s.pages.map(p => ({ path: docPath(s.id, p.key), page: p }))),
+]
+const currentIndex = computed(() => articles.findIndex(a =>
+  a.path === docPath(String(route.params.slug), String(route.params.topic || 'index')),
+))
+const page = computed(() => articles[currentIndex.value]?.page)
+const nextArticle = computed(() => {
+  if (!route.params.slug) return articles[0]
+  if (page.value) return articles[currentIndex.value + 1]
+})
+const guideMatches = computed(() => [guide.title, ...guide.outline.map(h => h.title)].join(' ')
+  .toLowerCase().includes(query.value.trim().toLowerCase()))
 const matches = computed(() => {
   const term = query.value.trim().toLowerCase()
   return catalog.filter(s => [s.id, s.summary, ...s.pages.map(p => p.title)].join(' ').toLowerCase().includes(term))
@@ -47,11 +60,11 @@ onMounted(() => {
       <nav id="doc-navigation" aria-label="文档目录" :class="{ open: menuOpen }">
         <h2 class="sidebar-title">文档目录</h2>
         <label class="search-box">
-          <Icon name="search" /><span class="vh">搜索技能文档</span>
-          <input id="doc-search" v-model="query" type="search" placeholder="搜索技能或专题" />
+          <Icon name="search" /><span class="vh">搜索文档</span>
+          <input id="doc-search" v-model="query" type="search" placeholder="搜索指南、技能或专题" />
         </label>
         <RouterLink class="nav-link" to="/docs" @click="closeMenu">文档首页</RouterLink>
-        <RouterLink class="nav-link" to="/guide">在线运行与 API 指南</RouterLink>
+        <RouterLink v-if="guideMatches" class="nav-link" :to="guidePath" @click="closeMenu">{{ guide.title }}</RouterLink>
         <h3 class="nav-label">技能指南</h3>
         <ul class="nav-tree">
           <li v-for="item in matches" :key="item.id">
@@ -84,7 +97,7 @@ onMounted(() => {
         <header class="reader-head">
           <h1>技能文档中心</h1>
           <p>选择与你的任务相符的指南，准备所需材料，复制示例提示词，再用自己的要求开始对话。</p>
-          <RouterLink class="guide-link" to="/guide">在线运行与 API 接入指南<Icon name="arrow" :size="15" /></RouterLink>
+          <RouterLink v-if="guideMatches" class="guide-link" :to="guidePath">{{ guide.title }}<Icon name="arrow" :size="15" /></RouterLink>
         </header>
         <div class="index-heading"><h2>按技能浏览</h2><span role="status">{{ matches.length }} 个技能</span></div>
         <ul class="doc-index">
@@ -99,30 +112,26 @@ onMounted(() => {
         <p v-if="!matches.length">没有匹配的指南。<button class="text-btn" @click="query = ''">清除搜索</button></p>
       </template>
 
-      <template v-else-if="skill && page">
+      <template v-else-if="page">
         <nav class="crumb" aria-label="面包屑">
           <RouterLink to="/docs">文档中心</RouterLink><Icon name="chev" :size="14" />
-          <template v-if="page.key !== 'index'">
+          <template v-if="skill && page.key !== 'index'">
             <RouterLink :to="docPath(skill.id)">{{ skill.pages[0].title }}</RouterLink><Icon name="chev" :size="14" />
           </template>
           <span class="cur">{{ page.title }}</span>
         </nav>
         <header class="reader-head">
-          <span class="card-id">{{ skill.id }}</span>
+          <span v-if="skill" class="card-id">{{ skill.id }}</span>
           <h1>{{ page.title }}</h1>
         </header>
-        <article :key="skill.id + '/' + page.key" class="doc-body">
+        <article :key="articles[currentIndex].path" class="doc-body">
           <template v-for="(block, i) in page.blocks" :key="i">
-            <Codebox v-if="block.kind === 'prompt'" class="prompt-example" label="提示词示例"
-              :text="block.text" message="提示词已复制" />
-            <div v-else class="md-body" v-html="block.html"></div>
+            <div v-if="block.kind === 'markdown'" class="md-body" v-html="block.html"></div>
+            <Codebox v-else :class="block.kind === 'prompt' ? 'prompt-example' : 'command-example'"
+              :label="block.kind === 'prompt' ? '提示词示例' : '终端命令'" :text="block.text"
+              :message="block.kind === 'prompt' ? '提示词已复制' : '命令已复制'" />
           </template>
         </article>
-        <footer class="detail-actions">
-          <RouterLink v-if="bySlug.has(skill.id)" class="btn btn-primary" :to="{ name: 'experience', query: { skill: skill.id } }">用这个技能开始对话<Icon name="arrow" :size="15" /></RouterLink>
-          <RouterLink v-else class="btn btn-primary" to="/guide">通过 API 使用这个技能</RouterLink>
-          <RouterLink class="btn btn-quiet" to="/docs">全部技能文档</RouterLink>
-        </footer>
       </template>
 
       <div v-else class="empty">
@@ -130,6 +139,11 @@ onMounted(() => {
         <p>这个技能或章节的地址可能已经变更。</p>
         <RouterLink class="btn btn-primary" to="/docs">回到技能文档中心</RouterLink>
       </div>
+      <nav v-if="nextArticle" class="doc-next" aria-label="阅读导航">
+        <RouterLink :to="nextArticle.path" rel="next">
+          <span>下一页</span><strong>{{ nextArticle.page.title }}</strong><Icon name="arrow" />
+        </RouterLink>
+      </nav>
     </div>
   </section>
 </template>
@@ -167,7 +181,11 @@ onMounted(() => {
 .doc-body :deep(h2[id]) { scroll-margin-top: calc(var(--head-h) + 1.5rem); }
 .doc-body :deep(ul) { list-style: disc; }
 .doc-body :deep(ol) { list-style: decimal; }
-.prompt-example { margin: 1.2rem 0; }
+.doc-next { display: flex; justify-content: flex-end; margin-top: 2rem; border-top: 1px solid var(--line-hair); padding-top: 1rem; }
+.doc-next a { display: grid; grid-template-columns: 1fr auto; column-gap: .65rem; align-items: center; text-align: end; padding: .6rem; border-radius: var(--r-ctl); }
+.doc-next a:hover { background: var(--surface-sunken); }
+.doc-next span { grid-column: 1 / -1; color: var(--ink-body); font-size: var(--fs-sm); }
+.prompt-example, .command-example { margin: 1.2rem 0; }
 .prompt-example :deep(pre) { font: inherit; line-height: 1.8; }
 @media (max-width: 760px) {
   .docs-layout { display: block; padding-block: 0 2.5rem; }

@@ -103,7 +103,7 @@ function catName(id: string) { return catOf(id).name }
         <RouterLink class="btn btn-primary" to="/experience">在线对话<Icon name="arrow" :size="15" /></RouterLink>
         <RouterLink class="btn btn-quiet" to="/skills">浏览全部 SKILL</RouterLink>
       </div>
-      <p class="hero-hint">要在自己的应用里使用？<RouterLink class="text-btn" to="/guide">查看 API 接入指南 →</RouterLink></p>
+      <p class="hero-hint">要在自己的应用里使用？<RouterLink class="text-btn" to="/docs/guide">查看 API 接入指南 →</RouterLink></p>
     </div>
     <div class="hero-strip">
       <div ref="viewport" class="hero-cards" id="hero-cards" aria-label="SKILL 速览">

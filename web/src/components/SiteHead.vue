@@ -92,7 +92,7 @@ watch(() => route.fullPath, () => { closeNav(); closeMenu() })
           <RouterLink to="/docs" :aria-current="route.name === 'skillDocs' ? 'page' : undefined">文档中心</RouterLink>
         </nav>
         <div class="head-tools">
-          <RouterLink class="text-btn" to="/guide">怎么用？</RouterLink>
+          <RouterLink class="text-btn" to="/docs/guide">怎么用？</RouterLink>
           <button type="button" class="icon-btn" id="mode-toggle" :aria-pressed="isDark" @click="toggleMode">
             <svg class="ic" width="18" height="18" aria-hidden="true"><use :href="isDark ? '#i-sun' : '#i-moon'" /></svg>
             <span class="vh">{{ isDark ? '切换浅色模式' : '切换深色模式' }}</span>

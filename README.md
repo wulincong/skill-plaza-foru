@@ -1,6 +1,6 @@
 # 智能体搭子 · 智能体广场（产教领域）
 
-面向产教任务的智能体平台。用户可在广场在线运行智能体，应用可通过 `POST /v1/chat/completions` 提交任务。两种接入方式与可复制的调用示例见[使用指南](http://biubiubiu.vip:14188/#/guide)。
+面向产教任务的智能体平台。用户可在广场在线运行智能体，应用可通过 `POST /v1/chat/completions` 提交任务。两种接入方式与可复制的调用示例见[使用指南](http://biubiubiu.vip:14188/#/docs/guide)。
 
 - 前端：`web/`，Vue 3 + TypeScript + Vite
 - 后端：`web/server/index.ts`，node:http 零第三方依赖；`PiRunner` 通过 `pi --mode rpc` 为每会话启动常驻子进程（JSONL over stdio）。
@@ -115,7 +115,7 @@ cd web && npm run detect:cli
 | `/experience` | 在线对话（多轮，流式输出） |
 | `/use/:slug?` | 在线运行（结构化表单 → 真实 agent 执行 → 流式渲染 + token 用量） |
 | `/admin`、`/admin/runs/:runId?` | 管理后台及真实运行记录，须管理员登录 |
-| `/guide` | 在线运行与 API 接入指南 |
+| `/docs/guide` | 在线运行与 API 指南（旧地址 `/guide` 自动跳转） |
 | `/docs`、`/docs/:slug/:topic?` | 技能文档中心、技能指南与专题页 |
 
 ## 后端 API

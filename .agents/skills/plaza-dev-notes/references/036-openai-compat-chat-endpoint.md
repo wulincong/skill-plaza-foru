@@ -87,10 +87,10 @@ openai 流式（ai-interview）content 仅 1 帧纯最终答复、英文过渡�
 
 ## 2026-11-03 · 面向用户的在线运行与 API 指南（已实现）
 
-对外使用方式收敛为在线运行与 API，`#/guide` 作为统一说明入口。首页、广场、详情页、离线演示文案和页脚均撤下 Git 安装指引。根目录旧演示指向同一份在线指南，以免维护两套 API 示例。
+对外使用方式收敛为在线运行与 API。2026-11-04 起统一说明入口为文档中心的 `#/docs/guide`，原地址 `#/guide` 自动跳转。首页、广场、详情页、离线演示文案和页脚均撤下 Git 安装指引。根目录旧演示指向同一份在线指南，以免维护两套 API 示例。
 
-- `web/src/pages/GuidePage.vue:5` 集中维护当前公网 API 地址。网页位于 14188 端口，调用示例直接使用后端 18767 端口。服务迁移时应同步更新该地址和 `docs/agent-api.md:6`，并从指南复制命令做公网回归。
-- `web/src/pages/GuidePage.vue:41` 通过 `GET /api/skills` 查找专业标识，`general` 单独用于通用问答。示例用 `skill`、`messages` 和 `stream` 提交任务，解释 JSON 正文、SSE 结束条件和可选交付链接。外部客户端自行分配会话号。维护者协议见 `docs/agent-api.md:46`。
+- `docs/guide.md:11` 起维护当前公网 API 地址和可复制命令。网页位于 14188 端口，调用示例直接使用后端 18767 端口。服务迁移时应同步更新该地址和 `docs/agent-api.md:6`，并从指南复制命令做公网回归。
+- `docs/guide.md:15` 通过 `GET /api/skills` 查找专业标识，`general` 单独用于通用问答。示例用 `skill`、`messages` 和 `stream` 提交任务，解释 JSON 正文、SSE 结束条件和可选交付链接。外部客户端自行分配会话号。维护者协议见 `docs/agent-api.md:46`。
 - `web/src/data/skills.ts:19` 的展示条目仅含业务资料与运行示例。详情页 `web/src/pages/DetailPage.vue:49` 提供在线运行、API 文档与当前标识。源码仓库可见性由仓库管理员单独管理，页面改动只撤回站点分发入口。
 - 验证通过。前端 `npm run build`，旧版 `node --check app.js` 与 `node --check skills.js`。Chrome 以 1366px、390px 检查公网指南、示例复制反馈、FAQ 和页面宽度，并检查首页、广场、8 个详情页及根目录演示的指南与详情。实际执行从指南提取的两条命令，清单返回 8 项，非流式请求 `20261103-180546-s8d0` 成功返回正文。另测同端点流式请求 `20261103-180619-j7v5` 收到正文、stop 和 `[DONE]`。空请求实测 400/`unknown_skill`。本次未复跑附件或报告生成流程。
 
