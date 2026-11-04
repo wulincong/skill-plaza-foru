@@ -1,0 +1,617 @@
+{
+  "source": "https://foru-ai.com/",
+  "summary": {
+    "byKind": {
+      "font": 9,
+      "image": 103,
+      "other": 3,
+      "script": 10,
+      "stylesheet": 8,
+      "video": 0
+    },
+    "inlineSvgCount": 4,
+    "totalCount": 133
+  },
+  "assets": [
+    {
+      "kind": "stylesheet",
+      "name": "eb25074.css",
+      "url": "https://foru-ai.com/_nuxt/css/eb25074.css"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "8dcf1e7.css",
+      "url": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "c3985be.css",
+      "url": "https://foru-ai.com/_nuxt/css/c3985be.css"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "fa4333c.css",
+      "url": "https://foru-ai.com/_nuxt/css/fa4333c.css"
+    },
+    {
+      "kind": "image",
+      "name": "home-logo.a3e92d2.svg",
+      "url": "https://foru-ai.com/_nuxt/img/home-logo.a3e92d2.svg"
+    },
+    {
+      "kind": "image",
+      "name": "personal-a.88234d1.svg",
+      "url": "https://foru-ai.com/_nuxt/img/personal-a.88234d1.svg"
+    },
+    {
+      "kind": "image",
+      "name": "college.7bc5a36.svg",
+      "url": "https://foru-ai.com/_nuxt/img/college.7bc5a36.svg"
+    },
+    {
+      "kind": "image",
+      "name": "creator.db7d10c.svg",
+      "url": "https://foru-ai.com/_nuxt/img/creator.db7d10c.svg"
+    },
+    {
+      "kind": "image",
+      "name": "company.c4e928d.svg",
+      "url": "https://foru-ai.com/_nuxt/img/company.c4e928d.svg"
+    },
+    {
+      "kind": "image",
+      "name": "01.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/01.svg"
+    },
+    {
+      "kind": "image",
+      "name": "02.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/02.svg"
+    },
+    {
+      "kind": "image",
+      "name": "03.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/03.svg"
+    },
+    {
+      "kind": "image",
+      "name": "05.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/05.svg"
+    },
+    {
+      "kind": "image",
+      "name": "07.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/07.svg"
+    },
+    {
+      "kind": "image",
+      "name": "08.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/08.svg"
+    },
+    {
+      "kind": "image",
+      "name": "09.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/09.svg"
+    },
+    {
+      "kind": "image",
+      "name": "04.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/04.svg"
+    },
+    {
+      "kind": "image",
+      "name": "15.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/15.svg"
+    },
+    {
+      "kind": "image",
+      "name": "12.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/12.svg"
+    },
+    {
+      "kind": "image",
+      "name": "16.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/16.svg"
+    },
+    {
+      "kind": "image",
+      "name": "solution-share.1799bfa.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-share.1799bfa.svg"
+    },
+    {
+      "kind": "image",
+      "name": "solution-bg-p2.b7a0e84.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-bg-p2.b7a0e84.svg"
+    },
+    {
+      "kind": "image",
+      "name": "solution-sm-p1.2ad1cbc.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-sm-p1.2ad1cbc.svg"
+    },
+    {
+      "kind": "image",
+      "name": "column3-2-icon.4dbc6dd.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-2-icon.4dbc6dd.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-3-icon.85943d1.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-3-icon.85943d1.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-1-icon.90c2144.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-1-icon.90c2144.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-4-icon.b6a0f26.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-4-icon.b6a0f26.png"
+    },
+    {
+      "kind": "image",
+      "name": "container.fea0d48.svg",
+      "url": "https://foru-ai.com/_nuxt/img/container.fea0d48.svg"
+    },
+    {
+      "kind": "image",
+      "name": "column3-1.0f94697.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-1.0f94697.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-2.dd05936.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-2.dd05936.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-3.410d9f6.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-3.410d9f6.png"
+    },
+    {
+      "kind": "image",
+      "name": "solution-sm-p3.e544436.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-sm-p3.e544436.svg"
+    },
+    {
+      "kind": "image",
+      "name": "column3-4.5111683.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-4.5111683.png"
+    },
+    {
+      "kind": "image",
+      "name": "solution-sm-p4.4b6f3d8.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-sm-p4.4b6f3d8.svg"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-4.8833413.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-4.8833413.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-7.f4d45b4.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-7.f4d45b4.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-2.d18c1f5.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-2.d18c1f5.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-1.7400d56.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-1.7400d56.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-6.a845329.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-6.a845329.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-3.dc6193e.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-3.dc6193e.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-5.9bedf0e.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-5.9bedf0e.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-st-8.1872bde.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-st-8.1872bde.png"
+    },
+    {
+      "kind": "image",
+      "name": "icon-kjds.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/icon-kjds.svg"
+    },
+    {
+      "kind": "image",
+      "name": "DCC%E6%96%87%E5%8C%96%E5%88%9B%E6%84%8F%E5%9B%AD.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/DCC%E6%96%87%E5%8C%96%E5%88%9B%E6%84%8F%E5%9B%AD.jpeg"
+    },
+    {
+      "kind": "image",
+      "name": "%E5%AE%89%E6%BA%AA%E5%8E%BF%E9%97%BD%E5%8F%B0%E8%8C%B6%E6%9C%BA%E5%85%B7%E4%BA%A7%E4%B8%9A%E5%9B%AD.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E5%AE%89%E6%BA%AA%E5%8E%BF%E9%97%BD%E5%8F%B0%E8%8C%B6%E6%9C%BA%E5%85%B7%E4%BA%A7%E4%B8%9A%E5%9B%AD.jpeg"
+    },
+    {
+      "kind": "image",
+      "name": "%E4%B8%8A%E6%B5%B7%E6%A0%B8%E9%85%B8%E4%BA%A7%E4%B8%9A%E5%9B%AD.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E4%B8%8A%E6%B5%B7%E6%A0%B8%E9%85%B8%E4%BA%A7%E4%B8%9A%E5%9B%AD.png"
+    },
+    {
+      "kind": "image",
+      "name": "%E6%B7%B1%E5%9C%B3%E5%9B%BD%E9%99%85%E4%BD%8E%E7%A2%B3%E5%9F%8E-1.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E6%B7%B1%E5%9C%B3%E5%9B%BD%E9%99%85%E4%BD%8E%E7%A2%B3%E5%9F%8E-1.jpeg"
+    },
+    {
+      "kind": "image",
+      "name": "%E4%B8%8A%E6%B5%B7%E5%AE%9D%E8%83%BD%E6%9C%AA%E6%9D%A5%E7%A9%BA%E9%97%B4.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E4%B8%8A%E6%B5%B7%E5%AE%9D%E8%83%BD%E6%9C%AA%E6%9D%A5%E7%A9%BA%E9%97%B4.jpeg"
+    },
+    {
+      "kind": "image",
+      "name": "%E4%B8%89%E4%B8%80%E4%BA%91%E9%83%BD.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E4%B8%89%E4%B8%80%E4%BA%91%E9%83%BD.jpeg"
+    },
+    {
+      "kind": "image",
+      "name": "company.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/company.png"
+    },
+    {
+      "kind": "image",
+      "name": "%E6%97%BA%E5%89%8D%E4%BA%A7%E4%B8%9A%E5%9B%AD%E9%B8%9F%E7%9E%B0%E5%9B%BE.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E6%97%BA%E5%89%8D%E4%BA%A7%E4%B8%9A%E5%9B%AD%E9%B8%9F%E7%9E%B0%E5%9B%BE.png"
+    },
+    {
+      "kind": "image",
+      "name": "%E6%B4%9B%E6%B1%9F%E5%8C%BA%E6%99%BA%E8%B0%B7%EF%BC%88%E6%B3%89%E5%B7%9E%EF%BC%89%E4%B8%87%E6%B4%8B%E9%AB%98%E6%96%B0%E6%8A%80%E6%9C%AF%E4%BA%A7%E4%B8%9A%E5%9B%AD.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrypark/%E6%B4%9B%E6%B1%9F%E5%8C%BA%E6%99%BA%E8%B0%B7%EF%BC%88%E6%B3%89%E5%B7%9E%EF%BC%89%E4%B8%87%E6%B4%8B%E9%AB%98%E6%96%B0%E6%8A%80%E6%9C%AF%E4%BA%A7%E4%B8%9A%E5%9B%AD.png"
+    },
+    {
+      "kind": "image",
+      "name": "avatar-girl.464a32c.png",
+      "url": "https://foru-ai.com/_nuxt/img/avatar-girl.464a32c.png"
+    },
+    {
+      "kind": "image",
+      "name": "avatar-boy.e4180be.png",
+      "url": "https://foru-ai.com/_nuxt/img/avatar-boy.e4180be.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-1.1f99ad9.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-1.1f99ad9.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-2.a7b9df2.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-2.a7b9df2.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-3.8a37abf.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-3.8a37abf.png"
+    },
+    {
+      "kind": "image",
+      "name": "476423f7-f484-4083-a119-bb50390644d3.png",
+      "url": "https://foru-ai.com/oss/MAIN_SITE/2025/08/04/476423f7-f484-4083-a119-bb50390644d3.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-4.aa3973b.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-4.aa3973b.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-5.4c229b5.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-5.4c229b5.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-6.2bd0a5a.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-6.2bd0a5a.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-7.c4a37bf.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-7.c4a37bf.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-8.d8e26f4.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-8.d8e26f4.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-9.f9b6fee.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-9.f9b6fee.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-10.0e1fd95.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-10.0e1fd95.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-11.df387b8.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-11.df387b8.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-13.454ea73.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-13.454ea73.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-12.cfb64d3.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-12.cfb64d3.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-14.a4eac4d.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-14.a4eac4d.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-15.42f2bfb.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-15.42f2bfb.png"
+    },
+    {
+      "kind": "image",
+      "name": "column12-1.845e758.png",
+      "url": "https://foru-ai.com/_nuxt/img/column12-1.845e758.png"
+    },
+    {
+      "kind": "image",
+      "name": "column12-2.9d368ab.png",
+      "url": "https://foru-ai.com/_nuxt/img/column12-2.9d368ab.png"
+    },
+    {
+      "kind": "image",
+      "name": "column12-3.86f5a2b.png",
+      "url": "https://foru-ai.com/_nuxt/img/column12-3.86f5a2b.png"
+    },
+    {
+      "kind": "image",
+      "name": "container-bg.af94c77.svg",
+      "url": "https://foru-ai.com/_nuxt/img/container-bg.af94c77.svg"
+    },
+    {
+      "kind": "image",
+      "name": "column3-bg.b114f24.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-bg.b114f24.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-znwlqc.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-znwlqc.png"
+    },
+    {
+      "kind": "image",
+      "name": "%E8%B7%A8%E5%A2%83%E7%94%B5%E5%95%86.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%94%B5%E5%95%86%E4%B8%8E%E6%96%B0%E6%B6%88%E8%B4%B9%E4%BA%A7%E4%B8%9A/%E8%B7%A8%E5%A2%83%E7%94%B5%E5%95%86.jpeg"
+    },
+    {
+      "kind": "image",
+      "name": "preview-rgznyjqxx.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-rgznyjqxx.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-jqr.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-jqr.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-znyj.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-znyj.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-zbds.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-zbds.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-znzz.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-znzz.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-bdt.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-bdt.png"
+    },
+    {
+      "kind": "image",
+      "name": "preview-dj.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-dj.png"
+    },
+    {
+      "kind": "image",
+      "name": "%E6%95%B0%E5%AD%97%E8%90%A5%E9%94%80%E5%B0%81%E9%9D%A2%E6%94%B6%E8%B5%B7.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E6%95%B0%E5%AD%97%E8%90%A5%E9%94%80/%E6%95%B0%E5%AD%97%E8%90%A5%E9%94%80%E5%B0%81%E9%9D%A2%E6%94%B6%E8%B5%B7.png"
+    },
+    {
+      "kind": "image",
+      "name": "column10-bg.3b2679f.png",
+      "url": "https://foru-ai.com/_nuxt/img/column10-bg.3b2679f.png"
+    },
+    {
+      "kind": "font",
+      "name": "ff16f8f5843e0f8850ede548f2e72edf.8104e83.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/ff16f8f5843e0f8850ede548f2e72edf.8104e83.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "d5b79df6919931809345e65f451f35c8.e644b0c.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/d5b79df6919931809345e65f451f35c8.e644b0c.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "206b3f25f3444236f4eb75c73685feef.f9aad7c.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/206b3f25f3444236f4eb75c73685feef.f9aad7c.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "9990e45ba7b365f0e2695b832256ce3f.d79df35.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/9990e45ba7b365f0e2695b832256ce3f.d79df35.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "09b502515be16389f88fe6a2936234f1.4840997.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/09b502515be16389f88fe6a2936234f1.4840997.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "4b299d61337f5318fe48e4e156aa474f.48b3101.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/4b299d61337f5318fe48e4e156aa474f.48b3101.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "4bedac18c7f7a65d17a8afd1fb460c12.6917be1.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/4bedac18c7f7a65d17a8afd1fb460c12.6917be1.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "f2fce47f96a2ebd69872858fff15c451.c446607.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/f2fce47f96a2ebd69872858fff15c451.c446607.woff2"
+    },
+    {
+      "kind": "font",
+      "name": "677bcd39df9ae40a1c24d508b2de1a29.73e6b52.woff2",
+      "url": "https://foru-ai.com/_nuxt/fonts/677bcd39df9ae40a1c24d508b2de1a29.73e6b52.woff2"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "yc-business-ui.css",
+      "url": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "kind": "image",
+      "name": "ai-icon.3c10cd7.svg",
+      "url": "https://foru-ai.com/_nuxt/img/ai-icon.3c10cd7.svg"
+    },
+    {
+      "kind": "image",
+      "name": "ai-help.a7da380.svg",
+      "url": "https://foru-ai.com/_nuxt/img/ai-help.a7da380.svg"
+    },
+    {
+      "kind": "image",
+      "name": "model.86dd9de.png",
+      "url": "https://foru-ai.com/_nuxt/img/model.86dd9de.png"
+    },
+    {
+      "kind": "image",
+      "name": "13.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/13.svg"
+    },
+    {
+      "kind": "image",
+      "name": "14.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/icon/app/14.svg"
+    },
+    {
+      "kind": "image",
+      "name": "column3-1-act.637ab3f.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-1-act.637ab3f.png"
+    },
+    {
+      "kind": "image",
+      "name": "solution-sm-p2.6ad6231.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-sm-p2.6ad6231.svg"
+    },
+    {
+      "kind": "image",
+      "name": "solution-bg-p1.4e3ec84.svg",
+      "url": "https://foru-ai.com/_nuxt/img/solution-bg-p1.4e3ec84.svg"
+    },
+    {
+      "kind": "image",
+      "name": "743b6622-1a02-436d-a6dd-b82e9d4fa92e.png",
+      "url": "https://foru-ai.com/oss/MAIN_SITE/2026/02/05/743b6622-1a02-436d-a6dd-b82e9d4fa92e.png"
+    },
+    {
+      "kind": "image",
+      "name": "5389b762-5e73-4df3-a630-13fac93e0ae2.webp",
+      "url": "https://tringai-ipe.oss-cn-shenzhen.aliyuncs.com/uploadfile/5389b762-5e73-4df3-a630-13fac93e0ae2.webp"
+    },
+    {
+      "kind": "image",
+      "name": "a675e973-23b8-496c-94d1-27c0904c993c.gif",
+      "url": "https://tringai-ipe.oss-cn-shenzhen.aliyuncs.com/uploadfile/a675e973-23b8-496c-94d1-27c0904c993c.gif"
+    },
+    {
+      "kind": "image",
+      "name": "OriginalUrl_f7db4a475af00953bcd191c4be17f6b0.jpg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/logo/OriginalUrl_f7db4a475af00953bcd191c4be17f6b0.jpg"
+    },
+    {
+      "kind": "image",
+      "name": "OriginalUrl_24c1b2b4f1186077d7580975051aa3c0.jpg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/logo/OriginalUrl_24c1b2b4f1186077d7580975051aa3c0.jpg"
+    },
+    {
+      "kind": "image",
+      "name": "02f69b0c-d266-43b3-8db2-656d01721e0a.jpg",
+      "url": "https://tringai-ipe.oss-cn-shenzhen.aliyuncs.com/uploadfile/02f69b0c-d266-43b3-8db2-656d01721e0a.jpg"
+    },
+    {
+      "kind": "image",
+      "name": "9de23101-d60b-4c09-82a9-dee863668608.png",
+      "url": "https://tringai-ipe.oss-cn-shenzhen.aliyuncs.com/uploadfile/9de23101-d60b-4c09-82a9-dee863668608.png"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "d8df85e.css",
+      "url": "https://foru-ai.com/_nuxt/css/d8df85e.css"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "6362592.css",
+      "url": "https://foru-ai.com/_nuxt/css/6362592.css"
+    },
+    {
+      "kind": "stylesheet",
+      "name": "26560ac.css",
+      "url": "https://foru-ai.com/_nuxt/css/26560ac.css"
+    },
+    {
+      "kind": "image",
+      "name": "column3-2-act.d940c7c.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-2-act.d940c7c.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-3-act.f5dab6c.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-3-act.f5dab6c.png"
+    },
+    {
+      "kind": "image",
+      "name": "column3-4-act.589b22f.png",
+      "url": "https://foru-ai.com/_nuxt/img/column3-4-act.589b22f.png"
+    },
+    {
+      "kind": "image",
+      "name": "icon-znzz.svg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/icon-znzz.svg"
+    },
+    {
+      "kind": "image",
+      "name": "preview-kjds.png",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E7%83%AD%E9%97%A8%E5%9B%BE%E7%89%87/preview-kjds.png"
+    },
+    {
+      "kind": "image",
+      "name": "%E6%99%BA%E8%83%BD%E5%88%B6%E9%80%A0.jpeg",
+      "url": "https://tringai-img.oss-cn-shenzhen.aliyuncs.com/bcs/industrychain/%E6%99%BA%E8%83%BD%E7%A7%91%E6%8A%80/%E6%99%BA%E8%83%BD%E5%88%B6%E9%80%A0.jpeg"
+    }
+  ]
+}

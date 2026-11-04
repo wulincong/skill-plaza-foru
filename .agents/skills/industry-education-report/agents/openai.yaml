@@ -1,0 +1,4 @@
+interface:
+  display_name: "产业人才需求观察报告"
+  short_description: "按 12 章模板与内置岗位数据快照生成区域产业人才需求报告，附口径核对与自动验收，不联网不连库"
+  default_prompt: "使用 $industry-education-report 基于 05 数据快照生成广东省人工智能产业人才需求观察报告并完成验收。"

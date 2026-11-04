@@ -4,7 +4,7 @@
 
 - 前端：`web/`，Vue 3 + TypeScript + Vite
 - 后端：`web/server/index.ts`，node:http 零第三方依赖；`PiRunner` 通过 `pi --mode rpc` 为每会话启动常驻子进程（JSONL over stdio）。
-- 技能：`.agents/skills/` 同时包含主仓库内置技能和独立技能仓库的 git submodule（见「技能组织模式」），clone 需 `--recurse-submodules`；Pi 用 `--skill` + `/skill:` 命令加载技能。
+- 技能：`.agents/skills/` 存放主仓库维护的技能和各自的使用文档（见「技能组织模式」）；Pi 用 `--skill` + `/skill:` 命令加载技能。
 
 ## 架构
 
@@ -36,11 +36,11 @@ git remote -v
 新环境克隆当前开发版本：
 
 ```bash
-git clone --branch wlc --recurse-submodules git@github.com:wulincong/skill-plaza-foru.git
+git clone --branch wlc git@github.com:wulincong/skill-plaza-foru.git
 cd skill-plaza-foru
 ```
 
-`.gitmodules` 中三个独立技能仓库继续使用原地址；`chart-visualization` 因原子仓库缺少固定提交，现按用户决定改为主仓库内置目录，原有 21 个文件全部保留。2026-11-03 核对时 GitHub 默认分支仍为 `codex/foru-demo`，因此克隆当前版本需显式指定 `--branch wlc`。已有环境的 `web/.env`、运行记录、会话工作目录和交付资源保留在原磁盘上，不由 Git 迁移到另一台机器。迁移约定及验证见 [开发手记 092](.agents/skills/plaza-dev-notes/references/092-main-repository-remote-migration.md)。
+2026-11-03 核对时 GitHub 默认分支仍为 `codex/foru-demo`，因此克隆当前版本需显式指定 `--branch wlc`。已有环境的 `web/.env`、运行记录、会话工作目录和交付资源保留在原磁盘上，不由 Git 迁移到另一台机器。迁移约定及验证见 [开发手记 092](.agents/skills/plaza-dev-notes/references/092-main-repository-remote-migration.md)。
 
 ### 前置条件
 
@@ -125,30 +125,15 @@ cd web && npm run detect:cli
 | `GET /api/runs/:runId` | 运行详情 |
 | `GET /api/runs/:runId/file/:kind` | 下载留痕文件（md 可读版按需生成） |
 
-## 技能组织模式（父子仓库）
+## 技能组织模式
 
-独立分发的技能各有一个**独立仓库（父）**：技能的全部内容与修改历史都在父仓库，广场不保存副本，只以 git submodule 将其挂载到 `.agents/skills/<slug>`（子引用，钉住 commit）。**今后新增技能默认沿用此模式；例外需在 README 和开发手记中注明**——当前 `tech-forecast`、`doc-translate`、`wechat-report`、`talent-data-query`、`chart-visualization` 和开发手记等直接内置于主仓库。`chart-visualization` 于 2026-11-03 转为普通目录，来源为 `Lntanohuang/chart-visualization-skill` 的 `75e10d00fbbcbc7c60cf50e678385afbfe434eb8`，技能路径和文件内容保持一致，后续在主仓库维护。
-
-新技能接入三步：
+每个技能在主仓库内维护，路径为 `.agents/skills/<slug>/`。新增技能时，将 `SKILL.md`、脚本、参考资料与 `docs/` 一同提交。普通克隆当前维护分支即可取得全部技能文件。
 
 ```bash
-# 1. 技能完成并推送到其独立仓库（技能文件放在仓库根，README 声明与广场的父子关系）
-# 2. 广场挂载
-git submodule add https://github.com/Lntanohuang/<skill-repo>.git .agents/skills/<slug>
-# 3. 在下表登记，提交 .gitmodules 与子模块指针
+git clone --branch wlc git@github.com:wulincong/skill-plaza-foru.git
 ```
 
-父仓库更新后广场同步：`git submodule update --remote .agents/skills/<slug>` 后提交。fresh clone 用 `git clone --recurse-submodules`，已克隆的补一句 `git submodule update --init`。
-
-当前挂载：
-
-| `.agents/skills/` | 父仓库 | 状态 |
-| --- | --- | --- |
-| `industry-education-report` | [industry-education-report-skill](https://github.com/Lntanohuang/industry-education-report-skill) | 已安装：Pi 通过 `--skill` 加载，首轮使用 `/skill:` 命令 |
-| `foru-web-ui` | [foru-web-ui-skill](https://github.com/Lntanohuang/foru-web-ui-skill) | 设计参考资料技能（旧版静态演示的设计背景），未接入运行时 |
-| `career-guidance` | [career-guidance-skill](https://github.com/Lntanohuang/career-guidance-skill) | 已安装：职业定位、岗位匹配、简历改进与求职行动计划 |
-
-**classroom-assistant / ai-interview / training-data-qa**：尚未安装为真实技能，运行时回落到后端内置的方法论提示词；后续接入时按上表模式建仓挂载。
+`career-guidance`、`industry-education-report` 由 Pi 加载执行，`foru-web-ui` 用作开发时的设计参考。三个目录均已纳入主仓库。课堂助教、AI 面试和训练数据质检目前使用内置提示词。
 
 ## 运行留痕（traces）
 
@@ -176,7 +161,7 @@ npm run build   # vue-tsc 类型检查 + vite build，产物在 web/dist/
 
 ## 旧版演示（根目录）
 
-根目录的 `index.html` / `app.js` / `server.py` 是早期无 npm 的静态演示版（Youcai API 本地代理），已被 `web/` 版取代，仅作历史保留。设计背景见 `.agents/skills/foru-web-ui/`（独立仓库 [foru-web-ui-skill](https://github.com/Lntanohuang/foru-web-ui-skill) 的 submodule）；后端协议笔记见 `web/docs/pi-runner.md`。
+根目录的 `index.html` / `app.js` / `server.py` 是早期无 npm 的静态演示版（Youcai API 本地代理），已被 `web/` 版取代，仅作历史保留。设计背景见 `.agents/skills/foru-web-ui/`；后端协议笔记见 `web/docs/pi-runner.md`。
 
 ---
 
