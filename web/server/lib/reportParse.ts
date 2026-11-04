@@ -1,13 +1,25 @@
-/* ============================================================
-   报告文本解析器（MVP 直出模式的轻量结构校验）
-   ------------------------------------------------------------
-   输入：run 的最终回复全文（报告 Markdown）。
-   产出：章节切分 / 来源提取 / 分级计数 / 期望章节完整性校验。
-   替代原技能 python validate 的最低限度检查；flash 漏章节时
-   structurePass=false + missingSections 直接暴露。
-   ============================================================ */
+/** 运行详情从已交付的报告正文提取章节、引用和结论统计。 */
+import { readFileSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+import type { DeliveryLinks } from './delivery.ts'
+import { industryReportSections } from './skills.ts'
 
-import { REPORT_SECTIONS } from './skills.ts'
+/** Read the immutable Markdown copy published for this turn by report.py build. */
+export function parseDeliveredReport(delivery: DeliveryLinks, store: string, reply: string): ReportParseResult | null {
+  const link = delivery.downloads?.find(file => file.name === '报告正文')
+  if (link) {
+    const match = /^\/api\/deliveries\/([a-f0-9]{32})\/files\/(\d+)$/.exec(new URL(link.url).pathname)
+    if (!match) throw new Error('报告正文交付地址无效')
+    const file = join(store, match[1], 'files', match[2] + '.md')
+    if (statSync(file).size > 8 * 1024 * 1024) throw new Error('报告正文过大')
+    return parseReport(readFileSync(file, 'utf8'))
+  }
+  // Earlier clients can still deliver the report directly in their final Markdown.
+  if (!/^##\s+/m.test(reply)) return null
+  const expected = industryReportSections()
+  const parsed = parseReport(reply, expected)
+  return parsed && parsed.missingSections.length < expected.length ? parsed : null
+}
 
 export interface ReportStats {
   sections: number
@@ -34,7 +46,7 @@ function countMatches(text: string, re: RegExp): number {
 /** 解析报告全文；空文本返回 null */
 export function parseReport(
   text: string,
-  expected: Array<{ id: string; title: string }> = REPORT_SECTIONS,
+  expected: Array<{ id: string; title: string }> = industryReportSections(),
 ): ReportParseResult | null {
   if (!text || !text.trim()) return null
 
@@ -55,7 +67,7 @@ export function parseReport(
   /* 期望章节：标题互相包含即算命中（模型可能在标题前后加限定词） */
   const titles = sections.map(s => s.title)
   const missingSections = expected
-    .filter(e => !titles.some(t => t.includes(e.title) || e.title.includes(t)))
+    .filter(e => !titles.some(t => t.includes(e.title)))
     .map(e => `${e.id} ${e.title}`)
 
   /* 来源：[S1](https://...) 形态的证据引用按编号聚合；
@@ -73,6 +85,14 @@ export function parseReport(
     if (seenUrls.has(m[0])) continue
     seenUrls.add(m[0])
     srcMap.set(`U${++uSeq}`, { id: `U${uSeq}`, url: m[0], cited: 1 })
+  }
+  // The renderer lists shared results and user materials by citation ID without a public URL.
+  for (const m of text.matchAll(/^- \*\*([^*]+)\*\* (.+?)；发布机构：/gm)) {
+    const url = /\]\(([^)]+)\)/.exec(m[2])?.[1] ?? ''
+    if (url) {
+      for (const [key, source] of srcMap) if (key.startsWith('U') && source.url === url) srcMap.delete(key)
+    }
+    if (!srcMap.has(m[1])) srcMap.set(m[1], { id: m[1], url, cited: 1 })
   }
   const sources = [...srcMap.values()]
 

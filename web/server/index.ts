@@ -36,7 +36,7 @@ import {
 } from './lib/traceExport.ts'
 import { tokenUsageFrom, usageWithTokenSnapshot } from './lib/traceExport.ts'
 import { renderTraceMd } from './lib/traceMd.ts'
-import { parseReport } from './lib/reportParse.ts'
+import { parseDeliveredReport } from './lib/reportParse.ts'
 import {
   MAX_HTML_REPORT_BYTES,
   normalizeLegacyHtmlDocument,
@@ -121,7 +121,7 @@ const browserTurns = new Map<string, { requestId: string; interrupt: () => void 
    关闭 AGENTS.md 目录链发现（沙箱 cwd 在仓库内，链式发现会把仓库根的
    开发 AGENTS.md 装进用户运行上下文），本文件改由 piRunner 经
    --append-system-prompt 显式注入系统提示词（见手记 075）。
-   声明联网工具和兼容/共享人才查询入口；MYSQL_* 未配置时不写数据库工具节。
+   声明联网工具与共享查询入口；未配置实时统计时仍可核验保存结果。
    内容确定性覆盖，每次创建重写。
    ------------------------------------------------------------ */
 const CAREER_MARKET_QUERY_TOOL = join(__dirname, '../../scripts/career-market-query.mjs')
@@ -159,16 +159,18 @@ function sandboxAgentsMd(): string {
       `多个独立查询使用 \`node "${CAREER_MARKET_QUERY_TOOL}" --parallel '<JSON数组>'\`，工具内部最多并发 2 个查询；单查询默认 120 秒、最长 180 秒。工具会在批次开始时选择兼容的 MySQL 客户端并复用。`,
       '未迁移到共享查询的业务技能，涉及具体城市、岗位、实习/应届或学历门槛的问题优先调用兼容白名单；查询结果用于 report-meta 的 sources/metrics/charts，查询失败时把原因写入开发侧 gaps/risks。',
       '',
-      '## 共享人才数据查询',
-      '',
-      `需要通用地域/产业/岗位筛选或多个样本组时，先读允许访问的共享 Skill 文档：${TALENT_DATA_QUERY_SKILL}，以及其 references/ 内按需引用的文件。当前业务 Skill 保持生效，不切换会话。`,
-      `受信入口：\`node "${TALENT_DATA_QUERY_TOOL}" capabilities\`；在当前工作区写 request.json 后执行 \`node "${TALENT_DATA_QUERY_TOOL}" query --request request.json\`。支持 resolve、plan、inspect、export；不得传原始 SQL、读取数据库密码或改写项目工程文件。`,
-      `已迁移数据依赖：${Object.entries(SKILL_DATA_DEPENDENCIES).map(([skill, dependency]) => skill + ' → ' + dependency).join('；')}。这些技能统一通过共享工具取数，不走兼容白名单或独立数据库连接。`,
-      '共享工具将 result.json、summary.md、内部 evidence.json 与 manifest.json 保存到当前工作区 data/，stdout 只提供摘要/预览。用完整结果的分母、metricId 和 contentHash 生成业务分析与图表；不将内部 SQL 证据放进公开产物。',
-      '默认允许最长15分钟同条件结果复用，明确要求重新查询时使用 live；引用原始 dataReadAt，不能把查询日期或平台更新时间称为岗位真实发布日期。专业关联、技能文本等能力以 capabilities 为准。',
-      '原有报告 Skill 的 queryId 调用保持兼容；离线报告技能继续遵守其禁库契约，不因工具可用而擅自改为实时模式。',
     )
   }
+  lines.push(
+    '## 共享人才数据查询',
+    '',
+    `需要通用地域/产业/岗位筛选或多个样本组时，先读允许访问的共享 Skill 文档：${TALENT_DATA_QUERY_SKILL}，以及其 references/ 内按需引用的文件。当前业务 Skill 保持生效，不切换会话。`,
+    `受信入口：\`node "${TALENT_DATA_QUERY_TOOL}" capabilities\`；在当前工作区写 request.json 后执行 \`node "${TALENT_DATA_QUERY_TOOL}" query --request request.json\`。支持 resolve、plan、inspect、export；不得传原始 SQL、读取数据库密码或改写项目工程文件。`,
+    `已迁移数据依赖：${Object.entries(SKILL_DATA_DEPENDENCIES).map(([skill, dependency]) => skill + ' → ' + dependency).join('；')}。这些技能统一通过共享工具取数，不走兼容白名单或独立数据库连接。`,
+    '共享工具将 result.json、summary.md、内部 evidence.json 与 manifest.json 保存到当前工作区 data/，stdout 只提供摘要/预览。用完整结果的分母、metricId 和 contentHash 生成业务分析与图表；不将内部 SQL 证据放进公开产物。',
+    '默认允许最长15分钟同条件结果复用，明确要求重新查询时使用 live；引用原始 dataReadAt，不能把查询日期或平台更新时间称为岗位真实发布日期。专业关联、技能文本等能力以 capabilities 为准。',
+    mysqlConfigured() ? '已配置实时统计。按用户指定的材料或历史口径作答时遵守该范围。' : '本会话未配置实时统计。仍可离线 inspect 已保存的结果；需要新数据时说明缺口。',
+  )
   lines.push(
     '',
     '## 产物交付',
@@ -348,6 +350,8 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
     const at = composed.indexOf(USER_TEXT_SENTINEL)
     if (at >= 0) wrappers.push({ prefix: composed.slice(0, at), suffix: composed.slice(at + USER_TEXT_SENTINEL.length) })
   }
+  // Old observation reports used only the skill prefix on their first turn.
+  if (skill === 'industry-education-report') wrappers.push({ prefix: `/skill:${skill} `, suffix: '' })
   /* 长前缀优先：首轮 `/skill:x ` 包装先于续轮空前缀命中 */
   return wrappers.sort((a, b) => b.prefix.length - a.prefix.length)
 }
@@ -1451,12 +1455,10 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       } catch (exc: any) {
         recorder.note({ traceExportError: exc?.message ?? String(exc) })
       }
-      /* MVP 直出模式：解析最终回复（报告全文）为结构化结果并落盘（pi 专属）。
-         章节契约 REPORT_SECTIONS 属于 industry-education-report，其他技能（如就业指导）
-         没有对应模板，解析只会得到整份缺失，因此只对该技能执行 */
-      if (!question && engine === 'pi' && skill === 'industry-education-report' && finalText) {
+      // Inspect the report delivered in this turn; older clients may return Markdown inline.
+      if (!question && engine === 'pi' && skill === 'industry-education-report') {
         try {
-          const parsed = parseReport(finalText)
+          const parsed = parseDeliveredReport(delivery, DELIVERIES_DIR, finalText)
           if (parsed) {
             record.report = {
               structurePass: parsed.structurePass,

@@ -718,6 +718,9 @@ export class PiRunner extends AgentRunner {
   buildPrompt(skill: string, messages: any[], isFirstTurn: boolean): string {
     // Pi 保留历史；HTML 报告技能的结构契约逐轮重申，避免追问或旧会话沿用旧结构。
     let content = messages[messages.length - 1].content
+    if (skill === 'industry-education-report') {
+      content += '\n\n（生成或修订正式报告时，使用报告技能的 report.py build 交付。已保存的同口径数据由 build 离线核验。成功后保留脚本登记的四份下载，结束工具调用并简述结论和缺口。）'
+    }
     if (skill === 'ai-interview') {
       content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'
     }

@@ -54,6 +54,7 @@
 
 stdout 返回 talent-preview/1：总体状态、规范化/实际筛选、指标摘要、有限 rows、数据时间、缓存 key、耗时和真实工件路径。完整工件位于 `data/tq-<uuid>/`：
 
+- `inspect --result data/<id>/result.json --full` 在本会话校验清单和内容指纹后返回完整 talent-result/1，不访问数据库，也不读写查询缓存。省略 `--full` 保留有限行预览。
 - result.json：talent-result/1；每个指标保留 metricId、name、cohortId、版本、值或 rows、单位、分母、缺失/有效量、方法与 evidenceIds。
 - summary.md：由同一结果生成的可读概要。
 - evidence.json：实际 SQL、原始聚合行、执行时间、解析字典与校验依据；内部文件。

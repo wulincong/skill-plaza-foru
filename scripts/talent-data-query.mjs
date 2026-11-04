@@ -13,7 +13,7 @@ const HELP=`人才数据库查询（talent-query/1）
   node scripts/talent-data-query.mjs resolve --kind region|industry|role --name 名称
   node scripts/talent-data-query.mjs plan --request request.json
   node scripts/talent-data-query.mjs query --request request.json
-  node scripts/talent-data-query.mjs inspect --result data/<id>/result.json
+  node scripts/talent-data-query.mjs inspect --result data/<id>/result.json [--full]
   node scripts/talent-data-query.mjs export --result data/<id>/result.json --format json|csv|markdown
 在当前会话工作区执行；只接受结构化请求，不接受 SQL。完整结果和内部证据落入 data/。
 退出码：complete/empty=0；partial=3；需澄清/修正请求=2；执行失败=1。`
@@ -23,10 +23,12 @@ function argumentsFor(argv) {
   const allowed={capabilities:[],catalog:['job','industry','match','offset'],resolve:['kind','name'],plan:['request'],query:['request'],inspect:['result'],export:['result','format']}[command]
   if(!allowed)fail('INVALID_REQUEST','未知操作，请使用 --help')
   const options={}
-  for(let i=1;i<argv.length;i+=2) {
+  for(let i=1;i<argv.length;) {
     const key=argv[i].startsWith('--')?argv[i].slice(2):''
+    if(command==='inspect'&&key==='full'&&options.full===undefined) {options.full=true;i++;continue}
     if(!allowed.includes(key)||options[key]!==undefined||argv[i+1]===undefined)fail('INVALID_REQUEST',`不支持或重复的参数：${argv[i]}`)
     options[key]=argv[i+1]
+    i+=2
   }
   if(command!=='catalog')for(const key of allowed)if(!options[key])fail('INVALID_REQUEST',`缺少 --${key}`)
   return {command,options}
@@ -53,7 +55,7 @@ export async function runCli(argv=process.argv.slice(2),{workspace=process.cwd()
     }
     if(command==='inspect'||command==='export') {
       const result=await readResult(options.result,workspace)
-      if(command==='inspect')output=preview(result,10)
+      if(command==='inspect')output=options.full?result:preview(result,10)
       else {
         if(!['json','csv','markdown'].includes(options.format))fail('INVALID_REQUEST','format 支持 json/csv/markdown')
         output=await persistExport(result,options.format,workspace)

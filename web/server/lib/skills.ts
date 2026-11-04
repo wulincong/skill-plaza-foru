@@ -140,7 +140,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '以获得带证据与文件产物的专业结果。不确定的事实明确说明，不编造数据、来源或链接。',
   'industry-education-report':
     '你正在按 industry-education-report SKILL 工作。面向院校管理者、政府部门或产业园区，' +
-    '围绕区域产业、岗位人才、重点企业、就业去向、专业课程与招商形成有证据的决策分析。' +
+    '围绕目标区域、产业和决策问题，复用相同范围的证据，需要新岗位统计时交由 talent-data-query 取数。' +
     '明确区分事实、推断、建议和缺失数据；所有统计结论都提示核验年份、范围、口径和来源；' +
     '资料不足时保留缺口，不编造数字。先确认任务对象、地区、报告用途和基期，再推进交付。',
   'classroom-assistant':
@@ -195,7 +195,10 @@ export const SKILL_PROMPTS: Record<string, string> = {
 export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
-export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {'wechat-report':'talent-data-query'}
+export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {
+  'industry-education-report': 'talent-data-query',
+  'wechat-report': 'talent-data-query',
+}
 
 /** 产出 workspace/translation.pdf 的技能集合（终态捕获/校验/下载与 HTML 报告同构，
     见 index.ts captureWorkspacePdfReport 与 /api/reports 路由 pdf 分支） */
@@ -238,19 +241,10 @@ export function listPlazaSkills(): PlazaSkillInfo[] {
     设计记录 .agents/skills/plaza-dev-notes 001） */
 export const SIDECAR_SKILLS = new Set<string>()
 
-/** 报告期望章节（院校版 C01–C09，源自技能 assets/templates.json；
-    reportParse 结构校验用，政府版 G01–G08 后续按需扩展） */
-export const REPORT_SECTIONS: Array<{ id: string; title: string }> = [
-  { id: 'C01', title: '决策摘要' },
-  { id: 'C02', title: '区域产业链画像' },
-  { id: 'C03', title: '岗位与人才需求' },
-  { id: 'C04', title: '重点企业与合作' },
-  { id: 'C05', title: '毕业生就业去向' },
-  { id: 'C06', title: '专业与课程建设' },
-  { id: 'C07', title: '校地协同与招商主题' },
-  { id: 'C08', title: '行动清单与条件' },
-  { id: 'C09', title: '证据与图表附录' },
-]
+/** 广场按实际渲染模板核对观察报告章节。 */
+export function industryReportSections(): Array<{ id: string; title: string }> {
+  return JSON.parse(readFileSync(join(skillDir('industry-education-report'), 'assets/templates.json'), 'utf8')).observation.sections
+}
 
 /** 已安装技能的目录（供 pi --skill 直接加载）。
     本文件在 web/server/lib/ 下，仓库根需上溯三级：lib → server → web → 根 */

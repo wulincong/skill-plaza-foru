@@ -75,13 +75,14 @@ export const SKILLS: Skill[] = [
     ],
     dependencies: [
       '目标地区、产业范围与报告用途',
+      '岗位统计由人才数据库查询技能提供，可复用同一范围的已核验结果',
     ],
     limitations: [
       '最新报告需要重新核验来源、年份、范围和统计口径。',
       '缺少院校微观数据时会保留缺口，不编造就业率、岗位缺口或招生规模。',
     ],
     minimalInput:
-      '使用 $industry-education-report，为广东省某高职院校制作新能源汽车专业建设报告，受众为院校管理者，基期为 2024 年。',
+      '使用 $industry-education-report，为广州高职院校分析机器人产业的岗位门槛，并建议哪些实训项目应优先调整。',
   },
   {
     slug: 'tech-forecast',

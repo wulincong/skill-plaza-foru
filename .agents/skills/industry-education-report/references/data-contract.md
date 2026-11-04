@@ -1,46 +1,34 @@
-# 数据、引用与文件契约
+# 报告结构和证据交接
 
-Python 3 标准库即可执行。report.json 的顶层字段：
+`report.json` 由报告技能编写。查询请求、指标名、单位、分母和清洗规则由 [人才数据库查询](../../talent-data-query/SKILL.md) 定义，以查询结果为准。
 
-- title、edition（固定 `observation`）、region、industry、period（时间窗/基期）、as_of（数据时点，YYYY-MM-DD）、status（sample/draft/final）。
-- sources：id、title、publisher、url、published、accessed、locator（数据文档节号/表号，如 `§5.1`）、scope、excerpt（短摘录或明确标注的释义）。url 为 https 原始链接，或本技能内文档相对路径（`references/…`、`assets/…`）。主数据源固定为 [05 数据快照](05-数据库字段摸底与口径.md)；本地文档无发布日期写“未标注”，不能推定。
-- metrics：id、label、value（有限数字）、unit、period、region、population、definition、source_ids。每一指标保留统计对象与口径（全量 / AI 切片 v1 / v2、自身地址口径 / 回填口径、精确值 / 抽样估算），不能只有单位。可选 derived（inputs 数组及 operation=sum/ratio/percent），派生值自动复核；派生指标及输入另填 price_basis（价格口径/不适用）和 comparable_group（经审核的可比组），输出须与输入地域/时期/统计对象一致，比例输出单位为 % 或 比值；禁止不同价格基准混算和循环依赖。
-- claims：id、kind（fact/inference/recommendation）、text、source_ids、metric_ids、limitation。至少一个支持来源或指标；ID 关联不能替代语义审查。建议中的时间、人数、预算若为拟议目标，明确标注“建议目标”，不得写成调查结果。
-- sections：id、claim_ids、gap_ids；必须与 assets/templates.json `observation` 版章节顺序完全一致（S00–S12 + APXA/B/C，共 16 章）。
-- gaps：id、description、owner、required_data、impact。不存在缺口时使用空数组。
-- charts：id、title、metric_ids、note、type（table）。表格为默认可视化，自动附时期、地域、单位、定义及引用。若另外绘图，必须保留这些说明，禁止混单位同轴和缺数画零。
+## 把决策问题映射到章节
 
-每章至少包含一条关键结论或缺数记录。全部 claims/gaps 必须出现在章节中；全部指标必须由结论或图表使用。sources/metrics/claims/gaps/charts 内的 ID 唯一且非空。
-
-## 章节 → 05 数据映射（写作前备数清单）
-
-数据只来自 [05 数据快照](05-数据库字段摸底与口径.md)。下表为当前快照的供给状态；“缺”的章节必须登记 gap 或按“非互斥降级”处理，不得编造：
-
-| 章节（图表） | 05 供给 | 状态 |
+| 章节 | 需要回答的问题 | 优先证据 |
 |---|---|---|
-| 封面指标卡 | 全量：§1 统计基数（1,542,515 条 / 479,097 家）+ §5.1 覆盖 21 市；AI 口径：记录数 §6.1（29,284）；AI 主体数、覆盖城市数未算 | 全量可用；AI 口径缺 2 项 |
-| S00 摘要 | 汇总各章结论，每条对应后文一章 | 依赖各章 |
-| S01 口径 | §1 口径定义、§2 字段清单、§3 枚举映射、§3.4 平台、§5.4 时间分布、§8 质量清单 | 可完备；职位链接/真实发布时间作为边界声明 |
-| S02 图1 城市分布 | 全量 §5.1（21 市完整，含回填口径）；AI 切片 §6.3（12 市 + 未定 4,169，自身地址口径未回填） | 全量完备；AI 口径部分 |
-| S03 图2 岗位族分布 | 互斥岗位族分类未建立；仅 §5.2 全量 Top15 岗位名、§6.1 逐词命中（相互重叠，不可相加） | 缺；可降级为“含关键词岗位数（非互斥）” |
-| S04 图3 赛道分布 | 同 S03；§6.2 词表 v2 仅改变切片规模，仍非互斥分布 | 缺；降级同上 |
-| S05 图4/5 学历与经验 | 全量学历 §3.1、经验 §3.2；AI 学历 §6.3；AI 经验分布未算 | 全量完备；AI 经验缺 |
-| S06 图6 薪酬 | 整体与 AI 切片中位数/四分位 §4、§6.3；分岗位族中位数未算（依赖互斥分类） | 部分 |
-| S07 图7 城市×赛道矩阵 | 未计算 | 缺 |
-| S08 图8 岗位×学历×薪酬 | 未计算 | 缺 |
-| S09 图9 词频与画像 | JD 词频 §7（AI 切片精确值 / 全库 1/40 抽样估算 ±1%）；代表岗位能力画像表未提炼 | 词频可用；画像缺 |
-| S10 趋势判断 | 无外部产业趋势依据；仅可基于 05 内部证据（薪酬、学历、词频、城市）推断 | 外部依据缺 |
-| S11–S12 建议 | 05 无政策文号、职业标准、院校布点数据 | 缺；登记有责任方缺口 |
-| APXA/B/C | A=全部 metrics 汇总含口径列；B 按 §3.4/§8 改写（无猎聘/企业官网渠道、快照时间口径、非录用声明）；C=§1 去重与词表 + §4 薪酬清洗 + 城市回填规则 | 可完备 |
+| S01–S02 | 样本覆盖哪些岗位、企业和地区？ | 同条件的记录数、企业数与城市分布，标明地域依据和缺失 |
+| S03–S04、S07 | 岗位集中在哪些方向？哪些城市的结构不同？ | 岗位名称排名，有明确分类规则才使用方向分布和城市交叉 |
+| S05–S06、S08 | 入门门槛和薪酬如何影响培养定位？ | 学历、经验、薪酬有效数与中位数。分别统计的边际分布不能拼成联合分布 |
+| S09–S12 | 哪些任务适合纳入课程，需向谁核实？ | 声明词表的技能统计、用户提供的课程和企业材料。单次岗位截面不能证明增长 |
+| S00、附录 A/B/C | 哪些判断已有依据，哪些仍需补证？ | 回引正文的指标和限制，附来源、分母、采集时间与方法 |
 
-## 口径红线（语义审查必查）
+## 结构与引用
 
-- create_time=爬虫导入批次（2026-06~07 为主），不是岗位真实发布时间；在招记录不等于实际录用或在职人数。
-- §6.1 逐词命中数相互重叠（一条岗位名可命中多词），相加或直接当作占比分布都是错误；无互斥分类时只能以“含关键词岗位数（非互斥）”呈现并明示口径。
-- 经验枚举为“X 年以下”上界桶，无法切分 1–3 / 3–5 年档；薪酬中值剔除 mid=0 与 mid>100K 后计算；原始覆盖 99.92%。
-- 城市分布含 5.01% 唯一广东城市回填与 0.42% 多址未定；AI 切片城市为自身地址口径未回填，“未定”4,169 条。
-- 全库 JD 词频为 1/40 等距抽样推算（相对误差约 ±1%），AI 切片为精确值；引用时必须区分。
-- 来源平台仅 BOSS直聘 85.7%、前程无忧 10.6%、空值 3.66% 等，无猎聘、无企业官网渠道；附录 B 不得照抄 02 模板中的平台清单。
-- 建议章（S10–S12）不得编造政策文号、补贴标准、布点数量；拟议目标标注“建议目标”。
+- 顶层 `title, edition, region, industry, period, as_of, status`。region、industry、period 写可展示的文字，如“佛山市”“名称含 Java（不限制产业）”“平台更新时间 [起日, 止日)”；查询筛选对象只放在共享请求中。edition 为 observation，as_of 为报告证据截止日（YYYY-MM-DD），status 为 sample/draft/final；存在缺口不能用 final。
+- `sections` 按 [章节表](../assets/templates.json) 的 S00–S12、APXA/B/C 排列，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
+- `claims` 含 id、kind（fact/inference/recommendation）、text、source_ids、metric_ids、limitation。统计事实引用指标，质性事实引用材料的具体位置，建议说明依据和验证办法。
+- `gaps` 含 id、description、owner、required_data、impact。`charts` 含 id、title、metric_ids、note、type（table）。图注交代样本和分母。只有缺口且没有数值时可用空 charts。
+- `sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。用户附件用 uploads/ 相对路径，粘贴材料用 user: 加名称，两者均写页码、表号或段落。历史样板保留原 references/ 节号。
+- `metrics` 含 id、label、value（有限数值）、unit、period、region、population、definition、source_ids。描述分母、样本、计量单位与对应限制；派生指标使用 derived.inputs 和 operation（sum/ratio/percent），写明 comparable_group 与 price_basis。输入单位、地区、时期、样本和价格口径必须可比。
 
-语义审查附加检查：每个数值能在 05 对应节号找到原文；指标范围与正文一致；推断包含限制；图表单位/基期/注释齐全。
+## 引用共享统计
+
+从真实 `query` 或离线 `inspect` 取得工件位置。每份结果建一项 source，url 原样填写工作区的 `data/tq-…/result.json`，生成脚本从已校验工件写入 **contentHash** 和 **dataReadAt**，并可据此填写 accessed 和未标注的 published。在 scope 写清实际地域、产业/岗位筛选与时间窗；在 locator 标记样本组。正文使用可读单位，记录数和企业数分别陈述。
+
+每个直接引用的报告指标加 `binding`，写稿时可省略 value，生成脚本从对应数值字段填入；手填数值或指纹与原件不符会验收失败。例如引用样本组 all 的岗位数时填 `{"metricId":"all/positions.count","field":"value"}`；薪酬中位数用 value.median，首行计数用 rows.0.count，按真实返回的行标签陈述。field 取完整结果的原值，share 是 0–1 比例；若需百分数，在正文格式化或用同口径计数派生。结构脚本调用共享工具的离线 inspect，核对工件、指纹和字段值。分母、行标签、中文单位及结论含义仍需逐条语义复核。
+
+学历等按类别计数、含标签与 share 的分布，field 用 rows 并省略 value。脚本用原分母作为该指标的数值，同时列出分组名称、计数和占比（最多二十组，注明展示范围）。只引用一个分组时可绑定 rows.N.count 等具体单元。无有效薪酬时登记缺口。
+
+确认空样本时可以报告零条记录，薪酬或占比不可得。仅部分指标可用时登记缺口，引用须来自已完成事务、通过对账的指标。无可用结果则省略统计表并说明影响。公开报告保留可读出处与定位，查询内部证据文件不进入交付。
+
+[历史样板](../assets/examples/observation/report.json) 可用于复现旧格式。旧样板不是新范围的数据源。
