@@ -91,7 +91,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 087 | 报告智能体接入共享人才查询：按章节请求、兼容适配、证据绑定与迁移验收 | 接入已实现；同口径改标题触发重复取数已核实，修订复用待优化；分析阶段见091 | [087-report-query-skill-integration.md](references/087-report-query-skill-integration.md) |
 | 109 | 产教决策报告：按决策问题取证、共享统计交接与同源章节验收 | 已实现 | [109-industry-report-query-handoff.md](references/109-industry-report-query-handoff.md) |
 | 110 | 报告共用流程：按读者目标取证、缺证时由用户选择、全文与段落总分总 | 项目约定与四类技能指引已写入，产教实测见 112，其余待验证 | [110-report-evidence-and-writing.md](references/110-report-evidence-and-writing.md) |
-| 112 | 产教决策简报：选题取证、关键缺口选择、网页版与四份下载交付 | 已实现 | [112-industry-decision-brief.md](references/112-industry-decision-brief.md) |
+| 112 | 产教决策简报：选题取证、关键缺口选择、共享绘图、网页版与四份下载交付 | 已实现 | [112-industry-decision-brief.md](references/112-industry-decision-brief.md) |
 | 098 | 城市薪酬与学历结构同口径联合统计 | 取数、单城预检与可选职教池一致性已验证 | [098-city-salary-multivariate-data.md](references/098-city-salary-multivariate-data.md) |
 | 091 | wechat-report：强制真实数据分析、比较证据、解释与行动建议后再生成报告 | 已实现（63项测试/真实保存结果全链路；在线模型新会话待验） | [091-wechat-evidence-led-analysis.md](references/091-wechat-evidence-led-analysis.md) |
 

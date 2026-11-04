@@ -1,6 +1,6 @@
 ---
 name: industry-education-report
-description: 为院校、园区和政府研判培养、实训或专业建设决策，按读者的问题形成决策简报或区域产业人才需求观察报告。人才统计交给 talent-data-query，关键证据不足时等待用户选择。
+description: 为院校、园区和政府研判培养、实训或专业建设决策，形成决策简报或区域产业人才需求观察报告。人才统计由 talent-data-query 提供，统计图由 chart-visualization 绘制，关键证据不足时等待用户选择。
 ---
 
 # 产教决策报告
@@ -15,4 +15,6 @@ description: 为院校、园区和政府研判培养、实训或专业建设决�
 
 **复核与交付。** 可成稿时先用 `python3 <技能目录>/scripts/report.py render report.json` 看读者会拿到的文字：开篇是否答题、每段论据是否支持判断、结尾是否指出行动条件、表格分母及来源是否可定位。将审核者、日期、逐条 claim 的判断和理由写入 review.md，有误则修订。调用 `python3 <技能目录>/scripts/report.py build report.json --review review.md` 登记正文、结构化报告、结构验收、证据复核四份下载。同口径修订沿用已有证据，只复核受影响的结论。保留脚本生成的 delivery.json，回复简述结论与未决项。明确要求 Word/PDF 时另外检查实际导出页的表头、分页和图注。
 
-**网页版。** 用户要求网页版或 HTML 报告时，先完成本轮 build，再依据其报告正文和同一批已核指标排版网页。用户要求图文结合时，选择能说明判断的图、表或示意图，保留来源和图注，推断与未决事项仍然可见。把 HTML、图片及样式放入独立的公开目录（如 output/public/site），用相对路径引用，实际打开并检查图文、数字和移动端版面。最后保留本轮 delivery.json 的 files，在同一清单加入 `"web":[{"name":"报告网页版","directory":"output/public/site","entry":"index.html"}]`。公开目录只放本次网页所需的资源。交付以平台返回的网页链接为准。
+**绘图。** 决策简报和完整观察版都由 [chart-visualization](../chart-visualization/SKILL.md) 绘制统计图。用户要求图文结合且有可比较的数据时，选择直接支撑结论的指标出图。从本轮 build 输出的 report.json 读取指标值、分组明细与来源，按[图稿规格](../chart-visualization/references/figure-spec.md)写 figure/1。以会话工作区为当前目录，运行 `python3 <chart-visualization目录>/scripts/figure.py render <规格.json> --out <新图稿目录>`。独立图稿用同参数的 `verify` 复验，网页版由下述嵌图脚本执行同一复验。Word/PDF 采用已复验图稿的矢量文件及图注。修订时核对指标、分母和图注，有变动就重绘。复验失败先修正规格；仍无法出图则交代原因，保留可核查的数值表。避免自编绘图脚本或手写 SVG 绕过共享技能。纯质性材料、未决事项或无法比较的数字用原文或表格表达。
+
+**网页版。** 用户要求网页版或 HTML 报告时，先完成本轮 build，再依据其报告正文排版。用户要图文报告且未指定格式时，随四份下载提供含图网页版；明确指定格式时遵循原要求。按[报告嵌图规范](../chart-visualization/references/common-rules.md)在正文留一个 `<!-- chart:图稿ID -->` 占位。运行 `python3 <产教报告目录>/scripts/embed_chart.py <规格.json> <图稿目录> <网页路径>`，它调用共享 verify 后插入完整 figure、图注和可展开的数值表。网页采用内联图块；平台会拦截 object、embed 和 iframe。将图放在对应判断旁，推断与未决事项仍然可见。复制所需样式以便窄屏读图；只把公开 HTML 及所需资源放入独立目录（如 output/public/site），用相对路径引用，实际打开并检查图文、数字和移动端版面。保留本轮 delivery.json 的 files，在同一清单加入 `"web":[{"name":"报告网页版","directory":"output/public/site","entry":"index.html"}]`。交付以平台返回的网页链接为准。

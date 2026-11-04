@@ -25,6 +25,8 @@ import { tokenUsageFrom } from './traceExport.ts'
 import { piCliVersion } from './agentEnv.ts'
 import {
   HTML_REPORT_CONTRACTS,
+  INDUSTRY_CHART_RULE,
+  INDUSTRY_DECISION_SUFFIX,
   SKILL_PROMPTS,
   INSTALLED_SKILLS,
   SIDECAR_SKILLS,
@@ -544,7 +546,7 @@ export class PiRunner extends AgentRunner {
       '-n', sid.slice(0, 8),
       /* 关闭扩展自动发现，只加载仓库声明的模型与工具注释扩展 */
       '--no-extensions',
-      '--no-skills', // Only the explicitly mounted, published skill is discoverable.
+      '--no-skills', // Discover only the selected skill and its explicit dependencies.
       '--extension', fileURLToPath(new URL('../pi/youcai.js', import.meta.url)),
       '--extension', fileURLToPath(new URL('../pi/tool-purpose.js', import.meta.url)),
       /* 关闭 AGENTS.md/CLAUDE.md 目录链发现：沙箱 cwd 在仓库内，pi 会沿父目录
@@ -556,6 +558,7 @@ export class PiRunner extends AgentRunner {
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
+    if (opts.skill === 'industry-education-report') args.push('--skill', skillDir('chart-visualization'))
     if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
@@ -719,7 +722,7 @@ export class PiRunner extends AgentRunner {
     // Pi 保留历史；HTML 报告技能的结构契约逐轮重申，避免追问或旧会话沿用旧结构。
     let content = messages[messages.length - 1].content
     if (skill === 'industry-education-report') {
-      content += '\n\n（本轮先按读者的决定核对证据。已粘贴的原文即为材料，按 user: 引用原句，不能要求重传或臆造附件、时段、容量。先检验一个必要条件是否已被证据否决：若唯一可用场地排满且无替代，足以判断本期不能开班；其余设备或师资未知不触发提问，直接成稿。核心缺证时说清已知、缺口及影响，必须提供单选的三个选项“补充材料”“扩大范围”“按现有证据继续”。本轮停在提问，不运行 build。补材料或扩围后重新判断；仅凭“请生成”不能代选继续。单项决定用 decision 三节简报，明确要全景观察时用 observation。关键缺口仍在且用户选择继续，记录其原话。可交付时依技能契约运行 report.py build，保留四份下载。）'
+      content += INDUSTRY_DECISION_SUFFIX + '\n\n' + INDUSTRY_CHART_RULE
     }
     if (skill === 'ai-interview') {
       content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'

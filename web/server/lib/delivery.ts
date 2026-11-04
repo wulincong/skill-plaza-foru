@@ -79,7 +79,7 @@ export function deliveryBaseUrl(req: IncomingMessage): string {
   return url.origin
 }
 
-export function publishDelivery(workspace: string, manifest: DeliveryManifest, store: string, baseUrl: string): DeliveryLinks {
+export function publishDelivery(workspace: string, manifest: DeliveryManifest, store: string, baseUrl: string, checkEntry?: (file: string) => void): DeliveryLinks {
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) throw new Error('delivery.json 必须是对象')
   const web = manifest.web ?? [], files = manifest.files ?? []
   if (!Array.isArray(web) || !Array.isArray(files) || web.length > 20 || files.length > 100 || web.length + files.length === 0) throw new Error('交付清单为空或超过数量上限')
@@ -155,6 +155,7 @@ export function publishDelivery(workspace: string, manifest: DeliveryManifest, s
         } finally { closeSync(output) }
       } finally { closeSync(input) }
     }
+    if (checkEntry) metadata.web.forEach((page, i) => checkEntry(join(temporary, 'web', String(i), page.entry)))
     writeFileSync(join(temporary, 'metadata.json'), JSON.stringify(metadata), { mode: 0o600 })
     renameSync(temporary, join(store, id))
   } catch (error) {

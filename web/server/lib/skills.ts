@@ -132,6 +132,12 @@ export const HTML_REPORT_SKILLS = new Set(Object.keys(HTML_REPORT_CONTRACTS))
     但不属于广场技能卡（listPlazaSkills 过滤），也不在 INSTALLED_SKILLS。 */
 export const GENERAL_SKILL_ID = 'general'
 
+export const INDUSTRY_DECISION_SUFFIX = '\n\n（本轮先按读者的决定核对证据。已粘贴的原文即为材料，按 user: 引用原句，不能要求重传或臆造附件、时段、容量。先检验一个必要条件是否已被证据否决：若唯一可用场地排满且无替代，足以判断本期不能开班；其余设备或师资未知不触发提问，直接成稿。核心缺证时说清已知、缺口及影响，必须提供单选的三个选项“补充材料”“扩大范围”“按现有证据继续”。本轮停在提问，不运行 build。补材料或扩围后重新判断；仅凭“请生成”不能代选继续。单项决定用 decision 三节简报，明确要全景观察时用 observation。关键缺口仍在且用户选择继续，记录其原话。可交付时依技能契约运行 report.py build，保留四份下载。）'
+
+export const INDUSTRY_CHART_RULE = `产教报告绘制统计图时，读取 ${skillDir('chart-visualization')}/SKILL.md，` +
+  '先完成本轮 report.py build，从它打印的 output/report-…/report.json 生成绘图数据。分布使用指标的 breakdown.groups，图注写指标编号、范围和分母。' +
+  `实际运行 python3 ${skillDir('chart-visualization')}/scripts/figure.py render。网页在对应段落留 <!-- chart:图稿ID -->，运行 python3 ${skillDir('industry-education-report')}/scripts/embed_chart.py <规格.json> <图稿目录> <网页路径>，由它调用共享 verify 并嵌入完整图块。修订标题、图注或数字也改规格并重绘。仅有定性证据时使用原文或表格。`
+
 export const SKILL_PROMPTS: Record<string, string> = {
   [GENERAL_SKILL_ID]:
     '你是技能广场的通用智能体，用中文直接回答用户的通用问题：先给结论，再给依据，条理清晰。' +
@@ -142,7 +148,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '你正在按 industry-education-report SKILL 工作。面向院校管理者、政府部门或产业园区，' +
     '围绕目标区域、产业和决策问题，复用相同范围的证据，需要新岗位统计时交由 talent-data-query 取数。' +
     '明确区分事实、推断、建议和缺失数据；所有统计结论都提示核验年份、范围、口径和来源；' +
-    '关键缺证时说明影响，等待用户选择补证、扩围或按现有证据继续。单项决策默认三节简报。',
+    '关键缺证时说明影响，等待用户选择补证、扩围或按现有证据继续。单项决策默认三节简报。' + INDUSTRY_CHART_RULE,
   'classroom-assistant':
     '你正在按 classroom-assistant SKILL 工作。只在用户明确提供或授权的课程资料范围内完成' +
     '带定位引用的答疑、课堂要点、练习和答疑记录整理。资料不足或问题越界时，明确说明缺口，' +

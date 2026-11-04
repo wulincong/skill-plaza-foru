@@ -36,7 +36,7 @@ import {
 } from './lib/traceExport.ts'
 import { tokenUsageFrom, usageWithTokenSnapshot } from './lib/traceExport.ts'
 import { renderTraceMd } from './lib/traceMd.ts'
-import { expectsIndustryBuild, expectsIndustryWeb, industryDelivery, parseDeliveredReport } from './lib/reportParse.ts'
+import { checkIndustryWebEntry, expectsIndustryBuild, expectsIndustryWeb, industryDelivery, parseDeliveredReport } from './lib/reportParse.ts'
 import {
   MAX_HTML_REPORT_BYTES,
   normalizeLegacyHtmlDocument,
@@ -46,7 +46,7 @@ import {
 } from './lib/htmlReport.ts'
 import { serverEnv } from './lib/agentEnv.ts'
 import { loadLocalEnv } from './lib/env.ts'
-import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills, skillDir } from './lib/skills.ts'
+import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, INDUSTRY_CHART_RULE, INDUSTRY_DECISION_SUFFIX, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills, skillDir } from './lib/skills.ts'
 import {
   extractSidecar,
   validateMeta,
@@ -354,6 +354,7 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
   if (skill === 'industry-education-report') {
     const prefix = `/skill:${skill} `
     const oldSuffix = '\n\n（生成或修订正式报告时，使用报告技能的 report.py build 交付。已保存的同口径数据由 build 离线核验。成功后保留脚本登记的四份下载，结束工具调用并简述结论和缺口。）'
+    wrappers.push({ prefix, suffix: INDUSTRY_DECISION_SUFFIX }, { prefix: '', suffix: INDUSTRY_DECISION_SUFFIX })
     wrappers.push({ prefix, suffix: oldSuffix }, { prefix: '', suffix: oldSuffix }, { prefix, suffix: '' })
   }
   /* 长前缀优先：首轮 `/skill:x ` 包装先于续轮空前缀命中 */
@@ -1400,7 +1401,8 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         : readDeliveryManifest(entry.workspaceDir, previousDeliveryFingerprint)
       // Existing HTML/PDF skills keep their fixed-path contracts. New output uses
       // the same persistent delivery channel without requiring prompt migration.
-      if (manifest) delivery = publishDelivery(entry.workspaceDir, manifest, DELIVERIES_DIR, deliveryBaseUrl(req))
+      if (manifest) delivery = publishDelivery(entry.workspaceDir, manifest, DELIVERIES_DIR, deliveryBaseUrl(req),
+        skill === 'industry-education-report' ? checkIndustryWebEntry : undefined)
       else if (htmlReportFile || pdfReportFile) delivery = publishLegacyDelivery(htmlReportFile, pdfReportFile, taskTitle, DELIVERIES_DIR, deliveryBaseUrl(req))
     } catch (error: any) {
       deliveryError = `产物交付失败：${error?.message || String(error)}`
@@ -1739,7 +1741,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         if (skill==='wechat-report' && !question && !hasReportData && reportScopeQuestion(finalText)) question={kind:'input',question:finalText,options:[]}
         if (skill==='wechat-report' && question && /大纲|目录.*确认|章节.*确认/.test(question.question)) question=undefined
         const missingIndustryBuild = skill === 'industry-education-report' && !question && !delivery.downloads?.length &&
-          (reportContinuations > 0 || expectsIndustryBuild(originalUserText, finalText))
+          (reportContinuations > 0 || !!deliveryError || expectsIndustryBuild(originalUserText, finalText))
         const retryWechat = !deliveryError && needsReportFollowThrough({skill,request:String(latest.content),answer:finalText,
           hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations})
         if (ev.resultType === 'success' && entry && (retryWechat || (missingIndustryBuild && reportContinuations < 1))) {
@@ -1748,11 +1750,13 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           completedReportUsage=lastUsage
           reportRoundOffset=Math.max(0,...usageRounds.map(round=>round.round))
           deliveryCaptured=false
+          const previousFailure = deliveryError
           deliveryError=undefined
           let instruction: string
           if (missingIndustryBuild) {
             instruction = `本轮尚无可交付的产教报告。回到本会话工作区，读取 ${skillDir(skill)}/references/data-contract.md。若本轮 build 尚未通过，用同一证据完成 report.json 和 review.md，再运行 python3 ${skillDir(skill)}/scripts/report.py build report.json --review review.md。关键缺口仍需用户选择时只提问。`
-            if (expectsIndustryWeb(originalUserText)) instruction += '用户要求网页版。以本轮已核验的报告在 output/public/site 生成静态 HTML 及所需图文资源，核对入口后在 delivery.json 合并 web 项，保留原 files；不要改写本轮构建收据。'
+            if (previousFailure) instruction += `上次交付检查：${previousFailure}。`
+            if (expectsIndustryWeb(originalUserText)) instruction += '用户要求网页版。' + INDUSTRY_CHART_RULE + '在 output/public/site 生成静态 HTML 及所需资源，核对入口后在 delivery.json 合并 web 项，保留原 files 和本轮构建收据。'
           } else {
             const dir=join(entry.workspaceDir,'wechat-report')
             const installed=skillDir('wechat-report')

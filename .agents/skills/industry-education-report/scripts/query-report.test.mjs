@@ -11,10 +11,12 @@ import { validateRequest } from '../../../../scripts/talent-data/core.mjs'
 import { buildPlan } from '../../../../scripts/talent-data/compile.mjs'
 import { buildResult } from '../../../../scripts/talent-data/metrics.mjs'
 import { persistResult } from '../../../../scripts/talent-data/artifacts.mjs'
-import { expectsIndustryBuild, industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
+import { checkIndustryWebEntry, expectsIndustryBuild, industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
 import { deliveryFingerprint, handleDelivery, publishDelivery } from '../../../../web/server/lib/delivery.ts'
 
 const cli = fileURLToPath(new URL('./report.py', import.meta.url))
+const embed = fileURLToPath(new URL('./embed_chart.py', import.meta.url))
+const figure = fileURLToPath(new URL('../../chart-visualization/scripts/figure.py', import.meta.url))
 const template = JSON.parse(await readFile(new URL('../assets/templates.json', import.meta.url))).observation
 const readAt = '2026-10-01T00:00:00Z'
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
@@ -294,4 +296,57 @@ test('a requested industry report website and its assets are served alongside th
   assert.equal(ordinary.web?.length ?? 0,0)
   await writeFile(join(root,'delivery.json'),JSON.stringify({web:[{...page,directory:'uploads'}]}))
   assert.throws(()=>publishDelivery(root,industryDelivery(root,runId,beforeWeb,request),store,origin))
+})
+
+test('a report embeds the verified shared chart and the published entry renders without a nested document', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'industry-chart-'))
+  t.after(() => rm(root, {recursive:true, force:true}))
+  const run = (...args) => spawnSync('python3', args, {cwd:root,encoding:'utf8'})
+  const success = (...args) => {
+    const result = run(...args)
+    assert.equal(result.status,0,result.stderr + result.stdout)
+  }
+  const sample = await savedResult(root,4,true)
+  const report = draft(sample)
+  report.metrics.push({...report.metrics[0],id:'edu',label:'学历要求',
+    binding:{metricId:'all/education.distribution',field:'rows'}})
+  delete report.metrics[1].value
+  report.charts[0].metric_ids.push('edu')
+  await writeFile(join(root,'report.json'),JSON.stringify(report))
+  await writeFile(join(root,'review.md'),'C1 已核对。')
+  success(cli,'build','report.json')
+  const manifest = await readJson(join(root,'delivery.json'))
+  const built = await readJson(join(root,manifest.files[1].path))
+  const {groups,denominator} = built.metrics.find(m => m.id === 'edu').breakdown
+  const spec = {schema:'figure/1',id:'EDU',lang:'zh',title:'学历要求',caption:`分母 ${denominator} 条`,source:'D1 / edu',
+    datasets:{edu:groups.map(g => ({label:g.label,count:g.count}))},
+    panels:[{kind:'barh',title:'学历要求',data:'edu',fields:{category:'label',value:'count'},x_label:'岗位记录数 (条)',y_label:'学历'}]}
+  await writeFile(join(root,'spec.json'),JSON.stringify(spec))
+  success(figure,'render','spec.json','--out','chart')
+  const site = 'output/public/site', entry = join(site,'index.html')
+  await mkdir(join(root,site),{recursive:true})
+  manifest.web = [{name:'报告',directory:site,entry:'index.html'}]
+  const publish = () => publishDelivery(root,manifest,join(root,'publications'),'https://example.invalid',checkIndustryWebEntry)
+  const template = '<html><body><!-- chart:EDU --></body></html>'
+  await writeFile(join(root,entry),'<html><body><figure><img alt="实训室布局"><figcaption>校方提供的平面图</figcaption></figure></body></html>')
+  assert.equal(publish().webLinks.length,1)
+  for (const bad of ['<object data="chart/figure.svg"></object>','<figure><svg class="chart"></svg></figure>',
+    '<div><svg role="img"><text>本科</text></svg></div>','<img src="chart/figure.svg">',template]) {
+    await writeFile(join(root,entry),bad)
+    assert.throws(publish,/embed_chart.py/)
+  }
+  success(embed,'spec.json','chart',entry)
+  success(embed,'spec.json','chart',entry)
+  const block = (await readFile(join(root,'chart/figure.html'),'utf8')).match(/<figure\b[\s\S]*?<\/figure>/)[0]
+  const embeddedPage = await readFile(join(root,entry),'utf8')
+  assert.equal(embeddedPage.split(block).length,2)
+  assert.ok(!embeddedPage.includes('<!-- chart:EDU -->'))
+  const links = publish()
+  assert.equal(links.downloads.length,4)
+  const id = new URL(links.webLinks[0].url).pathname.split('/')[2]
+  assert.ok((await readFile(join(root,'publications',id,'web/0/index.html'),'utf8')).includes(block))
+  await writeFile(join(root,entry),template)
+  await writeFile(join(root,'chart/figure.svg'),'<svg/>')
+  assert.notEqual(run(embed,'spec.json','chart',entry).status,0)
+  assert.equal(await readFile(join(root,entry),'utf8'),template)
 })
