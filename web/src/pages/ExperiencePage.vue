@@ -1177,6 +1177,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
+          <p class="exp-input-note">内容由 AI 生成，请仔细核对。</p>
         </div>
       </div>
     </div>
