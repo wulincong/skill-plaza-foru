@@ -1,0 +1,4 @@
+interface:
+  display_name: "就业指导"
+  short_description: "基于目标、经历和岗位信息制定可执行的求职与职业发展方案"
+  default_prompt: "使用 $career-guidance，基于我的目标岗位、简历和求职约束，先做职业定位，再给出岗位匹配、简历改进和 30 天行动计划。"

@@ -1,0 +1,268 @@
+{
+  "title": "广东省人工智能产业人才需求观察报告（结构样板）",
+  "edition": "observation",
+  "region": "广东省",
+  "industry": "人工智能",
+  "period": "2026-06~2026-07 导入批次快照",
+  "as_of": "2026-09-20",
+  "status": "sample",
+  "sources": [
+    {
+      "id": "DS-05",
+      "title": "05·广东在招岗位数据记录（内部岗位库快照）",
+      "publisher": "数据侧离线摸底",
+      "url": "references/05-数据库字段摸底与口径.md",
+      "published": "2026-09-20",
+      "accessed": "2026-09-20",
+      "locator": "§1 口径定义",
+      "scope": "广东省在招岗位快照统计（2026-09-20 查询，离线计算）",
+      "excerpt": "统计基数 1,542,515 条岗位 / 479,097 家企业；时间为导入批次口径"
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M-GD-RECORDS",
+      "label": "广东在招岗位记录数",
+      "value": 1542515,
+      "unit": "条",
+      "period": "2026-06~2026-07 导入批次快照",
+      "region": "广东省",
+      "population": "广东在招岗位（按 p.id 去重后）",
+      "definition": "c_company_address 广东省地址 join 在招岗位，去重后的统计基数（§1）",
+      "source_ids": ["DS-05"]
+    },
+    {
+      "id": "M-GD-FIRMS",
+      "label": "广东有岗位企业数",
+      "value": 479097,
+      "unit": "家",
+      "period": "2026-06~2026-07 导入批次快照",
+      "region": "广东省",
+      "population": "广东在招岗位对应招聘主体（档案去重）",
+      "definition": "c_company_archive 档案口径企业数，名称零缺失（§5.3）",
+      "source_ids": ["DS-05"]
+    },
+    {
+      "id": "M-AI-SLICE",
+      "label": "AI 切片 v1 记录数",
+      "value": 29284,
+      "unit": "条",
+      "period": "2026-06~2026-07 导入批次快照",
+      "region": "广东省",
+      "population": "岗位名命中词表 v1（23 词）任一的在招岗位",
+      "definition": "AI 切片 v1 规模，占全量 1.90%（§6.1）",
+      "source_ids": ["DS-05"]
+    },
+    {
+      "id": "M-AI-SALARY-MEDIAN",
+      "label": "AI 切片月薪中位中位数",
+      "value": 20.0,
+      "unit": "K/月",
+      "period": "2026-06~2026-07 导入批次快照",
+      "region": "广东省",
+      "population": "AI 切片 v1 中薪酬可标准化岗位（清洗后 n=29,134）",
+      "definition": "中值=(min+max)/2，剔除 mid=0 与 mid>100K 后的中位数（§4、§6.3）",
+      "source_ids": ["DS-05"]
+    },
+    {
+      "id": "M-SZ-AI",
+      "label": "AI 切片深圳岗位数",
+      "value": 12065,
+      "unit": "条",
+      "period": "2026-06~2026-07 导入批次快照",
+      "region": "广东省深圳市",
+      "population": "AI 切片 v1 中工作地址命中深圳的岗位",
+      "definition": "自身地址口径、未回填，占切片 41.2%（§6.3）",
+      "source_ids": ["DS-05"]
+    },
+    {
+      "id": "M-AI-BENKE-PLUS",
+      "label": "AI 切片本科及以上占比",
+      "value": 77.8,
+      "unit": "%",
+      "period": "2026-06~2026-07 导入批次快照",
+      "region": "广东省",
+      "population": "AI 切片 v1 全部岗位",
+      "definition": "本科+硕士+博士占切片比例 22,785/29,284（§6.3）",
+      "source_ids": ["DS-05"]
+    }
+  ],
+  "claims": [
+    {
+      "id": "CL-S00",
+      "kind": "fact",
+      "text": "核心判断（示例条目）：广东在招岗位 1,542,515 条中 AI 切片 29,284 条占 1.90%，切片内深圳一城占 41.2%。",
+      "source_ids": ["DS-05"],
+      "metric_ids": ["M-GD-RECORDS", "M-AI-SLICE", "M-SZ-AI"],
+      "limitation": "快照口径，不代表年度实况；占比基数为切片而非全省岗位"
+    },
+    {
+      "id": "CL-S01",
+      "kind": "fact",
+      "text": "主数据集为数据库快照：时间口径为 2026-06~07 爬虫导入批次，无岗位真实发布时间、无职位链接。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "附录 B 必须声明快照口径与非录用属性"
+    },
+    {
+      "id": "CL-S02",
+      "kind": "fact",
+      "text": "全量岗位城市分布前三：深圳 23.8%、广州 17.2%、东莞 8.8%，珠三角九市合计 77.3%。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "含 5.01% 唯一城市回填与 0.42% 多址未定（§5.1）"
+    },
+    {
+      "id": "CL-S03",
+      "kind": "fact",
+      "text": "岗位族互斥分类未建立，本章降级为含关键词岗位数（非互斥）：算法 13,292、AI 8,203、机器人 4,108。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "逐词命中相互重叠，不可相加、不是占比分布（§6.1）"
+    },
+    {
+      "id": "CL-S04",
+      "kind": "fact",
+      "text": "赛道维度同样仅词表命中可报；词表 v2（窄表）切片 14,686 条 = 0.95%。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "与 S03 相同的非互斥限制（§6.2）"
+    },
+    {
+      "id": "CL-S05",
+      "kind": "fact",
+      "text": "学历门槛分化：全量以不限 30.8%、大专 28.1%、本科 24.1% 为主，AI 切片本科及以上达 77.8%。",
+      "source_ids": ["DS-05"],
+      "metric_ids": ["M-AI-BENKE-PLUS"],
+      "limitation": "AI 切片与全量为不同统计对象，不能直接相减比较（§3.1、§6.3）"
+    },
+    {
+      "id": "CL-S06",
+      "kind": "fact",
+      "text": "AI 切片月薪中位 20.0K（P25 9.5K、P75 30.0K），高于全量中位 7.5K。",
+      "source_ids": ["DS-05"],
+      "metric_ids": ["M-AI-SALARY-MEDIAN"],
+      "limitation": "薪酬为中值法近似，清洗规则见 §4；分岗位族中位数未算"
+    },
+    {
+      "id": "CL-S09",
+      "kind": "fact",
+      "text": "AI 切片 JD 高频技术栈：Python 37.1%、深度学习 25.4%、大模型 21.4%（占切片岗位比例，精确值）。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "全库口径为 1/40 抽样估算（±1%），引用须区分（§7.1）"
+    },
+    {
+      "id": "CL-S10",
+      "kind": "inference",
+      "text": "基于切片内部证据（薪酬溢价、高学历门槛、工程化词频）推断 AI 应用层需求处于扩张段。",
+      "source_ids": ["DS-05"],
+      "metric_ids": ["M-AI-SALARY-MEDIAN", "M-AI-BENKE-PLUS"],
+      "limitation": "无外部产业趋势数据校准，仅为内部证据推断"
+    },
+    {
+      "id": "CL-S11",
+      "kind": "recommendation",
+      "text": "建议目标：课程体系覆盖“Python+深度学习+大模型”技术栈组合，并配套工程化（部署/推理/RAG）模块。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "依据 §7 词频相关性强，非岗位能力标准映射；为拟议目标非调查结果"
+    },
+    {
+      "id": "CL-S12",
+      "kind": "recommendation",
+      "text": "建议政府、企业、院校、协会按切片数据分工协同补齐 AI 应用人才培养链路。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "缺政策与布点数据支撑，属一般性方向建议"
+    },
+    {
+      "id": "CL-APXA",
+      "kind": "fact",
+      "text": "附录 A 汇总全篇关键指标及口径列，数值均出自 05 数据快照。",
+      "source_ids": ["DS-05"],
+      "metric_ids": ["M-GD-RECORDS", "M-GD-FIRMS", "M-AI-SLICE"],
+      "limitation": "仅收录 05 既算指标，缺口指标以 gaps 呈现"
+    },
+    {
+      "id": "CL-APXB",
+      "kind": "fact",
+      "text": "来源渠道为 BOSS直聘 85.7%、前程无忧 10.6%、空值 3.66% 等，无猎聘、无企业官网，免责声明按实际渠道改写。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "渠道结构存在平台偏差，不得外推全市场（§3.4）"
+    },
+    {
+      "id": "CL-APXC",
+      "kind": "fact",
+      "text": "研究方法摘要含：词表 v1/v2 定义、按 p.id 去重规则、薪酬中值清洗公式、城市回填规则。",
+      "source_ids": ["DS-05"],
+      "metric_ids": [],
+      "limitation": "方法细节以 05 §1/§4 为准"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "GAP-TIME",
+      "description": "库内无岗位真实发布时间与职位链接，create_time 仅为导入批次。",
+      "owner": "数据侧",
+      "required_data": "岗位发布时间字段或采集日期、职位链接字段",
+      "impact": "趋势章时间维度受限，报告不可回溯原始岗位页"
+    },
+    {
+      "id": "GAP-CROSS",
+      "description": "城市×赛道矩阵、岗位×学历×薪酬交叉统计未在 05 中计算。",
+      "owner": "数据侧",
+      "required_data": "互斥分类（岗位族/赛道）建立后的交叉统计，更新 05",
+      "impact": "图7、图8 无法呈现，S07/S08 仅能登记缺口"
+    },
+    {
+      "id": "GAP-AI-EXP",
+      "description": "AI 切片经验分布未计算，仅有全量经验分布。",
+      "owner": "数据侧",
+      "required_data": "AI 切片按 experience 枚举的分布统计",
+      "impact": "图5 只能用全量口径呈现并注明口径差异"
+    },
+    {
+      "id": "GAP-EXT",
+      "description": "S10–S12 所需政策文号、职业标准、院校布点等外部依据缺失（禁网）。",
+      "owner": "编制方/用户",
+      "required_data": "政策与标准文件、布点数据，或解除禁网授权检索",
+      "impact": "趋势判断与建议仅基于内部证据，证据等级降级"
+    }
+  ],
+  "sections": [
+    { "id": "S00", "claim_ids": ["CL-S00"], "gap_ids": [] },
+    { "id": "S01", "claim_ids": ["CL-S01"], "gap_ids": ["GAP-TIME"] },
+    { "id": "S02", "claim_ids": ["CL-S02"], "gap_ids": [] },
+    { "id": "S03", "claim_ids": ["CL-S03"], "gap_ids": ["GAP-CROSS"] },
+    { "id": "S04", "claim_ids": ["CL-S04"], "gap_ids": [] },
+    { "id": "S05", "claim_ids": ["CL-S05"], "gap_ids": ["GAP-AI-EXP"] },
+    { "id": "S06", "claim_ids": ["CL-S06"], "gap_ids": [] },
+    { "id": "S07", "claim_ids": [], "gap_ids": ["GAP-CROSS"] },
+    { "id": "S08", "claim_ids": [], "gap_ids": ["GAP-CROSS"] },
+    { "id": "S09", "claim_ids": ["CL-S09"], "gap_ids": [] },
+    { "id": "S10", "claim_ids": ["CL-S10"], "gap_ids": ["GAP-EXT"] },
+    { "id": "S11", "claim_ids": ["CL-S11"], "gap_ids": ["GAP-EXT"] },
+    { "id": "S12", "claim_ids": ["CL-S12"], "gap_ids": ["GAP-EXT"] },
+    { "id": "APXA", "claim_ids": ["CL-APXA"], "gap_ids": [] },
+    { "id": "APXB", "claim_ids": ["CL-APXB"], "gap_ids": ["GAP-TIME"] },
+    { "id": "APXC", "claim_ids": ["CL-APXC"], "gap_ids": [] }
+  ],
+  "charts": [
+    {
+      "id": "CH-FIG1",
+      "title": "图1 AI 切片主要城市岗位分布（节选）",
+      "metric_ids": ["M-SZ-AI", "M-AI-SLICE"],
+      "note": "自身地址口径未回填；“未定”4,169 条未列入；基数为词表 v1 切片（§6.3）",
+      "type": "table"
+    },
+    {
+      "id": "CH-APXA",
+      "title": "附录A 关键数据指标表",
+      "metric_ids": ["M-GD-RECORDS", "M-GD-FIRMS", "M-AI-SLICE", "M-AI-SALARY-MEDIAN", "M-AI-BENKE-PLUS"],
+      "note": "全部指标出自 05 数据快照，口径列见各指标 definition",
+      "type": "table"
+    }
+  ]
+}

@@ -4,7 +4,7 @@
 
 - 前端：`web/`，Vue 3 + TypeScript + Vite
 - 后端：`web/server/index.ts`，node:http 零第三方依赖；`PiRunner` 通过 `pi --mode rpc` 为每会话启动常驻子进程（JSONL over stdio）。
-- 技能：`.agents/skills/` 同时包含主仓库内置技能和独立技能仓库的 git submodule（见「技能组织模式」）；Pi 用 `--skill` + `/skill:` 命令加载技能。
+- 技能：`.agents/skills/` 存放主仓库维护的技能和各自的使用文档（见「技能组织模式」）；Pi 用 `--skill` + `/skill:` 命令加载技能。
 
 ## 技能文档
 
@@ -27,7 +27,7 @@ Vue SPA ── POST /api/chat {skill, messages} ──> Node 后端 (8767)
 
 ## 维护者开发环境
 
-当前维护分支为 `wlc`。远程迁移和子模块检出步骤见[开发手记 092](.agents/skills/plaza-dev-notes/references/092-main-repository-remote-migration.md)。
+当前维护分支为 `wlc`。技能随主仓库一次检出。远程地址的变更历史见[开发手记 092](.agents/skills/plaza-dev-notes/references/092-main-repository-remote-migration.md)。
 
 ### 前置条件
 
@@ -130,21 +130,15 @@ cd web && npm run detect:cli
 | `GET /api/admin/runs/:runId` | 运行详情 |
 | `GET /api/admin/runs/:runId/file/:kind` | 下载留痕文件（md 可读版按需生成） |
 
-## 技能组织模式（父子仓库）
+## 技能组织模式
 
-由子模块维护的技能各有一个**独立仓库（父）**：技能的全部内容与修改历史都在父仓库，广场不保存副本，只以 git submodule 将其挂载到 `.agents/skills/<slug>`（子引用，钉住 commit）。**今后新增技能默认沿用此模式；例外需在 README 和开发手记中注明**——当前 `tech-forecast`、`doc-translate`、`wechat-report`、`talent-data-query`、`chart-visualization` 和开发手记等直接内置于主仓库。`chart-visualization` 于 2026-11-03 转为普通目录，来源为 `Lntanohuang/chart-visualization-skill` 的 `75e10d00fbbcbc7c60cf50e678385afbfe434eb8`，技能路径和文件内容保持一致，后续在主仓库维护。
+每个技能在主仓库内维护，路径为 `.agents/skills/<slug>/`。新增技能时，将 `SKILL.md`、脚本、参考资料与 `docs/` 一同提交。普通克隆当前维护分支即可取得全部技能文件。
 
-维护者在相应子仓库更新技能后，将父仓库的子模块指针固定到已验证的提交。地址和挂载路径见 `.gitmodules`。
+```bash
+git clone --branch wlc git@github.com:wulincong/skill-plaza-foru.git
+```
 
-当前挂载：
-
-| `.agents/skills/` | 父仓库 | 状态 |
-| --- | --- | --- |
-| `industry-education-report` | `industry-education-report-skill` | 已安装：Pi 通过 `--skill` 加载，首轮使用 `/skill:` 命令 |
-| `foru-web-ui` | `foru-web-ui-skill` | 设计参考资料技能（旧版静态演示的设计背景），未接入运行时 |
-| `career-guidance` | `career-guidance-skill` | 已安装：职业定位、岗位匹配、简历改进与求职行动计划 |
-
-**classroom-assistant / ai-interview / training-data-qa**：尚未安装为真实技能，运行时回落到后端内置的方法论提示词；后续接入时按上表模式建仓挂载。
+`career-guidance`、`industry-education-report` 由 Pi 加载执行，`foru-web-ui` 用作开发时的设计参考。三个目录均已纳入主仓库。课堂助教、AI 面试和训练数据质检目前使用内置提示词，在各自的技能目录内维护用户文档。
 
 ## 运行留痕（traces）
 
@@ -172,7 +166,7 @@ npm run build   # vue-tsc 类型检查 + vite build，产物在 web/dist/
 
 ## 旧版演示（根目录）
 
-根目录的 `index.html` / `app.js` / `server.py` 是早期无 npm 的静态演示版（Youcai API 本地代理），已被 `web/` 版取代，仅作历史保留。设计背景见 `.agents/skills/foru-web-ui/`（独立仓库 `foru-web-ui-skill` 的 submodule）；后端协议笔记见 `web/docs/pi-runner.md`。
+根目录的 `index.html` / `app.js` / `server.py` 是早期无 npm 的静态演示版（Youcai API 本地代理），已被 `web/` 版取代，仅作历史保留。设计背景见 `.agents/skills/foru-web-ui/`；后端协议笔记见 `web/docs/pi-runner.md`。
 
 ---
 

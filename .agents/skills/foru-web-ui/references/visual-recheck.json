@@ -1,0 +1,345 @@
+{
+  "date": "2026-09-14",
+  "method": "Public rendered DOM/computed style and loaded CSSOM; no business API inspection",
+  "rules": [
+    {
+      "rule": ".menu-list .menu-item .dropdown-wrap[data-v-f1e2a632] { min-width: 164px; display: flex; flex-direction: column; border-radius: 8px; box-shadow: rgba(0, 0, 0, 0.12) 0px 8px 32px, rgba(0, 0, 0, 0.08) 0px 2px 8px; background: rgb(255, 255, 255); padding: 14px 5px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner[data-v-f1e2a632] { width: 1200px; margin: 0px auto; padding: 16px 0px; display: flex; justify-content: space-between; gap: 24px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-section[data-v-f1e2a632] { flex: 1 1 0%; margin-bottom: 0px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-section-title[data-v-f1e2a632] { font-size: 14px; font-weight: 500; color: rgb(29, 33, 41); margin-bottom: 12px; padding-left: 0px; padding-bottom: 8px; letter-spacing: 0.5px; line-height: 21px; border-bottom: 1px solid; border-image: linear-gradient(90deg, rgb(229, 230, 235), transparent) 1 / 1 / 0 stretch; position: relative; display: flex; justify-content: space-between; align-items: center; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-section-title span[data-v-f1e2a632] { position: relative; display: inline-block; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-section-title span[data-v-f1e2a632]::after { content: \"\"; position: absolute; bottom: 2px; left: 0px; width: 100%; height: 6px; background-color: rgb(211, 237, 255); border-radius: 2px; z-index: -1; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-section-title .intro-btn[data-v-f1e2a632] { font-size: 12px; color: rgb(134, 144, 156); text-decoration: none; padding: 2px 12px 2px 0px; transition: color 0.2s; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-section-title .intro-btn[data-v-f1e2a632]:hover { color: rgb(22, 93, 255); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-products[data-v-f1e2a632] { display: flex; flex-direction: column; gap: 8px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-product-item[data-v-f1e2a632] { display: flex; align-items: center; gap: 10px; padding: 8px 12px; text-decoration: none; cursor: pointer; transition: 0.2s; background-color: transparent; text-align: left; border-radius: 4px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-product-item[data-v-f1e2a632]:hover { background-color: rgb(247, 249, 252); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-product-item:hover .product-name[data-v-f1e2a632] { color: rgb(22, 93, 255); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-icon[data-v-f1e2a632] { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-content[data-v-f1e2a632] { display: block; flex: 1 1 0%; min-width: 0px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-name[data-v-f1e2a632] { font-size: 14px; font-weight: 600; color: rgb(29, 33, 41); transition: color 0.2s; line-height: 20px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-name-text[data-v-f1e2a632] { position: relative; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-arrow[data-v-f1e2a632] { width: 12px; height: 12px; opacity: 0.5; transition: opacity 0.2s; margin-left: 4px; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .grid-product-item:hover .product-arrow[data-v-f1e2a632] { opacity: 1; fill: rgb(22, 93, 255); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-tags[data-v-f1e2a632] { display: flex; flex-wrap: nowrap; align-items: center; white-space: nowrap; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-tag[data-v-f1e2a632] { font-size: 14px; color: rgb(134, 144, 156); cursor: pointer; transition: color 0.2s; line-height: 20px; position: relative; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-tag[data-v-f1e2a632]:not(:last-child)::after { content: \"\"; display: inline-block; width: 1px; height: 12px; background-color: rgb(229, 230, 235); margin: 0px 8px; vertical-align: middle; }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item .dropdown-grid-inner .product-tag[data-v-f1e2a632]:hover { color: rgb(22, 93, 255); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item_active[data-v-f1e2a632] { border-color: rgb(22, 93, 255); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".menu-list .menu-item_active .dropdown-title[data-v-f1e2a632], .menu-list .menu-item_active .nav-title[data-v-f1e2a632] { color: rgb(22, 93, 255); }",
+      "source": "https://foru-ai.com/_nuxt/css/8dcf1e7.css"
+    },
+    {
+      "rule": ".bg3[data-v-1da58b73] { background: linear-gradient(rgb(250, 254, 255), rgba(245, 251, 253, 0) 100%); }",
+      "source": "https://foru-ai.com/_nuxt/css/c3985be.css"
+    },
+    {
+      "rule": ".page_layout[data-v-497fad30] { background-color: rgb(20, 25, 51); }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap[data-v-497fad30] { padding: 32px 0px; display: flex; justify-content: space-between; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .left-wrap .logo[data-v-497fad30] { margin-bottom: 16px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .left-wrap .logo img[data-v-497fad30] { width: 126px; height: 32px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .left-wrap .slogan[data-v-497fad30] { color: rgb(242, 243, 245); font-size: 12px; font-weight: 400; line-height: 20px; letter-spacing: 0px; text-align: left; margin-left: 8px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .middle-wrap[data-v-497fad30] { display: flex; flex-wrap: nowrap; gap: 0px 134px; justify-content: space-between; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .column-title[data-v-497fad30] { font-family: HP-Medium; font-size: 14px; font-weight: 500; letter-spacing: 0px; margin-bottom: 12px; color: rgb(251, 252, 253); }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .link-wrap .link-item[data-v-497fad30] { color: rgb(201, 205, 212); font-size: 12px; line-height: 17px; letter-spacing: 0px; margin-bottom: 6px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .link-wrap .link-item a[data-v-497fad30] { cursor: pointer; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .contact-wrap .list-item[data-v-497fad30] { height: 14px; color: rgb(201, 205, 212); font-size: 10px; font-weight: 400; letter-spacing: 0px; margin-bottom: 10px; display: flex; align-items: center; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .contact-wrap .list-item img[data-v-497fad30] { margin-right: 6px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".nav-wrap .contact-wrap .company[data-v-497fad30] { width: 100%; color: rgb(255, 255, 255); font-size: 10px; letter-spacing: 0px; padding-bottom: 8px; margin-bottom: 10px; border-bottom: 0.8px solid rgb(78, 89, 105); }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap[data-v-378b4208] { display: flex; flex-direction: column; width: 256px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .user-info[data-v-378b4208] { display: flex; align-items: center; padding: 16px; gap: 0px 10px; border-bottom: 1px solid rgb(242, 243, 245); }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .user-info .middle[data-v-378b4208] { flex: 1 1 0%; overflow: hidden; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .user-info .middle .name[data-v-378b4208] { width: 100%; line-height: 16px; font-size: 16px; font-family: HP-Medium, SiYuanHeiTi-Medium; color: rgb(29, 33, 41); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .user-info .middle .orgName[data-v-378b4208] { width: 100%; font-size: 12px; line-height: 12px; color: rgb(134, 144, 156); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 8px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .user-info .middle .company[data-v-378b4208] { width: 100%; line-height: 16px; font-size: 12px; color: rgb(78, 89, 105); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .user-info a[data-v-378b4208] { cursor: pointer; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .menu-wrap[data-v-378b4208] { padding: 8px 12px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .menu-item[data-v-378b4208] { display: flex; flex-direction: row; align-items: center; padding: 0px 20px; border-radius: 2px; line-height: 42px; font-size: 14px; letter-spacing: 0px; position: relative; cursor: pointer; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .menu-item .icon[data-v-378b4208] { font-size: 22px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .menu-item i[data-v-378b4208] { margin-top: 2px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .menu-item span[data-v-378b4208] { flex: 1 1 0%; color: rgb(29, 33, 41); margin-left: 13px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .menu-item[data-v-378b4208]:hover { background: rgb(247, 248, 250); }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .logout[data-v-378b4208] { padding: 0px 12px 20px; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .logout .btn[data-v-378b4208] { height: 32px; line-height: 32px; padding: 0px 16px; display: flex; justify-content: center; align-items: center; border-radius: 4px; border: 1px solid rgb(201, 205, 212); font-size: 14px; cursor: pointer; }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    },
+    {
+      "rule": ".dropdown-wrap .logout .btn[data-v-378b4208]:hover { background-color: rgb(22, 93, 255); color: rgb(255, 255, 255); }",
+      "source": "https://foru-ai.com/cjrh_cdn/yc-business-ui/yc-business-ui.css"
+    }
+  ],
+  "samples": {
+    "footerLink": {
+      "backdropFilter": "none",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "0px none rgb(201, 205, 212)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(201, 205, 212)",
+      "fontFamily": "-apple-system, \"system-ui\", PingFangSC-Regular, HP-Regular",
+      "fontSize": "12px",
+      "fontWeight": "400",
+      "lineHeight": "17px",
+      "padding": "0px",
+      "selectorOrClass": "",
+      "text": "首页"
+    },
+    "footerSurface": {
+      "backdropFilter": "none",
+      "background": "rgb(20, 25, 51) none repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "0px none rgb(0, 0, 0)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(0, 0, 0)",
+      "fontFamily": "-apple-system, \"system-ui\", PingFangSC-Regular, HP-Regular",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "normal",
+      "padding": "0px",
+      "selectorOrClass": "page_layout",
+      "text": "数智化赋能产教融合·助力人才高质量就业快速入口首页优才甄选优才智评产业研究项目众"
+    },
+    "footerTitle": {
+      "backdropFilter": "none",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "0px none rgb(251, 252, 253)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(251, 252, 253)",
+      "fontFamily": "HP-Medium",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "lineHeight": "normal",
+      "padding": "0px",
+      "selectorOrClass": "column-title",
+      "text": "快速入口"
+    },
+    "menuGroup": {
+      "backdropFilter": "none",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(29, 33, 41)",
+      "fontFamily": "-apple-system, \"system-ui\", PingFangSC-Regular, HP-Regular",
+      "fontSize": "14px",
+      "fontWeight": "500",
+      "lineHeight": "21px",
+      "padding": "0px 0px 8px",
+      "selectorOrClass": "grid-section-title",
+      "text": "面向个人产品介绍"
+    },
+    "menuSurface": {
+      "backdropFilter": "none",
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "",
+      "borderRadius": "0px",
+      "boxShadow": "rgba(0, 0, 0, 0.12) 0px 12px 32px 0px",
+      "color": "rgb(29, 33, 41)",
+      "fontFamily": "-apple-system, \"system-ui\", PingFangSC-Regular, HP-Regular",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "normal",
+      "padding": "0px 0px 20px",
+      "selectorOrClass": "dropdown-wrap dropdown-grid-layout",
+      "text": "面向个人产品介绍  知路课堂 \n                        "
+    },
+    "partnerGlass": {
+      "backdropFilter": "blur(60px)",
+      "background": "rgba(0, 0, 0, 0) linear-gradient(rgba(255, 255, 255, 0.79), rgba(141, 208, 255, 0.79) 100%) repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "1px solid rgba(255, 255, 255, 0.6)",
+      "borderRadius": "24px",
+      "boxShadow": "rgba(47, 111, 229, 0.4) 0px 12px 22px 0px",
+      "color": "rgb(29, 33, 41)",
+      "fontFamily": "-apple-system, \"system-ui\", PingFangSC-Regular, HP-Regular",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "normal",
+      "padding": "0px",
+      "selectorOrClass": "column10-wrap",
+      "text": ""
+    },
+    "sectionTitle": {
+      "backdropFilter": "none",
+      "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "0px none rgb(31, 35, 41)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(31, 35, 41)",
+      "fontFamily": "HP-Medium",
+      "fontSize": "34px",
+      "fontWeight": "400",
+      "lineHeight": "50px",
+      "padding": "0px",
+      "selectorOrClass": "column-title",
+      "text": "我们的产品生态"
+    },
+    "solutionSection": {
+      "backdropFilter": "none",
+      "background": "rgba(0, 0, 0, 0) linear-gradient(rgb(250, 254, 255), rgba(245, 251, 253, 0) 100%) repeat scroll 0% 0% / auto padding-box border-box",
+      "border": "0px none rgb(29, 33, 41)",
+      "borderRadius": "0px",
+      "boxShadow": "none",
+      "color": "rgb(29, 33, 41)",
+      "fontFamily": "-apple-system, \"system-ui\", PingFangSC-Regular, HP-Regular",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "lineHeight": "normal",
+      "padding": "0px",
+      "selectorOrClass": "cjrh_page_layout bg3",
+      "text": "AI+X产教融合解决方案   人工智能产教融合解决方案 旨在搭建院校与企业之间的"
+    }
+  },
+  "source": "https://foru-ai.com/",
+  "viewport": {
+    "height": 1000,
+    "width": 1440
+  }
+}

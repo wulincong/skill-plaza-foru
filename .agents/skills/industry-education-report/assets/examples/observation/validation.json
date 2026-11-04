@@ -1,0 +1,8 @@
+{
+  "structure_pass": true,
+  "registered_gaps": 4,
+  "decision_data_complete": false,
+  "completeness_review": "requires semantic review; absence of registered gaps does not establish completeness",
+  "semantic_review": "required: verify original sources and claim entailment",
+  "errors": []
+}

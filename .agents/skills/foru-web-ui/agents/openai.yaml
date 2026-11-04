@@ -1,0 +1,4 @@
+interface:
+  display_name: "FORU 页面设计与前端开发"
+  short_description: "提取优才知路官网视觉、布局与交互，复用为中文科技平台网站"
+  default_prompt: "使用 $foru-web-ui，为我的业务制作优才知路官网风格的响应式页面。"

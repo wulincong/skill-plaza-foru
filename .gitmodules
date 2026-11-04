@@ -1,9 +1,0 @@
-[submodule ".agents/skills/industry-education-report"]
-	path = .agents/skills/industry-education-report
-	url = https://github.com/Lntanohuang/industry-education-report-skill.git
-[submodule ".agents/skills/foru-web-ui"]
-	path = .agents/skills/foru-web-ui
-	url = https://github.com/Lntanohuang/foru-web-ui-skill.git
-[submodule ".agents/skills/career-guidance"]
-	path = .agents/skills/career-guidance
-	url = https://github.com/Lntanohuang/career-guidance-skill.git
