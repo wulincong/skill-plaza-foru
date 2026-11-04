@@ -18,3 +18,8 @@ declare module 'virtual:skill-docs' {
   const skills: { id: string; summary: string; pages: DocPage[] }[]
   export default skills
 }
+
+declare module 'virtual:skill-doc-availability' {
+  const availability: Readonly<Partial<Record<string, boolean>>>
+  export default availability
+}

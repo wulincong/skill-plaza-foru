@@ -1,6 +1,6 @@
 # 给技能写文档
 
-在与技能实现同级的 `docs/` 下写 Markdown。网页和仓库索引都读取这里的原文。已有示例可直接参考 [PDF 翻译指南](../.agents/skills/doc-translate/docs/index.md) 与 [专题页](../.agents/skills/doc-translate/docs/review.md)。
+使用文档是可选的。需要发布指南时，在与技能实现同级的 `docs/` 下写 Markdown。网页和仓库索引都读取这里的原文。已有示例可直接参考 [PDF 翻译指南](../.agents/skills/doc-translate/docs/index.md) 与 [专题页](../.agents/skills/doc-translate/docs/review.md)。
 
 ## 新建一页
 
@@ -35,7 +35,7 @@
 
 ## 汇总与发布范围
 
-- **仓库索引**收录顶层技能目录（以 `SKILL.md` 识别）及广场已注册的专业技能。嵌在其他技能里的脚手架模板随所属技能说明。[查看完整索引](skill-index.md)
+- **仓库索引**收录有 `docs/index.md` 的顶层技能（以 `SKILL.md` 识别）及已编写首页的广场注册技能。只有专题时，等首页就绪后再一同收录。嵌在其他技能里的脚手架模板随所属技能说明。[查看完整索引](skill-index.md)
 - **网站文档中心**按后端专业技能注册表选出公开页面。地址为 `#/docs/<skill-id>` 或 `#/docs/<skill-id>/<文件名去掉.md>`。目录、链接和正文在开发服务与生产构建时生成，浏览器阅读无需运行模型或连接数据库。
 - **内置提示词技能**也在 `.agents/skills/<skill-id>/docs/` 写指南。只有文档的目录不会改变后端安装状态。
 
@@ -46,7 +46,7 @@
 ```sh
 npm run docs:index  # 更新仓库内可点击的 Markdown 索引
 npm run docs:check  # 验证文档格式、公开页的章节链接和索引是否最新
-npm run dev         # 浏览 http://127.0.0.1:4188/#/docs
+systemctl --user start skill-plaza-frontend.service  # 浏览 http://127.0.0.1:4188/#/docs
 ```
 
 开发服务会随公开 Markdown 的增删改刷新。运行 `npm run build` 后，将生成的静态站点按项目原有流程发布。正文只维护一份，提交时带上已更新的仓库索引。

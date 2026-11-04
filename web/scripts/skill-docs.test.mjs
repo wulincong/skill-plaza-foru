@@ -3,22 +3,57 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
-import { collectDocs, publicCatalog, publicGuide, repositoryIndex } from './skill-docs.mjs'
+import { collectDocs, hasSkillDocs, publicCatalog, publicGuide, repositoryIndex } from './skill-docs.mjs'
 
-test('仓库收录内部技能，公开目录只渲染注册技能的 docs 页面', t => {
+function docsFixture(t) {
   const root = mkdtempSync(join(tmpdir(), 'plaza-skill-docs-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   function write(path, body) {
     mkdirSync(dirname(join(root, path)), { recursive: true })
     writeFileSync(join(root, path), body)
   }
+  return { root, write }
+}
+
+test('缺文档的技能可以独立接入，增删首页后同步收录或撤下所有专题', t => {
+  const { root, write } = docsFixture(t)
+  const parent = '.agents/skills/'
+  const home = parent + 'draft/docs/index.md'
+  const registered = ['ready', 'draft', 'prompt-only']
+  const collect = () => collectDocs(root, registered)
+  write(parent + 'ready/docs/index.md', '# 已发布\n\n说明')
+  write(parent + 'private/SKILL.md', 'internal')
+  write(parent + 'draft/SKILL.md', 'draft')
+  write('docs/guide.md', '# 通用指南\n\n说明')
+  function checkUnpublished() {
+    assert.equal(hasSkillDocs(root, 'draft'), false)
+    const skills = collect()
+    assert.deepEqual(skills.map(s => s.id), ['ready'])
+    assert.deepEqual(publicCatalog(skills).map(s => s.id), ['ready'])
+    const index = repositoryIndex(skills, publicGuide(root))
+    assert.match(index, /通用指南/)
+    assert.doesNotMatch(index, /draft|private|prompt-only/)
+  }
+  checkUnpublished()
+  mkdirSync(dirname(join(root, home)))
+  checkUnpublished()
+  write(parent + 'draft/docs/topic.md', '# 专题\n\n正文')
+  checkUnpublished()
+  write(home, '# 新指南\n\n[专题](topic.md)')
+  assert.equal(hasSkillDocs(root, 'draft'), true)
+  assert.deepEqual(publicCatalog(collect())[0].pages.map(p => p.key), ['index', 'topic'])
+  rmSync(join(root, home))
+  checkUnpublished()
+})
+
+test('仓库收录内部技能，公开目录只渲染注册技能的 docs 页面', t => {
+  const { root, write } = docsFixture(t)
   const native = '.agents/skills/demo/docs/'
   const collect = () => collectDocs(root, ['demo'])
   write('.agents/skills/private/SKILL.md', 'internal instructions')
   write('.agents/skills/private/docs/index.md', '# 内部文档\n\nprivate text')
   write('.agents/skills/private/templates/nested/SKILL.md', 'not a top-level skill')
   write(native + 'examples.md', '# 示例\n\n正文')
-  assert.throws(collect, /缺少 docs\/index.md/)
   write(native + 'index.md', '# 使用指南\n\n阅读[示例](./examples.md)。\n\n<script>alert(1)</script>')
   write('docs/guide.md', '# 在线运行与 API 指南\n\n## 在线运行\n\n[打开在线对话](#/experience)\n\n```bash\ncurl https://example.org\n```')
   const guide = publicGuide(root)

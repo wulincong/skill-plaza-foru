@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import catalog, { guide } from 'virtual:skill-docs'
+import docAvailability from 'virtual:skill-doc-availability'
 import Icon from '../components/Icon.vue'
 import Codebox from '../components/Codebox.vue'
 
@@ -21,6 +22,8 @@ const currentIndex = computed(() => articles.findIndex(a =>
   a.path === docPath(String(route.params.slug), String(route.params.topic || 'index')),
 ))
 const page = computed(() => articles[currentIndex.value]?.page)
+const guideUnpublished = computed(() => docAvailability[String(route.params.slug)] === false)
+const missingTitle = computed(() => guideUnpublished.value ? '暂无技能文档' : '未找到文档')
 const nextArticle = computed(() => {
   if (!route.params.slug) return articles[0]
   if (page.value) return articles[currentIndex.value + 1]
@@ -52,7 +55,7 @@ watch(() => route.fullPath, () => {
 })
 watchEffect(() => {
   if (route.name !== 'skillDocs') return
-  document.title = `${route.params.slug ? page.value?.title ?? '未找到文档' : '技能文档中心'} · 智能体搭子`
+  document.title = `${route.params.slug ? page.value?.title ?? missingTitle.value : '技能文档中心'} · 智能体搭子`
 })
 // A direct link may mount after the router's scroll hook during the page transition.
 onMounted(() => {
@@ -88,7 +91,7 @@ onMounted(() => {
             </ul>
           </li>
         </ul>
-        <p v-if="!matches.length" class="empty-search" role="status">没有匹配的技能或专题。</p>
+        <p v-if="!matches.length" class="empty-search" role="status">{{ catalog.length ? '没有匹配的技能或专题。' : '暂无技能指南。' }}</p>
       </nav>
     </aside>
 
@@ -109,7 +112,8 @@ onMounted(() => {
             </RouterLink>
           </li>
         </ul>
-        <p v-if="!matches.length">没有匹配的指南。<button class="text-btn" @click="query = ''">清除搜索</button></p>
+        <p v-if="!catalog.length">暂无技能指南。</p>
+        <p v-else-if="!matches.length">没有匹配的指南。<button class="text-btn" @click="query = ''">清除搜索</button></p>
       </template>
 
       <template v-else-if="page">
@@ -149,9 +153,12 @@ onMounted(() => {
       </template>
 
       <div v-else class="empty">
-        <h1>未找到文档</h1>
-        <p>这个技能或章节的地址可能已经变更。</p>
-        <RouterLink class="btn btn-primary" to="/docs">回到技能文档中心</RouterLink>
+        <h1>{{ missingTitle }}</h1>
+        <RouterLink v-if="guideUnpublished" class="btn btn-primary" :to="guidePath">{{ guide.title }}</RouterLink>
+        <template v-else>
+          <p>这个技能或章节的地址可能已经变更。</p>
+          <RouterLink class="btn btn-primary" to="/docs">回到技能文档中心</RouterLink>
+        </template>
       </div>
       <nav v-if="nextArticle" class="doc-next" aria-label="阅读导航">
         <RouterLink :to="nextArticle.path" rel="next">

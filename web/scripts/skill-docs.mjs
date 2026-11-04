@@ -23,17 +23,20 @@ function readPage(root, file) {
   return { key, title, body, file: relative(root, file) }
 }
 
+export function hasSkillDocs(root, id) {
+  return existsSync(join(root, skillRoot, id, 'docs', 'index.md'))
+}
+
 export function collectDocs(root = repoRoot, registered = publicIds) {
   const parent = join(root, skillRoot)
   const ids = new Set(registered)
   for (const entry of readdirSync(parent, { withFileTypes: true })) {
     if (entry.isDirectory() && existsSync(join(parent, entry.name, 'SKILL.md'))) ids.add(entry.name)
   }
-  return [...ids].sort().map(id => {
+  return [...ids].filter(id => hasSkillDocs(root, id)).sort().map(id => {
     if (id === 'guide' && registered.includes(id)) throw Error('guide 是文档中心的通用指南保留地址')
     if (!slugPattern.test(id)) throw Error(`无效的技能目录名 ${id}`)
     const dir = join(parent, id, 'docs')
-    if (!existsSync(join(dir, 'index.md'))) throw Error(`${id} 缺少 docs/index.md`)
     const pages = readdirSync(dir, { withFileTypes: true })
       .filter(entry => entry.isFile() && entry.name.endsWith('.md'))
       .map(entry => readPage(root, join(dir, entry.name)))

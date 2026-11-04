@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import docAvailability from 'virtual:skill-doc-availability'
 import { bySlug, catOf, audOf, FEATURES } from '../data/skills'
 import { configOf } from '../data/useTaskConfigs'
 import Icon from '../components/Icon.vue'
@@ -49,7 +50,8 @@ const pad2 = (i: number) => String(i + 1).padStart(2, '0')
           <RouterLink class="btn btn-primary" :to="{ name: 'use', params: { slug: skill.slug } }">
             在线运行<Icon name="arrow" :size="15" />
           </RouterLink>
-          <RouterLink class="btn btn-quiet" :to="{ name: 'skillDocs', params: { slug: skill.slug } }">技能文档</RouterLink>
+          <RouterLink v-if="docAvailability[skill.slug] === true" class="btn btn-quiet"
+            :to="{ name: 'skillDocs', params: { slug: skill.slug } }">技能文档</RouterLink>
           <RouterLink class="btn btn-quiet" to="/docs/guide">API 接入指南</RouterLink>
           <span class="detail-actions-note">{{ configOf(skill.slug) ? '配置任务后运行，也可在在线对话中选择此技能。' : '进入在线对话，说明任务要求即可使用此技能。' }}</span>
         </div>

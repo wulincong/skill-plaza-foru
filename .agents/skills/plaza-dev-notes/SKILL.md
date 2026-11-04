@@ -140,4 +140,4 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 048 | 广场技能列表动态化：/api/skills 与幽灵卡移除 | 已实现（API 实测 6 技能；浏览器页面回归待用户） | [048-plaza-skill-list-dynamic.md](references/048-plaza-skill-list-dynamic.md) |
 | 057 | 公网入口 origin 白名单 PLAZA_ALLOWED_ORIGINS | 已实现（curl 四场景验证；公网浏览器回归待确认） | [057-public-origin-allowlist.md](references/057-public-origin-allowlist.md) |
 | 076 | 开发手记重组：清除运行观察、合并同主题、分区索引（删并映射表） | 已实现 | [076-dev-notes-reorg.md](references/076-dev-notes-reorg.md) |
-| 101 | 文档中心、通用 API 指南、左侧文档目录与右侧本页章节 | 已实现（宽窄屏章节导航、命令复制与连续阅读已验证） | [101-skill-documentation.md](references/101-skill-documentation.md) |
+| 101 | 文档中心、可选技能指南、左侧目录与右侧本页章节 | 已实现（缺文档、增删指南、章节导航、复制与连续阅读已验证） | [101-skill-documentation.md](references/101-skill-documentation.md) |

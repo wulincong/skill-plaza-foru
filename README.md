@@ -129,7 +129,7 @@ cd web && npm run detect:cli
 
 ## 技能组织模式
 
-每个技能在主仓库内维护，路径为 `.agents/skills/<slug>/`。新增技能时，将 `SKILL.md`、脚本、参考资料与 `docs/` 一同提交。普通克隆当前维护分支即可取得全部技能文件。
+每个技能在主仓库内维护，路径为 `.agents/skills/<slug>/`。新增技能时提交 `SKILL.md`、脚本和参考资料。使用文档可后续补充，添加 `docs/index.md` 后即纳入文档索引。普通克隆当前维护分支即可取得全部技能文件。
 
 ```bash
 git clone --branch wlc git@github.com:wulincong/skill-plaza-foru.git
