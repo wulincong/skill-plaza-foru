@@ -14,7 +14,7 @@
 
 ## 本机前后端服务
 
-本机使用 `wlc` 的两个独立 systemd 用户服务。以后启动、停止、重启和查日志统一使用 `systemctl --user` / `journalctl --user`。不要用 `npm run dev`、`npm run server`、`nohup` 或手工 kill 在同一端口另起进程。
+本机使用两个独立 systemd 用户服务。以后启动、停止、重启和查日志统一使用 `systemctl --user` / `journalctl --user`。不要用 `npm run dev`、`npm run server`、`nohup` 或手工 kill 在同一端口另起进程。
 
 | 服务 | 监听地址 | 单独重启 |
 | --- | --- | --- |

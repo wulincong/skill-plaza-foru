@@ -1,0 +1,123 @@
+{
+  "schema": "wechat-analysis/1",
+  "sourceDataSha256": "dc1eec45d10dbe292d651019894a0f0f65d24109904ea6e6a7faafe5bd5df30b",
+  "sourceContentHash": "ca206da55c7cba7b123dff9579a1a19a83152d16165a5fe83b4958bf2cad9bb1",
+  "evidenceHash": "be2cae70fbf2229ec3643674a56007a3a703ae506d03e6943c4cbdf6a254b02a",
+  "executive": {
+    "findingIds": [
+      "geography.concentration",
+      "access.conditional",
+      "vocational.salary_comparison"
+    ],
+    "synthesis": "院校找合作企业，可以先看需求集中的城市，再按学生的学历和经历缩小名单。企业愿意接受哪类学生，要回到岗位条件核实；谈毕业起薪时，入门岗位的报价比全省整体报价更贴近学生面对的选择。"
+  },
+  "sections": [
+    {
+      "key": "geography",
+      "title": "青岛岗位最多，潍坊也值得走访",
+      "findingIds": [
+        "geography.concentration",
+        "geography.gap"
+      ],
+      "interpretation": "青岛集中了最多的企业关联岗位，潍坊的记录数与济南相近。以学校为起点找合作方时，距离和通勤成本也值得纳入选择。",
+      "action": "把青岛、济南和潍坊的候选企业分别列出，按实习通勤和住宿成本安排走访。",
+      "validation": "向企业确认实际工作地点。平台按企业关联地址归属城市，可能与车间所在地不同。"
+    },
+    {
+      "key": "jobtype",
+      "title": "实习机会需要向企业单独询问",
+      "findingIds": [
+        "jobtype.comparison",
+        "jobtype.category_2"
+      ],
+      "interpretation": "平台上大多数岗位标注为社招。只看公开的实习标签，会遗漏企业通过校企合作招收学生的渠道。",
+      "action": "联系用工企业时分别询问实习、毕业录用和社会招聘，并记录每个渠道的负责人。",
+      "validation": "用人部门是否接收在校生、安排谁带教、怎样考核，应在推荐学生前取得答复。"
+    },
+    {
+      "key": "education",
+      "title": "先查清“大专”和“学历不限”接受谁",
+      "findingIds": [
+        "education.comparison",
+        "education.category_2"
+      ],
+      "interpretation": "同一家学校的毕业生可能同时符合多种招聘标签。单看“高职”一栏，很难估计学生真正可以尝试的岗位。",
+      "action": "将企业招聘原文和平台学历标签并排登记，让就业老师能查出企业实际接受哪些毕业生。",
+      "validation": "请企业给出可接受的学历、专业和典型工作任务，再选实习班级和对应课程。"
+    },
+    {
+      "key": "experience",
+      "title": "企业怎样看待学生的项目经历",
+      "findingIds": [
+        "experience.comparison",
+        "experience.category_2"
+      ],
+      "interpretation": "经验年限是企业填写的类别。学生做过的实训或实习能否计入，取决于企业认可的任务和责任范围。",
+      "action": "请学生准备一份项目记录，写清个人负责的环节、交付物和验收结果，供面试讨论。",
+      "validation": "用一次岗位试做或面试反馈，核实企业是否认可校内项目，以及还缺哪些经验。"
+    },
+    {
+      "key": "access",
+      "title": "学历放宽后，经验仍可能是门槛",
+      "findingIds": [
+        "access.leading",
+        "access.conditional"
+      ],
+      "interpretation": "在标为学历不限的岗位中，只有一部分也标为经验不限。面向初次就业的学生，这个交集比单看学历更有参考价值。",
+      "action": "为初次求职的学生同时筛选学历和经验，对需要工作经历的岗位另建推荐名单。",
+      "validation": "逐条核实岗位描述中的经验条件，向用人部门确认实习经历能否折抵工作经验。"
+    },
+    {
+      "key": "salary",
+      "title": "一半有效岗位的报价中点落在哪里",
+      "findingIds": [
+        "salary.quantiles",
+        "salary.modal_band"
+      ],
+      "interpretation": "比较的是招聘薪酬区间的中点。即使落在相同薪酬档，工时、绩效和津贴也可能让两份工作的实际收入不同。",
+      "action": "让学生对照几份目标岗位，把基本工资、绩效、津贴与工时拆开填表后再比较。",
+      "validation": "请招聘方说明月薪口径、试用期折算办法及加班计薪方式，并与书面录用条件核对。"
+    },
+    {
+      "key": "vocational",
+      "title": "筛出入门岗位后，再看城市选择",
+      "findingIds": [
+        "vocational.size",
+        "vocational.city_comparison_1"
+      ],
+      "interpretation": "潍坊在入门岗位中的份额比在全省样本中高。专门给学生找机会时，按入门条件筛一遍，会改变合作城市的选择。",
+      "action": "除头部城市外，单列潍坊的入门岗位，逐家核实企业是否接受学生、是否有带教名额。",
+      "validation": "入门条件允许学历不限或经验不限；须核实学生身份、到岗时间和具体职责，再列入推荐清单。"
+    }
+  ],
+  "limitations": [
+    "平台记录反映读取时点的在招情况。同一企业可有多个岗位记录，记录数不能折算成实际招聘人数。",
+    "城市按关联企业地址归属，新泰与泰安的地址层级需核查。本次未统计岗位方向和技能词，具体课程内容仍需企业任务样本支持。"
+  ],
+  "coverageGaps": [
+    {
+      "section": "tracks",
+      "status": "not_requested"
+    },
+    {
+      "section": "city_tracks",
+      "status": "not_requested"
+    },
+    {
+      "section": "lq",
+      "status": "not_requested"
+    },
+    {
+      "section": "track_salary",
+      "status": "not_requested"
+    },
+    {
+      "section": "skills",
+      "status": "not_requested"
+    },
+    {
+      "section": "track_skills",
+      "status": "not_requested"
+    }
+  ]
+}
