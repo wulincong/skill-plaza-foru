@@ -134,7 +134,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 005 | 新仓库协作初始化 Skill：手记、Issue hooks 与项目约定 | 已实现（GitHub 远端待验证） | [005-repo-bootstrap-skill.md](references/005-repo-bootstrap-skill.md) |
 | 092 | 主仓库远程迁移、技能全部内置与普通克隆 | 已实现（GitHub wlc 已发布，三个技能树及普通远端克隆验证通过） | [092-main-repository-remote-migration.md](references/092-main-repository-remote-migration.md) |
 | 105 | 本机前后端的独立 systemd 用户服务与重启约定 | 已实现（端口、独立重启、用户权限与公网热更新验证） | [105-systemd-user-services.md](references/105-systemd-user-services.md) |
-| 104 | 独立管理后台、技能发布、密钥轮换与共享只读对话历史 | 已实现（浏览器、双协议、真实 Pi 沙箱和现存索引验收） | [104-admin-console.md](references/104-admin-console.md) |
+| 104 | 独立管理后台、技能发布、密钥轮换与测试人员共享续聊 | 已实现（浏览器、双协议、真实 Pi 沙箱和现存索引验收） | [104-admin-console.md](references/104-admin-console.md) |
 | 048 | 广场技能列表动态化：/api/skills 与幽灵卡移除 | 已实现（API 实测 6 技能；浏览器页面回归待用户） | [048-plaza-skill-list-dynamic.md](references/048-plaza-skill-list-dynamic.md) |
 | 057 | 公网入口 origin 白名单 PLAZA_ALLOWED_ORIGINS | 已实现（curl 四场景验证；公网浏览器回归待确认） | [057-public-origin-allowlist.md](references/057-public-origin-allowlist.md) |
 | 076 | 开发手记重组：清除运行观察、合并同主题、分区索引（删并映射表） | 已实现 | [076-dev-notes-reorg.md](references/076-dev-notes-reorg.md) |

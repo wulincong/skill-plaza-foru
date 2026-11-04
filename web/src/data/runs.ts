@@ -31,8 +31,6 @@ export interface RunListItem {
   skill: string
   /** 浏览器会话 id：同一会话的多条运行组成一个对话（旧记录缺省退化为单运行一组） */
   clientSessionId?: string
-  /** Shared, read-only history is grouped without exposing an executable session ID. */
-  sharedKey?: string
   taskTitle?: string
   promptDigest: string
   outcome: RunOutcome

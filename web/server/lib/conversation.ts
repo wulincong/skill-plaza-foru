@@ -51,8 +51,8 @@ export function deriveSessionConversation(
   loadTrace: (run: RunRecord) => unknown,
   wrappersFor: (skill: string) => PromptWrapper[],
 ): ConversationTurn[] {
-  const runs = records.filter(run => (record.clientSessionId
-    ? run.clientSessionId === record.clientSessionId : run.runId === record.runId) && run.ts <= record.ts)
+  const key = record.clientSessionId || record.runId
+  const runs = records.filter(run => (run.clientSessionId || run.runId) === key && run.ts <= record.ts)
     .sort((a, b) => a.ts.localeCompare(b.ts) || a.runId.localeCompare(b.runId))
   const groups = new Map<string, { runs: RunRecord[]; trace: unknown; captured: number }>()
   const nativeIds = new Map<string, string>()

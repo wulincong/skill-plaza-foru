@@ -24,7 +24,7 @@ import { toast } from '../composables/toast'
 /* 在线对话：广场的唯一对话与运行呈现面。
    后端就绪时真实流式运行（Pi）：默认通用智能体，$ 挂载技能；
    「任务配置」表单页提交的任务也交接到这里运行。
-   历史侧栏展示共享对话；仅本浏览器的对话可续聊或整理。 */
+   历史侧栏展示测试人员共享的会话，可继续对话与整理历史。 */
 
 interface Msg {
   question?: ChatQuestion
@@ -85,11 +85,10 @@ const textarea = ref('')
 const textareaEl = ref<HTMLTextAreaElement | null>(null)
 const sending = ref(false)
 const messages = ref<Msg[]>([])
-const sharedHistory = ref(false)
 const mobileHistoryOpen = ref(false)
 const pendingQuestion = computed(() => {
   const last = messages.value[messages.value.length - 1]
-  return !sharedHistory.value && last?.question && last.runId ? last : undefined
+  return last?.question && last.runId ? last : undefined
 })
 function replyText(index: number) {
   const reply = messages.value[index + 1]
@@ -301,7 +300,6 @@ function newChat() {
   clearRecovery()
   stopTyping()
   clearHistorySelection()
-  sharedHistory.value = false
   mobileHistoryOpen.value = false
   currentConvId.value = null
   messages.value = []
@@ -523,7 +521,6 @@ function consumePendingFormTask() {
   activeSkill.value = skill
   stopTyping()
   clearHistorySelection()
-  sharedHistory.value = false
   mobileHistoryOpen.value = false
   currentConvId.value = Date.now()
   messages.value = []
@@ -613,7 +610,7 @@ function fmtTime(ts: number | string): string {
 function groupRuns(runs: RunListItem[], archived: boolean): HistoryGroup[] {
   const bySession = new Map<string, RunListItem[]>()
   for (const run of runs) {
-    const key = run.sharedKey || run.clientSessionId || run.runId
+    const key = run.clientSessionId || run.runId
     const bucket = bySession.get(key)
     if (bucket) bucket.push(run)
     else bySession.set(key, [run])
@@ -622,7 +619,7 @@ function groupRuns(runs: RunListItem[], archived: boolean): HistoryGroup[] {
     const sorted = [...items].sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
     const oldest = sorted[sorted.length - 1]
     return {
-      key: oldest.sharedKey || oldest.clientSessionId || oldest.runId,
+      key: oldest.clientSessionId || oldest.runId,
       title: oldest.taskTitle || oldest.promptDigest || '历史对话',
       skill: oldest.skill,
       latest: sorted[0],
@@ -646,13 +643,13 @@ const liveDismissed = ref(false)
 /* 当前对话的实时侧栏条目：运行记录要等运行结束才在服务端落库，落库前由它占位
    （ChatGPT 式：发出第一条消息对话即入列）；真实分组出现后无缝接管。 */
 const liveConvGroup = computed<HistoryGroup | null>(() => {
-  if (sharedHistory.value || !apiReady.value || liveDismissed.value) return null
+  if (!apiReady.value || liveDismissed.value) return null
   const convId = currentConvId.value
   if (convId === null) return null
   const firstUser = messages.value.find(m => m.role === 'user')
   if (!firstUser) return null
   const sessionKey = convSessions.get(`pi:${convId}`)
-  if (sessionKey && historyGroups.value.some(g => g.key === sessionKey)) return null
+  if (sessionKey && [...historyGroups.value, ...archivedGroups.value].some(g => g.key === sessionKey)) return null
   /* session 事件未到且不在运行：请求没到服务端，不会有落库记录 */
   if (!sessionKey && !sending.value) return null
   const title = firstUser.text.replace(/\s+/g, ' ').slice(0, 80)
@@ -739,9 +736,8 @@ async function selectHistory(group: HistoryGroup) {
 }
 
 async function openRun(run: RunListItem, seq = ++selectionSeq) {
-  selectedSessionKey.value = run.sharedKey || run.clientSessionId || run.runId
+  selectedSessionKey.value = run.clientSessionId || run.runId
   const restore = (detail: HistoryDetail) => {
-    sharedHistory.value = Boolean(run.sharedKey)
     const skill = bySlug.get(run.skill)
     stopTyping()
     currentConvId.value = Date.now()
@@ -932,11 +928,11 @@ watch(sending, (now, was) => {
 async function refreshHistoryAfterRun() {
   const sessionKey = liveSessionKey.value
   await loadHistory({ silent: true })
-  if (!sessionKey || historyGroups.value.some(g => g.key === sessionKey)) return
+  if (!sessionKey || [...historyGroups.value, ...archivedGroups.value].some(g => g.key === sessionKey)) return
   for (let i = 0; i < 3 && historyLive.value; i++) {
     await new Promise(resolve => setTimeout(resolve, 1200))
     await loadHistory({ silent: true })
-    if (historyGroups.value.some(g => g.key === sessionKey)) return
+    if ([...historyGroups.value, ...archivedGroups.value].some(g => g.key === sessionKey)) return
   }
   liveDismissed.value = true
 }
@@ -1010,14 +1006,14 @@ onBeforeUnmount(() => {
               <span v-else-if="group.latest.question" class="use-hist-outcome is-pending">待回复</span>
               <span v-else-if="!group.live" class="use-hist-outcome" :class="`is-${group.latest.outcome}`">{{ OUTCOME_LABEL[group.latest.outcome] ?? group.latest.outcome }}</span>
               <button
-                v-if="!group.archived && !group.live && !group.latest.sharedKey"
+                v-if="!group.archived && !group.live"
                 type="button"
                 class="exp-hist-inline"
                 title="归档对话"
                 aria-label="归档对话"
                 @click.stop="archiveConversation(group, true)"
               ><Icon name="archive" :size="12" /></button>
-              <span v-else-if="group.archived && !group.latest.sharedKey" class="exp-hist-side-acts">
+              <span v-else-if="group.archived" class="exp-hist-side-acts">
                 <button
                   type="button"
                   class="exp-hist-inline"
@@ -1109,11 +1105,7 @@ onBeforeUnmount(() => {
           </button>
           <button v-if="recoveryFailed" type="button" :disabled="sending" @click="newChat">新建对话</button>
         </div>
-        <div v-if="sharedHistory" class="exp-resume">
-          <span>共享历史 · 只读</span>
-          <button type="button" @click="newChat">新建对话<Icon name="chev" :size="13" /></button>
-        </div>
-        <div v-else class="exp-input">
+        <div class="exp-input">
           <div class="exp-input-box">
             <div v-if="skillMenu" class="exp-skill-menu" role="listbox" aria-label="挂载 SKILL">
               <div
@@ -1198,7 +1190,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
           </div>
-          <p class="exp-input-note">对话会显示在共享历史中。内容由 AI 生成，请仔细核对。</p>
+          <p class="exp-input-note">测试人员均可查看和续聊这段对话。内容由 AI 生成，请仔细核对。</p>
         </div>
       </div>
     </div>

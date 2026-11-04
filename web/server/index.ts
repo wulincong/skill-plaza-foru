@@ -12,7 +12,7 @@ import { localReportReply, registerReport, saveQuestion } from './lib/reportLibr
 import { needsReportFollowThrough,reportRequested,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
 import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
 import { handleAdmin } from './lib/adminApi.ts'
-import { historyPrefix, scopedSession, conversationItem } from './lib/browserHistory.ts'
+import { historyPrefix, browserSessionPattern, validSessionId, conversationItem } from './lib/browserHistory.ts'
 import { createServer } from 'node:http'
 import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
@@ -185,6 +185,15 @@ function sandboxAgentsMd(): string {
   return lines.join('\n') + '\n'
 }
 
+/** Shared history always refers to the original workspace, including older sessions
+ * without a web prefix. Only a new provisional browser ID needs a namespace. */
+function browserSessionId(raw: unknown, prefix?: string) {
+  if (!validSessionId(raw)) return null
+  if (!prefix || browserSessionPattern.test(raw) || existsSync(join(__dirname, 'workspace', raw))) return raw
+  if (readIndex().some(r => (r.clientSessionId || r.runId) === raw)) return raw
+  return prefix + raw
+}
+
 function workspaceDirFor(clientSessionId: string): string {
   const dir = join(__dirname, 'workspace', clientSessionId)
   mkdirSync(dir, { recursive: true })
@@ -313,7 +322,6 @@ const server = createServer((req, res) => {
   if (seg[0] === 'api' && seg[1] === 'conversations') {
     const prefix = historyPrefix(req)
     if (!originAllowed(req.headers.origin)) { sendJson(res, 403, { error: '来源未获准访问' }); return }
-    if (req.method !== 'GET' && !prefix) { sendJson(res, 403, { error: '缺少本浏览器的会话凭据' }); return }
     void handleRunsApi(req, res, seg, prefix).catch(() => sendJson(res, 500, { error: '对话读取失败' }))
     return
   }
@@ -343,20 +351,25 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
 }
 
 
+function readRunTrace(record: RunRecord): SessionTrace | null {
+  try { return record.files.trace ? JSON.parse(readFileSync(record.files.trace, 'utf8')) : null }
+  catch { return null }
+}
+
 async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string) {
   const publicHistory = seg[1] === 'conversations'
-  const owned = (r: RunRecord) => !publicHistory || Boolean(prefix && r.clientSessionId?.startsWith(prefix))
-  if (seg[2] === 'session' && prefix) {
-    const sessionId = scopedSession(seg[3], prefix)
-    if (!sessionId) { sendJson(res, 404, { error: '会话不存在' }); return }
-    seg[3] = sessionId
+  // Do not archive/delete a session while another tester is executing or saving a turn.
+  if (seg[2] === 'session' && (req.method === 'DELETE' || req.method === 'POST' && seg[4] !== 'interrupt') &&
+      (activeTurns.has(seg[3]) || exportingTurns.has(seg[3]) || browserTurns.has(seg[3]))) {
+    sendJson(res, 409, { error: '当前会话正在运行或保存，请稍后重试。' })
+    return
   }
   /* 会话级操作：归档标记与删除按 clientSessionId 匹配整段对话
      （旧记录无 clientSessionId 时退化为其 runId，与前端分组口径一致）。 */
   if (seg[2] === 'session' && seg.length === 4 && req.method === 'DELETE') {
     const key = seg[3]
     const all = readIndex()
-    const kept = all.filter(r => !owned(r) || (r.clientSessionId || r.runId) !== key)
+    const kept = all.filter(r => (r.clientSessionId || r.runId) !== key)
     if (kept.length === all.length) {
       sendJson(res, 404, { error: '会话不存在。' })
       return
@@ -371,7 +384,7 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
     const all = readIndex()
     let changed = 0
     const next = all.map(r => {
-      if (!owned(r) || (r.clientSessionId || r.runId) !== key || Boolean(r.archived) === archived) return r
+      if ((r.clientSessionId || r.runId) !== key || Boolean(r.archived) === archived) return r
       changed++
       return { ...r, archived }
     })
@@ -385,8 +398,9 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
   }
 
   if (req.method === 'POST' && seg.length === 6 && seg[2] === 'session' && seg[4] === 'interrupt') {
-    const [, , , sessionId, , requestId] = seg
-    if (!requestIdPattern.test(requestId)) {
+    const requestId = seg[5]
+    const sessionId = browserSessionId(seg[3], prefix)
+    if (!sessionId || !requestIdPattern.test(requestId)) {
       sendJson(res, 400, { error: '任务标识无效。' })
       return
     }
@@ -396,9 +410,9 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
       sendJson(res, 202, { state: 'settling' })
       return
     }
-    const runs = readIndex().filter(run => run.clientSessionId === sessionId)
+    const runs = readIndex().filter(run => (run.clientSessionId || run.runId) === sessionId)
     const last = runs.at(-1)
-    const latest = publicHistory && last ? conversationItem(last, true) : last
+    const latest = publicHistory && last ? conversationItem(last) : last
     const retryId = createHash('sha256').update(requestId).digest('hex').slice(0, 32)
     if (runs.some(run => run.requestId === requestId || run.requestId === retryId)) {
       sendJson(res, 200, { state: 'saved', latest })
@@ -442,7 +456,7 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
       .filter(r => (!skill || r.skill === skill) && (!outcome || r.outcome === outcome))
       .filter(r => archivedOnly ? Boolean(r.archived) : !r.archived)
     const page = runs.slice(offset, offset + limit)
-    sendJson(res, 200, { runs: publicHistory ? page.map(r => conversationItem(r, owned(r))) : page, total: runs.length })
+    sendJson(res, 200, { runs: publicHistory ? page.map(conversationItem) : page, total: runs.length })
     return
   }
 
@@ -455,35 +469,25 @@ async function handleRunsApi(req: any, res: any, seg: string[], prefix?: string)
   }
 
   if (seg.length === 3) {
-    let trace: unknown = null
-    try {
-      if (record.files.trace && existsSync(record.files.trace))
-        trace = JSON.parse(readFileSync(record.files.trace, 'utf8'))
-    } catch {
-      /* 文件损坏按无详情处理 */
-    }
+    const trace = readRunTrace(record)
     const legacyLogs = new Map<string, string>()
     const conversation = deriveSessionConversation(record, records, run => {
-      let snapshot = trace as SessionTrace | null
-      if (run.runId !== record.runId) {
-        try { snapshot = run.files.trace ? JSON.parse(readFileSync(run.files.trace, 'utf8')) : null }
-        catch { snapshot = null }
-      }
+      const snapshot = run.runId === record.runId ? trace : readRunTrace(run)
       if (!snapshot?.execution && run.engine === 'pi' && run.files.events) legacyLogs.set(run.runId, run.files.events)
       return snapshot
     }, promptWrappers)
-    if (publicHistory && !owned(record)) {
-      // Shared readers see the transcript and its published outputs, not execution logs or write identifiers.
-      const transcript = conversation.map(({ role, text, question, runId, answerTo, webLinks, downloads }) =>
-        ({ role, text, question, runId, answerTo, webLinks, downloads }))
-      sendJson(res, 200, { item: conversationItem(record, false), conversation: transcript })
+    if (publicHistory && (!prefix || !record.clientSessionId?.startsWith(prefix))) {
+      // Shared collaborators receive the conversation, its published outputs and the canonical session ID.
+      const transcript = conversation.map(({ role, text, question, runId, answerTo, model, provider, webLinks, downloads }) =>
+        ({ role, text, question, runId, answerTo, model, provider, webLinks, downloads }))
+      sendJson(res, 200, { item: conversationItem(record), conversation: transcript })
       return
     }
     for (const turn of conversation) {
       const log = turn.runId && legacyLogs.get(turn.runId)
       if (log) turn.execution = await readLegacyExecution(log) ?? turn.execution
     }
-    sendJson(res, 200, publicHistory ? { item: conversationItem(record, true), conversation } : { item: record, trace, conversation })
+    sendJson(res, 200, publicHistory ? { item: conversationItem(record), conversation } : { item: record, trace, conversation })
     return
   }
 
@@ -629,7 +633,7 @@ async function handleUpload(req: any, res: any) {
     sendJson(res, 400, { error: '文件超过 6MB 上限。' })
     return
   }
-  const clientSessionId = scopedSession(sessionId || newRunId('sess-'), historyPrefix(req))
+  const clientSessionId = browserSessionId(sessionId || newRunId('sess-'), historyPrefix(req))
   if (!clientSessionId) { sendJson(res, 400, { error: '会话标识无效' }); return }
   const uploadsDir = join(workspaceDirFor(clientSessionId), 'uploads')
   mkdirSync(uploadsDir, { recursive: true })
@@ -710,7 +714,7 @@ async function handleOpenAiChat(req: any, res: any) {
      预留给将来按请求选模型的扩展）。 */
   const config = admin.config
   const { skill: skillRaw, messages, sessionId } = body || {}
-  if (sessionId != null && !scopedSession(sessionId)) { sendJson(res, 400, openAiErrorBody('会话标识无效', 'invalid_request_error')); return }
+  if (sessionId != null && !validSessionId(sessionId)) { sendJson(res, 400, openAiErrorBody('会话标识无效', 'invalid_request_error')); return }
   const skill = typeof skillRaw === 'string' ? skillRaw.trim() : ''
   if (!skillEnabled(config, skill)) {
     sendJson(res, 400, openAiErrorBody(
@@ -777,7 +781,7 @@ async function handleChat(req: any, res: any) {
 
   const config = admin.config
   const { skill, messages, model } = body || {}
-  const sessionId = scopedSession(body?.sessionId || newRunId('sess-'), historyPrefix(req))
+  const sessionId = browserSessionId(body?.sessionId || newRunId('sess-'), historyPrefix(req))
   if (!sessionId) { sendJson(res, 400, { error: '会话标识无效' }); return }
   // Existing clients may still send the original provider alias.
   const selected = model === 'deepseek'
@@ -819,7 +823,7 @@ async function handleChat(req: any, res: any) {
       sendJson(res, 400, { error: '任务标识无效。' })
       return
     }
-    const runs = readIndex().filter(run => run.clientSessionId === sessionId)
+    const runs = readIndex().filter(run => (run.clientSessionId || run.runId) === sessionId)
     if (browserTurns.has(sessionId) || discardedRequests.has(sessionId + '/' + requestId) || runs.some(run => run.requestId === requestId)) {
       sendJson(res, 409, { error: '任务正在收尾或已经提交，请重新读取任务。' })
       return
@@ -1159,6 +1163,8 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
 
 
   /* ---- trace 记录：实时流 + 终态导出 + 索引（见 lib/traceExport.ts） ---- */
+  const priorRuns = readIndex().filter(r => (r.clientSessionId || r.runId) === clientSessionId)
+  const priorRun = priorRuns.at(-1)
   const runId = newRunId()
   const startedAt = Date.now()
   /* 首包立即确认在线运行已开始；不要等会话创建或模型首个 delta。 */
@@ -1395,6 +1401,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       usageRounds: usageRounds.slice(),
     })
     const record: RunRecord = {
+      archived: priorRun?.archived,
       runId,
       ts: new Date(startedAt).toISOString(),
       clientSessionId,
@@ -1582,7 +1589,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         const content = local.content + (params.protocol === 'openai' && local.question ? '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。' : '')
         recorder.note({ reportLibrary: {kind:local.kind, reportId:local.reportId} })
         recorder.end(localOutcome, {durationMs, source:'report-library'})
-        appendIndex({runId, ts:new Date(startedAt).toISOString(), clientSessionId, engine,
+        appendIndex({runId, ts:new Date(startedAt).toISOString(), clientSessionId, engine, archived:priorRun?.archived,
           protocol:params.protocol, skill, taskTitle:taskTitle || undefined, userMessage:digestSource,
           promptDigest, outcome:localOutcome, durationMs, promptNotSent:true, localReply:content,
           question:local.question, answerTo:params.answerTo, requestId:params.requestId,
@@ -1780,8 +1787,20 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
 
     const turnPrompt = (first: boolean) => {
       let input = messages
-      if (params.protocol === 'openai' && !runner.hasConversationContext(entry!.engineSessionId) && messages.length > 1) {
-        const history = messages.slice(0, -1)
+      if (first) {
+        let previous = messages.slice(0, -1)
+        if (params.protocol === 'plaza' || !previous.length) {
+          previous = priorRun ? deriveSessionConversation(priorRun, priorRuns, readRunTrace, promptWrappers)
+            .map(turn => {
+              const question = turn.question
+              const links = [...(turn.webLinks ?? []), ...(turn.downloads ?? [])]
+              const content = [turn.text, question?.question, question?.note,
+                ...(question?.options ?? []).map(o => [o.label, o.description].filter(Boolean).join('：')),
+                ...links.map(link => `${link.name}：${link.url}`)].filter(Boolean).join('\n')
+              return { role: turn.role, content }
+            }) : []
+        }
+        const history = previous
           .filter(m => (m?.role === 'user' || m?.role === 'assistant') && typeof m?.content === 'string' && m.content.trim())
           .map(m => `${m.role === 'user' ? '用户' : '助手'}：${m.content.trim()}`).join('\n\n')
         if (history) input = [{ role: 'user', content: `【对话历史】\n${history}\n\n【当前消息】\n${latest.content}` }]
