@@ -9,6 +9,8 @@ const route = useRoute()
 const query = ref('')
 const menuOpen = ref(false)
 const menuButton = ref<HTMLButtonElement>()
+const outlineOpen = ref(false)
+const outlineButton = ref<HTMLButtonElement>()
 const skill = computed(() => catalog.find(s => s.id === route.params.slug))
 const guidePath = '/docs/guide'
 const articles = [
@@ -39,7 +41,15 @@ function closeMenu() {
   menuOpen.value = false
   menuButton.value?.focus({ preventScroll: true })
 }
-watch(() => route.fullPath, closeMenu)
+function closeOutline() {
+  if (!outlineOpen.value) return
+  outlineOpen.value = false
+  outlineButton.value?.focus({ preventScroll: true })
+}
+watch(() => route.fullPath, () => {
+  closeMenu()
+  closeOutline()
+})
 watchEffect(() => {
   if (route.name !== 'skillDocs') return
   document.title = `${route.params.slug ? page.value?.title ?? '未找到文档' : '技能文档中心'} · 智能体搭子`
@@ -79,20 +89,10 @@ onMounted(() => {
           </li>
         </ul>
         <p v-if="!matches.length" class="empty-search" role="status">没有匹配的技能或专题。</p>
-        <template v-if="page?.outline.length">
-          <h3 class="nav-label">本页章节</h3>
-          <ul class="nav-tree">
-            <li v-for="heading in page.outline" :key="heading.id">
-              <RouterLink class="section-link" :to="{ path: route.path, hash: '#' + heading.id }"
-                :aria-current-value="route.hash === '#' + heading.id ? 'location' : 'false'"
-                @click="closeMenu">{{ heading.title }}</RouterLink>
-            </li>
-          </ul>
-        </template>
       </nav>
     </aside>
 
-    <div class="docs-reader">
+    <div class="docs-reader" :class="{ 'with-outline': page?.outline.length }">
       <template v-if="!route.params.slug">
         <header class="reader-head">
           <h1>技能文档中心</h1>
@@ -124,6 +124,20 @@ onMounted(() => {
           <span v-if="skill" class="card-id">{{ skill.id }}</span>
           <h1>{{ page.title }}</h1>
         </header>
+        <nav v-if="page.outline.length" class="page-outline" aria-label="本页章节" @keydown.esc="closeOutline">
+          <h2 class="outline-title">本页章节</h2>
+          <button ref="outlineButton" type="button" class="outline-toggle" :aria-expanded="outlineOpen"
+            aria-controls="doc-sections" @click="outlineOpen = !outlineOpen">
+            本页章节<Icon name="chev-down" :size="14" />
+          </button>
+          <ul id="doc-sections" class="nav-tree" :class="{ open: outlineOpen }">
+            <li v-for="heading in page.outline" :key="heading.id">
+              <RouterLink class="section-link" :to="{ path: route.path, hash: '#' + heading.id }"
+                :aria-current-value="route.hash === '#' + heading.id ? 'location' : 'false'"
+                @click="closeOutline">{{ heading.title }}</RouterLink>
+            </li>
+          </ul>
+        </nav>
         <article :key="articles[currentIndex].path" class="doc-body">
           <template v-for="(block, i) in page.blocks" :key="i">
             <div v-if="block.kind === 'markdown'" class="md-body" v-html="block.html"></div>
@@ -164,6 +178,33 @@ onMounted(() => {
 .nav-link[aria-current=page], .section-link[aria-current=location] { color: var(--sk-blue); background: var(--sk-blue-soft); font-weight: 600; }
 .empty-search { margin: .6rem; font-size: var(--fs-sm); }
 .docs-reader { width: 100%; max-width: 52rem; min-width: 0; }
+.page-outline { margin-top: 1rem; border-bottom: 1px solid var(--line-hair); }
+.outline-title { display: none; font-size: var(--fs-sm); }
+.outline-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: .7rem 0; color: var(--ink-strong); }
+.outline-toggle[aria-expanded=true] svg { transform: rotate(180deg); }
+#doc-sections:not(.open) { display: none; }
+.section-link { overflow-wrap: anywhere; }
+@media (min-width: 1024px) {
+  .docs-reader.with-outline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(10rem, 15vw, 12rem);
+    grid-template-areas: "crumb outline" "title outline" "body outline" "next outline";
+    column-gap: clamp(1.5rem, 3vw, 3rem);
+    max-width: none;
+  }
+  .with-outline > .crumb { grid-area: crumb; }
+  .with-outline > .reader-head { grid-area: title; }
+  .with-outline > .doc-body { grid-area: body; min-width: 0; }
+  .with-outline > .doc-next { grid-area: next; }
+  .page-outline {
+    grid-area: outline; align-self: start; position: sticky; top: calc(var(--head-h) + 1rem);
+    max-height: calc(100dvh - var(--head-h) - 2rem); overflow-y: auto; margin: 0;
+    border: 0; border-left: 1px solid var(--line-hair); padding-left: 1rem;
+  }
+  .outline-title { display: block; margin: 0 0 .5rem; }
+  .outline-toggle { display: none; }
+  #doc-sections:not(.open) { display: block; }
+}
 .reader-head { padding-bottom: 1.25rem; border-bottom: 1px solid var(--line-hair); }
 .crumb { margin-bottom: 1.25rem; }
 .reader-head h1 { font-size: clamp(1.8rem, 3vw, 2.4rem); line-height: 1.25; }
