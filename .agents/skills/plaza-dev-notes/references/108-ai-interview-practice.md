@@ -12,6 +12,8 @@
 | Big Interview 的 PracticeAI 根据岗位说明、可选简历和当场回答调整问题，并支持按题回顾实际作答。[产品使用说明](https://support.biginterview.com/en/article/practiceai-qxju4/) | 用候选人刚说出的细节决定追问。重练时让本人重答同一道题，再用相同标准比较两版。 |
 | 曼彻斯特大学职业服务建议根据岗位材料开展一次一题的练习，核对 AI 的建议并保留本人经历与表达。[AI 面试练习指南](https://www.careers.manchester.ac.uk/applicationsinterviews/interviews/practiceinterviews/aiinterviewprep/) | 每轮等真人回答，反馈引用原话，区分做过的行动与情境题里的计划。求职者只给岗位时可以用一般岗位情境开练。 |
 
+公开指南在 `.agents/skills/ai-interview/docs/index.md:21` 介绍这三种方法及各自的原始来源，`:29` 用新能源汽车售后练习的原话说明“部分展示”和“未评估”的区别。1366px 和 390px Chrome 均从详情页进入指南，核对了三个来源链接和重答引文。
+
 ## 实现与接入点
 
 - `.agents/skills/ai-interview/SKILL.md:12` 定义输入、缺少材料时的处理与三种练习模式。`:24` 约定主问题编号、追问、跳过、同题重答和结束。`:33` 约定原话、证据强弱及企业规则缺失时的评价边界。技术题看方案与验证，经历题看本人行动，情境题的计划不计为实绩。
