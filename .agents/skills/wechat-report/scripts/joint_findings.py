@@ -81,16 +81,9 @@ def derive(data):
         add('jobtype.entry_definition','jobtype',
             f"校招标签为 {number(jobtype.get('XIAOZHAO',0))} 条，实习标签为 {number(jobtype.get('SHIXI',0))} 条；按学历与经验交集得到的入门池为 {number(pool['count'])} 条。招聘类型与条件交集定义不同，不能把这些数量直接相加或互相替代。",
             ['/jobtype','/voc_pool/count'])
-    groups={}
-    for row in data.get('job_skill_rows',[]):
-        if row['positions']>=100:groups.setdefault(row['skill'],[]).append(row)
-    candidates=[]
-    for word,rows in groups.items():
-        if len(rows)<2 or sum(row['count'] for row in rows)<100:continue
-        a=max(rows,key=lambda row:row['count']/row['positions']);b=min(rows,key=lambda row:row['count']/row['positions'])
-        candidates.append((a['count']/a['positions']-b['count']/b['positions'],word,a,b))
-    if candidates:
-        _,word,a,b=max(candidates,key=lambda item:item[0])
+    contrast=skill_contrast(data)
+    if contrast:
+        _,word,a,b=contrast
         add('track_skills.conditional_contrast','track_skills',
             f"{word}在{a['label']}方向的提及率为 {pct(a['count'],a['positions'])}%（{number(a['count'])}/{number(a['positions'])} 条），在{b['label']}为 {pct(b['count'],b['positions'])}%（{number(b['count'])}/{number(b['positions'])} 条）；这是方向内部比例比较，未提及不等于无需该能力。",
             ['/job_skill_rows'])
@@ -122,3 +115,15 @@ def derive(data):
             f"本次 {number(total)} 条岗位中，有描述 {number(described)} 条，占 {pct(described,total)}%；未取得描述为 {number(total-described)} 条。有描述不等于职责完整或词义已经人工核实。",
             ['/skill_described_n','/total/positions'])
     return out
+
+
+def skill_contrast(data):
+    groups={}
+    for row in data.get('job_skill_rows',[]):
+        if row['positions']>=100 and row.get('track')!='__other__':groups.setdefault(row['skill'],[]).append(row)
+    candidates=[]
+    for word,rows in groups.items():
+        if len(rows)<2 or sum(row['count'] for row in rows)<100:continue
+        a=max(rows,key=lambda row:row['count']/row['positions']);b=min(rows,key=lambda row:row['count']/row['positions'])
+        candidates.append((a['count']/a['positions']-b['count']/b['positions'],word,a,b))
+    return max(candidates,key=lambda item:item[0]) if candidates else None

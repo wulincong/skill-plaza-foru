@@ -1,0 +1,301 @@
+{
+  "schema": "wechat-regional-source-catalog/1",
+  "verifiedAtUTC": "2026-11-04T04:25:49.615232+00:00",
+  "cacheMaxAgeSeconds": 604800,
+  "strategy": "region-and-industry catalog search, then exact primary-source retrieval; generic search results are never accepted as facts",
+  "sources": [
+    {
+      "id": "gd-policy-current",
+      "region": "广东省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于发布“人工智能+”应用场景（第一批）的通知",
+      "publisher": "广东省人工智能与机器人产业创新发展工作领导小组办公室",
+      "published": "2025-04-19",
+      "period": "2025年发布",
+      "kind": "published_scenario_catalog",
+      "url": "https://gdii.gd.gov.cn/attachment/0/578/578483/4701169.pdf",
+      "anchors": [
+        "4大行业",
+        "共30类",
+        "人工智能+制造(10类)"
+      ],
+      "facts": [
+        "广东省2025年发布的首批“人工智能+”应用场景覆盖4大行业、30类场景，其中制造业场景10类。"
+      ],
+      "applicationFocus": "电子信息与汽车制造中的视觉缺陷检测、工艺参数分析、设备状态监测和物料调度；课程产出可采用缺陷样本集、检测流程与设备数据分析报告。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.592395+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "9d780fef16ab3a94f2a5b3617d1325dd4d096fbdc3ca4c957d12d5ef418a6e5c",
+        "evidenceText": "4大行业 共30类 人工智能+制造(10类)",
+        "evidenceSha256": "3f53349da7e6a27a177d16916749ce8ddd22bff8853b8bfb5b83396840fbb335"
+      }
+    },
+    {
+      "id": "sd-digital-results-http",
+      "region": "山东省",
+      "industries": [
+        "人工智能"
+      ],
+      "title": "山东16市实现“城市大脑”全覆盖，数字城市百强上榜数量居全国首位",
+      "publisher": "山东省大数据局（转载省政府新闻发布会报道）",
+      "published": "2025-12-26",
+      "period": "截至2025年12月的发布会资料",
+      "kind": "reported_statistics",
+      "url": "http://bdb.shandong.gov.cn/art/2025/12/26/art_187953_10337998.html",
+      "anchors": [
+        "人工智能骨干企业超1100家",
+        "备案数量达29个"
+      ],
+      "facts": [
+        "2025年12月省政府新闻发布会资料显示，山东人工智能骨干企业超过1100家，生成式人工智能服务备案数量为29个。"
+      ],
+      "applicationFocus": "结合济南、青岛、烟台等城市的数字产业布局，安排行业数据整理、模型应用、业务流程与成果交付项目。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.593475+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "b538337e3f3d86608690c49545b5ef72ffd405ca1cfcddcdf089c1e8da4190fc",
+        "evidenceText": "人工智能骨干企业超1100家 备案数量达29个",
+        "evidenceSha256": "af42d325fb589f373e5f5d3f072e98c736943813ff8a300ea878b199ada55140"
+      }
+    },
+    {
+      "id": "sd-digital-plan-http",
+      "region": "山东省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于印发《数字强省建设2026年工作要点》的通知",
+      "publisher": "山东数字强省建设领导小组办公室",
+      "published": "2026-04-14",
+      "period": "2026年年度工作任务",
+      "kind": "policy_target",
+      "url": "http://bdb.shandong.gov.cn/art/2026/4/14/art_333974_79534.html",
+      "anchors": [
+        "100家以上特色企业",
+        "100个以上行业级"
+      ],
+      "facts": [
+        "《数字强省建设2026年工作要点》提出培育100家以上特色企业及100个以上行业级、场景级大模型和智能体；这是年度建设任务。"
+      ],
+      "applicationFocus": "行业级与场景级大模型、智能体和工业互联网；课程可组织行业数据治理、业务流程建模、智能体应用与交付评估。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.595124+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "0351593bb2ddd0dd9b6f2a26255c63d357590b9019ee651d7c45e4202d8ee461",
+        "evidenceText": "100家以上特色企业 100个以上行业级",
+        "evidenceSha256": "0204a3ad84228ac27e66ef466ab59cbca643ffce822926589216546ab4d6dc70"
+      }
+    },
+    {
+      "id": "zj-ai-results",
+      "region": "浙江省",
+      "industries": [
+        "人工智能"
+      ],
+      "title": "2025年浙江经济运行情况相关报道",
+      "publisher": "浙江省经济信息中心",
+      "published": "2026-01-22",
+      "period": "2025年1—11月",
+      "kind": "reported_statistics",
+      "url": "https://zjic.zj.gov.cn/ywdh/jjyx/202601/t20260122_23914311.shtml",
+      "anchors": [
+        "去年1至11月",
+        "6294亿元",
+        "同比增长21.6%"
+      ],
+      "facts": [
+        "浙江公开资料披露，2025年1—11月人工智能核心产业企业营业收入为6294亿元，同比增长21.6%；该数字不是全年值。"
+      ],
+      "applicationFocus": "数据服务、算力服务、智能终端、算法模型四类场景；结合杭州、宁波岗位分布设置模型应用与终端项目。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.596230+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "dbf4ce0a1d37fc47e0eb776cab2f2be0de4629751482c9b1489b66ca38705157",
+        "evidenceText": "去年1至11月 6294亿元 同比增长21.6%",
+        "evidenceSha256": "169706d84187876a9a725b1707f9b0b33d96474dc5e3e237106c55fdf9035caf"
+      }
+    },
+    {
+      "id": "zj-ai-policy",
+      "region": "浙江省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于支持人工智能创新发展的若干措施",
+      "publisher": "浙江省人民政府",
+      "published": "2025-04-17",
+      "period": "2027年政策目标",
+      "kind": "policy_target",
+      "url": "https://zjjcmspublic.oss-cn-hangzhou-zwynet-d01-a.internet.cloud.zj.gov.cn/jcms_files/jcms1/web2484/site/attach/0/b87dfcc0994048288b420c9447f92278.pdf",
+      "anchors": [
+        "2027年",
+        "1万亿元",
+        "杭州市",
+        "宁波市"
+      ],
+      "facts": [
+        "浙江政策提出到2027年全省规模以上人工智能核心产业营业收入超过1万亿元，并以杭州、宁波为核心组织差异化产业布局；这是政策目标。"
+      ],
+      "applicationFocus": "围绕杭州、宁波及其他地区的差异化产业场景，将数据、模型与智能终端组织为可衔接的课程项目。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.600294+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "616343e9b8eea1da363bf3ec3957f4007ba5e33e93c2c0064d26cf12899d512a",
+        "evidenceText": "2027年 1万亿元 杭州市 宁波市",
+        "evidenceSha256": "8df143a8c175cd96fc2d105bcac6571121dffe132e41d1e4bc69aabbea1cff2a"
+      }
+    },
+    {
+      "id": "js-manufacturing-policy",
+      "region": "江苏省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于印发江苏省“人工智能+制造”实施方案的通知",
+      "publisher": "江苏省工业和信息化厅",
+      "published": "2026-06-10",
+      "period": "2027年政策目标",
+      "kind": "policy_target",
+      "url": "https://gxt.jiangsu.gov.cn/art/2026/6/10/art_6278_11783480.html",
+      "anchors": [
+        "10个以上工业大模型",
+        "100个左右高水平工业智能体",
+        "100个左右行业高质量数据集"
+      ],
+      "facts": [
+        "江苏2026年发布的“人工智能+制造”实施方案提出，到2027年推动10个以上工业大模型深度应用，建设约100个高水平工业智能体和约100个行业高质量数据集；这些均为政策目标。"
+      ],
+      "applicationFocus": "面向南京、苏州等地的工业应用中试、质量检测、产线调度和工业数据治理，组织工业智能体、视觉检测和数据工程项目。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.600294+00:00",
+        "method": "official-document-reader",
+        "sourceTextSha256": null,
+        "evidenceText": "10个以上工业大模型 100个左右高水平工业智能体 100个左右行业高质量数据集",
+        "evidenceSha256": "00361d91d3ed861ad0e45a18a35a4872d75287343d75109c6d08e9b0e18324a7"
+      }
+    },
+    {
+      "id": "hb-ai-map",
+      "region": "湖北省",
+      "industries": [
+        "人工智能"
+      ],
+      "title": "湖北发布2026人工智能企业生态图谱",
+      "publisher": "湖北省经济和信息化厅（转载长江云新闻）",
+      "published": "2026-09-13",
+      "period": "2026年发布的企业生态图谱",
+      "kind": "reported_statistics",
+      "url": "https://jxt.hubei.gov.cn/bmdt/rdjj/202609/t20260914_6012724.shtml",
+      "anchors": [
+        "武汉集聚全省85%以上的AI企业",
+        "1254.9亿元"
+      ],
+      "facts": [
+        "湖北2026年人工智能企业生态图谱相关资料称，武汉集聚全省85%以上的人工智能企业，武汉相关产业规模为1254.9亿元；企业分布口径与本报告岗位记录口径不同。"
+      ],
+      "applicationFocus": "武汉的基础层、技术层和应用层衔接；结合本地制造、光电子和汽车场景组织数据、视觉与系统集成项目。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.601289+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "96df6ff60bdd0f505337724a24d593fc08bbecce1801fcb018597c55a944fd5f",
+        "evidenceText": "武汉集聚全省85%以上的AI企业 1254.9亿元",
+        "evidenceSha256": "a083ef4dc4e3257fb977e2f9aab1faa6e049d4e3a710fafad0c594eee1848b6b"
+      }
+    },
+    {
+      "id": "hb-ai-policy",
+      "region": "湖北省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于加快推进人工智能产业发展的实施意见",
+      "publisher": "湖北省人民政府办公厅",
+      "published": "2025-10-22",
+      "period": "2027年政策目标",
+      "kind": "policy_target",
+      "url": "https://jxt.hubei.gov.cn/fbjd/zc/gfxwj/202510/t20251023_5796751.shtml",
+      "anchors": [
+        "产业规模达到3500亿元",
+        "产业园5个"
+      ],
+      "facts": [
+        "湖北相关实施意见提出，到2027年培育5个百亿级产业园、产业规模达到3500亿元；这是政策规划目标。"
+      ],
+      "applicationFocus": "信息光电子、车规级芯片、工业制造与机器人应用；课程可连接传感数据、视觉算法、设备接口和应用系统。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.603280+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "d02500bfee22c4fbcfc00822470032e055654a9f378bfe0caece4c83187dc586",
+        "evidenceText": "产业规模达到3500亿元 产业园5个",
+        "evidenceSha256": "cd69ae429260359259f9f64f1df4158f5e3e16539a9142e959c459eb3b22cb75"
+      }
+    },
+    {
+      "id": "fj-industry-results",
+      "region": "福建省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于福建省2025年国民经济和社会发展计划执行情况与2026年国民经济和社会发展计划草案的报告",
+      "publisher": "福建省发展和改革委员会",
+      "published": "2026-11-03",
+      "period": "2025年执行情况",
+      "kind": "reported_statistics",
+      "url": "https://fgw.fujian.gov.cn/zwgk/ghjh/ndjh/202611/t20261103_7243904.htm",
+      "anchors": [
+        "发布38款人工智能软硬件产品和首批23个行业垂直模型",
+        "新增9家国家卓越级智能工厂"
+      ],
+      "facts": [
+        "福建2025年计划执行情况报告记载，发布38款人工智能软硬件产品和首批23个行业垂直模型，并新增9家国家卓越级智能工厂。"
+      ],
+      "applicationFocus": "行业垂直模型、智能终端与制造业数智化；结合福州、厦门、泉州的岗位结构，组织业务数据、模型应用与生产场景项目。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.612311+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "a69fce1aabe69a6d87d20297e60ae818a8083fd5d0c11e1a0db319df7bb8937d",
+        "evidenceText": "发布38款人工智能软硬件产品和首批23个行业垂直模型 新增9家国家卓越级智能工厂",
+        "evidenceSha256": "219661c9b72d69b5cd44194f8b040b2093981a614c45554ae6dde0b571f13ae0"
+      }
+    },
+    {
+      "id": "fj-ai-policy",
+      "region": "福建省",
+      "industries": [
+        "人工智能",
+        "智能制造"
+      ],
+      "title": "关于印发福建省人工智能项目实施方案的通知",
+      "publisher": "福建省工业和信息化厅",
+      "published": "2026-02-09",
+      "period": "2026年项目组织方案",
+      "kind": "policy_framework",
+      "url": "https://gxt.fujian.gov.cn/zwgk/zdjcygk/ndzdjcsxml/202602/t20260209_7091266.htm",
+      "anchors": [
+        "人工智能优质行业垂直模型",
+        "人工智能优质产品",
+        "人工智能创新优质平台"
+      ],
+      "facts": [
+        "福建人工智能项目实施方案将行业垂直模型、优质产品、创新平台和企业等列为支持对象。"
+      ],
+      "applicationFocus": "把垂直模型、产品与平台分为不同项目路径，明确数据准备、模型应用、部署展示和用户评价等成果。",
+      "verification": {
+        "verifiedAtUTC": "2026-11-04T04:25:49.615232+00:00",
+        "method": "official-page-native-fetch",
+        "sourceTextSha256": "f0505e148d3bfc300723c0af7def874b86374caf791251ef6e46abaabfb84f39",
+        "evidenceText": "人工智能优质行业垂直模型 人工智能优质产品 人工智能创新优质平台",
+        "evidenceSha256": "de9fd23ea6163c3c3456bbead2ae42d84f69c4664abb54a51b3bb344d99feb17"
+      }
+    }
+  ]
+}

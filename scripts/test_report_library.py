@@ -57,6 +57,23 @@ class CatalogTests(unittest.TestCase):
    with self.assertRaises(ValueError):lib.checked_session(value)
   self.assertIsNone(lib.parse_brief('广东人工智能今年报告'))
 
+ def test_default_education_audience_keeps_custom_filters_out_of_shared_cache(self):
+  data={'meta':{'filters':{'region':{'level':'province','name':'山东省'},'industries':[{'id':'17'}]},'industry':'智能制造','scope_industry':'智能制造','audience':'职业院校'}}
+  binding={'_result':{'cohorts':[{'id':'all','resolved':{'industries':{'entities':[{'level':0,'includeDescendants':True,'name':'智能制造'}]}}}]}}
+  self.assertTrue(lib.standard_scope(data,binding))
+  data['meta']['audience']='企业招聘经理';self.assertFalse(lib.standard_scope(data,binding))
+  data['meta']['audience']='职业院校';data['meta']['filters']['education']=['BENKE'];self.assertFalse(lib.standard_scope(data,binding))
+
+ def test_incomplete_default_report_does_not_qualify_for_the_full_report_cache(self):
+  registry=json.loads((ROOT.parent/'.agents/skills/wechat-report/assets/industry_profiles.json').read_text())
+  sections=registry['profiles']['人工智能']['sections']
+  data={'meta':{'industry':'人工智能'},'coverage':[{'section':name,'status':'complete'} for name in sections]}
+  self.assertTrue(lib.complete_default_profile(data))
+  data['coverage']=[row for row in data['coverage'] if row['section']!='track_skills']
+  self.assertFalse(lib.complete_default_profile(data))
+  data['meta']['industry']='生物医药'
+  self.assertFalse(lib.complete_default_profile(data))
+
  def test_new_profile_requires_matching_execution_code_and_successful_ordered_stages(self):
   scripts=ROOT.parent/'.agents/skills/wechat-report/scripts';sys.path.insert(0,str(scripts))
   from generate_report import PIPELINE_FILES
@@ -69,7 +86,7 @@ class CatalogTests(unittest.TestCase):
    'stages':[{'script':name,'exitCode':0,'durationMs':1} for name in stages],
    'pipelineFiles':{name:digest((scripts/name).read_bytes()) for name in PIPELINE_FILES},
    'reportDataSha256':digest(b'{}'),'analysisSha256':digest(b'{}'),'outlineSha256':'outline','manifestSha256':'manifest'}
-  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/1'},'chart_selection':{'policy':'wechat-chart-selection/2'}}
+  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/2'},'editorialPolicy':'wechat-editorial-prose/1','chart_selection':{'policy':'wechat-chart-selection/2'}}
   quality={'outline_sha256':'outline','manifest_sha256':'manifest'}
   file=report/'build_receipt.json'
   file.write_text(json.dumps(receipt));lib.verify_build_receipt(base,outline,quality)

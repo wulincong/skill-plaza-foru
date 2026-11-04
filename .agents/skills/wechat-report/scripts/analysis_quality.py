@@ -4,6 +4,9 @@ import re
 
 def problems(text,field,semantic=True):
     issues=[]
+    if re.search(r'(?:确保|保证|保障).{0,40}(?:就业|录用|匹配|符合|具备|对应|对接|成效|能力)',text):issues.append(field+'使用未经成效验证的承诺；改为明确的任务、成果与评价标准')
+    from editorial_prose import PROCESS_WORDS
+    if PROCESS_WORDS.search(text):issues.append(field+'含不适合成品的过程性措辞，请改写为完成的观察或具体课程建议')
     for sentence in re.split(r'[。！？；，,]',text):
         qualified=bool(re.search(r'不能|不等于|无法|不足以|尚不能|不宜|不应|不推断|而非|避免(?:直接|简单)?推断|待核实|待验证|假设|是否',sentence))
         conditional=bool(re.match(r'\s*(?:调整条件[：:]\s*)?(?:若|如果|一旦)',sentence))
@@ -23,8 +26,9 @@ def problems(text,field,semantic=True):
             or re.search(r'条件比例.{0,25}(?:反映|代表|显示).{0,15}(?:实际进入机会|录用率|就业机会|通过率)',sentence))
         if unsupported_label_inference and not bounded:
             issues.append(field+'由招聘标签推断了未测量的能力或录用结果；改为解释条件如何联合筛选，并明确待核实的岗位职责：'+sentence[:140])
-        if re.search(r'(?:本科|专科|大专).{0,12}(?:侧重|适合|负责|定位|聚焦|应培养).{0,20}(?:算法|研发|数据处理|工具使用|理论|基础)',sentence) and not bounded:
-            issues.append(field+'仅按学历分配了未经验证的技能任务；需先核实岗位职责与学生产出：'+sentence[:140])
+        degree_task=(re.search(r'(?:本科|专科|大专|硕士|博士)(?:生|学生|组|及以下|及以上)?.{0,18}(?:侧重|适合|负责|定位|聚焦|应培养|参与|安排|进入|配置|开展|接受|从事).{0,30}(?:算法|研发|数据|工具|理论|基础|模型|系统|开发|项目|任务)',sentence) or re.search(r'(?:算法|研发|数据|模型|系统|开发|项目|任务).{0,24}(?:面向|仅安排|只安排).{0,16}(?:本科|专科|大专|硕士|博士)',sentence))
+        if degree_task and not re.search(r'不按学历|不以学历|共同参与|均可参与|不限定学历|任务完成情况|任务准备度|作品表现|项目产出',sentence):
+            issues.append(field+'仅按学历分配了未经验证的技能任务；按任务准备度和作品表现分流，所有学历共享任务入口：'+sentence[:140])
         if re.search(r'(?:高薪|低薪).{0,15}(?:侧重|说明|代表|意味着).{0,15}(?:高级|高阶|复杂|基础|低阶)',sentence) and not bounded:
             issues.append(field+'把薪酬层次替代了技能任务难度；课程应依据具体职责与能力验证：'+sentence[:140])
         if re.search(r'上四分位.{0,15}(?:作为上限|设为上限|薪酬封顶|起薪上限)',sentence) and not re.search(r'不是|不应|不能|未把|未将|不要|不把|不将|而非|而不是|中间一半|四分位区间',sentence):

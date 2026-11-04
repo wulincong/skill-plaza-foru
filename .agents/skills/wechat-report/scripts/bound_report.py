@@ -66,6 +66,7 @@ def load_data(path, demo=False):
     binding['_result'] = result
     binding['_source'] = source
     binding['_data_file_sha256'] = digest(path.read_bytes())
+    binding['_report_root'] = path.parent
     return data, binding
 
 
@@ -73,6 +74,9 @@ def project(data, spec):
     value = pointer(data, spec['path'])
     op = spec.get('op', 'value')
     limit = spec.get('limit', 10)
+    if op=='editorial':
+        from editorial_prose import project as editorial_project
+        return editorial_project(data,spec)
     if op.startswith('joint_'):
         from joint_report_charts import PROJECTIONS
         if op not in PROJECTIONS:raise ValueError('未知多维投影：'+op)
@@ -180,7 +184,7 @@ def verify_outline(data, binding, outline):
                 quantitative = quantitative.replace(label, '')
             if re.search(r'\d', quantitative):
                 ref = refs.get('/screens/%d/paragraphs/%d' % (i, j))
-                if not ref or ref.get('op') not in ('claim', 'finding'):
+                if not ref or ref.get('op') not in ('claim', 'finding','editorial'):
                     raise ValueError('量化正文缺少类型明确的事实引用')
         for key in ('chart', 'chart2', 'chartA', 'chartB'):
             c = screen.get(key)
@@ -191,5 +195,5 @@ def verify_outline(data, binding, outline):
         from deep_outline import verify_policy
         verify_policy(outline)
         from report_references import verify as verify_references
-        verify_references(outline,data)
+        verify_references(outline,data,binding)
     return True

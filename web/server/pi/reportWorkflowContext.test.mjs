@@ -2,8 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {compactReportContext} from './reportWorkflowContext.mjs'
 
-test('data-ready report context retains rules, latest intent, scope and exact task without growing history',()=>{
- const current={status:'writing_required',part:{task:'sections:salary',evidenceHash:'verified',sections:[{key:'salary',findingIds:['salary.quantiles']}]}}
+test('data-ready report context retains rules, latest intent, scope and readable bound evidence without growing history',()=>{
+ const current={status:'writing_required',evidence:[{key:'salary',facts:[{id:'salary.quantiles',text:'薪酬中位数为6K/月。',paths:['/salary']}]}],part:{task:'sections:salary',evidenceHash:'verified',sections:[{key:'salary',findingIds:['salary.quantiles']}]}}
  const payload={messages:[{role:'system',content:'固定规则'},{role:'user',content:'旧请求'},{role:'assistant',content:'旧过程'.repeat(50000)},
   {role:'user',content:'请继续，保留地区和学历'},{role:'assistant',tool_calls:[{id:'call'}]},{role:'tool',tool_call_id:'call',content:JSON.stringify(current)}],tools:[{name:'report_submit'}]}
  const before=structuredClone(payload)
@@ -11,7 +11,9 @@ test('data-ready report context retains rules, latest intent, scope and exact ta
  assert.deepEqual(payload,before)
  assert.deepEqual(result.tools,payload.tools)
  assert.deepEqual(result.messages.map(row=>row.role),['system','user'])
- assert(result.messages[1].content.includes('salary.quantiles'))
+ assert(result.messages[1].content.includes('薪酬中位数为6K/月。'))
+ assert(!result.messages[1].content.includes('salary.quantiles'))
+ assert(!result.messages[1].content.includes('/salary'))
  assert(result.messages[1].content.includes('深圳市'))
  assert(result.messages[1].content.includes('保留地区和学历'))
  assert(metrics.sentChars<metrics.originalChars/10)

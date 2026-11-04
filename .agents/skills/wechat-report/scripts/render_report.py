@@ -578,6 +578,13 @@ def render_screen(s, idx, total, org, scale, meta=None):
         # 先给事实，再给图组与解释；总结框始终在最后。
         paras_html = []
         for paragraph in s.get('paragraphs', []):
+            if s.get('executive_structure')=='summary-integrated-points':
+                if paragraph.startswith('摘要｜'):
+                    paras_html.append('<p style="font-size:30px;line-height:1.8;background:#F5F7FB;padding:24px;border-radius:12px">'+html_module.escape(paragraph[3:])+'</p>')
+                else:
+                    heading,mark,body=paragraph.partition('。')
+                    paras_html.append('<p style="font-size:31px;line-height:1.85;margin:26px 0"><strong style="color:'+TH('primary')+'">'+html_module.escape(heading)+'。</strong>'+html_module.escape(body)+'</p>')
+                continue
             if s.get('executive_structure') and paragraph.startswith('结论') and '｜' in paragraph:
                 number,title=paragraph.split('｜',1)
                 paras_html.append('<h3 style="font-size:33px;line-height:1.55;color:%s;margin:30px 0 14px"><span style="color:%s">%s</span>｜%s</h3>'%(TH('primary'),TH('accent'),number,title))

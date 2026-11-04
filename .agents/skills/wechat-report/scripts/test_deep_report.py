@@ -78,12 +78,12 @@ class DeepReportTests(unittest.TestCase):
         from analytical_reasoning import section,opening
         data={'meta':{'region':'深圳市','industry':'人工智能','filters':{'region':{'level':'city'},'education':['SHUOSHI']},'enum_labels':{'education':{'SHUOSHI':'硕士'}}},
               'salary':{'median':10},'voc_pool':{'salary':{'valid':100,'p75':8}}}
-        self.assertEqual(section(data,'salary')['title'],'总体中位数超过入门池上四分位')
+        self.assertEqual(section(data,'salary')['title'],'入门就业预期应采用匹配岗位的薪酬区间')
         data['voc_pool']['salary']['p75']=12
         self.assertEqual(section(data,'salary')['title'],'入门薪酬目标仍需按分布与岗位匹配')
         text=opening(data)
         self.assertIn('硕士学历条件',text)
-        self.assertIn('不能把筛选形成的地域范围解释成产业集聚',text)
+        self.assertIn('结论适用于当前筛选范围',text)
 
     def test_city_core_decision_changes_with_coverage_and_keeps_city_baseline_in_scope(self):
         from analytical_reasoning import core

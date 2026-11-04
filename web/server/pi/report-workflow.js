@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import { mkdirSync,writeFileSync,appendFileSync,readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { reportTask,reportDataReady,reportBuildReady } from './reportWorkflowPolicy.mjs'
+import { reportTask,reportDataReady,reportBuildReady,dataRefreshRequested } from './reportWorkflowPolicy.mjs'
 import { compactReportContext } from './reportWorkflowContext.mjs'
 
 const execute=promisify(execFile)
@@ -13,9 +13,9 @@ const installed=fileURLToPath(new URL('../../../.agents/skills/wechat-report/',i
 const purpose=Type.Optional(Type.String({description:'给用户看的简短中文用途，不写路径、命令或结果'}))
 const prose=(minimum,description,maximum=180)=>Type.String({minLength:minimum,maxLength:maximum,pattern:'^[^0-9{}<>]*$',description:description+'。禁止任何阿拉伯数字、事实ID、花括号或HTML；已给事实由程序原样插入，不复述统计。'})
 const section=Type.Object({key:Type.String(),
-  action:prose(30,'写明谁针对哪些岗位做什么、产出什么清单或任务'),
-  validation:prose(30,'写明复核对象、样本字段和判断依据'),decisionRule:prose(30,'写明何种复核结果会改变当前建议及怎样调整，不以高薪直接决定扩招')})
-const claim=Type.Object({implication:prose(30,'结合程序给定的跨维度论证，提出对象明确、可核实的决策与下一步',120)})
+  action:prose(30,'结合本地区城市、方向或工具，写具体课程项目、工作任务与学习产出'),
+  validation:prose(30,'写项目组织、操作过程和学习成果评价标准，不写报告数据待核验'),decisionRule:prose(30,'写不同岗位条件对应的课程分流或项目层次，不写待审核或待确认')})
+const claim=Type.Object({implication:prose(30,'按当前条目主题写决策：城市条目写条件匹配与合作顺序，薪酬条目写报价区间与求职预期，方向条目写工具与课程项目',100)})
 
 export default function registerReportWorkflow(pi) {
   let current
@@ -56,6 +56,7 @@ export default function registerReportWorkflow(pi) {
       if(!reportDataReady(ctx.cwd)) {
         current=undefined
         const prepared=JSON.parse(await invoke(ctx,'init',[],signal))
+        if(dataRefreshRequested(task?.requestText))prepared.planTemplate.execution={freshness:'live',deadlineMs:360000}
         return {content:[{type:'text',text:JSON.stringify({...prepared,status:'collection_required',
           next:'按当前用户范围resolve产业，照planTemplate填写plan.json，再执行collect。已有文件不代表当前范围已就绪；不得用旧范围写作。'})}],details:{status:'collection_required'}}
       }
@@ -81,7 +82,7 @@ export default function registerReportWorkflow(pi) {
         if(!params.executive)throw new Error('当前批次需要executive、三条跨维度claims和limitations')
         part.executive={...part.executive,closing:params.executive.closing,
           claims:part.executive.claims.map((template,i)=>({...template,implication:params.executive.claims[i]?.implication}))}
-        part.limitations=params.limitations??[]
+        part.limitations=current.part.limitations
       }
       const folder=join(ctx.cwd,'wechat-report/output/analysis/submissions');mkdirSync(folder,{recursive:true})
       const file=join(folder,String(id).replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,120)+'.json')
@@ -94,12 +95,12 @@ export default function registerReportWorkflow(pi) {
     description:'程序已给定结构分析，只填本批全部章节key/action/validation/decisionRule。每项至少三十字，不写数字，不改事实和分析，不按学历或工资直接分配技能层次。收到executive阶段后改用report_core。',
     parameters:Type.Object({purpose,sections:Type.Array(section)}),
     execute:(id,params,signal,_update,ctx)=>submitPart(id,params,signal,ctx)})
-  pi.registerTool({name:'report_core',label:'汇总核心发现与决策建议',
+  pi.registerTool({name:'report_core',label:'整理摘要与融合结论',
     promptSnippet:'核心阶段只写三条决策启示、综合启示和研究边界。',
-    description:'总体判断与三项结构论证由程序给定。claims按顺序各填implication，closing说明先后步骤与调整依据，limitations说明未测变量如何限制结论。不改总体判断/标题/事实/分析，不写数字或内部写作提示。',
+    description:'总体判断与三项结构论证由程序给定。claims按顺序各填implication，三条启示分别回答城市匹配、薪酬预期、方向课程，closing说明实施顺序，研究范围由程序生成。不要出现待核验、待审核、待验证或先核实才能成稿。不改总体判断/标题/事实/分析，不写数字或内部写作提示。',
     parameters:Type.Object({purpose,claims:Type.Array(claim,{minItems:3,maxItems:3}),
-      closing:prose(40,'综合三项结论，说明有条件的执行顺序'),limitations:Type.Array(prose(20,'读者需要的研究边界与未观测变量'),{minItems:2,maxItems:5})}),
-    execute:(id,params,signal,_update,ctx)=>submitPart(id,{executive:params,limitations:params.limitations},signal,ctx)})
+      closing:prose(40,'综合三项结论，说明有条件的执行顺序')}),
+    execute:(id,params,signal,_update,ctx)=>submitPart(id,{executive:params},signal,ctx)})
   pi.registerTool({name:'report_build',label:'生成并检查报告图片',promptSnippet:'所有批次完成后生成最终图片、参考文献、图片网页与ZIP。',
     description:'在analysis_ready后调用，使用固定代码连续完成真实数据/文案/图表/图片验收与交付。成功后直接结束，不再复述统计数字。',
     parameters:Type.Object({purpose}),execute:(_id,_params,signal,_update,ctx)=>serial(async()=>{
@@ -130,7 +131,7 @@ export default function registerReportWorkflow(pi) {
     const payload=event.payload
     // No more tools after the bound. The server then reports a truthful failure
     // if the agent has still produced no valid deliverable.
-    if(requests>40 && payload && typeof payload==='object') {
+    if(requests>18 && payload && typeof payload==='object') {
       pi.setActiveTools([])
       const stopped={...payload,tool_choice:'none'};delete stopped.tools
       return stopped

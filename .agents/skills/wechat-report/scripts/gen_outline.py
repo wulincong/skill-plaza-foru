@@ -221,7 +221,7 @@ def build_outline(data, brand, binding=None, analysis=None):
         result=apply_analysis(skeleton,data,binding,analysis)
         if analysis.get('schema')=='wechat-analysis/2':
             from report_references import attach
-            result=attach(result,data)
+            result=attach(result,data,binding)
         return result
     return _build_skeleton(data, brand)
 

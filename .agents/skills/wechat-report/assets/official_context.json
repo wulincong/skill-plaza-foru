@@ -1,6 +1,6 @@
 {
   "schema": "wechat-official-context/1",
-  "verifiedOn": "2026-11-03",
+  "verifiedOn": "2026-11-04",
   "sources": [
     {
       "id": "nbs-rd-2025",
@@ -11,17 +11,141 @@
       "locator": "附表2：2025年各地区研究与试验发展（R&D）经费情况",
       "year": 2025,
       "scope": "全社会、跨产业研发活动；不是人工智能专项投入或岗位样本",
-      "national": {"expenditure100mCny": 39288.2, "intensityPct": 2.8},
+      "national": {
+        "expenditure100mCny": 39288.2,
+        "intensityPct": 2.8
+      },
       "regions": {
-        "广东省": {"expenditure100mCny": 5510.4, "intensityPct": 3.78},
-        "山东省": {"expenditure100mCny": 2825.7, "intensityPct": 2.74},
-        "浙江省": {"expenditure100mCny": 3177.2, "intensityPct": 3.36},
-        "江苏省": {"expenditure100mCny": 4948.2, "intensityPct": 3.48},
-        "湖北省": {"expenditure100mCny": 1635.3, "intensityPct": 2.61},
-        "四川省": {"expenditure100mCny": 1555.8, "intensityPct": 2.3},
-        "安徽省": {"expenditure100mCny": 1513.1, "intensityPct": 2.86},
-        "北京市": {"expenditure100mCny": 3696.1, "intensityPct": 7.1},
-        "上海市": {"expenditure100mCny": 2580.5, "intensityPct": 4.55}
+        "北京市": {
+          "expenditure100mCny": 3696.1,
+          "intensityPct": 7.1
+        },
+        "天津市": {
+          "expenditure100mCny": 643.1,
+          "intensityPct": 3.47
+        },
+        "河北省": {
+          "expenditure100mCny": 1029.0,
+          "intensityPct": 2.09
+        },
+        "山西省": {
+          "expenditure100mCny": 315.9,
+          "intensityPct": 1.24
+        },
+        "内蒙古自治区": {
+          "expenditure100mCny": 278.2,
+          "intensityPct": 1.04
+        },
+        "辽宁省": {
+          "expenditure100mCny": 764.2,
+          "intensityPct": 2.3
+        },
+        "吉林省": {
+          "expenditure100mCny": 260.2,
+          "intensityPct": 1.74
+        },
+        "黑龙江省": {
+          "expenditure100mCny": 274.4,
+          "intensityPct": 1.63
+        },
+        "上海市": {
+          "expenditure100mCny": 2580.5,
+          "intensityPct": 4.55
+        },
+        "江苏省": {
+          "expenditure100mCny": 4948.2,
+          "intensityPct": 3.48
+        },
+        "浙江省": {
+          "expenditure100mCny": 3177.2,
+          "intensityPct": 3.36
+        },
+        "安徽省": {
+          "expenditure100mCny": 1513.1,
+          "intensityPct": 2.86
+        },
+        "福建省": {
+          "expenditure100mCny": 1359.8,
+          "intensityPct": 2.26
+        },
+        "江西省": {
+          "expenditure100mCny": 717.8,
+          "intensityPct": 1.99
+        },
+        "山东省": {
+          "expenditure100mCny": 2825.7,
+          "intensityPct": 2.74
+        },
+        "河南省": {
+          "expenditure100mCny": 1352.2,
+          "intensityPct": 2.03
+        },
+        "湖北省": {
+          "expenditure100mCny": 1635.3,
+          "intensityPct": 2.61
+        },
+        "湖南省": {
+          "expenditure100mCny": 1495.8,
+          "intensityPct": 2.7
+        },
+        "广东省": {
+          "expenditure100mCny": 5510.4,
+          "intensityPct": 3.78
+        },
+        "广西壮族自治区": {
+          "expenditure100mCny": 274.0,
+          "intensityPct": 0.92
+        },
+        "海南省": {
+          "expenditure100mCny": 135.2,
+          "intensityPct": 1.67
+        },
+        "重庆市": {
+          "expenditure100mCny": 857.7,
+          "intensityPct": 2.54
+        },
+        "四川省": {
+          "expenditure100mCny": 1555.8,
+          "intensityPct": 2.3
+        },
+        "贵州省": {
+          "expenditure100mCny": 263.0,
+          "intensityPct": 1.12
+        },
+        "云南省": {
+          "expenditure100mCny": 373.9,
+          "intensityPct": 1.14
+        },
+        "西藏自治区": {
+          "expenditure100mCny": 8.2,
+          "intensityPct": 0.27
+        },
+        "陕西省": {
+          "expenditure100mCny": 959.0,
+          "intensityPct": 2.62
+        },
+        "甘肃省": {
+          "expenditure100mCny": 177.6,
+          "intensityPct": 1.3
+        },
+        "青海省": {
+          "expenditure100mCny": 36.9,
+          "intensityPct": 0.9
+        },
+        "宁夏回族自治区": {
+          "expenditure100mCny": 101.4,
+          "intensityPct": 1.78
+        },
+        "新疆维吾尔自治区": {
+          "expenditure100mCny": 167.9,
+          "intensityPct": 0.78
+        }
+      },
+      "verification": {
+        "method": "official-page-table-review",
+        "table": "附表2",
+        "verifiedOn": "2026-11-04",
+        "geographicCoverage": "31个省级地区；公报未包括港澳台"
       }
     },
     {

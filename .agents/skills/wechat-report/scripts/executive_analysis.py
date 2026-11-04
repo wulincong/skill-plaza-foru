@@ -7,6 +7,7 @@ def default_pairs(pack):
     candidates=[['geography.joint_contrast','vocational.city_coverage_0'],
                 ['salary.entry_upper_bound','vocational.salary_comparison'],
                 ['tracks.classified_leaders','track_skills.conditional_contrast','tracks.coverage']]
+    if not any(fid in facts for fid in candidates[1]):candidates[1]=['salary.quantiles','track_salary.qualified_extremes']
     pairs=[];used=set()
     priorities=[['geography','jobtype','education'],['salary','track_salary','education'],['tracks','track_skills','skills','experience']]
     for index,ids in enumerate(candidates):

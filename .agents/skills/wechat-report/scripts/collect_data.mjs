@@ -7,14 +7,24 @@ import {execFile} from 'node:child_process'
 import {promisify} from 'node:util'
 import {createHash,randomUUID} from 'node:crypto'
 import {performance} from 'node:perf_hooks'
+import {collectionExecution} from './refresh_policy.mjs'
 import {adaptResult,ADAPTER_VERSION} from './adapt_query_result.mjs'
 const exec=promisify(execFile),sha=x=>createHash('sha256').update(x).digest('hex')
 export const SECTION_METRICS={overview:['positions.count','companies.count','data_quality.summary'],geography:['city_education.cross','city_salary.summary'],requirements:['education.distribution','experience.distribution','jobType.distribution','education_experience.cross'],salary:['salary.summary','salary.distribution'],vocational:['education_experience.cross','city.distribution','salary.summary','salary.distribution'],tracks:['track.distribution'],city_tracks:['city_track.cross'],lq:['city_track.cross'],track_salary:['track.distribution','track_salary.summary'],skills:['skills.distribution'],track_skills:['track.distribution','skills.distribution','track_skills.cross']}
 const VOC_EDU=['DAZHUAN','GAOZHI','ZHONGZHUAN/ZHONGJI','GAOZHONG','CHUZHONGJIYIXIA','BUXIAN'],VOC_EXP=['ON_CAMPUS','GRADUATING','LESS_THAN_1','BUXIAN']
 export function applyProfile(plan,profile) {
   if(plan.industryLabel&&plan.industryLabel!==profile.name)throw new Error('报告产业标签与所选分析规则不一致')
-  if(plan.analysis&&JSON.stringify(plan.analysis)!==JSON.stringify(profile.analysis))throw new Error('不能同时提交不同的analysis与profile')
+  if(plan.analysis&&JSON.stringify(plan.analysis)!==JSON.stringify(profile.analysis))throw new Error('当前命令使用产业profile，请从plan.json移除analysis后重试同一命令；如需保留用户指定的自定义analysis，则移除--profile。filters保持不变。')
   return {...plan,industryLabel:profile.name,sections:plan.sections??profile.sections,audience:plan.audience??profile.audience,analysis:profile.analysis}
+}
+export function inferProfileName(plan,profiles,candidatesByName) {
+  if(plan.analysis || plan.filters?.industries?.length!==1)return undefined
+  const selected=plan.filters.industries[0]
+  if(selected.includeDescendants===false)return undefined
+  return Object.values(profiles).find(profile=>{
+    const roots=(candidatesByName[profile.name]??[]).filter(row=>row.level===0&&row.name===profile.name)
+    return roots.length===1&&roots[0].id===selected.id
+  })?.name
 }
 export function validateProfileScope(plan,profile,candidates) {
   const roots=candidates.filter(row=>row.level===0&&row.name===profile.name)
@@ -31,7 +41,7 @@ export function reportSections(plan) {
 export function buildRequest(plan) {
   if(plan.schema!=='wechat-report-plan/1'||!plan.filters?.region)throw new Error('需要 wechat-report-plan/1 和明确 filters.region')
   const allowed=['schema','filters','sections','analysis','audience','industryLabel','execution']
-  if(Object.keys(plan).some(k=>!allowed.includes(k)))throw new Error('报告计划包含不支持的字段')
+  const unknown=Object.keys(plan).filter(k=>!allowed.includes(k));if(unknown.length)throw new Error('plan.json不支持这些顶层字段：'+unknown.join('、')+'。允许字段为：'+allowed.join('、')+'；profile只作为命令行参数。不要删除filters中的用户筛选。')
   const sections=reportSections(plan)
   const metrics=[...new Set(['positions.count','companies.count','data_quality.summary',...sections.flatMap(s=>SECTION_METRICS[s])])]
   const cohorts=[{id:'all',filters:plan.filters}]
@@ -52,14 +62,26 @@ export async function collect(opts) {
   const started=performance.now();let plan,preview,source,selectedProfile
   if(opts.plan) {
     plan=JSON.parse(await readFile(await inside(opts.plan),'utf8'))
+    let turn
+    for(const candidate of [join(process.cwd(),'report-turn.json'),join(process.cwd(),'../report-turn.json')]) {
+      try {const value=JSON.parse(await readFile(candidate,'utf8'));if(value.schema==='plaza-report-turn/1'){turn=value;break}} catch {}
+    }
+    plan={...plan,execution:collectionExecution(plan,turn)}
+    const registry=JSON.parse(await readFile(new URL('../assets/industry_profiles.json',import.meta.url),'utf8'))
     if(opts.profile) {
-      const registry=JSON.parse(await readFile(new URL('../assets/industry_profiles.json',import.meta.url),'utf8'))
       selectedProfile=registry.profiles[opts.profile]
       if(!selectedProfile)throw new Error('没有该产业的已声明规则，请提供适合该主题的显式analysis，不能回退AI规则')
       const resolved=await call(['resolve','--kind','industry','--name',selectedProfile.name])
       validateProfileScope(plan,selectedProfile,resolved.candidates??[])
-      plan=applyProfile(plan,selectedProfile)
+    } else if(!plan.analysis && plan.filters?.industries?.length===1) {
+      // Root industry was explicitly selected by the caller. Supply its known
+      // complete analysis even when the small model omitted the optional flag.
+      for(const profile of Object.values(registry.profiles)) {
+        const resolved=await call(['resolve','--kind','industry','--name',profile.name])
+        if(inferProfileName(plan,{[profile.name]:profile},{[profile.name]:resolved.candidates??[]})) {selectedProfile=profile;break}
+      }
     }
+    if(selectedProfile)plan=applyProfile(plan,selectedProfile)
     const request=buildRequest(plan),caps=await call(['capabilities'])
     if(request.metrics.some(m=>!caps.metrics[m]))throw new Error('共享工具版本缺少所需指标')
     const rel=join('data',`wechat-request-${randomUUID()}.json`)
@@ -81,7 +103,7 @@ export async function collect(opts) {
   const bindingFile=join(dirname(out),out===resolve(dirname(out),'report_data.json')?'report_binding.json':`${out.split('/').at(-1)}.binding.json`)
   const manifest=join(dirname(source),'manifest.json')
   const dataText=JSON.stringify(data,null,2)+'\n'
-  const binding={schema:'wechat-report-binding/1',adapterVersion:ADAPTER_VERSION,source:{result:relative(dirname(out),source),manifest:relative(dirname(out),manifest),manifestSha256:sha(await readFile(manifest)),contentHash:result.contentHash,requestId:result.requestId,dataReadAt:result.freshness.dataReadAt},reportDataSha256:sha(dataText),fields:fieldMetrics,coverage:data.coverage,options:{sections,audience:plan?.audience,industryLabel:plan?.industryLabel,enumLabels},collectionMs:Math.round(performance.now()-started)}
+  const binding={schema:'wechat-report-binding/1',adapterVersion:ADAPTER_VERSION,source:{result:relative(dirname(out),source),manifest:relative(dirname(out),manifest),manifestSha256:sha(await readFile(manifest)),contentHash:result.contentHash,requestId:result.requestId,dataReadAt:result.freshness.dataReadAt},reportDataSha256:sha(dataText),fields:fieldMetrics,coverage:data.coverage,options:{sections,audience:plan?.audience,industryLabel:plan?.industryLabel,enumLabels},collectionMs:Math.round(performance.now()-started),collectionPolicy:{requestedFreshness:plan?.execution?.freshness??'saved-result',servedMode:result.freshness.mode}}
   if(selectedProfile)binding.collectionProfile={name:selectedProfile.name,version:selectedProfile.version,sha256:sha(JSON.stringify(selectedProfile))}
   // A failure leaves no new report data; a data/binding mismatch is rejected by consumers.
   await writeFile(bindingFile,JSON.stringify(binding,null,2)+'\n');await writeFile(out,dataText)

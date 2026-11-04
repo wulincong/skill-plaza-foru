@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 REPO = Path(__file__).resolve().parent.parent
 STORE = Path(os.environ.get('REPORT_LIBRARY_ROOT', str(REPO/'web/server/report-library'))).resolve()
 POLICY = 'wechat-report-library/1'
-DEEP_PROFILE = 'education-multivariate-v2'
+DEEP_PROFILE = 'education-regional-editorial-v3'
 PUBLIC_PROFILE = DEEP_PROFILE
 
 
@@ -91,7 +91,8 @@ def verify_build_receipt(base,outline,quality):
     started=datetime.fromisoformat(receipt['startedAt']);finished=datetime.fromisoformat(receipt['finishedAt'])
     if started.tzinfo is None or finished.tzinfo is None or started>finished or finished.timestamp()>time.time()+300:raise ValueError('构建回执时间无效')
     if (outline.get('analysis',{}).get('schema')!='wechat-analysis/2'
-        or outline['analysis'].get('reasoningPolicy')!='wechat-analytic-reasoning/1'
+        or outline['analysis'].get('reasoningPolicy')!='wechat-analytic-reasoning/2'
+        or outline.get('editorialPolicy')!='wechat-editorial-prose/1'
         or outline.get('chart_selection',{}).get('policy')!='wechat-chart-selection/2'):raise ValueError('新版成品缺少总分总论证、受信结构分析或适用图型选择')
     return receipt
 
@@ -112,7 +113,15 @@ def standard_scope(data,binding):
             and len(filters.get('industries',[]))==1 and len(entities)==1
             and entities[0].get('level')==0 and entities[0].get('includeDescendants') is True
             and data['meta']['industry']==entities[0]['name']==data['meta'].get('scope_industry')
-            and audience in ('院校管理者与产教融合负责人','院校与产业研究读者','院校管理者','院校人才培养与校企合作读者','院校与产教融合负责人'))
+            and audience in ('院校管理者与产教融合负责人','院校与产业研究读者','院校管理者','院校人才培养与校企合作读者','院校与产教融合负责人','院校人才培养与校企合作','职业院校'))
+
+
+def complete_default_profile(data):
+    registry=json.loads((REPO/'.agents/skills/wechat-report/assets/industry_profiles.json').read_text('utf-8'))
+    profile=registry['profiles'].get(data['meta']['industry'])
+    if not profile:return False
+    available={row['section'] for row in data.get('coverage',[]) if row.get('status')=='complete'}
+    return set(profile['sections']).issubset(available)
 
 
 def register(args):
@@ -154,7 +163,7 @@ def register(args):
     filters=data['meta']['filters']; profile=DEEP_PROFILE if modern else 'education-general-v1'
     if args.get('profile',profile)!=profile:raise ValueError('不能覆盖报告的实际质量版本')
     standard=standard_scope(data,binding)
-    if not standard: profile='custom-scope'
+    if not standard or not complete_default_profile(data): profile='custom-scope'
     key=scope_key(filters,profile)
     image_hashes=[digest(p.read_bytes()) for p in files]
     report_id=stable_report_id(key,binding['source']['contentHash'],quality['outline_sha256'],image_hashes) if modern else digest((key+binding['source']['contentHash']+quality['outline_sha256']+quality['manifest_sha256']).encode())[:32]

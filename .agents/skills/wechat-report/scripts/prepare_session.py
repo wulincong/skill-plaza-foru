@@ -30,8 +30,9 @@ def prepare(workspace,legacy_scripts=False):
         'collect':f'cd {target} && node {BASE}/scripts/collect_data.mjs --plan plan.json',
         'planTemplate':{'schema':'wechat-report-plan/1','filters':{'region':{'level':'province','name':'替换为用户指定省份'},'industries':[{'id':'替换为resolve返回的唯一根节点字符串ID','includeDescendants':True}]}},
         'planNotes':'filters.region是对象；industries是对象数组，id使用resolve返回的字符串。保留用户其他筛选。profile是collect_data.mjs命令行参数，不是plan字段。不要直接运行未替换的模板。',
+        'allowedPlanFields':['schema','filters','sections','analysis','audience','industryLabel','execution'],
         'profiles':['人工智能','智能制造'],
-        'profileUsage':'人工智能/智能制造可在collect命令末尾加 --profile 对应产业名；只补分析规则，不替换用户产业或范围。其他产业显式设置analysis及章节。',
+        'profileUsage':'人工智能/智能制造可在collect命令末尾加 --profile 对应产业名；使用profile时plan只写schema、filters及必要的execution，不再另填analysis；只补分析规则，不替换用户产业或范围。其他产业显式设置analysis及章节。',
         'analyze':f'{BASE}/.venv/bin/python {BASE}/scripts/report.py --workdir {target} analyze',
         'assemble':f'{BASE}/.venv/bin/python {BASE}/scripts/report.py --workdir {target} assemble report_writing.json',
         'build':f'{BASE}/.venv/bin/python {BASE}/scripts/report.py --workdir {target} build'}

@@ -16,8 +16,10 @@ Pi调用安装目录的绝对路径：`.venv/bin/python scripts/report.py --work
 
 取数仍使用安装目录scripts/collect_data.mjs，在数据目录执行并传--plan plan.json；共享CLI由安装关系或TALENT_DATA_QUERY_CLI定位，不复制密码配置。新增城市薪酬必须来自city_salary.summary，同城市学历基数对账；不能从旧快照的城市计数推算薪酬。
 
-工作目录只存assets、data、plan.json、report_part.json/最终文案及output。短批次进度在output/analysis/writing_progress.json，数据指纹改变不能混用旧进度。已有真实数据在续写、修订、重启后直接读取，不因查询缓存过十五分钟重查。旧副本脚本不再作为正常入口；prepare_session.py --legacy-scripts仅保留独立离线兼容方式。
+工作目录保存资产、取数计划、数据与绑定、地区资料快照、写作输入及output。短批次进度在output/analysis/writing_progress.json，数据指纹改变不能混用旧进度。已有真实数据在续写、修订、重启后直接读取，不因查询缓存过十五分钟重查。旧副本脚本不再作为正常入口；prepare_session.py --legacy-scripts仅保留历史迁移入口，不作为新版完整独立包；新版仍使用安装目录执行。
 
 公开交付output/public/site与report.zip，图片manifest和quality.json绑定实际PNG、数据、排版与系列数值；build_receipt.json记录真实子进程步骤及程序指纹，仅内部留存。生成期间代码版本改变则停止交付，沿用数据重试。公开产物最后才生成会话根delivery.json，平台收集并提供网页/下载。
 
-公众号账号凭据仅留wechat-ai-bot配置，明确确认后平台私有桥保存草稿。离线publish_draft.py操作记录不能作为在线成功证明；当前40164需官方账号IP白名单变更，不能用样例或模拟回执冒充成功。
+公众号账号凭据仅留wechat-ai-bot配置，明确确认后平台私有桥保存草稿。离线publish_draft.py操作记录不能作为在线成功证明；真实保存需以官方接口与草稿查询结果确认；公众号账号权限及IP配置由接入流程处理。
+
+用户明确要求最新数据或重新查询时，平台就绪判断与collect_data共用refresh_policy.mjs，执行策略强制为live；仅改最新图片、代码或排版及明确不刷新不触发重查。返回的collectionPolicy与原始freshness分别记录请求策略和实际读取模式。
