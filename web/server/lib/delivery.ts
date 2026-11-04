@@ -11,7 +11,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 export interface DeliveryLink { name: string; url: string }
 export interface DeliveryLinks { webLinks?: DeliveryLink[]; downloads?: DeliveryLink[] }
 interface WebInput { name: string; directory: string; entry: string }
-interface FileInput { name: string; path: string }
+interface FileInput { name: string; path: string; sha256?: string }
 export interface DeliveryManifest { web?: WebInput[]; files?: FileInput[] }
 interface Metadata {
   web: Array<{ name: string; entry: string; paths: string[] }>
@@ -58,11 +58,11 @@ export function deliveryFingerprint(workspace: string, filename = 'delivery.json
 }
 
 /** Undefined means no new declaration in this turn. Invalid declarations throw. */
-export function readDeliveryManifest(workspace: string, previous?: string): DeliveryManifest | undefined {
-  const fingerprint = deliveryFingerprint(workspace)
+export function readDeliveryManifest(workspace: string, previous?: string, filename = 'delivery.json'): DeliveryManifest | undefined {
+  const fingerprint = deliveryFingerprint(workspace, filename)
   if (fingerprint?.startsWith('unreadable:')) throw new Error(`无法读取 delivery.json（${fingerprint.slice(11)}），请检查交付文件的共享组读取权限`)
   if (!fingerprint || fingerprint === previous) return undefined
-  const path = checkedPath(workspace, 'delivery.json')
+  const path = checkedPath(workspace, filename)
   const stat = lstatSync(path)
   if (!stat.isFile() || stat.size > 64 * 1024) throw new Error('delivery.json 不是有效的小型清单')
   const manifest = JSON.parse(readFileSync(path, 'utf8'))
@@ -84,14 +84,14 @@ export function publishDelivery(workspace: string, manifest: DeliveryManifest, s
   const web = manifest.web ?? [], files = manifest.files ?? []
   if (!Array.isArray(web) || !Array.isArray(files) || web.length > 20 || files.length > 100 || web.length + files.length === 0) throw new Error('交付清单为空或超过数量上限')
   const metadata: Metadata = { web: [], files: [] }
-  const copies: Array<{ source: string; target: string; size: number; ino: number; dev: number }> = []
+  const copies: Array<{ source: string; target: string; size: number; ino: number; dev: number; sha256?: string }> = []
   let bytes = 0
-  const add = (source: string, target: string) => {
+  const add = (source: string, target: string, sha256?: string) => {
     const stat = lstatSync(source)
     if (!stat.isFile() || !stat.size) throw new Error('交付文件必须是非空普通文件')
     bytes += stat.size
     if (bytes > MAX_BYTES || copies.length >= MAX_FILES) throw new Error('交付超过 256MB 或 2000 文件上限')
-    copies.push({ source, target, size: stat.size, ino: stat.ino, dev: stat.dev })
+    copies.push({ source, target, size: stat.size, ino: stat.ino, dev: stat.dev, sha256 })
   }
   web.forEach((item, i) => {
     const name = label(item.name)
@@ -118,7 +118,7 @@ export function publishDelivery(workspace: string, manifest: DeliveryManifest, s
     const source = checkedPath(workspace, item.path)
     const extension = extname(source).slice(0, 16)
     const stored = `${i}${extension}`
-    add(source, `files/${stored}`)
+    add(source, `files/${stored}`, item.sha256)
     const clean = name.replace(/[\\/:*?"<>|]/g, '-').trim()
     const filename = clean.toLowerCase().endsWith(extension.toLowerCase()) ? clean : clean + extension
     metadata.files.push({ name, stored, filename })
@@ -128,7 +128,7 @@ export function publishDelivery(workspace: string, manifest: DeliveryManifest, s
   const temporary = join(store, `.pending-${id}`)
   mkdirSync(temporary, { mode: 0o700 })
   try {
-    for (const { source, target, size, ino, dev } of copies) {
+    for (const { source, target, size, ino, dev, sha256 } of copies) {
       // Open the checked inode, never follow a swapped leaf symlink.
       const original = lstatSync(source)
       if (original.size !== size || original.ino !== ino || original.dev !== dev) throw new Error('交付文件在收集期间发生变化')
@@ -141,13 +141,16 @@ export function publishDelivery(workspace: string, manifest: DeliveryManifest, s
         const output = openSync(destination, 'wx', 0o600)
         try {
           const buffer = Buffer.alloc(64 * 1024)
+          const digest = sha256 ? createHash('sha256') : undefined
           let copied = 0, count = 0
           while ((count = readSync(input, buffer, 0, buffer.length, null)) > 0) {
+            digest?.update(buffer.subarray(0, count))
             copied += count
             if (copied > original.size) throw new Error('交付文件在收集期间发生变化')
             let written = 0
             while (written < count) written += writeSync(output, buffer, written, count - written)
           }
+          if (digest && digest.digest('hex') !== sha256) throw new Error('交付文件与构建时核验的内容不一致')
           if (copied !== original.size || fstatSync(input).mtimeMs !== original.mtimeMs) throw new Error('交付文件在收集期间发生变化')
         } finally { closeSync(output) }
       } finally { closeSync(input) }

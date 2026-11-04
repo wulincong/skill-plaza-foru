@@ -1,4 +1,4 @@
 interface:
   display_name: "产教决策报告"
-  short_description: "结合人才统计和院校材料，生成含依据、培养建议与数据缺口的区域产业报告"
+  short_description: "围绕开课、培养或园区人才决定生成简报，区分岗位需求、办学条件与未决项"
   default_prompt: "使用 $industry-education-report 为广州高职院校分析机器人产业的岗位门槛，并提出实训课程调整建议。"

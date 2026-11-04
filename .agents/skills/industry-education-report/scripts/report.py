@@ -2,6 +2,7 @@
 """Validate evidence-linked reports, render Markdown, verify delivery integrity."""
 import argparse
 import datetime
+import hashlib
 import json
 import math
 import os
@@ -83,6 +84,10 @@ def bind_observation(result, observation):
         raise ValueError('需要数值字段，如 value.median 或 rows.0.count；每个要引用的分组建一项指标')
     return value
 
+def session_context():
+    file = Path('industry-report-input.json')
+    return json.loads(file.read_text()) if file.is_file() else None
+
 def validate(d):
     errors = []
     def check(ok, message):
@@ -132,6 +137,7 @@ def validate(d):
             check(isinstance(key,str) and key in indexes[group], f'{obj.get("id")}: unresolved {field} {key}')
         return values
     shared = {}
+    context = session_context()
     for s in indexes['sources'].values():
         url = s.get('url', '')
         if isinstance(url,str) and url.startswith('data/'):
@@ -149,6 +155,18 @@ def validate(d):
                 material = Path(url).resolve()
                 check(material.is_relative_to(Path.cwd() / 'uploads') and material.is_file(),
                       f'{s["id"]}: missing uploaded material')
+                if context:
+                    allowed = url in context['uploads'] and material.is_relative_to(Path.cwd() / 'uploads') and material.is_file()
+                    check(allowed, f'{s["id"]}: 没有这份用户上传的附件，粘贴材料应引用 user: 来源')
+                    if allowed and material.suffix.lower() in ('.txt', '.md'):
+                        excerpt = ' '.join(str(s.get('excerpt','')).split())
+                        check(excerpt and excerpt in ' '.join(material.read_text(encoding='utf-8-sig').split()),
+                              f'{s["id"]}: excerpt 不在上传文件原文中')
+            if context and isinstance(url, str) and url.startswith('user:'):
+                excerpt = ' '.join(str(s.get('excerpt', '')).split())
+                messages = [context['message'], *context['earlierMessages']]
+                check(excerpt and any(excerpt in ' '.join(msg.split()) for msg in messages),
+                      f'{s["id"]}: excerpt 须逐字引用用户给出的具体原句或片段')
             check('contentHash' not in s and 'dataReadAt' not in s, f'{s["id"]}: shared source requires result path')
         fields(s, requirements['sources'], 'sources')
         try:
@@ -228,19 +246,48 @@ def validate(d):
         check(bool(cs or gs), f'{s.get("id")}: empty section')
         used_claims.update(x for x in cs if isinstance(x,str))
         used_gaps.update(x for x in gs if isinstance(x,str))
+    brief = d.get('edition') == 'decision'
+    decision = d.get('decision')
+    if brief or decision is not None:
+        if isinstance(decision, dict):
+            for name in ('reader','question'):
+                check(isinstance(decision.get(name),str) and decision[name].strip(), f'decision: missing {name}')
+            check(isinstance(decision.get('critical_gap_ids'),list), 'decision: declare critical_gap_ids')
+            critical = refs(decision,'critical_gap_ids','gaps')
+            check(bool(critical or used_claims), 'decision: no supported answer or identified critical gap')
+            if sections:
+                check(bool(sections[0].get('claim_ids') or critical), '摘要须回答决策问题或指明关键缺口')
+            for section in sections:
+                key = section.get('id','')
+                if key == 'D02' or 'S02' <= key <= 'S12':
+                    for cid in section.get('claim_ids', []):
+                        if cid in indexes['claims']:
+                            for name in ('basis','implication'):
+                                part = indexes['claims'][cid].get(name)
+                                check(isinstance(part,str) and part.strip(), f'{cid}: missing {name}')
+        else:
+            errors.append('decision: reader, question and critical_gap_ids required')
     for c in indexes['claims'].values():
         used_metrics.update(x for x in c.get('metric_ids',[]) if isinstance(x,str))
     for c in indexes['charts'].values():
         check(c.get('type')=='table', f'{c["id"]}: unsupported chart type')
         used_metrics.update(refs(c,'metric_ids','metrics'))
-    check(bool(indexes['charts']) or (not indexes['metrics'] and indexes['gaps'] and d.get('status') != 'final'),
+    check(decision is not None or bool(indexes['charts']) or (not indexes['metrics'] and indexes['gaps'] and d.get('status') != 'final'),
           'at least one annotated chart/table required when reporting numbers')
     check(set(indexes['claims'])==used_claims, 'orphan claims')
     check(set(indexes['gaps'])==used_gaps, 'orphan gaps')
     check(set(indexes['metrics'])==used_metrics, 'orphan metrics')
-    check(not (d.get('status')=='final' and indexes['gaps']), 'final report has unresolved gaps')
-    return {'structure_pass':not errors,'registered_gaps':len(indexes['gaps']), 'decision_data_complete':False, 'completeness_review':'requires semantic review; absence of registered gaps does not establish completeness',
-            'semantic_review':'required: verify original sources and claim entailment', 'errors':errors}
+    blocking = decision.get('critical_gap_ids') if isinstance(decision,dict) else indexes['gaps']
+    check(not (d.get('status') == 'final' and blocking), 'final report has unresolved decision gaps')
+    result = {'structure_pass': not errors, 'registered_gaps': len(indexes['gaps']),
+              'decision_data_complete': False, 'completeness_review': 'requires semantic review; absence of registered gaps does not establish completeness',
+              'semantic_review': 'required: verify original sources and claim entailment', 'errors': errors}
+    if isinstance(decision, dict):
+        result['critical_gap_ids'] = decision.get('critical_gap_ids')
+        # Absence of a declared blocker does not certify completeness.
+        if not result['critical_gap_ids']:
+            result['decision_data_complete'] = None
+    return result
 
 def scope_text(scope):
     # Earlier working reports sometimes carry the query's region or period object.
@@ -259,6 +306,14 @@ def render(d):
     out = [f'# {d["title"]}', '', f'区域：{scope_text(d["region"])}｜产业：{scope_text(d["industry"])}｜时间窗/基期：{scope_text(d["period"])}｜数据时点：{d["as_of"]}', '',
            f'状态：{d["status"]}；模板：{template["name"]}（研究改编）。',
            '数据完备性：存在缺口，不能直接用于审批。' if d['gaps'] else '数据完备性：无登记缺口；仍需语义审核。','']
+    decision = d.get('decision')
+    if decision:
+        out = [f'# {d["title"]}', '', f'{decision["reader"]} · {decision["question"]}', '',
+               f'{scope_text(d["region"])}｜{scope_text(d["industry"])}｜{scope_text(d["period"])}｜截至 {d["as_of"]}', '']
+        if decision['critical_gap_ids']:
+            out += ['本报告按现有材料作答。以下决定仍需补证：', '']
+            for key in decision['critical_gap_ids']:
+                out += [f'- {indexes["gaps"][key]["impact"]}', '']
     def citation(source, label):
         url = source['url']
         if url.startswith(('data/', 'uploads/', 'user:')):
@@ -272,9 +327,18 @@ def render(d):
             for mid in c.get('metric_ids',[]):
                 sources.extend(indexes['metrics'][mid]['source_ids'])
             links = ' '.join(citation(indexes["sources"][sid], sid) for sid in dict.fromkeys(sources))
+            if decision:
+                parts = [part.strip() for part in [c['text'], c.get('basis'), c.get('implication')] if part and part.strip()]
+                paragraph = ' '.join(part if re.search(r'[。！？.!?；;：:][”’」）)]?$',part) else part + '。' for part in parts)
+                kind = {'fact':'事实','inference':'推断','recommendation':'建议'}[c['kind']]
+                out += [f'{paragraph} 〔{kind} · {cid} · {links}〕', f'适用条件：{c["limitation"]}', '']
+                continue
             out += [f'- **{cid} · {c["kind"]}**：{c["text"]} {links}', f'  - 适用限制：{c["limitation"]}', '']
         for gid in section['gap_ids']:
             g = indexes['gaps'][gid]
+            if decision:
+                out += [f'{g["description"]}。{g["owner"]}需补充{g["required_data"]}。{g["impact"]} 〔{gid}〕', '']
+                continue
             out += [f'- **{gid} · 数据缺口**：{g["description"]}；取数责任：{g["owner"]}；待取：{g["required_data"]}；影响：{g["impact"]}', '']
     def cell(s):
         return str(s).replace('|','\\|').replace('\n',' ')
@@ -308,8 +372,99 @@ def render(d):
             out.append('')
     return '\n'.join(out)+'\n'
 
-def build_delivery(d, validation, review):
+def decision_scope(d):
+    decision = d['decision']
+    critical = set(decision['critical_gap_ids'])
+    evidence = sorted((s['id'], s['scope'], s['locator'], s['excerpt'], s.get('contentHash','')) for s in d['sources'])
+    return (decision['reader'], decision['question'], d['region'], d['industry'], d['period'], evidence,
+            sorted((g['id'], g['description'], g['required_data'], g['impact']) for g in d['gaps'] if g['id'] in critical))
+
+def chose_limited(message, quote, offered, option=None):
+    """Only an affirmative user choice can release a limited report; citing a phrase cannot."""
+    message = message.strip()
+    quote = quote.strip()
+    if not quote or quote not in message or re.search(r'不要.{0,8}继续|不(?:同意|按|选|希望).{0,10}继续|暂[不缓]|先别|别继续|[?？]', message):
+        return False
+    if re.search(r'取消(?:刚才|选择|继续)|撤回|等.{0,12}再(?:写|出|继续)|(?:改为|改选|先)(?:先)?(?:补充材料|扩大范围|扩围)|(?:^|[，,。；;：:\s])(?:我(?:选择|选|要)|请)?(?:先|改为|还是|只)?(?:补充材料|扩大范围|扩围|等.{0,12}再(?:写|出|继续))', message):
+        return False
+    # Permit the named option, optionally followed by the requested limitations.
+    # A short free reply such as “继续” only has a definite referent after the offer.
+    lead = re.split(r'[，,。；;！!\n]', message, maxsplit=1)[0].strip()
+    if offered and type(option) is int and 1 <= option <= 12:
+        identifiers = (str(option), chr(64 + option), '选项' + str(option), '第' + str(option) + '项')
+        if lead.upper() in identifiers and lead in quote:
+            return True
+    affirmative = re.fullmatch(r'(?:我(?:选择|选|同意)|请|就)?(按(?:现有证据|已有材料|现有材料)继续)(?:生成|出具|写)?(?:报告|简报)?', lead)
+    if affirmative:
+        return affirmative.group(1) in quote
+    return offered and lead in ('继续','继续生成','继续出稿','同意继续') and lead in quote
+
+def cosmetic_revision(message):
+    # Reuse approval for an explicitly editorial request only. A new decision
+    # or a request to wait must never inherit permission from an older download.
+    edit = r'(?:改|修改|调整|润色)(?:一下)?(?:报告)?(?:标题|措辞|排版|格式)'
+    title = r'[^。！？?；;，,\n]{1,100}'
+    rename = r'(?:把|将)(?:报告)?标题改(?:成|为)' + title
+    return bool(re.fullmatch(r'(?:请|仅|只)?(?:帮我)?(?:' + edit + r'(?:(?:为|成)' + title + ')?|' + rename + r')[。！]?', message.strip()))
+
+def check_release(d, reply_file=None):
+    context = session_context()
+    decision = d.get('decision')
+    if decision is None:
+        if context is not None:
+            raise ValueError('本轮报告须填写 decision，先判断原范围内证据能否回答核心问题')
+        return  # Standalone observation reports predate the decision field.
+    if not decision['critical_gap_ids']:
+        if context:
+            message = context['message']
+            chose_partial = chose_limited(message, message, context['offered'], context.get('continueOption'))
+            if chose_partial and (context['offered'] or '未决' in message):
+                raise ValueError('用户选择保留未决事项；把仍影响本决定的 gaps ID 填入 decision.critical_gap_ids')
+            # Changing only the title does not resolve any previously declared blocker.
+            if cosmetic_revision(message):
+                prior = previous_decision(context)
+                if prior and prior['decision']['critical_gap_ids']:
+                    raise ValueError('文字修订须保留上一版的关键缺口与用户选择')
+        return
+    quote = decision.get('continue_quote', '')
+    if not isinstance(quote, str) or not quote.strip():
+        raise ValueError('关键缺证：说明影响并等待用户选择，不能构建报告')
+    if context is not None:
+        if chose_limited(context['message'], quote, context['offered'], context.get('continueOption')):
+            return
+        if not cosmetic_revision(context['message']):
+            raise ValueError('关键缺证：需要用户明确选择按现有证据继续，补证或扩围后须重新评估')
+    elif reply_file and chose_limited(reply_file.read_text(), quote, True):
+        return
+    else:
+        raise ValueError('关键缺证：请用 --user-reply 提供用户明确继续的实际回复')
+    # A cosmetic revision can reuse the last published decision in the same workspace.
+    prior = previous_decision(context)
+    if prior and prior['decision'].get('continue_quote') == quote and decision_scope(prior) == decision_scope(d):
+        return
+    raise ValueError('关键缺证：未找到用户对这项决定按现有证据继续的原话；请先等待回复')
+
+def previous_decision(context):
+    prior_run = context.get('previousBuildRun')
+    if not prior_run or not re.fullmatch(r'[0-9]{8}-[0-9]{6}-[a-z0-9]+', prior_run):
+        return None
+    manifest = Path(f'industry-build-{prior_run}.json')
+    if manifest.is_file():
+        for item in json.loads(manifest.read_text()).get('files', []):
+            if item.get('name') != '结构化报告' or not re.fullmatch(r'output/report-[\w-]+/report\.json', item['path']):
+                continue
+            file = Path(item['path']).resolve()
+            if file.is_relative_to(Path.cwd() / 'output') and file.is_file():
+                content = file.read_bytes()
+                if hashlib.sha256(content).hexdigest() == item.get('sha256'):
+                    prior = json.loads(content)
+                    if isinstance(prior.get('decision'), dict):
+                        return prior
+    return None
+
+def build_delivery(d, validation, review, reply_file=None):
     """Publish one complete revision. The previous manifest survives a failed build."""
+    check_release(d, reply_file)
     if not review.strip():
         raise ValueError('review.md is empty')
     missing = [c['id'] for c in d['claims']
@@ -326,6 +481,7 @@ def build_delivery(d, validation, review):
         if not output.is_dir():
             raise
     folder = Path(tempfile.mkdtemp(prefix='report-', dir=output)).resolve().relative_to(Path.cwd())
+    published = False
     try:
         # Both the sandbox writer and the delivery service belong to the workspace group.
         workspace_group = Path.cwd().stat().st_gid
@@ -342,13 +498,28 @@ def build_delivery(d, validation, review):
             path = folder / filename
             path.write_text(content, encoding='utf-8')
             path.chmod(0o640)
-            files.append({'name': label, 'path': str(path)})
+            if path.read_text(encoding='utf-8') != content:
+                raise OSError(f'交付文件回读不一致：{filename}')
+            files.append({'name': label, 'path': str(path), 'sha256': hashlib.sha256(content.encode('utf-8')).hexdigest()})
         manifest = folder / 'delivery.tmp'
         manifest.write_text(json.dumps({'files': files}, ensure_ascii=False), encoding='utf-8')
         manifest.chmod(0o640)
+        context = session_context()
+        run_id = context.get('runId') if context else None
+        if run_id:
+            if not re.fullmatch(r'[0-9]{8}-[0-9]{6}-[a-z0-9]+',run_id):
+                raise ValueError('运行编号无效')
+            receipt = folder / 'build.tmp'
+            receipt.write_bytes(manifest.read_bytes())
+            receipt.chmod(0o640)
         manifest.replace('delivery.json')
+        published = True
+        if run_id:
+            receipt.replace(f'industry-build-{run_id}.json')
     except BaseException:
-        shutil.rmtree(folder)
+        # Once the public manifest points here, keep the complete revision even if registration failed.
+        if not published:
+            shutil.rmtree(folder)
         raise
     return folder
 
@@ -358,6 +529,7 @@ def main():
     p.add_argument('report',type=Path)
     p.add_argument('rendered',type=Path,nargs='?')
     p.add_argument('--output',type=Path)
+    p.add_argument('--user-reply',type=Path,help='standalone build: file containing the actual user reply')
     p.add_argument('--review',type=Path,default=Path('review.md'))
     a = p.parse_args()
     try:
@@ -369,9 +541,10 @@ def main():
             print(json.dumps(result,ensure_ascii=False,indent=2))
             return 1
         elif a.command=='build':
-            print(build_delivery(d, result, a.review.read_text()))
+            print(build_delivery(d, result, a.review.read_text(), a.user_reply))
             return 0
         elif a.command=='render':
+            check_release(d, a.user_reply)
             output = render(d)
         else:
             if a.rendered is None:

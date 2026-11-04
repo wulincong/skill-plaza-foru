@@ -142,7 +142,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '你正在按 industry-education-report SKILL 工作。面向院校管理者、政府部门或产业园区，' +
     '围绕目标区域、产业和决策问题，复用相同范围的证据，需要新岗位统计时交由 talent-data-query 取数。' +
     '明确区分事实、推断、建议和缺失数据；所有统计结论都提示核验年份、范围、口径和来源；' +
-    '资料不足时保留缺口，不编造数字。先确认任务对象、地区、报告用途和基期，再推进交付。',
+    '关键缺证时说明影响，等待用户选择补证、扩围或按现有证据继续。单项决策默认三节简报。',
   'classroom-assistant':
     '你正在按 classroom-assistant SKILL 工作。只在用户明确提供或授权的课程资料范围内完成' +
     '带定位引用的答疑、课堂要点、练习和答疑记录整理。资料不足或问题越界时，明确说明缺口，' +
@@ -242,8 +242,8 @@ export function listPlazaSkills(): PlazaSkillInfo[] {
 export const SIDECAR_SKILLS = new Set<string>()
 
 /** 广场按实际渲染模板核对观察报告章节。 */
-export function industryReportSections(): Array<{ id: string; title: string }> {
-  return JSON.parse(readFileSync(join(skillDir('industry-education-report'), 'assets/templates.json'), 'utf8')).observation.sections
+export function industryReportSections(edition: 'decision' | 'observation' = 'observation'): Array<{ id: string; title: string }> {
+  return JSON.parse(readFileSync(join(skillDir('industry-education-report'), 'assets/templates.json'), 'utf8'))[edition].sections
 }
 
 /** 已安装技能的目录（供 pi --skill 直接加载）。

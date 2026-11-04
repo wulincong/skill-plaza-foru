@@ -1,7 +1,7 @@
 // Exercise the public handoff with synthetic observations, without database access.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -10,7 +10,7 @@ import { validateRequest } from '../../../../scripts/talent-data/core.mjs'
 import { buildPlan } from '../../../../scripts/talent-data/compile.mjs'
 import { buildResult } from '../../../../scripts/talent-data/metrics.mjs'
 import { persistResult } from '../../../../scripts/talent-data/artifacts.mjs'
-import { parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
+import { industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
 import { publishDelivery } from '../../../../web/server/lib/delivery.ts'
 
 const cli = fileURLToPath(new URL('./report.py', import.meta.url))
@@ -138,4 +138,93 @@ test('empty evidence is distinct from failed collection and an all-gap draft nee
   assert.equal((await validate()).structure_pass,true)
   report.status='final'
   assert.equal((await validate()).structure_pass,false)
+})
+
+test('the decision brief waits for the user on a material gap; minor gaps do not block an answer', async t=>{
+  const root=await mkdtemp(join(tmpdir(),'industry-choice-'))
+  t.after(()=>rm(root,{recursive:true,force:true}))
+  const cliRun=command=>spawnSync('python3',[cli,command,'report.json'],{cwd:root,encoding:'utf8'})
+  const quote='按现有证据继续，是否增班留作未决。'
+  const excerpt='企业希望练习安全停机与复位。'
+  const source={id:'T',title:'访谈',publisher:'企业',url:'user:访谈',locator:'第2条',excerpt,
+    published:'未标注',accessed:'2026-11-04',scope:'本次调研'}
+  const report={
+    title:'是否增开实训班',edition:'decision',region:'佛山',industry:'机器人',period:'下学期',as_of:'2026-11-04',
+    status:'draft',decision:{reader:'专业负责人',question:'能否新增一个班？',critical_gap_ids:['G']},
+    sources:[source],metrics:[],charts:[],
+    claims:[{id:'C',kind:'inference',text:'可把复位操作纳入校企访谈。',basis:excerpt,implication:'应先核实工位。',limitation:'单次访谈',source_ids:['T']}],
+    gaps:[{id:'G',description:'缺实训室排课表',owner:'教务处',required_data:'空闲课时',impact:'能否增班未决'}],
+    sections:['D01','D02','D03'].map(id=>({id,claim_ids:['C'],gap_ids:['G']})),
+  }
+  const save=()=>writeFile(join(root,'report.json'),JSON.stringify(report))
+  const runId='20261104-121314-test'
+  let previousBuildRun
+  const context=(message,offered,uploads=[])=>writeFile(join(root,'industry-report-input.json'),
+    JSON.stringify({runId,previousBuildRun,message,offered,earlierMessages:[excerpt],uploads}))
+  await save(); await writeFile(join(root,'review.md'),'C 已核对访谈。')
+  await context('请直接生成报告',false)
+  for (const command of ['render','build']) assert.notEqual(cliRun(command).status,0)
+  await assert.rejects(readFile(join(root,'delivery.json')), {code:'ENOENT'})
+  report.decision.continue_quote='请直接生成报告'
+  await save()
+  assert.notEqual(cliRun('build').status,0)
+  report.decision.continue_quote='按现有证据继续'
+  await save()
+  for (const answer of ['不要按现有证据继续，我先补材料。','暂时不按现有证据继续','按现有证据继续？']) {
+    await context(answer,true)
+    assert.notEqual(cliRun('build').status,0)
+  }
+  report.decision.continue_quote=quote
+  await save(); await context('扩大范围',true)
+  assert.notEqual(cliRun('build').status,0)
+  await context(quote,true)
+  report.decision.critical_gap_ids=[]
+  await save()
+  assert.notEqual(cliRun('build').status,0)
+  report.decision.critical_gap_ids=['G']
+  await save()
+  let built=cliRun('build')
+  assert.equal(built.status,0,built.stderr+built.stdout)
+  let manifest=await readJson(join(root,'delivery.json'))
+  previousBuildRun=runId
+  await writeFile(join(root,'delivery.json'),JSON.stringify({files:[{name:'模型另打的包',path:'output/report.zip'}]}))
+  const declared=industryDelivery(root,runId,undefined,'按现有证据继续')
+  assert.deepEqual(declared.files,manifest.files)
+  assert.equal(industryDelivery(root,runId,undefined,'请提供压缩包').files.length,5)
+  assert.throws(()=>industryDelivery(root,'20261104-121500-test',undefined,'交付报告'),/未通过本轮 build/)
+  const original=await readFile(join(root,manifest.files[0].path),'utf8')
+  assert.match(original,/能否增班未决/)
+  assert.match(original,/企业希望练习安全停机与复位。 应先核实工位。/)
+  const links=publishDelivery(root,manifest,join(root,'store'),'https://example.invalid')
+  const parsed=parseDeliveredReport(links,join(root,'store'),'已完成')
+  assert.equal(parsed.structurePass,true)
+  assert.equal(parsed.stats.inferences,1)
+  await writeFile(join(root,declared.files[0].path), original + '伪造结论')
+  assert.throws(()=>publishDelivery(root,declared,join(root,'store'),'https://example.invalid'),/核验的内容不一致/)
+  await writeFile(join(root,declared.files[0].path),original)
+  await context('改一下标题',false)
+  report.decision.critical_gap_ids=[]
+  await save()
+  assert.notEqual(cliRun('build').status,0)
+  report.decision.critical_gap_ids=['G']
+  report.title='校企实训安排'; await save()
+  built=cliRun('build'); assert.equal(built.status,0,built.stderr+built.stdout)
+  manifest=await readJson(join(root,'delivery.json'))
+  report.region='珠海'; await save()
+  assert.notEqual(cliRun('build').status,0)
+  assert.deepEqual(await readJson(join(root,'delivery.json')),manifest)
+  report.decision.critical_gap_ids=[]; delete report.decision.continue_quote
+  report.status='final'; await context('补充了排课证据，请重新判断。',true); await save()
+  assert.equal(cliRun('build').status,0)
+  source.excerpt='新增训练一定可行'; await save()
+  assert.match(cliRun('build').stdout,/excerpt/)
+  await mkdir(join(root,'uploads'))
+  source.url='uploads/访谈.md'
+  await writeFile(join(root,source.url),excerpt)
+  await context('按提供的访谈写简报',false,[source.url])
+  await save()
+  assert.match(cliRun('validate').stdout,/不在上传文件原文/)
+  source.excerpt=excerpt
+  delete report.claims[0].basis; await save()
+  assert.match(cliRun('validate').stdout,/missing basis/)
 })

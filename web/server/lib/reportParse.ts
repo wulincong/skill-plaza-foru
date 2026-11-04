@@ -1,22 +1,65 @@
 /** 运行详情从已交付的报告正文提取章节、引用和结论统计。 */
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
-import type { DeliveryLinks } from './delivery.ts'
+import { deliveryFingerprint, readDeliveryManifest, type DeliveryLinks, type DeliveryManifest } from './delivery.ts'
 import { industryReportSections } from './skills.ts'
 
-/** Read the immutable Markdown copy published for this turn by report.py build. */
-export function parseDeliveredReport(delivery: DeliveryLinks, store: string, reply: string): ReportParseResult | null {
-  const link = delivery.downloads?.find(file => file.name === '报告正文')
-  if (link) {
-    const match = /^\/api\/deliveries\/([a-f0-9]{32})\/files\/(\d+)$/.exec(new URL(link.url).pathname)
-    if (!match) throw new Error('报告正文交付地址无效')
-    const file = join(store, match[1], 'files', match[2] + '.md')
-    if (statSync(file).size > 8 * 1024 * 1024) throw new Error('报告正文过大')
-    return parseReport(readFileSync(file, 'utf8'))
+/** Only the current build's four files form an industry report. Extra requested
+ * formats may use the ordinary manifest without replacing the verified originals. */
+export function industryDelivery(workspace: string, runId: string, previous: string | undefined, request: string): DeliveryManifest | undefined {
+  const receipt = readDeliveryManifest(workspace, undefined, `industry-build-${runId}.json`)
+  if (!receipt) {
+    if (deliveryFingerprint(workspace) !== previous) throw new Error('产教报告未通过本轮 build，不能交付')
+    return undefined
   }
-  // Earlier clients can still deliver the report directly in their final Markdown.
+  const originals = receipt.files ?? []
+  const required = [['报告正文','report.md'], ['结构化报告','report.json'], ['结构验收','validation.json'], ['证据复核','review.md']]
+  const folder = originals[0]?.path?.match(/^(output\/report-[\w-]+)\/report\.md$/)?.[1]
+  if (!folder || originals.length !== required.length || required.some(([name, file], i) =>
+    originals[i]?.name !== name || originals[i]?.path !== folder + '/' + file || !/^[a-f0-9]{64}$/.test(originals[i]?.sha256 ?? ''))) throw new Error('产教报告的四份构建文件不完整')
+  const formats = [
+    {request: /word|docx?/i, ext: /\.docx?$/i}, {request: /pdf/i, ext: /\.pdf$/i},
+    {request: /zip|压缩包/i, ext: /\.zip$/i},
+  ].filter(f => f.request.test(request) && !new RegExp('(?:不要|无需|不用|不需要)\\s*(?:' + f.request.source + ')', 'i').test(request))
+  const extra = formats.length ? readDeliveryManifest(workspace, previous)?.files ?? [] : []
+  return {files: [...originals, ...extra.filter(f => formats.some(format => format.ext.test(f.path)))]}
+}
+
+export function expectsIndustryBuild(request: string, answer: string): boolean {
+  if (/仅用文字|只(?:在|用)对话|(?:无需|不用|不要|不需要).{0,4}(?:文件|下载)|(?:怎么|如何).{0,8}(?:生成|构建|下载)/.test(request)) return false
+  const deliver = /(?:生成|出具|撰写|交付|修订|制作|重写).{0,30}(?:报告|简报|四份文件)|按(?:现有证据|已有材料)继续|(?:把|将)(?:报告)?标题改(?:为|成)/s
+  if (deliver.test(request)) return true
+  const revises = /生成|交付|修订|制作|改为|改成|改.*标题/.test(request)
+  return revises && /已[^。；\n]{0,28}(?:完成|生成|交付|修订)|^#{1,3} .*(?:决策简报|产教决策报告)/m.test(answer)
+}
+
+function deliveredFile(url: string, store: string, extension: string): string {
+  const match = /^\/api\/deliveries\/([a-f0-9]{32})\/files\/(\d+)$/.exec(new URL(url).pathname)
+  if (!match) throw new Error('报告交付地址无效')
+  const file = join(store, match[1], 'files', match[2] + extension)
+  if (statSync(file).size > 8 * 1024 * 1024) throw new Error('报告文件过大')
+  return readFileSync(file, 'utf8')
+}
+
+/** The published JSON selects the same template that rendered this revision. */
+export function parseDeliveredReport(delivery: DeliveryLinks, store: string, reply: string): ReportParseResult | null {
+  const markdown = delivery.downloads?.find(file => file.name === '报告正文')
+  if (markdown) {
+    const text = deliveredFile(markdown.url, store, '.md')
+    const data = delivery.downloads?.find(file => file.name === '结构化报告')
+    if (!data) return parseReport(text)
+    const report = JSON.parse(deliveredFile(data.url, store, '.json'))
+    const parsed = parseReport(text, industryReportSections(report.edition))
+    if (parsed && report.decision) {
+      for (const [key, kind] of [['facts','fact'], ['inferences','inference'], ['recommendations','recommendation']] as const) {
+        parsed.stats[key] = report.claims.filter((c: { kind: string }) => c.kind === kind).length
+      }
+      parsed.stats.gaps = report.gaps.length
+    }
+    return parsed
+  }
   if (!/^##\s+/m.test(reply)) return null
-  const expected = industryReportSections()
+  const expected = industryReportSections(/^## 证据与判断$/m.test(reply) ? 'decision' : 'observation')
   const parsed = parseReport(reply, expected)
   return parsed && parsed.missingSections.length < expected.length ? parsed : null
 }

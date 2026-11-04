@@ -87,17 +87,17 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
   {
     slug: 'industry-education-report',
     eyebrow: '产业研究工作台',
-    lead: '说明服务地区、产业与要做的决定。报告将岗位统计和院校材料对应到具体建议。',
-    output: '区域产业人才需求报告、数据口径与证据复核',
-    promptInstruction: '按上述范围生成产教决策报告，统计引用实际查询结果，所给材料与待补证据分别说明。',
+    lead: '写明谁要做什么决定。可附岗位调研、培养方案或排课表，生成决策简报。',
+    output: '决策简报、结构化报告与证据复核',
+    promptInstruction: '围绕决策问题生成简报。若核心判断仍缺证据，先说明影响，请我选择如何继续。',
     sections: [
       {
         number: '01',
         title: '确定报告范围',
-        description: '产业和岗位名称会影响统计范围，请写明研究对象。',
+        description: '查询地区岗位数据时填写地区和产业；仅分析校内材料时可留空。',
         fields: [
-          { id: 'region', label: '目标地区', type: 'text', required: true, placeholder: '例如：广东省广州市' },
-          { id: 'industry', label: '产业或岗位范围', type: 'text', required: true, placeholder: '例如：机器人产业' },
+          { id: 'region', label: '目标地区', type: 'text', placeholder: '例如：广东省广州市' },
+          { id: 'industry', label: '产业或岗位范围', type: 'text', placeholder: '例如：机器人产业' },
           { id: 'baseline', label: '观察时期', type: 'text', placeholder: '留空使用当前在招记录；历史分析请注明时间与材料' },
           { id: 'audience', label: '服务对象', type: 'choice', required: true, options: ['院校管理者', '政府部门', '产业园区'] },
         ],

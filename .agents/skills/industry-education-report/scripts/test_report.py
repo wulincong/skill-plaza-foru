@@ -16,6 +16,22 @@ class ReportTests(unittest.TestCase):
         self.d['claims'][0]['source_ids']=[]
         self.d['claims'][0]['metric_ids']=[]
         self.assertFalse(report.validate(self.d)['structure_pass'])
+    def test_only_affirmative_choice_releases_a_limited_report(self):
+        for message, quote in [
+            ('不要按现有证据继续，我先补材料','按现有证据继续'),
+            ('暂时不按现有证据继续','按现有证据继续'),
+            ('我选扩大范围，请扩大到园区','扩大到园区'),
+            ('先补充材料，再继续','继续'),
+            ('按现有证据继续？','按现有证据继续'),
+            ('按现有证据继续，但我改为先补充材料','按现有证据继续'),
+        ]:
+            with self.subTest(message=message):
+                self.assertFalse(report.chose_limited(message,quote,True))
+        self.assertTrue(report.chose_limited('按现有证据继续，注明开班未决。','按现有证据继续',True))
+        self.assertFalse(report.chose_limited('继续','继续',False))
+        self.assertTrue(report.chose_limited('3','3',True,3))
+        self.assertFalse(report.chose_limited('2','2',True,3))
+
     def test_missing_section(self):
         self.d['sections'].pop()
         self.assertFalse(report.validate(self.d)['structure_pass'])

@@ -14,7 +14,7 @@ import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
 import { handleAdmin } from './lib/adminApi.ts'
 import { historyPrefix, browserSessionPattern, validSessionId, conversationItem } from './lib/browserHistory.ts'
 import { createServer } from 'node:http'
-import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -36,7 +36,7 @@ import {
 } from './lib/traceExport.ts'
 import { tokenUsageFrom, usageWithTokenSnapshot } from './lib/traceExport.ts'
 import { renderTraceMd } from './lib/traceMd.ts'
-import { parseDeliveredReport } from './lib/reportParse.ts'
+import { expectsIndustryBuild, industryDelivery, parseDeliveredReport } from './lib/reportParse.ts'
 import {
   MAX_HTML_REPORT_BYTES,
   normalizeLegacyHtmlDocument,
@@ -60,7 +60,7 @@ import { pdfDownloadFilename, readWorkspacePdfReport, workspacePdfFingerprint } 
 import type { EngineName, RunnerEvent } from './lib/runner.ts'
 import { ExecutionTracker, readLegacyExecution } from './lib/execution.ts'
 import type { ExecutionStep } from '../shared/execution.ts'
-import { projectQuestion, QUESTION_INSTRUCTION } from './lib/chatQuestion.ts'
+import { projectQuestion, projectIndustryReply, QUESTION_INSTRUCTION } from './lib/chatQuestion.ts'
 import type { ChatQuestion } from '../shared/chatQuestion.ts'
 import { deriveSessionConversation } from './lib/conversation.ts'
 import { deliveryBaseUrl, deliveryFingerprint, handleDelivery, publishDelivery, publishLegacyDelivery, readDeliveryManifest, type DeliveryLinks } from './lib/delivery.ts'
@@ -351,7 +351,11 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
     if (at >= 0) wrappers.push({ prefix: composed.slice(0, at), suffix: composed.slice(at + USER_TEXT_SENTINEL.length) })
   }
   // Old observation reports used only the skill prefix on their first turn.
-  if (skill === 'industry-education-report') wrappers.push({ prefix: `/skill:${skill} `, suffix: '' })
+  if (skill === 'industry-education-report') {
+    const prefix = `/skill:${skill} `
+    const oldSuffix = '\n\n（生成或修订正式报告时，使用报告技能的 report.py build 交付。已保存的同口径数据由 build 离线核验。成功后保留脚本登记的四份下载，结束工具调用并简述结论和缺口。）'
+    wrappers.push({ prefix, suffix: oldSuffix }, { prefix: '', suffix: oldSuffix }, { prefix, suffix: '' })
+  }
   /* 长前缀优先：首轮 `/skill:x ` 包装先于续轮空前缀命中 */
   return wrappers.sort((a, b) => b.prefix.length - a.prefix.length)
 }
@@ -889,7 +893,7 @@ interface WireDonePayload extends DeliveryLinks {
  *   为 choices:[] + 顶层扩展帧；终态 stop/报告/usage 帧后 [DONE]。
  * openai JSON：不写 SSE 头，终态一次性回 chat.completion（reportUrl 为顶层扩展字段）。
  */
-function createChatWire(protocol: ChatProtocol, stream: boolean, interactive = false) {
+function createChatWire(protocol: ChatProtocol, stream: boolean, interactive = false, deferFinalText = false) {
   let res: any = null
   let heartbeat: ReturnType<typeof setInterval> | undefined
   let id = 'chatcmpl-pending'
@@ -920,12 +924,13 @@ function createChatWire(protocol: ChatProtocol, stream: boolean, interactive = f
      的是最终答复正文。前提是侧车扣留层已按技能门控——非侧车技能 text 增量即时
      透传，消息内全部增量先于 message_end 到达（trace 实证），定性确定性成立。 */
   let msgBuf = ''
-  const flushMessageText = (narration: boolean) => {
+  const flushMessageText = (narration: boolean, terminal = false) => {
     if (!msgBuf) return
+    if (deferFinalText && !narration && !terminal) { msgBuf = ''; return }
     if (protocol === 'plaza') {
       if (narration) sse({ type: 'status', phase: 'thinking', state: 'completed', message: msgBuf })
       else {
-        const visible = interactive ? projectQuestion(msgBuf).text : msgBuf
+        const visible = interactive && !deferFinalText ? projectQuestion(msgBuf).text : msgBuf
         if (visible) sse({ type: 'text', delta: visible })
       }
     } else frame(narration ? { reasoning_content: msgBuf } : { content: msgBuf })
@@ -1048,8 +1053,11 @@ function createChatWire(protocol: ChatProtocol, stream: boolean, interactive = f
       if (protocol === 'plaza') sse({ type: 'usage', usage, content })
     },
     done(p: WireDonePayload) {
+      // Both SSE adapters send the same terminal projection as the non-streaming
+      // API. Never flush raw industry protocol blocks at message_end.
+      if (deferFinalText && isSse) msgBuf = p.content
       if (protocol === 'plaza') {
-        flushMessageText(false)
+        flushMessageText(false, true)
         sse({
           type: 'done',
           question: p.question,
@@ -1071,7 +1079,7 @@ function createChatWire(protocol: ChatProtocol, stream: boolean, interactive = f
       const usage = openAiUsage(p.usage)
       if (stream) {
         /* 残余缓冲未等到消息边界（异常收尾）：按最终答复发出 */
-        flushMessageText(false)
+        flushMessageText(false, true)
         frame({}, 'stop')
         if (p.reportUrl || p.webLinks?.length || p.downloads?.length) extFrame({ reportUrl: p.reportUrl, webLinks: p.webLinks, downloads: p.downloads, runId: p.runId, resultType: p.resultType })
         if (usage) extFrame({ usage })
@@ -1111,7 +1119,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   const { skill } = params
   const { messages, sessionId } = params
 
-  const wire = createChatWire(params.protocol, params.stream, params.interactive)
+  const wire = createChatWire(params.protocol, params.stream, params.interactive, skill === 'industry-education-report')
   wire.begin(res)
   const finish = () => wire.finish()
   const taskTitle = params.taskTitle
@@ -1189,6 +1197,24 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   const promptDigest = taskTitle || digestSource.replace(/\s+/g, ' ').slice(0, 80)
   /* 附件说明在 digest 之后注入 prompt：路径必须落在本会话沙箱内（防穿越）；
      .md/.txt 直接内联内容（截断 16000 字保底），其余格式指示引擎读工作目录文件 */
+  const originalUserText = params.resumeSource?.userMessage ?? String(latest.content)
+  const earlierIndustryMessages = new Set<string>()
+  const additionalIndustrySources: string[] = []
+  if (skill === 'industry-education-report') {
+    for (const run of priorRuns) {
+      if (run.skill !== skill) continue
+      for (const text of run.industryUserSources ?? []) earlierIndustryMessages.add(text)
+      if (run.userMessage) earlierIndustryMessages.add(run.userMessage)
+    }
+    if (params.protocol === 'openai') {
+      for (const message of messages.slice(0, -1)) {
+        if (message?.role !== 'user' || typeof message.content !== 'string' || !message.content.trim()) continue
+        if (message.content === originalUserText || earlierIndustryMessages.has(message.content)) continue
+        additionalIndustrySources.push(message.content)
+        earlierIndustryMessages.add(message.content)
+      }
+    }
+  }
   const attachmentNotes: string[] = []
   const attachmentFiles: Array<{ name: string; path: string }> = []
   const source = params.resumeSource
@@ -1282,6 +1308,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   const previousHtmlFingerprint = deliveryFingerprint(entry?.workspaceDir ?? join(__dirname, 'workspace', clientSessionId), 'report.html')
   let delivery: DeliveryLinks = {}
   let deliveryCaptured = false
+  let waitingForIndustryEvidence = false
   let deliveryError: string | undefined
   let promptDispatched = false
   let turnStarted = false
@@ -1365,10 +1392,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   }
 
   const captureDelivery = (): DeliveryLinks => {
-    if (deliveryCaptured || !turnStarted || !entry?.workspaceDir) return delivery
+    if (deliveryCaptured || !turnStarted || !entry?.workspaceDir || waitingForIndustryEvidence) return delivery
     deliveryCaptured = true
     try {
-      const manifest = readDeliveryManifest(entry.workspaceDir, previousDeliveryFingerprint)
+      const manifest = skill === 'industry-education-report'
+        ? industryDelivery(entry.workspaceDir, runId, previousDeliveryFingerprint, originalUserText)
+        : readDeliveryManifest(entry.workspaceDir, previousDeliveryFingerprint)
       // Existing HTML/PDF skills keep their fixed-path contracts. New output uses
       // the same persistent delivery channel without requiring prompt migration.
       if (manifest) delivery = publishDelivery(entry.workspaceDir, manifest, DELIVERIES_DIR, deliveryBaseUrl(req))
@@ -1417,9 +1446,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       skill,
       taskTitle: taskTitle || undefined,
       userMessage: digestSource,
+      ...(additionalIndustrySources.length ? { industryUserSources: additionalIndustrySources } : {}),
       question, answerTo: params.answerTo,
       reportContinuations: reportContinuations || undefined,
-      localReply: skill === 'wechat-report' && delivery.webLinks?.length ? finalText : undefined,
+      localReply: (skill === 'industry-education-report' && sidecar && (question || finalText !== sidecar.cleanText)) ||
+        (skill === 'wechat-report' && delivery.webLinks?.length) ? finalText : undefined,
       promptDigest,
       outcome,
       durationMs,
@@ -1682,7 +1713,12 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           wire.textDelta(fullText.slice(forwarded))
         }
         wire.usage(lastUsage)
-        if (params.interactive) {
+        if (skill === 'industry-education-report') {
+          const projected = projectIndustryReply(finalText, params.interactive === true)
+          finalText = projected.text
+          question = projected.question
+          waitingForIndustryEvidence = projected.waiting
+        } else if (params.interactive) {
           const projected = projectQuestion(finalText)
           if (projected.question) {
             question = projected.question
@@ -1702,18 +1738,27 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         const hasReportData=Boolean(entry && existsSync(join(entry.workspaceDir,'wechat-report','report_data.json')))
         if (skill==='wechat-report' && !question && !hasReportData && reportScopeQuestion(finalText)) question={kind:'input',question:finalText,options:[]}
         if (skill==='wechat-report' && question && /大纲|目录.*确认|章节.*确认/.test(question.question)) question=undefined
-        if (!deliveryError && ev.resultType==='success' && needsReportFollowThrough({skill,request:String(latest.content),answer:finalText,
-            hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations}) && entry) {
+        const missingIndustryBuild = skill === 'industry-education-report' && !question && !delivery.downloads?.length &&
+          (reportContinuations > 0 || expectsIndustryBuild(originalUserText, finalText))
+        const retryWechat = !deliveryError && needsReportFollowThrough({skill,request:String(latest.content),answer:finalText,
+          hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations})
+        if (ev.resultType === 'success' && entry && (retryWechat || (missingIndustryBuild && reportContinuations < 1))) {
           reportContinuations++
           recorder.note({reportFollowThrough:{attempt:reportContinuations,reason:'no-verified-report'}})
           completedReportUsage=lastUsage
           reportRoundOffset=Math.max(0,...usageRounds.map(round=>round.round))
           deliveryCaptured=false
-          const dir=join(entry.workspaceDir,'wechat-report')
-          const installed=skillDir('wechat-report')
-          const command=`${installed}/.venv/bin/python ${installed}/scripts/report.py --workdir ${dir}`
-          try { await runner.send(entry.engineSessionId,`${continuationMarker(runId)}
-用户已要求直接交付报告，本轮尚未产生可验证的报告。继续完成任务，不能以计划或承诺结束，不请求大纲审核。已有数据不重查，使用受信入口，不复制或修改脚本。数据目录：${dir}。若有专用工具，优先调用report_next、report_submit持续完成批次，到analysis_ready后report_build；否则使用 ${command} next、accept和build。若必需范围或数据确实缺失，明确说明缺口；禁止样例回退或跳过检查。`) }
+          deliveryError=undefined
+          let instruction: string
+          if (missingIndustryBuild) {
+            instruction = `本轮尚无通过构建的产教报告。回到本会话工作区，读取 ${skillDir(skill)}/references/data-contract.md。把有依据的回答写入 report.json 和 review.md，实际运行 python3 ${skillDir(skill)}/scripts/report.py build report.json --review review.md。沿用同一证据，关键缺口仍需用户选择时只提问；不要自行写下载清单或压缩包。`
+          } else {
+            const dir=join(entry.workspaceDir,'wechat-report')
+            const installed=skillDir('wechat-report')
+            const command=`${installed}/.venv/bin/python ${installed}/scripts/report.py --workdir ${dir}`
+            instruction = `用户已要求直接交付报告，本轮尚未产生可验证的报告。继续完成任务，不能以计划或承诺结束，不请求大纲审核。已有数据不重查，使用受信入口，不复制或修改脚本。数据目录：${dir}。若有专用工具，优先调用report_next、report_submit持续完成批次，到analysis_ready后report_build；否则使用 ${command} next、accept和build。若必需范围或数据确实缺失，明确说明缺口；禁止样例回退或跳过检查。`
+          }
+          try { await runner.send(entry.engineSessionId,`${continuationMarker(runId)}\n${instruction}`) }
           catch {wire.error('报告继续执行失败，请沿用当前会话重试。',elapsed());finalizeRun('error');cleanup();finish()}
           return
         }
@@ -1735,6 +1780,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           }
         }
         const missingWechatReport=skill==='wechat-report' && reportRequested(String(latest.content),Boolean(entry && existsSync(join(entry.workspaceDir,'wechat-report/report_data.json')))) && !question && !delivery.webLinks?.length
+        if (missingIndustryBuild) finalText='本轮产教报告未通过构建，未产生可下载的修订稿。'
         if (missingWechatReport) finalText='报告尚未完成，已保留本轮数据和会话，可继续完成。'
         if (skill === 'wechat-report') wire.textDelta(finalText)
         const reportFailure = htmlReportError
@@ -1746,7 +1792,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         /* HTML_REPORT_SKILLS 泛化重构漏定义的局部布尔（wlc 分支终态 ReferenceError 修复） */
         const isHtmlReportSkill = HTML_REPORT_SKILLS.has(skill)
         const isPdfReportSkill = PDF_REPORT_SKILLS.has(skill)
-        const missingReport = missingWechatReport || !question && ((isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length))
+        const missingReport = missingIndustryBuild || missingWechatReport || !question && ((isHtmlReportSkill && !htmlReportFile && !delivery.webLinks?.length) || (isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length))
         const doneContent = question ? finalText : isHtmlReportSkill
           ? htmlReportFile || delivery.webLinks?.length ? '' : reportFailure
           : isPdfReportSkill && !pdfReportFile && !delivery.downloads?.length
@@ -1810,6 +1856,21 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         if (history) input = [{ role: 'user', content: `【对话历史】\n${history}\n\n【当前消息】\n${latest.content}` }]
       }
       const prompt = runner.buildPrompt(skill, input, first)
+      if (skill === 'industry-education-report' && entry) {
+        const scratch = join(entry.workspaceDir, `.industry-input-${runId}`)
+        const optionIndex = priorRun?.skill === skill ? priorRun.question?.options.findIndex(o => o.label === '按现有证据继续') ?? -1 : -1
+        const context = {
+          runId,
+          previousBuildRun: priorRuns.findLast(r => r.skill === skill && r.downloads?.some(f => f.name === '结构化报告'))?.runId,
+          message: originalUserText,
+          offered: optionIndex >= 0,
+          continueOption: optionIndex >= 0 ? optionIndex + 1 : null,
+          earlierMessages: [...earlierIndustryMessages],
+          uploads: [...new Set([...priorRuns.flatMap(r => r.attachmentFiles ?? r.attachments?.filter(name => basename(name) === name).map(name => ({ path: 'uploads/' + name, name })) ?? []), ...attachmentFiles].map(f => f.path))],
+        }
+        writeFileSync(scratch, JSON.stringify(context), { flag: 'wx', mode: 0o640 })
+        renameSync(scratch, join(entry.workspaceDir, 'industry-report-input.json'))
+      }
       if(skill==='wechat-report' && entry) {
         const file=join(entry.workspaceDir,'report-turn.json')
         writeFileSync(file,JSON.stringify({schema:'plaza-report-turn/1',runId,startedAt,enabled:reportRequested(String(latest.content),existsSync(join(entry.workspaceDir,'wechat-report/report_data.json'))),revision:reportRevisionRequested(String(latest.content)),requestText:String(latest.content).slice(0,12000)}))

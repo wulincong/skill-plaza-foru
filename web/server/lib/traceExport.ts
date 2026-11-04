@@ -166,6 +166,8 @@ export interface RunRecord {
   taskTitle?: string
   /** 用户原始输入（注入技能/附件说明之前），用于历史对话恢复；旧记录缺省。 */
   userMessage?: string
+  /** 本次兼容 API 消息中供产教报告引用、且尚未在会话索引记录的用户原文。 */
+  industryUserSources?: string[]
   promptNotSent?: boolean
   requestId?: string
   resumeSourceId?: string

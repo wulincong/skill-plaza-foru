@@ -2,6 +2,23 @@
 
 `report.json` 由报告技能编写。查询请求、指标名、单位、分母和清洗规则由 [人才数据库查询](../../talent-data-query/SKILL.md) 定义，以查询结果为准。
 
+## 选择报告版式
+
+单项决定使用 edition=decision，sections 顺序为 D01 决策摘要、D02 证据与判断、D03 行动与适用条件。各章均写 claim_ids、gap_ids 两个数组。D01 的结论回应原问题；D02 引用的每条 claim 除 text（判断）、limitation、source_ids 或 metric_ids 外，还填 basis（具体证据）和 implication（这对本次决定意味着什么）；D03 写可执行的建议与条件。新观察版在 S02–S12 使用相同的 basis、implication 写论证段。次要缺项只在相关位置交代。没有适合的量化比较时，charts 填空数组。
+
+新报告声明 `decision`，例如 `{"reader":"专业负责人","question":"下学期是否增开调试班？","critical_gap_ids":[]}`。critical_gap_ids 只填阻断当前决定的 gaps ID。与当前任务无关的模板专题不算关键缺口。关键缺证先提问，不构建；只有用户选按现有证据继续才写 `decision.continue_quote`，逐字引用表示同意的原话，例如“按现有证据继续”。只给材料、要求扩围、提问或否定该选项均不授权出稿。范围、指标或用户补充的材料改变时重新判断，不能沿用其他决定的选择。独立命令行运行限定报告时使用 `--user-reply 用户实际回复文件`；广场自动提供本轮原话。Markdown 和 TXT 附件的 excerpt 还会核对文件原句；PDF、Word 的页码和摘录需要在复核时查原件。报告形成的有条件结论不等于审批通过。
+
+粘贴材料可按下面两项相互引用（示意；运行时替换为用户的真实原句和时点）：
+
+```json
+{
+  "sources": [{"id":"S1","title":"院校排课表","publisher":"用户提供","url":"user:院校排课表","published":"未标注","accessed":"2026-11-04","locator":"第3行","scope":"该校春季可用课时","excerpt":"唯一实训室所有可用课时都已排满"}],
+  "claims": [{"id":"C1","kind":"inference","text":"本期需要另找上课时段。","basis":"院校排课表第3行表明既有场地已满。","implication":"专业负责人先核实能否调课，再排入教学计划。","source_ids":["S1"],"metric_ids":[],"limitation":"只适用于该校本期。"}]
+}
+```
+
+明确需要全景观察时选 edition=observation。下表是完整观察版的章节映射。
+
 ## 把决策问题映射到章节
 
 | 章节 | 需要回答的问题 | 优先证据 |
@@ -14,11 +31,11 @@
 
 ## 结构与引用
 
-- 顶层 `title, edition, region, industry, period, as_of, status`。region、industry、period 写可展示的文字，如“佛山市”“名称含 Java（不限制产业）”“平台更新时间 [起日, 止日)”；查询筛选对象只放在共享请求中。edition 为 observation，as_of 为报告证据截止日（YYYY-MM-DD），status 为 sample/draft/final；存在缺口不能用 final。
-- `sections` 按 [章节表](../assets/templates.json) 的 S00–S12、APXA/B/C 排列，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
+- 顶层 `title, edition, region, industry, period, as_of, status`。region、industry、period 写可展示的文字，如“佛山市”“名称含 Java（不限制产业）”“平台更新时间 [起日, 止日)”；查询筛选对象只放在共享请求中。edition 为 decision 或 observation，as_of 为报告证据截止日（YYYY-MM-DD），status 为 sample/draft/final；仍有关键缺口用 draft；只有次要缺项可在相关段落说明。
+- `sections` 按 [章节表](../assets/templates.json) 的对应版式排列，observation 含 S00–S12、APXA/B/C，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
 - `claims` 含 id、kind（fact/inference/recommendation）、text、source_ids、metric_ids、limitation。统计事实引用指标，质性事实引用材料的具体位置，建议说明依据和验证办法。
 - `gaps` 含 id、description、owner、required_data、impact。`charts` 含 id、title、metric_ids、note、type（table）。图注交代样本和分母。只有缺口且没有数值时可用空 charts。
-- `sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。用户附件用 uploads/ 相对路径，粘贴材料用 user: 加名称，两者均写页码、表号或段落。历史样板保留原 references/ 节号。
+- `sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。用户附件用 uploads/ 相对路径，粘贴材料用 user: 加名称，两者均写页码、表号或段落。粘贴材料的 excerpt 摘录用户原句，不改写，不另建附件；解释写进 claim。历史样板保留原 references/ 节号。
 - `metrics` 含 id、label、value（有限数值）、unit、period、region、population、definition、source_ids。描述分母、样本、计量单位与对应限制；派生指标使用 derived.inputs 和 operation（sum/ratio/percent），写明 comparable_group 与 price_basis。输入单位、地区、时期、样本和价格口径必须可比。
 
 ## 引用共享统计

@@ -69,3 +69,82 @@ export function projectQuestion(text: string): QuestionMessage {
   } catch { /* Malformed model output remains an ordinary reply. */ }
   return { text }
 }
+
+const evidenceLabels = ['补充材料', '扩大范围', '按现有证据继续']
+
+function evidenceChoice(): ChatQuestion {
+  return {kind: 'single', question: '这项决定还缺关键依据。你希望怎样继续？', options: [
+    {label: evidenceLabels[0], description: '提供能核实未决事项的材料，再评估结论。'},
+    {label: evidenceLabels[1], description: '指定新增的调查对象、来源或时期。'},
+    {label: evidenceLabels[2], description: '只回答有依据的部分，保留未决事项。'},
+  ]}
+}
+
+function hasEvidenceChoices(text: string): boolean {
+  return /(?:补充|提供|上传).{0,8}(?:材料|资料|证据|排课表)/s.test(text)
+    && /(?:扩大|扩展).{0,8}(?:范围|调查|调研)/s.test(text)
+    && /(?:现有|已有|当前).{0,6}(?:证据|材料|依据).{0,8}(?:继续|出稿|生成|作答)/s.test(text)
+}
+
+/** A missing source is a reason to pause only when the reply actually asks the
+ * user to decide. Reports can describe gaps and recommend collecting data. */
+function evidenceWait(text: string, question?: ChatQuestion): boolean {
+  if (question) {
+    const options = question.options.map(o => o.label).join(' ')
+    if (hasEvidenceChoices(options)) return true
+    // A genuine scope/other clarification must retain the model's question.
+    if (!/材料|证据|(?:补充|上传).{0,15}(?:排课表|纪要|清单)/.test(question.question)) return false
+  }
+  const material = /(?:核心|关键)(?:缺口|缺证)|缺少.{0,12}(?:材料|证据)|待确认.{0,12}(?:学校|师资|场地|设备)|证据不足/s.test(text)
+  const ask = /请(?:问|您|你)?[^。！？\n]{0,20}(?:上传|提供|选择|补充|回复)|选项.{0,6}选择|(?:需要|请)用户.{0,16}选择|(?:你|您)希望.{0,12}(?:继续|处理)/s
+  const wording = [text, question?.question].join('\n')
+  // A completed report may recommend gathering additional material in the
+  // future. That recommendation must not suppress the report it accompanies.
+  if (!question && !hasEvidenceChoices(text) &&
+      /报告已(?:生成|完成|交付)|已(?:生成|交付).{0,15}(?:报告|简报)|^## (?:行动与适用条件|附录)/m.test(text)) return false
+  return (material || hasEvidenceChoices(wording)) && (ask.test(wording) || !!question)
+}
+
+// Only a top-level trailing protocol block is a control attempt. Keep quoted
+// examples and code with ordinary prose after their closing fence intact.
+function trailingControl(text: string): { before: string; body: string } | undefined {
+  const marker = /(?:^|\n)```plaza-question[ \t]*\r?\n/.exec(text)
+  if (!marker) return
+  const before = text.slice(0, marker.index).trimEnd()
+  if ((before.match(/^`{3,}/gm)?.length ?? 0) % 2 || /(?:示例|格式如下|例如|example)[:：]?$/i.test(before)) return
+  const body = text.slice(marker.index + marker[0].length)
+  if (/^```[ \t]*\r?\n[\s\S]*\S/m.test(body)) return
+  return { before, body }
+}
+
+export function projectIndustryReply(raw: string, interactive: boolean): QuestionMessage & { waiting: boolean } {
+  const control = trailingControl(raw)
+  const projected = !raw.includes('```plaza-question') || control ? projectQuestion(raw) : { text: raw }
+  let text = projected.text
+  let modelQuestion = projected.question
+  if (control && !modelQuestion) {
+    text = control.before
+    // Do not copy malformed JSON into a reader-facing response. An explicit
+    // evidence menu is sufficient to recover a choice, but never infer a choice from a user's answer.
+    if (hasEvidenceChoices(control.body)) modelQuestion = evidenceChoice()
+    else {
+      const title = /"question"\s*:\s*("(?:[^"\\]|\\.)*")/.exec(control.body)?.[1]
+      if (title) {
+        try { modelQuestion = validated({ kind:'input', question:JSON.parse(title) }) } catch { /* truncated title */ }
+      }
+    }
+  }
+  const waiting = evidenceWait(text, modelQuestion)
+  const standardMenu = modelQuestion?.kind === 'single' && modelQuestion.options.length === 3
+    && evidenceLabels.every(label => modelQuestion.options.some(o => o.label === label))
+  const question = waiting && !standardMenu ? evidenceChoice() : modelQuestion
+  if (question && !interactive) {
+    const lines = []
+    if (!text.includes(question.question)) lines.push(question.question)
+    for (const option of question.options) {
+      if (!text.includes(option.label)) lines.push(option.description ? option.label + '：' + option.description : option.label)
+    }
+    if (lines.length) text += (text ? '\n\n' : '') + lines.join('\n')
+  }
+  return { text, question, waiting }
+}

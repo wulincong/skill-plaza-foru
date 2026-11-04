@@ -64,9 +64,9 @@ export const SKILLS: Skill[] = [
     identifier: 'industry-education-report',
     categoryId: 'industry',
     audiences: ['manager', 'data'],
-    summary: '面向院校、政府和园区生成有证据、可审查的产业与专业建设决策报告。',
+    summary: '围绕开课、实训和人才培养决定生成简报，也可提供区域产业全景观察。',
     tags: ['产教融合', '专业建设', '决策报告'],
-    preconditions: '产业 / 岗位 / 专业或就业资料',
+    preconditions: '读者、决策问题和可核对的调研材料',
     outputs: [
       '报告 Markdown',
       '结构化 report.json',
@@ -74,7 +74,7 @@ export const SKILLS: Skill[] = [
       '结构与语义验收结果',
     ],
     dependencies: [
-      '目标地区、产业范围与报告用途',
+      '决策问题与读者；查询岗位统计时还需地区和产业范围',
       '岗位统计由人才数据库查询技能提供，可复用同一范围的已核验结果',
     ],
     limitations: [

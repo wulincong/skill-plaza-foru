@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { randomBytes } from 'node:crypto'
-import { appendFileSync, mkdtempSync, rmSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
+import { appendFileSync, mkdtempSync, rmSync, readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,7 +38,8 @@ for await(const line of createInterface({input:process.stdin})) {
    send({type:'response',id:c.id,command:c.type,success:true,data});
    continue;
   }
-  if(!c.message.includes('follow-up')) {
+  const emptyBuild=messages.some(m=>m.role==='user' && m.content[0].text.includes('empty-industry-fixture'));
+  if(!c.message.includes('follow-up') && !emptyBuild) {
    mkdirSync('output/public/site',{recursive:true});
    writeFileSync('output/public/site/index.html','<!doctype html><html><head><title>Delivery browser test</title><link rel="stylesheet" href="style.css"></head><body><img src="image.svg"><script src="script.js"></script></body></html>');
    writeFileSync('output/public/site/style.css','body{color:rgb(12,34,56)}');
@@ -56,6 +57,14 @@ for await(const line of createInterface({input:process.stdin})) {
    const question={kind,question:'怎样继续分析？',options:kind==='input'?[]:[{label:'大专经验不限',description:'54 条'},{label:'宽口径'}]};
    const fence=String.fromCharCode(96).repeat(3);
    last='已核对样本。'+String.fromCharCode(10,10)+fence+'plaza-question'+String.fromCharCode(10)+JSON.stringify(question)+String.fromCharCode(10)+fence;
+  }
+  if (emptyBuild) {
+    last=c.message.startsWith('[plaza:report-continue:') ? '没有生成文件，构建未成功。' : '已完成报告。';
+  }
+  if (c.message.includes('broken-evidence-menu-fixture')) {
+    const fence=String.fromCharCode(96).repeat(3),nl=String.fromCharCode(10);
+    last=['已完成企业访谈摘录，缺少校内材料。请选择。',fence+'plaza-question',
+      '{"kind":"single","question":"请选择","options":[{"label":"补充材料"},{"label":"扩大范围"},{"label":"按现有证据继续"}}]',fence].join(nl);
   }
   messages.push({role:'assistant',content:[{type:'text',text:last}]});
   mkdirSync('.pi-sessions',{recursive:true});writeFileSync(stateFile,JSON.stringify({messages,nativeId}));
@@ -105,6 +114,54 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     body:JSON.stringify({username:'admin', password})})
   assert.equal(login.status,200)
   cookie = login.headers.get('set-cookie').split(';')[0]
+  await t.test('a pending industry decision hides even a fresh delivery and malformed control text in both streams',async t=>{
+    for (const protocol of ['plaza','openai']) {
+      const sessionId='decision-stream-'+randomBytes(10).toString('hex')
+      t.after(()=>rmSync(join(serverDir,'workspace',sessionId),{recursive:true,force:true}))
+      const res=await fetch(base+(protocol==='plaza'?'/api/chat':'/v1/chat/completions'),{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({skill:'industry-education-report',sessionId,interactive:protocol==='plaza',stream:true,
+          messages:[{role:'user',content:'请生成产教简报 broken-evidence-menu-fixture'}]}),
+      })
+      assert.equal(res.status,200)
+      const raw=await res.text()
+      assert.doesNotMatch(raw,/plaza-question|交付失败|测试交付包/)
+      assert.ok(existsSync(join(serverDir,'workspace',sessionId,'delivery.json')), 'fixture must actually write a fresh manifest')
+      const prompts=JSON.parse(readFileSync(join(serverDir,'workspace',sessionId,'.pi-sessions','fixture.json'),'utf8')).messages
+      assert.equal(prompts.filter(m=>m.role==='user').length,1,'a wait must not trigger a build retry')
+      const frames=raw.split('\n').filter(s=>s.startsWith('data: {')).map(s=>JSON.parse(s.slice(6)))
+      assert(!frames.some(f=>f.downloads?.length || f.webLinks?.length))
+      if(protocol==='plaza'){
+        const done=frames.findLast(f=>f.type==='done')
+        assert.deepEqual(done.question.options.map(o=>o.label),['补充材料','扩大范围','按现有证据继续'])
+        assert.equal(frames.filter(f=>f.type==='text').map(f=>f.delta).join(''),done.content)
+      }else{
+        const text=frames.map(f=>f.choices?.[0]?.delta?.content??'').join('')
+        for(const label of ['补充材料','扩大范围','按现有证据继续']) assert.equal(text.split(label).length,2)
+      }
+    }
+  })
+  await t.test('an unbuilt industry report gets one retry; a plain explanation gets none',async t=>{
+    for(const generate of [true,false]){
+      const sessionId='decision-retry-'+randomBytes(10).toString('hex')
+      const workspace=join(serverDir,'workspace',sessionId)
+      t.after(()=>rmSync(workspace,{recursive:true,force:true}))
+      const content=generate ? '生成产教决策报告 empty-industry-fixture' : '解释状态“已完成报告”的含义 empty-industry-fixture'
+      const response=await fetch(base+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({skill:'industry-education-report',sessionId,messages:[{role:'user',content}]})})
+      const frames=(await response.text()).split('\n').filter(l=>l.startsWith('data: {')).map(l=>JSON.parse(l.slice(6)))
+      const final=frames.findLast(f=>f.type==='done')
+      const prompts=JSON.parse(readFileSync(join(workspace,'.pi-sessions','fixture.json'),'utf8')).messages.filter(m=>m.role==='user')
+      assert.equal(prompts.length,generate ? 2 : 1)
+      assert(!final.downloads?.length)
+      if(generate){
+        assert.match(prompts[1].content[0].text,/^\[plaza:report-continue:/)
+        assert.equal(final.resultType,'error')
+        assert.match(final.content,/未产生可下载/)
+        assert.doesNotMatch(frames.filter(f=>f.type==='text').map(f=>f.delta).join(''),/已完成报告/)
+      }else assert.equal(final.resultType,'success')
+    }
+  })
   const request = async (message, protocol = 'plaza', stream = true, history = [], model) => {
     const response = await fetch(base + (protocol === 'plaza' ? '/api/chat' : '/v1/chat/completions'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', Origin: base },
@@ -211,6 +268,52 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true })
   await stop(); await start()
   assert.equal((await fetch(url)).status, 200)
+  await t.test('industry report can cite earlier user messages in a stateless OpenAI request and after recovery', async t => {
+    const source = '排课表第3行：下学期全部课时已经占用。'
+    const firstRequest = 'follow-up 请根据这份排课表判断能否增班。'
+    const post = async (messages, extra = {}) => {
+      const res = await fetch(base + '/v1/chat/completions', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skill: 'industry-education-report', messages, ...extra }),
+      })
+      assert.equal(res.status, 200)
+      const runId = (await res.json()).id.replace(/^chatcmpl-/, '')
+      for (let i = 0; i < 100; i++) {
+        const detail = await adminRequest('runs/' + runId).then(r => r.json())
+        if (detail.item) return detail.item
+        await pause(20)
+      }
+      assert.fail('industry report run not saved: ' + runId)
+    }
+    const first = await post([
+      { role: 'system', content: '系统指令，不是材料' },
+      { role: 'user', content: source }, { role: 'assistant', content: '假设可以开班。' },
+      { role: 'user', content: source }, { role: 'user', content: firstRequest },
+    ])
+    const sid = first.clientSessionId
+    const workspace = join(serverDir, 'workspace', sid)
+    t.after(() => rmSync(workspace, { recursive: true, force: true }))
+    const context = () => JSON.parse(readFileSync(join(workspace, 'industry-report-input.json'), 'utf8'))
+    assert.deepEqual(first.industryUserSources, [source])
+    assert.deepEqual(context().earlierMessages, [source])
+    assert.equal(context().message, firstRequest)
+
+    await stop(); await start()
+    const upload = await fetch(base + '/api/upload', { method: 'POST', body: JSON.stringify({
+      sessionId: sid, filename: '访谈.txt', dataText: '附件原文不能混入聊天引文。',
+    }) }).then(r => r.json())
+    const secondRequest = 'follow-up 再核对附件。'
+    const second = await post([{ role: 'user', content: secondRequest }], { sessionId: sid, attachments: [upload] })
+    assert.equal(second.industryUserSources, undefined)
+    assert.deepEqual(context().earlierMessages, [source, firstRequest])
+    assert.deepEqual(context().uploads, [upload.path])
+    assert.equal(context().message, secondRequest)
+
+    const third = await post([{ role: 'user', content: source }, { role: 'user', content: 'follow-up 修改标题。' }], { sessionId: sid })
+    assert.equal(third.industryUserSources, undefined)
+    assert.deepEqual(context().earlierMessages, [source, firstRequest, secondRequest])
+    assert.deepEqual(context().uploads, [upload.path])
+  })
   await t.test('a report may request a decision; the original session accepts one answer after restart', async t => {
     const sessionId = 'sess-' + randomBytes(16).toString('hex')
     t.after(() => rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true }))
