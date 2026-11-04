@@ -723,7 +723,7 @@ export class PiRunner extends AgentRunner {
     }
     if (skill === 'resume-police') {
       const dir = skillDir(skill)
-      content += `\n\n（简历警察本轮规则：审查时先读 ${dir}/references/review.md。凡要给可投递的经历句，先实际运行 python3 ${dir}/scripts/compose_bullets.py。文本附件直接用 --source，粘贴输入在 JSON 中传原话 source 和摘录 bullets。只把校验成功的经历写入改稿，缺证的结果留作追问。若只需出题，读取 ${dir}/references/interview.md 并从用户材料命题。没有简历则先请用户提供。）`
+      content += `\n\n（简历优化警察本轮规则：审查时先读 ${dir}/references/review.md。凡要给可投递的经历句，先实际运行 python3 ${dir}/scripts/compose_bullets.py。文本附件直接用 --source，粘贴输入在 JSON 中传原话 source 和摘录 bullets。只把校验成功的经历写入改稿，缺证的结果留作追问。若只需出题，读取 ${dir}/references/interview.md 并从用户材料命题。没有简历则先请用户提供。）`
     }
     const contract = HTML_REPORT_CONTRACTS[skill]
     if (!isFirstTurn) {

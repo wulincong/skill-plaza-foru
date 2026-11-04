@@ -216,7 +216,7 @@ export const SKILLS: Skill[] = [
   },
   {
     slug: 'resume-police',
-    name: '简历警察',
+    name: '简历优化警察',
     identifier: 'resume-police',
     categoryId: 'career',
     audiences: ['student', 'teacher'],
