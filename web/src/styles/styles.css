@@ -1034,7 +1034,7 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
   position: sticky; top: var(--head-h); align-self: flex-start;
   flex-shrink: 0; width: 260px; height: var(--exp-viewport);
   background: var(--sk-sidebar); border-right: 1px solid var(--sk-line);
-  display: flex; flex-direction: column; padding: 12px 10px 16px;
+  display: flex; flex-direction: column; padding: 12px 10px 10px;
 }
 .exp-new {
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -1046,7 +1046,7 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
 }
 .exp-new:hover { background: var(--sk-btn-hover); }
 .exp-new:active { transform: scale(.97); }
-.exp-history { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 2px 12px; scrollbar-width: thin; }
+.exp-history { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 2px 6px; scrollbar-width: thin; }
 .exp-hist-group { margin: 14px 0 4px; padding: 0 10px; font-size: 11px; font-weight: 500; color: var(--sk-ink-4); }
 .exp-hist-item {
   position: relative; display: flex; align-items: center; gap: 8px;
@@ -1089,13 +1089,13 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
   color: var(--sk-red); font-weight: 600;
 }
 .exp-history-views {
-  flex: none; display: flex; gap: 3px; margin-top: 8px; padding: 3px;
+  flex: none; display: flex; gap: 2px; margin-top: 6px; padding: 2px;
   background: var(--sk-fill); border-radius: var(--r-full);
 }
 .exp-history-views button {
-  flex: 0 0 44px; display: flex; align-items: center; justify-content: center;
-  min-width: 0; height: 44px; padding: 0; border: 0; border-radius: inherit; cursor: pointer;
-  background: transparent; color: var(--sk-ink-2); font: inherit; font-size: 13px; font-weight: 550;
+  flex: 0 0 32px; display: flex; align-items: center; justify-content: center;
+  min-width: 0; height: 28px; padding: 0; border: 0; border-radius: inherit; cursor: pointer;
+  background: transparent; color: var(--sk-ink-2); font: inherit; font-size: 12.5px; font-weight: 550;
 }
 .exp-history-views button .ic { flex: none; }
 .exp-history-views button:hover { color: var(--sk-ink-1); }
@@ -1112,6 +1112,11 @@ html[data-mode="dark"] .diagram-preview { background: #1B2C50; }
   max-width: 10em; margin-inline-start: 6px; opacity: 1;
 }
 .exp-view-count { font-size: 11px; color: var(--sk-ink-2); font-variant-numeric: tabular-nums; }
+@media (any-pointer: coarse) {
+  /* Use the surrounding gap for a 44px touch target without increasing the visible bar. */
+  .exp-history-views button { position: relative; flex-basis: 44px; }
+  .exp-history-views button::after { content: ""; position: absolute; inset: -8px 0; }
+}
 .exp-history-views button, .exp-view-label { transition-property: none; }
 @media (prefers-reduced-motion: no-preference) {
   .exp-history-views button {

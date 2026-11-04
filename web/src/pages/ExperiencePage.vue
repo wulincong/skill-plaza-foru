@@ -1026,12 +1026,12 @@ onBeforeUnmount(() => {
       </div>
       <div class="exp-history-views" role="group" aria-label="对话列表">
         <button type="button" aria-label="最近对话" title="最近对话" :aria-pressed="!showArchived" @click="showArchived = false">
-          <Icon name="chat" :size="17" />
+          <Icon name="chat" :size="15" />
           <span class="exp-view-label">最近对话</span>
         </button>
         <button type="button" :aria-label="archivedLive ? `已归档（${archivedGroups.length} 段对话）` : '已归档'"
           title="已归档" :aria-pressed="showArchived" @click="showArchived = true">
-          <Icon name="archive" :size="17" />
+          <Icon name="archive" :size="15" />
           <span class="exp-view-label">已归档 <span v-if="archivedLive" class="exp-view-count">{{ archivedGroups.length }}</span></span>
         </button>
       </div>
