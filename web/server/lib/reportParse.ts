@@ -4,8 +4,31 @@ import { join } from 'node:path'
 import { deliveryFingerprint, readDeliveryManifest, type DeliveryLinks, type DeliveryManifest } from './delivery.ts'
 import { industryReportSections } from './skills.ts'
 
-/** Only the current build's four files form an industry report. Extra requested
- * formats may use the ordinary manifest without replacing the verified originals. */
+const webFormat = /网页|html\b|web\s*page/i
+
+/** A fresh website may accompany a revision even when the user simply asks
+ * to change the legend. A reference to a page is not a request to publish it. */
+function webIntent(request: string): 'required' | 'omit' | 'unspecified' {
+  if (!webFormat.test(request)) return 'unspecified'
+  let intent: 'required' | 'omit' = 'omit'
+  for (const clause of request.split(/[，,。；;！!？?\n]/).filter(text => webFormat.test(text))) {
+    if (/(?:不要|无需|不用|不需要|不必|禁止|别|不(?:再)?(?:生成|制作|发布|交付|输出|做)|no |without ).{0,6}(?:网页|html|web\s*page)/i.test(clause)) {
+      intent = 'omit'
+    } else if (!/为什么|为何|怎么|如何|在哪|哪里|参考|作为(?:来源|材料)|(?:链接|路径)(?:是|在)/.test(clause) &&
+      (/^(?:网页|html|web\s*page)(?:版|报告|简报|格式)?$/i.test(clause.trim()) ||
+       /(?:生成|制作|做成|做个|输出|导出|改成|改为|转成|提供|需要|想要|只要|我要|给我|请给|请用|交付|发布|分享|render|generate).{0,16}(?:网页|html|web\s*page)/i.test(clause))) {
+      intent = 'required'
+    }
+  }
+  return intent
+}
+
+export function expectsIndustryWeb(request: string): boolean {
+  return webIntent(request) === 'required'
+}
+
+/** A current build receipt supplies the four originals. A fresh public manifest
+ * may additionally declare a requested website or file format. */
 export function industryDelivery(workspace: string, runId: string, previous: string | undefined, request: string): DeliveryManifest | undefined {
   const receipt = readDeliveryManifest(workspace, undefined, `industry-build-${runId}.json`)
   if (!receipt) {
@@ -21,11 +44,31 @@ export function industryDelivery(workspace: string, runId: string, previous: str
     {request: /word|docx?/i, ext: /\.docx?$/i}, {request: /pdf/i, ext: /\.pdf$/i},
     {request: /zip|压缩包/i, ext: /\.zip$/i},
   ].filter(f => f.request.test(request) && !new RegExp('(?:不要|无需|不用|不需要)\\s*(?:' + f.request.source + ')', 'i').test(request))
-  const extra = formats.length ? readDeliveryManifest(workspace, previous)?.files ?? [] : []
-  return {files: [...originals, ...extra.filter(f => formats.some(format => format.ext.test(f.path)))]}
+  const intent = webIntent(request)
+  let publicManifest: DeliveryManifest | undefined
+  if (intent !== 'omit' || formats.length) {
+    try {
+      publicManifest = readDeliveryManifest(workspace, previous)
+    } catch (error) {
+      // Optional additions cannot invalidate the verified originals.
+      if (intent === 'required' || formats.length) throw error
+    }
+  }
+  const extra = formats.length ? publicManifest?.files ?? [] : []
+  const files = [...originals, ...extra.filter(f => formats.some(format => format.ext.test(f.path)))]
+  const web = intent !== 'omit' ? publicManifest?.web : undefined
+  if (!web?.length) {
+    if (intent === 'required') throw new Error('本轮没有登记网页版报告，请在 delivery.json 的 web 中登记 HTML 入口')
+    return {files}
+  }
+  if (!Array.isArray(web) || web.some(item => !item?.directory?.startsWith('output/public/'))) throw new Error('网页版报告须使用 output/public/ 下的专用站点目录')
+  return {web, files}
 }
 
 export function expectsIndustryBuild(request: string, answer: string): boolean {
+  const intent = webIntent(request)
+  if (intent === 'required') return true
+  if (intent === 'omit') request = request.split(/[，,。；;！!？?\n]/).filter(text => !webFormat.test(text)).join('。')
   if (/仅用文字|只(?:在|用)对话|(?:无需|不用|不要|不需要).{0,4}(?:文件|下载)|(?:怎么|如何).{0,8}(?:生成|构建|下载)/.test(request)) return false
   const deliver = /(?:生成|出具|撰写|交付|修订|制作|重写).{0,30}(?:报告|简报|四份文件)|按(?:现有证据|已有材料)继续|(?:把|将)(?:报告)?标题改(?:为|成)/s
   if (deliver.test(request)) return true

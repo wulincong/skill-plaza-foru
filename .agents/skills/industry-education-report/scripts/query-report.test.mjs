@@ -2,6 +2,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
@@ -10,8 +11,8 @@ import { validateRequest } from '../../../../scripts/talent-data/core.mjs'
 import { buildPlan } from '../../../../scripts/talent-data/compile.mjs'
 import { buildResult } from '../../../../scripts/talent-data/metrics.mjs'
 import { persistResult } from '../../../../scripts/talent-data/artifacts.mjs'
-import { industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
-import { publishDelivery } from '../../../../web/server/lib/delivery.ts'
+import { expectsIndustryBuild, industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
+import { deliveryFingerprint, handleDelivery, publishDelivery } from '../../../../web/server/lib/delivery.ts'
 
 const cli = fileURLToPath(new URL('./report.py', import.meta.url))
 const template = JSON.parse(await readFile(new URL('../assets/templates.json', import.meta.url))).observation
@@ -227,4 +228,70 @@ test('the decision brief waits for the user on a material gap; minor gaps do not
   source.excerpt=excerpt
   delete report.claims[0].basis; await save()
   assert.match(cliRun('validate').stdout,/missing basis/)
+})
+
+test('a requested industry report website and its assets are served alongside the four verified files', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'industry-site-'))
+  t.after(() => rm(root, {recursive:true, force:true}))
+  const runId = '20261104-150053-cwtb'
+  const request = '生成网页版报告，注意图文结合'
+  const report = draft(await savedResult(root,4,false))
+  report.decision = {reader:'专业负责人',question:'调研样本覆盖多少岗位？',critical_gap_ids:[]}
+  Object.assign(report.claims[0], {basis:'同一查询结果记录了岗位数。',implication:'按这个样本解释岗位范围。'})
+  await writeFile(join(root,'industry-report-input.json'), JSON.stringify({runId,message:request,offered:false,earlierMessages:[],uploads:[]}))
+  await writeFile(join(root,'report.json'), JSON.stringify(report))
+  await writeFile(join(root,'review.md'), 'C1 已复核岗位计数。')
+  const built = spawnSync('python3',[cli,'build','report.json'],{cwd:root,encoding:'utf8'})
+  assert.equal(built.status,0,built.stderr+built.stdout)
+  const originals = (await readJson(join(root,'industry-build-'+runId+'.json'))).files
+  assert.equal(originals.length,4)
+  const page = {name:'报告网页版',directory:'output/public/site',entry:'index.html'}
+  const html = '<!doctype html><title>产业人才报告</title><img src="charts/jobs.svg">'
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>4 个岗位</text></svg>'
+  await mkdir(join(root,page.directory,'charts'),{recursive:true})
+  await writeFile(join(root,page.directory,page.entry),html)
+  await writeFile(join(root,page.directory,'charts/jobs.svg'),svg)
+  const beforeWeb = deliveryFingerprint(root)
+  await writeFile(join(root,'delivery.json'),JSON.stringify({
+    web:[page],files:[{name:'无关文件',path:'output/public/site/index.html'}],
+  }))
+  const store = join(root,'published')
+  const server = createServer((req,res) => {
+    if (!handleDelivery(req,res,store)) { res.writeHead(404); res.end() }
+  })
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
+  t.after(()=>new Promise(resolve=>server.close(resolve)))
+  const origin = 'http://127.0.0.1:'+server.address().port
+  const manifest = industryDelivery(root,runId,beforeWeb,request)
+  assert.deepEqual(manifest.files,originals)
+  const links = publishDelivery(root,manifest,store,origin)
+  assert.deepEqual(links.webLinks?.map(link=>link.name),[page.name])
+  const publishedPage = await fetch(links.webLinks[0].url)
+  assert.equal(publishedPage.status,200)
+  assert.equal(await publishedPage.text(),html)
+  const chart = await fetch(new URL('charts/jobs.svg',publishedPage.url))
+  assert.equal(chart.status,200)
+  assert.equal(await chart.text(),svg)
+  assert.deepEqual(links.downloads.map(link=>link.name),originals.map(f=>f.name))
+  for (const [i, download] of links.downloads.entries()) {
+    const response = await fetch(download.url)
+    assert.equal(response.status,200)
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()),await readFile(join(root,originals[i].path)))
+  }
+  assert.throws(()=>industryDelivery(root,'20261104-150054-other',beforeWeb,request),/未通过本轮 build/)
+  assert.throws(()=>industryDelivery(root,runId,deliveryFingerprint(root),request),/网页/)
+  assert.deepEqual(industryDelivery(root,runId,beforeWeb,'把图例改一下').web,[page])
+  for (const message of ['只要正文，不要网页版','网页报告的证据足够么','参考网页报告，生成 Markdown']) {
+    const filesOnly = industryDelivery(root,runId,beforeWeb,message)
+    assert.deepEqual(filesOnly.files,originals)
+    assert.equal(filesOnly.web?.length ?? 0,0)
+  }
+  assert.equal(expectsIndustryBuild('为什么没有生成网页版报告',''),false)
+  await writeFile(join(root,'delivery.json'),JSON.stringify({files:originals}))
+  assert.throws(()=>industryDelivery(root,runId,beforeWeb,request),/网页/)
+  const ordinary = industryDelivery(root,runId,beforeWeb,'生成决策报告')
+  assert.deepEqual(ordinary.files,originals)
+  assert.equal(ordinary.web?.length ?? 0,0)
+  await writeFile(join(root,'delivery.json'),JSON.stringify({web:[{...page,directory:'uploads'}]}))
+  assert.throws(()=>publishDelivery(root,industryDelivery(root,runId,beforeWeb,request),store,origin))
 })

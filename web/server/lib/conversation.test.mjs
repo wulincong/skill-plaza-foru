@@ -132,3 +132,23 @@ test('refresh before dispatch keeps the unsent input between its own surrounding
   assert.deepEqual(deriveSessionConversation(runs[1], runs, load, () => []).map(t => t.text), ['a', '第一答', 'b'])
   assert.deepEqual(deriveSessionConversation(runs[2], runs, load, () => []).map(t => t.text), ['a', '第一答', 'b', '继续任务', '已继续'])
 })
+
+test('a report continuation in exported Pi parts keeps the webpage and downloads on the correct reply', () => {
+  const original = [{ name: '报告正文', url: '/api/deliveries/first/files/0' }]
+  const revised = [{ name: '报告正文', url: '/api/deliveries/second/files/0' }]
+  const webpage = [{ name: '报告网页版', url: '/p/site/0/' }]
+  const first = { runId: 'first', ts: '01', clientSessionId: 'client', engineSessionId: 'pi', userMessage: '生成报告', downloads: original }
+  const second = { ...first, runId: 'second', ts: '02', userMessage: '生成网页版报告', reportContinuations: 1, webLinks: webpage, downloads: revised }
+  const firstMessages = [message('user', text('包装后的第一问')), message('assistant', text('初稿完成'))]
+  const both = [...firstMessages, message('user', text('包装后的第二问')), message('assistant', text('准备网页')),
+    message('user', text('[plaza:report-'), text('continue:second]\n核验本轮产物')), message('assistant', text('网页版已完成'))]
+  const turns = deriveSessionConversation(second, [first, second], run => ({ messages: run === first ? firstMessages : both }), () => [])
+  assert.deepEqual(turns.map(t => [t.role, t.runId, t.text]), [
+    ['user', 'first', '生成报告'], ['assistant', 'first', '初稿完成'],
+    ['user', 'second', '生成网页版报告'], ['assistant', 'second', '网页版已完成'],
+  ])
+  assert.deepEqual(turns[1].downloads, original)
+  assert.equal(turns[1].webLinks, undefined)
+  assert.deepEqual(turns[3].webLinks, webpage)
+  assert.deepEqual(turns[3].downloads, revised)
+})

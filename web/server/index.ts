@@ -36,7 +36,7 @@ import {
 } from './lib/traceExport.ts'
 import { tokenUsageFrom, usageWithTokenSnapshot } from './lib/traceExport.ts'
 import { renderTraceMd } from './lib/traceMd.ts'
-import { expectsIndustryBuild, industryDelivery, parseDeliveredReport } from './lib/reportParse.ts'
+import { expectsIndustryBuild, expectsIndustryWeb, industryDelivery, parseDeliveredReport } from './lib/reportParse.ts'
 import {
   MAX_HTML_REPORT_BYTES,
   normalizeLegacyHtmlDocument,
@@ -1751,7 +1751,8 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           deliveryError=undefined
           let instruction: string
           if (missingIndustryBuild) {
-            instruction = `本轮尚无通过构建的产教报告。回到本会话工作区，读取 ${skillDir(skill)}/references/data-contract.md。把有依据的回答写入 report.json 和 review.md，实际运行 python3 ${skillDir(skill)}/scripts/report.py build report.json --review review.md。沿用同一证据，关键缺口仍需用户选择时只提问；不要自行写下载清单或压缩包。`
+            instruction = `本轮尚无可交付的产教报告。回到本会话工作区，读取 ${skillDir(skill)}/references/data-contract.md。若本轮 build 尚未通过，用同一证据完成 report.json 和 review.md，再运行 python3 ${skillDir(skill)}/scripts/report.py build report.json --review review.md。关键缺口仍需用户选择时只提问。`
+            if (expectsIndustryWeb(originalUserText)) instruction += '用户要求网页版。以本轮已核验的报告在 output/public/site 生成静态 HTML 及所需图文资源，核对入口后在 delivery.json 合并 web 项，保留原 files；不要改写本轮构建收据。'
           } else {
             const dir=join(entry.workspaceDir,'wechat-report')
             const installed=skillDir('wechat-report')
@@ -1780,7 +1781,9 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           }
         }
         const missingWechatReport=skill==='wechat-report' && reportRequested(String(latest.content),Boolean(entry && existsSync(join(entry.workspaceDir,'wechat-report/report_data.json')))) && !question && !delivery.webLinks?.length
-        if (missingIndustryBuild) finalText='本轮产教报告未通过构建，未产生可下载的修订稿。'
+        if (missingIndustryBuild) finalText = expectsIndustryWeb(originalUserText)
+          ? '本轮网页版报告尚未交付。'
+          : '本轮产教报告未通过构建，未产生可下载的修订稿。'
         if (missingWechatReport) finalText='报告尚未完成，已保留本轮数据和会话，可继续完成。'
         if (skill === 'wechat-report') wire.textDelta(finalText)
         const reportFailure = htmlReportError

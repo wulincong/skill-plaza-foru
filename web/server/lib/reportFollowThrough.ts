@@ -43,7 +43,9 @@ export function omitReportContinuations(trace:any,runs:Array<{runId:string;repor
   if(!markers.length)return trace
   return {...trace,messages:trace.messages.filter((message:any)=>{
     if(message?.role!=='user')return true
-    const text=typeof message.content==='string'?message.content:Array.isArray(message.content)?message.content.map((part:any)=>part?.text??'').join(''):''
+    const content = message.content ?? message.parts
+    const text = typeof content === 'string' ? content :
+      Array.isArray(content) ? content.map((part: any) => part?.text ?? '').join('') : ''
     return !markers.some(marker=>text.startsWith(marker))
   })}
 }
