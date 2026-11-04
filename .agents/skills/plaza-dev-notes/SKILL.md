@@ -54,7 +54,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 081 | doc-translate 原图保留：位图素材清单、原 PDF 矢量裁切引用、图注翻译 | 已实现（4 项素材回归/构建/真实 Pi 图文翻译与下载通过） | [081-doc-translate-original-figures.md](references/081-doc-translate-original-figures.md) |
 | 083 | wechat-report：公众号报告技能安装、Linux 工具链与无表单对话入口 | 安装已实现（11-02 审查复现数据范围/质检/渲染/交付缺陷，待修） | [083-wechat-report-skill.md](references/083-wechat-report-skill.md) |
 | 106 | 简历优化警察：原文摘编、面试笔录和对话入口 | 已实现 | [106-resume-police-skill.md](references/106-resume-police-skill.md) |
-| 107 | WeKnora 知识检索基础 Skill | 本地组件已实现，整库与限定文档检索、来源回查已验；未上线 | [107-weknora-knowledge-retrieval.md](references/107-weknora-knowledge-retrieval.md) |
+| 107 | WeKnora 知识检索基础 Skill | 本地检索与来源回查已验，附带日期的选库快照；未上线 | [107-weknora-knowledge-retrieval.md](references/107-weknora-knowledge-retrieval.md) |
 | 108 | AI 面试练习：岗位命题、逐题追问、原话复盘与同题重练 | 已实现（广场与兼容 API 多轮验证） | [108-ai-interview-practice.md](references/108-ai-interview-practice.md) |
 
 | 096 | 公众号报告直接图片交付、统一选图与渲染质检 | 首轮已实现；用户指出分析与图型不足，新规范见099 | [096-wechat-images-direct-delivery.md](references/096-wechat-images-direct-delivery.md) |
