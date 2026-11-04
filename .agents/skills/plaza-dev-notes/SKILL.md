@@ -123,7 +123,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 069 | 历史按对话展示整段记录 + 运行进度只显真实工具调用 | 已实现（构建/curl/浏览器断言与截图通过） | [069-conversation-history-and-toolsonly-progress.md](references/069-conversation-history-and-toolsonly-progress.md) |
 | 070 | 历史续聊、运行中刷新恢复原任务与手动继续 | 已实现（Chrome 实模中断续跑、首次提交及重复点击回归通过） | [070-history-as-normal-chat.md](references/070-history-as-normal-chat.md) |
 | 071 | 执行过程按模型消息分组、工具行内用途、调用进度与整轮计时 | 已实现（优才与 Pro 实模、并行进度、历史与窄屏验证通过；Flash 用途待实模复验） | [071-history-tool-summary.md](references/071-history-tool-summary.md) |
-| 072 | 会话归档与删除（archived 标记、session 路由、两步删除、归档分区） | 已实现（构建/curl/浏览器断言与截图通过） | [072-conversation-archive-delete.md](references/072-conversation-archive-delete.md) |
+| 072 | 会话归档与删除（顶部切换最近/归档列表、恢复与两步删除） | 已实现（构建/curl/浏览器断言与截图通过） | [072-conversation-archive-delete.md](references/072-conversation-archive-delete.md) |
 | 074 | 侧栏实时对话条目与落库竞态重拉（liveConvGroup 占位、运行中徽章） | 已实现（真实两轮 e2e 8 断言通过） | [074-live-sidebar-entry.md](references/074-live-sidebar-entry.md) |
 
 ### 工程与协作

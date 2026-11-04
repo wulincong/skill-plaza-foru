@@ -566,6 +566,7 @@ const skillCat = (slug: string) => { const s = bySlug.get(slug); return s ? catO
 const historyRuns = ref<RunListItem[]>([])
 const archivedRuns = ref<RunListItem[]>([])
 const historyLive = ref(false)
+const archivedLive = ref(false)
 const historyLoading = ref(true)
 /** 当前选中的对话（key = clientSessionId，旧记录退化为其 runId） */
 const selectedSessionKey = ref<string | null>(null)
@@ -674,42 +675,26 @@ const liveConvGroup = computed<HistoryGroup | null>(() => {
   }
 })
 
-/** 展开归档区时附加在常规分组之后 */
+/** 固定入口切换列表，保留正在阅读的对话。 */
 const showArchived = ref(false)
 const sidebarSections = computed(() => {
-  const sections: { label: string; items: HistoryGroup[] }[] =
-    groupedHistory.value.map(b => ({ label: b.label, items: [...b.items] }))
-  /* 实时条目置顶「今天」；已有分组中属于当前运行对话的换「运行中」徽章 */
-  const live = liveConvGroup.value
-  if (live) {
-    const today = sections.find(s => s.label === '今天')
-    if (today) today.items.unshift(live)
-    else sections.unshift({ label: '今天', items: [live] })
-  }
-  const runKey = liveSessionKey.value
-  if (runKey && sending.value) {
-    for (const section of sections) for (const g of section.items) if (g.key === runKey) g.running = true
-  }
-  if (showArchived.value && archivedGroups.value.length) sections.push({ label: '已归档', items: archivedGroups.value })
-  return sections
-})
-
-/* 侧栏按时间桶分组（今天 / 昨天 / 更早），桶内按对话最新活动排序 */
-const groupedHistory = computed(() => {
   const now = new Date()
-  const yest = new Date(now); yest.setDate(now.getDate() - 1)
-  const groups: { label: string; items: HistoryGroup[] }[] = [
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  const sections: { label: string; items: HistoryGroup[] }[] = [
     { label: '今天', items: [] },
     { label: '昨天', items: [] },
     { label: '更早', items: [] },
   ]
-  for (const group of historyGroups.value) {
-    const d = new Date(group.latest.ts)
-    if (d.toDateString() === now.toDateString()) groups[0].items.push(group)
-    else if (d.toDateString() === yest.toDateString()) groups[1].items.push(group)
-    else groups[2].items.push(group)
+  const live = !showArchived.value && liveConvGroup.value
+  if (live) sections[0].items.push(live)
+  for (const group of showArchived.value ? archivedGroups.value : historyGroups.value) {
+    const date = new Date(group.latest.ts).toDateString()
+    const section = date === now.toDateString() ? sections[0] : date === yesterday.toDateString() ? sections[1] : sections[2]
+    const running = sending.value && group.key === liveSessionKey.value
+    section.items.push(running ? { ...group, running: true } : group)
   }
-  return groups.filter(g => g.items.length > 0)
+  return sections.filter(s => s.items.length)
 })
 
 function clearHistorySelection() {
@@ -849,12 +834,12 @@ async function loadHistory(opts: { silent?: boolean } = {}) {
     const [result, archived] = await Promise.all([fetchRuns(), fetchRuns({ archived: true })])
     historyRuns.value = result.live ? result.runs : []
     archivedRuns.value = archived.runs
+    archivedLive.value = archived.live
     historyLive.value = result.live
     if (!result.live) {
       clearHistorySelection()
       return
     }
-    if (showArchived.value && archivedGroups.value.length === 0) showArchived.value = false
     /* 当前对话（新建/表单交接/历史恢复）在列表刷新后保持或获得高亮 */
     const activeSession = currentConvId.value !== null ? convSessions.get(`pi:${currentConvId.value}`) : undefined
     if (selectedSessionKey.value && ![...historyGroups.value, ...archivedGroups.value].some(g => g.key === selectedSessionKey.value)) {
@@ -882,7 +867,7 @@ async function archiveConversation(group: HistoryGroup, archived: boolean) {
     toast('操作失败，请稍候重试')
     return
   }
-  toast(archived ? '已归档，可在侧栏底部「已归档对话」查看' : '已恢复到对话列表')
+  toast(archived ? '已归档，可在侧栏「已归档」查看' : '已恢复到对话列表')
   void loadHistory()
 }
 
@@ -973,11 +958,17 @@ onBeforeUnmount(() => {
       <Icon name="chat" :size="15" />{{ mobileHistoryOpen ? '收起历史对话' : '查看历史对话' }}
     </button>
     <aside id="conversation-history" class="exp-side" :class="{ 'is-open': mobileHistoryOpen }">
-      <button type="button" class="exp-new" :disabled="sending" @click="newChat">
+      <button type="button" class="exp-new" :disabled="sending" @click="showArchived = false; newChat()">
         <Icon name="plus" :size="15" />
         新建对话
       </button>
-      <div class="exp-history">
+      <div class="exp-history-views" role="group" aria-label="对话列表">
+        <button type="button" :aria-pressed="!showArchived" @click="showArchived = false">最近对话</button>
+        <button type="button" :aria-pressed="showArchived" @click="showArchived = true">
+          <Icon name="archive" :size="13" />已归档 <span v-if="archivedLive">{{ archivedGroups.length }}</span>
+        </button>
+      </div>
+      <div :key="showArchived ? 'archived' : 'recent'" class="exp-history">
         <template v-for="section in sidebarSections" :key="section.label">
           <p class="exp-hist-group">{{ section.label }}</p>
           <div
@@ -989,7 +980,7 @@ onBeforeUnmount(() => {
             tabindex="0"
             :title="group.title"
             @click="selectHistory(group)"
-            @keydown.enter="selectHistory(group)"
+            @keydown.enter.self="selectHistory(group)"
           >
             <span class="exp-hist-ico"><Icon :name="bySlug.get(group.skill)?.categoryId ?? 'brand'" :size="14" /></span>
             <span class="exp-hist-copy">
@@ -1033,20 +1024,11 @@ onBeforeUnmount(() => {
             </span>
           </div>
         </template>
-        <button
-          v-if="!historyLoading && historyLive && (archivedGroups.length > 0 || showArchived)"
-          type="button"
-          class="exp-hist-archived"
-          :class="{ 'is-open': showArchived }"
-          @click="showArchived = !showArchived"
-        >
-          <Icon name="archive" :size="13" />
-          已归档对话 · {{ archivedGroups.length }}
-          <Icon name="chev-down" :size="12" />
-        </button>
-        <p v-if="historyLoading" class="exp-side-empty">正在加载运行记录…</p>
-        <p v-else-if="!historyLive" class="exp-side-empty">启动本地服务后可查看运行记录</p>
-        <p v-else-if="historyRuns.length === 0 && !liveConvGroup" class="exp-side-empty">还没有运行记录，跑一次任务后就会出现在这里</p>
+        <p v-if="historyLoading" class="exp-side-empty">正在加载对话…</p>
+        <p v-else-if="showArchived ? !archivedLive : !historyLive" class="exp-side-empty">暂时无法读取对话，请稍后重试。</p>
+        <p v-else-if="!sidebarSections.length" class="exp-side-empty">
+          {{ showArchived ? '暂无已归档对话。归档后的对话会出现在这里。' : '暂无最近对话。新建对话后会出现在这里。' }}
+        </p>
       </div>
     </aside>
 
