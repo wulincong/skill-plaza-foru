@@ -40,21 +40,18 @@ Vue SPA ── POST /api/chat {skill, messages} ──> Node 后端 (8767)
 
 ### 启动步骤
 
+本机由 `wlc` 的两个独立 systemd 用户服务运行前后端。unit 使用 `/opt/plaza-runtime/bin/node`，来自本机的 Pi 沙箱配置（见 `scripts/setup-pi-sandbox.sh`），工作目录为 `~/project/skill-plaza-foru/web`。先安装依赖并配置好 `web/.env`，然后以 `wlc` 从仓库根目录执行：
+
 ```bash
-# 1. 准备 Pi：
-#    npm i -g @earendil-works/pi-coding-agent，并保证启动后端的 shell
-#    环境里有 DEEPSEEK_API_KEY（或写入 web/.env）
-
-# 2. 在开发工作区安装前端依赖
-cd web
-npm install
-
-# 3. 终端 1：启动 Node 后端（8767）
-npm run server
-
-# 4. 终端 2：启动前端开发服务（4188，/api 自动代理到 8767）
-npm run dev
+(cd web && npm ci)
+install -d ~/.config/systemd/user
+install -m 644 deploy/systemd/skill-plaza-*.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now skill-plaza-backend.service
+systemctl --user enable --now skill-plaza-frontend.service
 ```
+
+本机已为 `wlc` 启用 linger，用户服务可以在开机时启动并在退出 SSH 后继续运行。Vite 保留开发模式的热更新。日常重启和日志命令见 [AGENTS.md「本机前后端服务」](AGENTS.md#本机前后端服务)。
 
 打开 http://127.0.0.1:4188 。运行记录位于独立的管理后台。
 
@@ -77,7 +74,7 @@ node server/scripts/adminAccount.ts admin
 
 打开 `#/use/doc-translate`，填写目标语言并上传带文本层的 PDF（单文件 ≤6MB），提交后在在线对话查看进度，完成后点击“查看译文 PDF”或“下载译文 PDF”；也可在在线对话用 `$doc-translate` 挂载技能并上传 PDF。需要系统已安装 poppler（`pdfinfo`、`pdftotext`、`pdftohtml`、`pdftoppm`）、XeLaTeX（含 graphicx/xeCJK）和中文字体。默认保留原图并翻译图注，位图提取后嵌入、矢量图裁切引用原 PDF，图内文字保持原样。版式保留纸张/分栏/标题等宏观结构；当前不支持扫描件 OCR 或加密文档。
 
-新增技能或修改后端后须重启 `npm run server` 并刷新前端；`GET /api/skills` 中应包含 `doc-translate` 且 `installed:true`。`PLAZA_ENV` 只控制测试默认值，真实翻译依赖后端实际加载技能；运行失败会显示原因，不会自动替换为演示译文。
+新增技能或修改后端后须执行 `systemctl --user restart skill-plaza-backend.service` 并刷新前端；`GET /api/skills` 中应包含 `doc-translate` 且 `installed:true`。`PLAZA_ENV` 只控制测试默认值，真实翻译依赖后端实际加载技能；运行失败会显示原因，不会自动替换为演示译文。
 
 ### CLI 路径（自动检测）
 

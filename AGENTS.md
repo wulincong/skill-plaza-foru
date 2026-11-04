@@ -12,6 +12,19 @@
 
 若任务只是与项目无关的通用操作，不需要读取或更新该 Skill；无法判断时按相关任务处理。
 
+## 本机前后端服务
+
+本机使用 `wlc` 的两个独立 systemd 用户服务。以后启动、停止、重启和查日志统一使用 `systemctl --user` / `journalctl --user`。不要用 `npm run dev`、`npm run server`、`nohup` 或手工 kill 在同一端口另起进程。
+
+| 服务 | 监听地址 | 单独重启 |
+| --- | --- | --- |
+| `skill-plaza-frontend.service`（Vite） | `127.0.0.1:4188` | `systemctl --user restart skill-plaza-frontend.service` |
+| `skill-plaza-backend.service`（Node API） | `127.0.0.1:8767` | `systemctl --user restart skill-plaza-backend.service` |
+
+- Vue 和 CSS 日常修改由 Vite 热更新。修改后端代码或后端环境配置后，只重启后端。先确认没有正在执行的任务，避免中断 Pi 会话。服务由 `wlc` 启动，后端按 `web/.env` 配置以 `plaza-sandbox` 运行 Pi。
+- 查看状态用 `systemctl --user status <服务名>`，跟踪日志用 `journalctl --user -u <服务名> -f`。重启后端后用 `curl -fsS http://127.0.0.1:8767/api/health` 验证；通过前端访问同一接口可验证代理。
+- unit 源文件在 `deploy/systemd/`。修改 unit 后把对应文件安装到 `~/.config/systemd/user/`，执行 `systemctl --user daemon-reload`，再重启对应服务。首次安装与开机自启步骤见 README「启动步骤」。
+
 ## 开发备忘录
 
 文件`MEMORANDUM.MD`，开发人员备忘录，这里记录一些小设计，但如果我没让你做这部分，先不用管它。

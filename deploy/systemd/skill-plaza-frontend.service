@@ -1,0 +1,13 @@
+[Unit]
+Description=Skill Plaza frontend (Vite development server)
+
+[Service]
+Type=exec
+WorkingDirectory=%h/project/skill-plaza-foru/web
+Environment=PATH=/opt/plaza-runtime/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/opt/plaza-runtime/bin/node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 4188 --strictPort
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=default.target

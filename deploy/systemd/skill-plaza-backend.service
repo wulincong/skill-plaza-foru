@@ -1,0 +1,13 @@
+[Unit]
+Description=Skill Plaza backend (Node API and Pi runner)
+
+[Service]
+Type=exec
+WorkingDirectory=%h/project/skill-plaza-foru/web
+Environment=PATH=/opt/plaza-runtime/bin:%h/.local/bin:%h/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+ExecStart=/opt/plaza-runtime/bin/node server/index.ts
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=default.target
