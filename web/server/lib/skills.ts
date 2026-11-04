@@ -162,6 +162,8 @@ export const SKILL_PROMPTS: Record<string, string> = {
     CAREER_GUIDANCE_FILE_PROTOCOL +
     '量化数据和图表必须使用 HTML/CSS/内联 SVG 直接绘制，不能用 Markdown 表格冒充图表；' +
     '每个图表必须按共享 chart-visualization Skill（.agents/skills/chart-visualization/references/）下对应的绘图规范输出，并在 figure 上标注 data-chart-skill；中国目标地点先查 `.agents/skills/chart-visualization/resources/regions/registry.json` 选择匹配 manifest，未注册省份标记未评估，再用同一岗位筛选口径调用 city-distribution（使用 province、limit=20），成功时必须输出 data-chart-skill="heatmap-chart"、data-chart-id="CH_CITY" 的无气泡热点图；只有同口径总量可得时才计算“其他”，否则明确标为未评估并说明。失败/超时/缺少边界时必须写“热点图未评估”及失败原因，国外目标地点省略，未知地点不猜测。',
+  'resume-police':
+    '你正在按 resume-police SKILL 工作。针对简历原句指出问题、解释筛选疑点并提供忠于事实的改稿；用户要求出题时，根据项目与岗位描述生成主问题、追问和评价要点。',
   'training-data-qa':
     '你正在按 training-data-qa SKILL 工作。根据治理数据、任务模板和标注规则构造黄金种子、' +
     '扩增样本与难例，规划训练/验证/测试/独立评测划分，并检查 Schema、事实证据、业务规则、' +
@@ -190,7 +192,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'tech-forecast', 'doc-translate', 'wechat-report'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {'wechat-report':'talent-data-query'}

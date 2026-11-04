@@ -717,21 +717,25 @@ export class PiRunner extends AgentRunner {
 
   buildPrompt(skill: string, messages: any[], isFirstTurn: boolean): string {
     // Pi 保留历史；HTML 报告技能的结构契约逐轮重申，避免追问或旧会话沿用旧结构。
-    const latest = messages[messages.length - 1]
+    let content = messages[messages.length - 1].content
+    if (skill === 'resume-police') {
+      const dir = skillDir(skill)
+      content += `\n\n（简历警察本轮规则：审查时先读 ${dir}/references/review.md。凡要给可投递的经历句，先实际运行 python3 ${dir}/scripts/compose_bullets.py。文本附件直接用 --source，粘贴输入在 JSON 中传原话 source 和摘录 bullets。只把校验成功的经历写入改稿，缺证的结果留作追问。若只需出题，读取 ${dir}/references/interview.md 并从用户材料命题。没有简历则先请用户提供。）`
+    }
     const contract = HTML_REPORT_CONTRACTS[skill]
     if (!isFirstTurn) {
-      return contract ? `${latest.content}\n\n${contract.userReportContract}\n${contract.fileProtocol}` : latest.content
+      return contract ? `${content}\n\n${contract.userReportContract}\n${contract.fileProtocol}` : content
     }
     if (INSTALLED_SKILLS.has(skill)) {
       /* --skill 已注册命令，/skill:name 展开注入技能文档；HTML 报告技能
          （career-guidance、tech-forecast）追加各自契约并写入 workspace/report.html，
          最终回复只保留短状态；其余已安装技能保持自己的输出契约。 */
-      const base = `/skill:${skill} ${latest.content}`
+      const base = `/skill:${skill} ${content}`
       const prompt = contract ? `${base}\n\n${contract.firstTurnRules}` : base
       /* report-meta 侧车：报告尾部附机器校验块（服务端剥离，见 lib/reportMeta.ts） */
       return SIDECAR_SKILLS.has(skill) ? `${prompt}\n\n${sidecarInstruction(skill)}` : prompt
     }
-    return `${SKILL_PROMPTS[skill]}\n\n${latest.content}`
+    return `${SKILL_PROMPTS[skill]}\n\n${content}`
   }
 }
 
