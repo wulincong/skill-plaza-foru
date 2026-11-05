@@ -18,3 +18,5 @@ description: 为院校、园区和政府研判培养、实训或专业建设决�
 **绘图。** 决策简报和完整观察版都由 [chart-visualization](../chart-visualization/SKILL.md) 绘制统计图。用户要求图文结合且有可比较的数据时，选择直接支撑结论的指标出图。从本轮 build 输出的 report.json 读取指标值、分组明细与来源，按[图稿规格](../chart-visualization/references/figure-spec.md)写 figure/1。以会话工作区为当前目录，运行 `python3 <chart-visualization目录>/scripts/figure.py render <规格.json> --out <新图稿目录>`。独立图稿用同参数的 `verify` 复验，网页版由 report-rendering 执行同一复验。Word/PDF 采用已复验图稿的矢量文件及图注。修订时核对指标、分母和图注，有变动就重绘。复验失败先修正规格；仍无法出图则交代原因，保留可核查的数值表。避免自编绘图脚本或手写 SVG 绕过共享技能。纯质性材料、未决事项或无法比较的数字用原文或表格表达。
 
 **网页版。** 用户要求网页版或 HTML 报告时，先完成本轮 build，再将成品正文、已核指标、来源和未决项交给 [report-rendering](../report-rendering/SKILL.md)。用户要图文报告且未指定格式时，随四份下载提供含图网页版。业务层选择要突出的判断和支撑它的数据，渲染技能负责内部内容整理、主题、组件、表格与图稿嵌入。默认用纸感简报主题，用户可指定其他风格。已有 report.json 直接交接，由渲染技能内部映射。实际打开成品核对图文和移动端后，在本轮 delivery.json 保留 files 并追加 web。交付使用平台返回的网页链接。
+
+多图报告按渲染技能的[图表选型与组合](../report-rendering/references/chart-selection.md)安排多样化图型。已核材料支持趋势、分布、关联、交叉或地域比较时，选用相应表达，避免全部默认柱状图。选型保留真实的数据前提，同类比较确需统一图型时在复核中说明。

@@ -69,7 +69,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 
 | # | 主题 | 状态 | 文件 |
 |---|---|---|---|
-| 113 | 共享报告渲染的自由输入、UI 元素、八种表格和主题 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
+| 113 | 共享报告渲染的自由输入、UI 元素、表格、主题与多图选型 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
 
 ### 报告输出协议（就业指导）
 

@@ -1,7 +1,7 @@
 [
   {
     "kind": "barh",
-    "title": "数量",
+    "title": "类别比较",
     "x_label": "条",
     "y_label": "分组",
     "rows": [
@@ -12,6 +12,95 @@
       {
         "category": "乙",
         "value": 0
+      }
+    ]
+  },
+  {
+    "kind": "line",
+    "title": "时间趋势",
+    "x_label": "周次",
+    "y_label": "记录数（条）",
+    "rows": [
+      {
+        "x": 1,
+        "y": 2
+      },
+      {
+        "x": 2,
+        "y": 4
+      },
+      {
+        "x": 3,
+        "y": null
+      },
+      {
+        "x": 4,
+        "y": 5
+      },
+      {
+        "x": 5,
+        "y": 3
+      }
+    ]
+  },
+  {
+    "kind": "scatter",
+    "title": "两个观测量",
+    "x_label": "投入（小时）",
+    "y_label": "测评得分（分）",
+    "rows": [
+      {
+        "x": 1,
+        "y": 42
+      },
+      {
+        "x": 2,
+        "y": 55
+      },
+      {
+        "x": 3,
+        "y": 48
+      },
+      {
+        "x": 4,
+        "y": 67
+      },
+      {
+        "x": 5,
+        "y": 60
+      },
+      {
+        "x": 6,
+        "y": 72
+      }
+    ]
+  },
+  {
+    "kind": "matrix",
+    "title": "交叉结构（课时）",
+    "x_label": "模块",
+    "y_label": "分组",
+    "scale": "sequential",
+    "rows": [
+      {
+        "row": "甲",
+        "column": "基础",
+        "value": 24
+      },
+      {
+        "row": "甲",
+        "column": "进阶",
+        "value": 12
+      },
+      {
+        "row": "乙",
+        "column": "基础",
+        "value": 0
+      },
+      {
+        "row": "乙",
+        "column": "进阶",
+        "value": null
       }
     ]
   }
