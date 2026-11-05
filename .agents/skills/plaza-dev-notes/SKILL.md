@@ -70,7 +70,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | # | 主题 | 状态 | 文件 |
 |---|---|---|---|
 | 113 | 共享报告渲染的自由输入、UI 元素、表格、主题与多图选型 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
-| 115 | 产教业务稿与共享渲染彻底分离 | 已实现 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
+| 115 | 产教业务稿与共享渲染彻底分离 | 分离已实现；交接、质量与修订发布缺口待修 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
 
 ### 报告输出协议（就业指导）
 
