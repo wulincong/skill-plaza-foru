@@ -11,12 +11,10 @@ import { validateRequest } from '../../../../scripts/talent-data/core.mjs'
 import { buildPlan } from '../../../../scripts/talent-data/compile.mjs'
 import { buildResult } from '../../../../scripts/talent-data/metrics.mjs'
 import { persistResult } from '../../../../scripts/talent-data/artifacts.mjs'
-import { checkIndustryWebEntry, expectsIndustryBuild, industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
+import { expectsIndustryBuild, industryDelivery, parseDeliveredReport } from '../../../../web/server/lib/reportParse.ts'
 import { deliveryFingerprint, handleDelivery, publishDelivery } from '../../../../web/server/lib/delivery.ts'
 
 const cli = fileURLToPath(new URL('./report.py', import.meta.url))
-const embed = fileURLToPath(new URL('./embed_chart.py', import.meta.url))
-const figure = fileURLToPath(new URL('../../chart-visualization/scripts/figure.py', import.meta.url))
 const template = JSON.parse(await readFile(new URL('../assets/templates.json', import.meta.url))).observation
 const readAt = '2026-10-01T00:00:00Z'
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
@@ -52,7 +50,6 @@ function draft(result) {
     claims:[{id:'C1',kind:'fact',text:'观测到平台岗位数。',metric_ids:[id],limitation:'仅限测试样本'}],
     sections:template.sections.map(s=>({id:s.id,claim_ids:['C1'],gap_ids:['G1']})),
     gaps:[{id:'G1',description:'缺院校材料',owner:'院校',required_data:'课程表',impact:'待核实课程建议'}],
-    charts:[{id:'T1',title:'岗位计数',metric_ids:[id],note:'同一样本',type:'table'}],
   }
 }
 
@@ -68,7 +65,7 @@ test('a verified result can be revised offline; changed values or artifacts cann
   report.metrics.push({...report.metrics[0], id:'edu', label:'学历分布',
     binding:{metricId:'all/education.distribution',field:'rows'}})
   delete report.metrics[1].value
-  report.charts[0].metric_ids.push('edu')
+  report.claims[0].metric_ids.push('edu')
   delete report.metrics[0].value
   delete report.sources[0].contentHash
   delete report.sources[0].dataReadAt
@@ -136,7 +133,7 @@ test('empty evidence is distinct from failed collection and an all-gap draft nee
   assert.equal(result.status,'empty')
   assert.equal(report.metrics[0].value,0)
   assert.equal((await validate()).structure_pass,true)
-  report.sources=[]; report.metrics=[]; report.claims=[]; report.charts=[]
+  report.sources=[]; report.metrics=[]; report.claims=[]
   report.sections.forEach(s=>{s.claim_ids=[]})
   assert.equal((await validate()).structure_pass,true)
   report.status='final'
@@ -154,7 +151,7 @@ test('the decision brief waits for the user on a material gap; minor gaps do not
   const report={
     title:'是否增开实训班',edition:'decision',region:'佛山',industry:'机器人',period:'下学期',as_of:'2026-11-04',
     status:'draft',decision:{reader:'专业负责人',question:'能否新增一个班？',critical_gap_ids:['G']},
-    sources:[source],metrics:[],charts:[],
+    sources:[source],metrics:[],
     claims:[{id:'C',kind:'inference',text:'可把复位操作纳入校企访谈。',basis:excerpt,implication:'应先核实工位。',limitation:'单次访谈',source_ids:['T']}],
     gaps:[{id:'G',description:'缺实训室排课表',owner:'教务处',required_data:'空闲课时',impact:'能否增班未决'}],
     sections:['D01','D02','D03'].map(id=>({id,claim_ids:['C'],gap_ids:['G']})),
@@ -166,7 +163,7 @@ test('the decision brief waits for the user on a material gap; minor gaps do not
     JSON.stringify({runId,previousBuildRun,message,offered,earlierMessages:[excerpt],uploads}))
   await save(); await writeFile(join(root,'review.md'),'C 已核对访谈。')
   await context('请直接生成报告',false)
-  for (const command of ['render','build']) assert.notEqual(cliRun(command).status,0)
+  for (const command of ['preview','build']) assert.notEqual(cliRun(command).status,0)
   await assert.rejects(readFile(join(root,'delivery.json')), {code:'ENOENT'})
   report.decision.continue_quote='请直接生成报告'
   await save()
@@ -248,11 +245,11 @@ test('a requested industry report website and its assets are served alongside th
   const originals = (await readJson(join(root,'industry-build-'+runId+'.json'))).files
   assert.equal(originals.length,4)
   const page = {name:'报告网页版',directory:'output/public/site',entry:'index.html'}
-  const html = '<!doctype html><title>产业人才报告</title><img src="charts/jobs.svg">'
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>4 个岗位</text></svg>'
-  await mkdir(join(root,page.directory,'charts'),{recursive:true})
+  const html = '<!doctype html><title>产业人才报告</title><link rel="stylesheet" href="report.css">'
+  const css = 'body { color: #123; }'
+  await mkdir(join(root,page.directory),{recursive:true})
   await writeFile(join(root,page.directory,page.entry),html)
-  await writeFile(join(root,page.directory,'charts/jobs.svg'),svg)
+  await writeFile(join(root,page.directory,'report.css'),css)
   const beforeWeb = deliveryFingerprint(root)
   await writeFile(join(root,'delivery.json'),JSON.stringify({
     web:[page],files:[{name:'无关文件',path:'output/public/site/index.html'}],
@@ -271,9 +268,9 @@ test('a requested industry report website and its assets are served alongside th
   const publishedPage = await fetch(links.webLinks[0].url)
   assert.equal(publishedPage.status,200)
   assert.equal(await publishedPage.text(),html)
-  const chart = await fetch(new URL('charts/jobs.svg',publishedPage.url))
-  assert.equal(chart.status,200)
-  assert.equal(await chart.text(),svg)
+  const stylesheet = await fetch(new URL('report.css',publishedPage.url))
+  assert.equal(stylesheet.status,200)
+  assert.equal(await stylesheet.text(),css)
   assert.deepEqual(links.downloads.map(link=>link.name),originals.map(f=>f.name))
   for (const [i, download] of links.downloads.entries()) {
     const response = await fetch(download.url)
@@ -296,57 +293,4 @@ test('a requested industry report website and its assets are served alongside th
   assert.equal(ordinary.web?.length ?? 0,0)
   await writeFile(join(root,'delivery.json'),JSON.stringify({web:[{...page,directory:'uploads'}]}))
   assert.throws(()=>publishDelivery(root,industryDelivery(root,runId,beforeWeb,request),store,origin))
-})
-
-test('a report embeds the verified shared chart and the published entry renders without a nested document', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'industry-chart-'))
-  t.after(() => rm(root, {recursive:true, force:true}))
-  const run = (...args) => spawnSync('python3', args, {cwd:root,encoding:'utf8'})
-  const success = (...args) => {
-    const result = run(...args)
-    assert.equal(result.status,0,result.stderr + result.stdout)
-  }
-  const sample = await savedResult(root,4,true)
-  const report = draft(sample)
-  report.metrics.push({...report.metrics[0],id:'edu',label:'学历要求',
-    binding:{metricId:'all/education.distribution',field:'rows'}})
-  delete report.metrics[1].value
-  report.charts[0].metric_ids.push('edu')
-  await writeFile(join(root,'report.json'),JSON.stringify(report))
-  await writeFile(join(root,'review.md'),'C1 已核对。')
-  success(cli,'build','report.json')
-  const manifest = await readJson(join(root,'delivery.json'))
-  const built = await readJson(join(root,manifest.files[1].path))
-  const {groups,denominator} = built.metrics.find(m => m.id === 'edu').breakdown
-  const spec = {schema:'figure/1',id:'EDU',lang:'zh',title:'学历要求',caption:`分母 ${denominator} 条`,source:'D1 / edu',
-    datasets:{edu:groups.map(g => ({label:g.label,count:g.count}))},
-    panels:[{kind:'barh',title:'学历要求',data:'edu',fields:{category:'label',value:'count'},x_label:'岗位记录数 (条)',y_label:'学历'}]}
-  await writeFile(join(root,'spec.json'),JSON.stringify(spec))
-  success(figure,'render','spec.json','--out','chart')
-  const site = 'output/public/site', entry = join(site,'index.html')
-  await mkdir(join(root,site),{recursive:true})
-  manifest.web = [{name:'报告',directory:site,entry:'index.html'}]
-  const publish = () => publishDelivery(root,manifest,join(root,'publications'),'https://example.invalid',checkIndustryWebEntry)
-  const template = '<html><body><!-- chart:EDU --></body></html>'
-  await writeFile(join(root,entry),'<html><body><figure><img alt="实训室布局"><figcaption>校方提供的平面图</figcaption></figure></body></html>')
-  assert.equal(publish().webLinks.length,1)
-  for (const bad of ['<object data="chart/figure.svg"></object>','<figure><svg class="chart"></svg></figure>',
-    '<div><svg role="img"><text>本科</text></svg></div>','<img src="chart/figure.svg">',template]) {
-    await writeFile(join(root,entry),bad)
-    assert.throws(publish,/embed_chart.py/)
-  }
-  success(embed,'spec.json','chart',entry)
-  success(embed,'spec.json','chart',entry)
-  const block = (await readFile(join(root,'chart/figure.html'),'utf8')).match(/<figure\b[\s\S]*?<\/figure>/)[0]
-  const embeddedPage = await readFile(join(root,entry),'utf8')
-  assert.equal(embeddedPage.split(block).length,2)
-  assert.ok(!embeddedPage.includes('<!-- chart:EDU -->'))
-  const links = publish()
-  assert.equal(links.downloads.length,4)
-  const id = new URL(links.webLinks[0].url).pathname.split('/')[2]
-  assert.ok((await readFile(join(root,'publications',id,'web/0/index.html'),'utf8')).includes(block))
-  await writeFile(join(root,entry),template)
-  await writeFile(join(root,'chart/figure.svg'),'<svg/>')
-  assert.notEqual(run(embed,'spec.json','chart',entry).status,0)
-  assert.equal(await readFile(join(root,entry),'utf8'),template)
 })

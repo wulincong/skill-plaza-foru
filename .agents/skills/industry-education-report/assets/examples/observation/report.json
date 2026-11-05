@@ -248,21 +248,5 @@
     { "id": "APXA", "claim_ids": ["CL-APXA"], "gap_ids": [] },
     { "id": "APXB", "claim_ids": ["CL-APXB"], "gap_ids": ["GAP-TIME"] },
     { "id": "APXC", "claim_ids": ["CL-APXC"], "gap_ids": [] }
-  ],
-  "charts": [
-    {
-      "id": "CH-FIG1",
-      "title": "图1 AI 切片主要城市岗位分布（节选）",
-      "metric_ids": ["M-SZ-AI", "M-AI-SLICE"],
-      "note": "自身地址口径未回填；“未定”4,169 条未列入；基数为词表 v1 切片（§6.3）",
-      "type": "table"
-    },
-    {
-      "id": "CH-APXA",
-      "title": "附录A 关键数据指标表",
-      "metric_ids": ["M-GD-RECORDS", "M-GD-FIRMS", "M-AI-SLICE", "M-AI-SALARY-MEDIAN", "M-AI-BENKE-PLUS"],
-      "note": "全部指标出自 05 数据快照，口径列见各指标 definition",
-      "type": "table"
-    }
   ]
 }

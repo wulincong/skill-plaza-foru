@@ -2,9 +2,9 @@
 
 `report.json` 由报告技能编写。查询请求、指标名、单位、分母和清洗规则由 [人才数据库查询](../../talent-data-query/SKILL.md) 定义，以查询结果为准。
 
-## 选择报告版式
+## 选择报告结构
 
-单项决定使用 edition=decision，sections 顺序为 D01 决策摘要、D02 证据与判断、D03 行动与适用条件。各章均写 claim_ids、gap_ids 两个数组。D01 的结论回应原问题；D02 引用的每条 claim 除 text（判断）、limitation、source_ids 或 metric_ids 外，还填 basis（具体证据）和 implication（这对本次决定意味着什么）；D03 写可执行的建议与条件。新观察版在 S02–S12 使用相同的 basis、implication 写论证段。次要缺项只在相关位置交代。没有适合的量化比较时，charts 填空数组。
+单项决定使用 edition=decision，sections 顺序为 D01 决策摘要、D02 证据与判断、D03 行动与适用条件。各章均写 claim_ids、gap_ids 两个数组。D01 的结论回应原问题；D02 引用的每条 claim 除 text（判断）、limitation、source_ids 或 metric_ids 外，还填 basis（具体证据）和 implication（这对本次决定意味着什么）；D03 写可执行的建议与条件。新观察版在 S02–S12 使用相同的 basis、implication 写论证段。次要缺项只在相关位置交代。
 
 新报告声明 `decision`，例如 `{"reader":"专业负责人","question":"下学期是否增开调试班？","critical_gap_ids":[]}`。critical_gap_ids 只填阻断当前决定的 gaps ID。与当前任务无关的模板专题不算关键缺口。关键缺证先提问，不构建；只有用户选按现有证据继续才写 `decision.continue_quote`，逐字引用表示同意的原话，例如“按现有证据继续”。只给材料、要求扩围、提问或否定该选项均不授权出稿。范围、指标或用户补充的材料改变时重新判断，不能沿用其他决定的选择。独立命令行运行限定报告时使用 `--user-reply 用户实际回复文件`；广场自动提供本轮原话。Markdown 和 TXT 附件的 excerpt 还会核对文件原句；PDF、Word 的页码和摘录需要在复核时查原件。报告形成的有条件结论不等于审批通过。
 
@@ -32,9 +32,9 @@
 ## 结构与引用
 
 - 顶层 `title, edition, region, industry, period, as_of, status`。region、industry、period 写可展示的文字，如“佛山市”“名称含 Java（不限制产业）”“平台更新时间 [起日, 止日)”；查询筛选对象只放在共享请求中。edition 为 decision 或 observation，as_of 为报告证据截止日（YYYY-MM-DD），status 为 sample/draft/final；仍有关键缺口用 draft；只有次要缺项可在相关段落说明。
-- `sections` 按 [章节表](../assets/templates.json) 的对应版式排列，observation 含 S00–S12、APXA/B/C，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
+- `sections` 按 [章节表](../assets/templates.json) 的对应结构排列，observation 含 S00–S12、APXA/B/C，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
 - `claims` 含 id、kind（fact/inference/recommendation）、text、source_ids、metric_ids、limitation。统计事实引用指标，质性事实引用材料的具体位置，建议说明依据和验证办法。
-- `gaps` 含 id、description、owner、required_data、impact。`charts` 含 id、title、metric_ids、note、type（table）。图注交代样本和分母。只有缺口且没有数值时可用空 charts。
+- `gaps` 含 id、description、owner、required_data、impact。
 - `sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。用户附件用 uploads/ 相对路径，粘贴材料用 user: 加名称，两者均写页码、表号或段落。粘贴材料的 excerpt 摘录用户原句，不改写，不另建附件；解释写进 claim。历史样板保留原 references/ 节号。
 - `metrics` 含 id、label、value（有限数值）、unit、period、region、population、definition、source_ids。描述分母、样本、计量单位与对应限制；派生指标使用 derived.inputs 和 operation（sum/ratio/percent），写明 comparable_group 与 price_basis。输入单位、地区、时期、样本和价格口径必须可比。
 
@@ -48,10 +48,6 @@
 
 确认空样本时可以报告零条记录，薪酬或占比不可得。仅部分指标可用时登记缺口，引用须来自已完成事务、通过对账的指标。无可用结果则省略统计表并说明影响。公开报告保留可读出处与定位，查询内部证据文件不进入交付。
 
-## 将已核指标交给共享绘图技能
+本轮 build 输出的 report.json 已补齐绑定的数值、分组明细与来源，可交给下游消费；工作区根目录的同名草稿可能尚未补齐。
 
-`charts[].type` 保留 `table`，供 Markdown 和历史观察版回查。使用本轮 `report.py build` 打印的目录，其中的 report.json 已补齐绑定的数值与分组。工作区根目录的同名草稿可以省略这些字段。为每项比较选取相应的 `metrics[].id`。例如学历分布从该指标的 `breakdown.groups` 提取 label 和 count，映射到横条图的 category 和 value，以条为单位。图注明确 `breakdown.denominator`、筛选范围、展示了多少组以及证据时点。引用计数时不拿分母代替某组的值，缺测不补零。多指标比较先核实单位、时期和分母含义。
-
-给每张图一个报告内唯一的 figure/1 id。将指标 ID 和可公开的来源、定位写入图稿的 source，内部结果路径和原始查询留在会话内。规格与渲染目录存于工作区公开目录之外。用 [chart-visualization 的命令](../../chart-visualization/SKILL.md)生成并复验，逐项对照 figure.html 数值表与原指标。规格、图稿和数值表留在同一工作区供复算。网页交给 [report-rendering](../../report-rendering/SKILL.md)，由其内部 figure 块调用同一 verify 并嵌入完整图稿。业务层保留指标选择、判断与图稿的对应关系；渲染层负责主题、组件、表格和公开目录。自定义 HTML 可用其 scripts/embed_chart.py 填充图稿占位。原产教 scripts/embed_chart.py 保留为共享入口的兼容调用。
-
-[历史样板](../assets/examples/observation/report.json) 可用于复现旧格式。旧样板不是新范围的数据源。
+[历史样板](../assets/examples/observation/report.json) 用于复现旧统计口径，不是新范围的数据源。

@@ -48,4 +48,4 @@ Python 报告回归 12 项，Node 查询交接、对话、交付、API 与文档
 
 产教、交付、对话、API 及 HTML 回归 45 项，Python 报告 12 项，共享出图 21 项通过。覆盖损坏 SVG 拒绝嵌入、重复与并行嵌图、手写统计图、未填占位和纯质性插图。技能校验、文档索引和 Vue 构建通过。首轮及续轮提示都包含共享脚本路径，当前与历史规则可恢复相同用户原话。本次实际成品验收针对网页版，另行导出的 Word/PDF 版式仍待实测。
 
-2026-11-05 网页主题、组件、表格及嵌图实现迁入共享 report-rendering，见 [113](113-report-rendering-ui-skill.md)。上文产教 embed_chart.py 路径继续作为兼容 CLI，实际实现由共享层提供。产教保留业务判断、指标选择、build 与四份原件校验。
+2026-11-05 网页主题、组件、表格及嵌图实现迁入共享 report-rendering，见 [113](113-report-rendering-ui-skill.md)。首次迁移保留的产教 embed_chart.py 兼容 CLI 随后已删除；当前按 [115](115-industry-content-rendering-separation.md) 交接纯业务稿，产教保留业务判断、证据、build 与四份原件校验。

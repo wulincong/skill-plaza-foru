@@ -25,7 +25,7 @@ import { tokenUsageFrom } from './traceExport.ts'
 import { piCliVersion } from './agentEnv.ts'
 import {
   HTML_REPORT_CONTRACTS,
-  INDUSTRY_CHART_RULE,
+  INDUSTRY_PRESENTATION_HANDOFF,
   INDUSTRY_DECISION_SUFFIX,
   SKILL_PROMPTS,
   INSTALLED_SKILLS,
@@ -725,7 +725,7 @@ export class PiRunner extends AgentRunner {
     // Pi 保留历史；HTML 报告技能的结构契约逐轮重申，避免追问或旧会话沿用旧结构。
     let content = messages[messages.length - 1].content
     if (skill === 'industry-education-report') {
-      content += INDUSTRY_DECISION_SUFFIX + '\n\n' + INDUSTRY_CHART_RULE
+      content += INDUSTRY_DECISION_SUFFIX + '\n\n' + INDUSTRY_PRESENTATION_HANDOFF
     }
     if (skill === 'ai-interview') {
       content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'

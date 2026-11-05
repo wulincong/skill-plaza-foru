@@ -53,7 +53,7 @@ class ReportTests(unittest.TestCase):
         n=copy.deepcopy(m)
         n.update(id='DERIVED',region='北京市',value=m['value'],derived={'inputs':[m['id']],'operation':'sum'})
         self.d['metrics'].append(n)
-        self.d['charts'][0]['metric_ids'].append('DERIVED')
+        self.d['claims'][0]['metric_ids'].append('DERIVED')
         self.assertFalse(report.validate(self.d)['structure_pass'])
     def test_cycle(self):
         m=self.d['metrics'][0]
@@ -63,10 +63,10 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(self.d['sources'][0]['url'],'references/05-数据库字段摸底与口径.md')
         self.assertTrue(report.validate(self.d)['structure_pass'])
     def test_delivery_changes(self):
-        original=report.render(self.d)
+        original=report.compose_markdown(self.d)
         modified=copy.deepcopy(self.d)
         modified['claims'][0]['text']+='额外结论'
-        self.assertNotEqual(original,report.render(modified))
+        self.assertNotEqual(original,report.compose_markdown(modified))
 
 if __name__=='__main__':
     unittest.main()

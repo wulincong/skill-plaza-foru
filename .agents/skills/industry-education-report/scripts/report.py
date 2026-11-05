@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate evidence-linked reports, render Markdown, verify delivery integrity."""
+"""Validate evidence-linked reports, compose manuscript, verify delivery integrity."""
 import argparse
 import datetime
 import hashlib
@@ -110,8 +110,7 @@ def validate(d):
         'sources':['id','title','publisher','url','published','accessed','locator','scope','excerpt'],
         'metrics':['id','label','value','unit','period','region','population','definition','source_ids'],
         'claims':['id','kind','text','limitation'],
-        'gaps':['id','description','owner','required_data','impact'],
-        'charts':['id','title','metric_ids','note','type']}
+        'gaps':['id','description','owner','required_data','impact']}
     for group, required in requirements.items():
         items = d.get(group)
         check(isinstance(items,list), f'{group} must be array')
@@ -269,11 +268,6 @@ def validate(d):
             errors.append('decision: reader, question and critical_gap_ids required')
     for c in indexes['claims'].values():
         used_metrics.update(x for x in c.get('metric_ids',[]) if isinstance(x,str))
-    for c in indexes['charts'].values():
-        check(c.get('type')=='table', f'{c["id"]}: unsupported chart type')
-        used_metrics.update(refs(c,'metric_ids','metrics'))
-    check(decision is not None or bool(indexes['charts']) or (not indexes['metrics'] and indexes['gaps'] and d.get('status') != 'final'),
-          'at least one annotated chart/table required when reporting numbers')
     check(set(indexes['claims'])==used_claims, 'orphan claims')
     check(set(indexes['gaps'])==used_gaps, 'orphan gaps')
     check(set(indexes['metrics'])==used_metrics, 'orphan metrics')
@@ -300,7 +294,7 @@ def scope_text(scope):
             return ' '.join(dict.fromkeys(filter(None, (scope.get('province'), scope['name']))))
     return str(scope)
 
-def render(d):
+def compose_markdown(d):
     template = json.loads((ROOT/'assets/templates.json').read_text())[d['edition']]
     indexes = {k:{x['id']:x for x in d[k]} for k in ['claims','gaps','metrics','sources']}
     out = [f'# {d["title"]}', '', f'区域：{scope_text(d["region"])}｜产业：{scope_text(d["industry"])}｜时间窗/基期：{scope_text(d["period"])}｜数据时点：{d["as_of"]}', '',
@@ -342,14 +336,11 @@ def render(d):
             out += [f'- **{gid} · 数据缺口**：{g["description"]}；取数责任：{g["owner"]}；待取：{g["required_data"]}；影响：{g["impact"]}', '']
     def cell(s):
         return str(s).replace('|','\\|').replace('\n',' ')
-    if d['charts']:
-        out += ['## 图表与统计口径','']
-    for chart in d['charts']:
-        out += [f'### {chart["id"]} {chart["title"]}', '', '| 指标 | 数值 | 单位 | 时期 | 地域 | 统计对象与定义 | 来源 |','|---|---:|---|---|---|---|---|']
-        for mid in chart['metric_ids']:
-            m = indexes['metrics'][mid]
+    if d['metrics']:
+        out += ['## 指标与统计口径', '', '| 指标 | 数值 | 单位 | 时期 | 地域 | 统计对象与定义 | 来源 |','|---|---:|---|---|---|---|---|']
+        for m in d['metrics']:
             out.append('| '+' | '.join(cell(x) for x in [m['label'],m['value'],m['unit'],scope_text(m['period']),scope_text(m['region']),m['population']+'；'+m['definition'],','.join(m['source_ids'])])+' |')
-        out += ['',f'图表说明：{chart["note"]}', '']
+        out.append('')
     for m in d['metrics']:
         if 'breakdown' not in m:
             continue
@@ -490,7 +481,7 @@ def build_delivery(d, validation, review, reply_file=None):
         folder.chmod(0o2750)
         files = []
         for filename, label, content in [
-            ('report.md', '报告正文', render(d)),
+            ('report.md', '报告正文', compose_markdown(d)),
             ('report.json', '结构化报告', json.dumps(d, ensure_ascii=False, indent=2)),
             ('validation.json', '结构验收', json.dumps(validation, ensure_ascii=False, indent=2)),
             ('review.md', '证据复核', review),
@@ -525,9 +516,9 @@ def build_delivery(d, validation, review, reply_file=None):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('command',choices=['validate','render','verify','build'])
+    p.add_argument('command',choices=['validate','preview','verify','build'])
     p.add_argument('report',type=Path)
-    p.add_argument('rendered',type=Path,nargs='?')
+    p.add_argument('manuscript',type=Path,nargs='?')
     p.add_argument('--output',type=Path)
     p.add_argument('--user-reply',type=Path,help='standalone build: file containing the actual user reply')
     p.add_argument('--review',type=Path,default=Path('review.md'))
@@ -543,13 +534,13 @@ def main():
         elif a.command=='build':
             print(build_delivery(d, result, a.review.read_text(), a.user_reply))
             return 0
-        elif a.command=='render':
+        elif a.command=='preview':
             check_release(d, a.user_reply)
-            output = render(d)
+            output = compose_markdown(d)
         else:
-            if a.rendered is None:
-                p.error('verify requires rendered Markdown path')
-            ok = a.rendered.read_text()==render(d)
+            if a.manuscript is None:
+                p.error('verify requires manuscript Markdown path')
+            ok = a.manuscript.read_text()==compose_markdown(d)
             output = json.dumps({'delivery_matches_validated_report':ok},indent=2)+'\n'
             result['structure_pass'] = ok
         if a.output:

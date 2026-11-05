@@ -7,6 +7,8 @@ description: 将普通文字、Markdown、任意业务 JSON 与数据整理为�
 
 从内容中识别读者、要回答的问题和重要信息，设计能顺畅阅读、核对数据的网页。先查看[元素设计](references/elements.md)和[主题系统](references/themes.md)，选表时查[表格图鉴](references/tables.md)。可打开 [纸感组件陈列](examples/gallery/index.html) 或 [极简组件陈列](examples/minimal/index.html) 对照效果。
 
+用户要求网页或 HTML 时生成相应成品；要求图文报告但未指定格式时，提供网页版。其他格式遵循用户选择。
+
 ## 整理内容
 
 接受文字、Markdown、JSON、表格及其组合。字段名、章节数、来源编号和数据形状沿用原材料。编写内部文件前读取[页面模型](references/page-model.md)，由 Agent 在工作区转换，无需用户改输入或填写 schema。Markdown 可以直接渲染成基础页面，再按阅读需要提升为摘要、指标或图文段。复杂 JSON 先理解键与上下文，逐块映射，保留未映射的有用内容。未给出的地点、日期和主体采用中性表述，示例中的内容仅用于理解组件。
