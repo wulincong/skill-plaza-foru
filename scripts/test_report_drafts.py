@@ -9,9 +9,10 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock, call
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
+sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'.agents/skills/wechat-report/scripts'))
 import report_library as lib
 import report_drafts as drafts
 
@@ -110,6 +111,93 @@ class DraftTests(unittest.TestCase):
    result=drafts.save_report('session1',self.id,'account',unavailable)
    self.assertEqual(result['state'],'failed');self.assertIn('40164',result['message'])
    network.assert_not_called()
+
+ def test_expired_credentials_refresh_once_at_image_cover_or_draft_without_reuploading_completed_steps(self):
+  for failing_stage,code in [('media/uploadimg','40001'),('material/add_material?type=image','42001'),('draft/add','42001')]:
+   with self.subTest(stage=failing_stage):
+    with lib.database() as db:
+     db.execute('DELETE FROM drafts');db.execute('UPDATE sessions SET pending=2')
+    self.calls=[];attempts=[];rejected=False
+    def post(path,token,payload=None,image=None):
+     nonlocal rejected
+     attempts.append((path,token))
+     if path==failing_stage and not rejected:
+      rejected=True;raise drafts.DraftError('expired credential',code=code)
+     return self.fake_post(path,token,payload,image)
+    provider=Mock(side_effect=['old-token','new-token'])
+    with patch.object(drafts,'_post',side_effect=post),patch('publish_draft.make_card_cover'):
+     result=drafts.save_report('session1',self.id,'account',provider)
+    self.assertEqual(result['state'],'saved')
+    self.assertEqual(provider.call_args_list,[call(),call(force_refresh=True)])
+    self.assertEqual(len(attempts),5)
+    first=next(i for i,row in enumerate(attempts) if row[0]==failing_stage)
+    self.assertEqual(attempts[first],(failing_stage,'old-token'))
+    self.assertEqual(attempts[first+1],(failing_stage,'new-token'))
+    self.assertTrue(all(token=='new-token' for _,token in attempts[first+1:]))
+
+ def test_repeated_expired_token_is_bounded_and_a_known_rejection_remains_failed(self):
+  self.calls=[]
+  def post(path,token,payload=None,image=None):
+   if path=='draft/add':raise drafts.DraftError('expired credential',code='40001')
+   return self.fake_post(path,token,payload,image)
+  provider=Mock(side_effect=['old-token','new-token'])
+  with patch.object(drafts,'_post',side_effect=post) as network,patch('publish_draft.make_card_cover'):
+   result=drafts.save_report('session1',self.id,'account',provider)
+  self.assertEqual(result['state'],'failed')
+  self.assertEqual(provider.call_count,2)
+  self.assertEqual(sum(c.args[0]=='draft/add' for c in network.call_args_list),2)
+
+ def test_whitelist_permission_and_uncertain_create_errors_are_never_automatically_retried(self):
+  for code,uncertain,state in [('40164',False,'failed'),('48001',False,'failed'),('45009',False,'failed'),('42001',True,'unknown')]:
+   with self.subTest(code=code,uncertain=uncertain):
+    with lib.database() as db:
+     db.execute('DELETE FROM drafts');db.execute('UPDATE sessions SET pending=2')
+    self.calls=[]
+    def post(path,token,payload=None,image=None):
+     if path=='draft/add':raise drafts.DraftError('official result',code=code,uncertain=uncertain)
+     return self.fake_post(path,token,payload,image)
+    provider=Mock(return_value='token')
+    with patch.object(drafts,'_post',side_effect=post) as network,patch('publish_draft.make_card_cover'):
+     result=drafts.save_report('session1',self.id,'account',provider)
+    self.assertEqual(result['state'],state)
+    provider.assert_called_once_with()
+    self.assertEqual(sum(c.args[0]=='draft/add' for c in network.call_args_list),1)
+
+ def test_api_errors_preserve_code_and_only_show_valid_echoed_ip(self):
+  response=Mock();response.json.return_value={'errcode':40164,'errmsg':'invalid ip 203.0.113.7, access_token=do-not-display'}
+  with patch.object(drafts.requests,'post',return_value=response):
+   with self.assertRaises(drafts.DraftError) as error:drafts._post('draft/add','private-token',{})
+  self.assertEqual(error.exception.code,'40164')
+  self.assertIn('203.0.113.7',str(error.exception))
+  self.assertNotIn('do-not-display',str(error.exception))
+  self.assertNotIn('private-token',str(error.exception))
+  self.assertEqual(drafts.whitelist_message('invalid ip 999.1.1.1, secret=do-not-display'),'微信接口40164：主机出口IP不在公众号白名单')
+  response.json.return_value={'errcode':42001,'errmsg':'access_token=do-not-display'}
+  with patch.object(drafts.requests,'post',return_value=response):
+   with self.assertRaises(drafts.DraftError) as error:drafts._post('draft/add','private-token',{})
+  self.assertEqual(error.exception.code,'42001')
+  self.assertNotIn('do-not-display',str(error.exception))
+
+ def test_token_endpoint_whitelist_rejection_shows_current_ip_without_other_response_details(self):
+  provider=Mock(side_effect=RuntimeError("获取 access_token 失败：{'errcode':40164,'errmsg':'invalid ip 203.0.113.8, token=do-not-display'}"))
+  with patch.object(drafts,'_post') as network:
+   result=drafts.save_report('session1',self.id,'account',provider)
+  self.assertEqual(result['state'],'failed')
+  self.assertIn('203.0.113.8',result['message'])
+  self.assertNotIn('do-not-display',result['message'])
+  network.assert_not_called()
+
+ def test_create_response_without_media_id_is_unknown_and_cannot_create_again(self):
+  self.calls=[]
+  def post(path,token,payload=None,image=None):
+   if path=='draft/add':return {}
+   return self.fake_post(path,token,payload,image)
+  with patch.object(drafts,'_post',side_effect=post) as network,patch('publish_draft.make_card_cover'):
+   result=drafts.save_report('session1',self.id,'account',lambda:'token')
+   self.assertEqual(result['state'],'unknown')
+   previous=network.call_count
+   self.assertEqual(drafts.save_report('session1',self.id,'account',lambda:'token')['state'],'unknown')
+   self.assertEqual(network.call_count,previous)
 
  def test_uncertain_create_is_not_blindly_retried(self):
   self.calls=[]

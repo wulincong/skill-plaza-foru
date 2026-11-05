@@ -4,6 +4,8 @@ import hashlib
 import html
 import io
 import json
+import ipaddress
+import re
 import time
 from pathlib import Path
 import sys
@@ -14,9 +16,20 @@ from report_library import database, STORE, checked_session
 
 
 class DraftError(RuntimeError):
-    def __init__(self,message,uncertain=False):
+    def __init__(self,message,uncertain=False,code=None):
         super().__init__(message)
         self.uncertain=uncertain
+        self.code=code
+
+
+def whitelist_message(detail):
+    """Only expose a parsed IP, never the raw credential-bearing response/URL."""
+    message='微信接口40164：主机出口IP不在公众号白名单'
+    match=re.search(r'\binvalid ip\s+([\da-fA-F:.]+)',detail,re.I)
+    if match:
+        try: return message+'（本次接口回显出口IP：'+str(ipaddress.ip_address(match[1]))+'）'
+        except ValueError: pass
+    return message
 
 
 def _post(path, token, payload=None, image=None):
@@ -34,9 +47,9 @@ def _post(path, token, payload=None, image=None):
         raise DraftError('微信接口连接或返回格式异常',uncertain=True) from None
     if result.get('errcode',0):
         code=str(result['errcode'])
-        if code=='40164': raise DraftError('微信接口40164：主机出口IP不在公众号白名单')
-        if code=='48001': raise DraftError('微信接口48001：公众号尚无该接口权限')
-        raise DraftError('微信接口返回错误码'+code)
+        if code=='40164': raise DraftError(whitelist_message(str(result.get('errmsg',''))),code=code)
+        if code=='48001': raise DraftError('微信接口48001：公众号尚无该接口权限',code=code)
+        raise DraftError('微信接口返回错误码'+code,code=code)
     return result
 
 
@@ -115,14 +128,26 @@ def save_report(session_id,report_id,account,token_provider):
         prose=text_before_images(report)
         if len(prose)>=20000 or len(prose.encode())>=1000000:raise DraftError('完整文字超过当前草稿预算，已停止保存，原成品保留')
         upload_images=upload_image_parts(images,folder)
-        try: token=token_provider()
-        except Exception as exc:
-            # Existing token module may include request details. Only return a known status.
-            message='微信接口40164：主机出口IP不在公众号白名单' if '40164' in str(exc) else '公众号调用凭据暂不可用'
-            raise DraftError(message) from None
+        def access_token(refresh=False):
+            try: return token_provider(force_refresh=True) if refresh else token_provider()
+            except Exception as exc:
+                # The existing token module may include secrets in exception details.
+                message=whitelist_message(str(exc)) if '40164' in str(exc) else '公众号调用凭据暂不可用'
+                raise DraftError(message,code='40164' if '40164' in str(exc) else None) from None
+        token=access_token()
+
+        def post(path,payload=None,image=None):
+            nonlocal token
+            for attempt in range(2):
+                try: return _post(path,token,payload=payload,image=image)
+                except DraftError as exc:
+                    # An explicit rejected credential is safe to refresh once.
+                    # A timeout, unknown create result or any other API error is not.
+                    if attempt or exc.uncertain or exc.code not in ('40001','42001'): raise
+                    token=access_token(refresh=True)
         urls=[]
         for image in upload_images:
-            result=_post('media/uploadimg',token,image=image)
+            result=post('media/uploadimg',image=image)
             url=result.get('url','')
             if not url.startswith(('http://mmbiz.qpic.cn/','https://mmbiz.qpic.cn/','http://mmbiz.qlogo.cn/','https://mmbiz.qlogo.cn/','https://mmbiz.qq.com/','http://mmbiz.qq.com/')):
                 raise DraftError('微信未返回有效正文图片地址')
@@ -132,15 +157,15 @@ def save_report(session_id,report_id,account,token_provider):
         cover=folder/'draft-cover.png'
         lead=f"{report['positions']}条在招岗位、{report['companies']}家招聘企业、{report.get('cities',0)}座城市"
         make_card_cover(report['title'],lead,'产业人才数据观察',str(cover))
-        media=_post('material/add_material?type=image',token,image=cover).get('media_id')
+        media=post('material/add_material?type=image',image=cover).get('media_id')
         if not media: raise DraftError('微信未返回封面素材标识')
         content=prose+''.join('<p style="margin:0;line-height:0"><img style="width:100%;display:block" src="'+html.escape(url,quote=True)+'"></p>' for url in urls)
         if len(content)>=20000 or len(content.encode())>=1000000:raise DraftError('图片链接与完整文字超过当前草稿预算，已停止创建，原成品保留')
         title=report['title']
         while len(title.encode())>64:title=title[:-1]
         phase='draft'
-        result=_post('draft/add',token,{'articles':[{'title':title,'author':'','digest':'基于平台岗位记录观察地区与产业人才需求。','content':content,'thumb_media_id':media,'content_source_url':report['webLinks'][0]['url']}]})
-        if not result.get('media_id'):raise DraftError('微信未返回草稿标识')
+        result=post('draft/add',{'articles':[{'title':title,'author':'','digest':'基于平台岗位记录观察地区与产业人才需求。','content':content,'thumb_media_id':media,'content_source_url':report['webLinks'][0]['url']}]})
+        if not result.get('media_id'):raise DraftError('微信未返回草稿标识，保存状态需核对',uncertain=True)
         with database() as db:
             db.execute("UPDATE drafts SET state='saved',media_id=?,error_code=NULL,updated_at=? WHERE report_id=? AND account_hash=?",(result['media_id'],time.time(),report_id,account_hash))
             db.execute('UPDATE sessions SET pending=0,updated_at=? WHERE id=? AND report_id=?',(time.time(),session_id,report_id))
