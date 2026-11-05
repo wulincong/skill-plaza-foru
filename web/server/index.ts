@@ -9,7 +9,8 @@
 
 import { createHash } from 'node:crypto'
 import { localReportReply, registerReport, saveQuestion } from './lib/reportLibrary.ts'
-import { needsReportFollowThrough,reportRequested,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
+import { needsReportFollowThrough,reportTurnIntent,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
+import { readWechatDelivery } from './lib/wechatDelivery.ts'
 import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
 import { handleAdmin } from './lib/adminApi.ts'
 import { historyPrefix, browserSessionPattern, validSessionId, conversationItem } from './lib/browserHistory.ts'
@@ -1203,6 +1204,9 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   /* 附件说明在 digest 之后注入 prompt：路径必须落在本会话沙箱内（防穿越）；
      .md/.txt 直接内联内容（截断 16000 字保底），其余格式指示引擎读工作目录文件 */
   const originalUserText = params.resumeSource?.userMessage ?? String(latest.content)
+  const reportIntent = skill === 'wechat-report'
+    ? reportTurnIntent(originalUserText, existsSync(join(workspaceDirFor(clientSessionId),'wechat-report/report_data.json')), priorRuns, params.answerTo)
+    : {enabled:false}
   const earlierIndustryMessages = new Set<string>()
   const additionalIndustrySources: string[] = []
   if (skill === 'industry-education-report') {
@@ -1402,7 +1406,9 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     try {
       const manifest = skill === 'industry-education-report'
         ? industryDelivery(entry.workspaceDir, runId, previousDeliveryFingerprint, originalUserText)
-        : readDeliveryManifest(entry.workspaceDir, previousDeliveryFingerprint)
+        : skill === 'wechat-report'
+          ? readWechatDelivery(entry.workspaceDir, startedAt, previousDeliveryFingerprint)
+          : readDeliveryManifest(entry.workspaceDir, previousDeliveryFingerprint)
       // Existing HTML/PDF skills keep their fixed-path contracts. New output uses
       // the same persistent delivery channel without requiring prompt migration.
       if (manifest) delivery = publishDelivery(entry.workspaceDir, manifest, DELIVERIES_DIR, deliveryBaseUrl(req),
@@ -1747,7 +1753,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         const missingIndustryBuild = skill === 'industry-education-report' && !question && !delivery.downloads?.length &&
           (reportContinuations > 0 || !!deliveryError || expectsIndustryBuild(originalUserText, finalText))
         const retryWechat = !deliveryError && needsReportFollowThrough({skill,request:String(latest.content),answer:finalText,
-          hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations})
+          hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations,requested:reportIntent.enabled})
         if (ev.resultType === 'success' && entry && (retryWechat || (missingIndustryBuild && reportContinuations < 1))) {
           reportContinuations++
           recorder.note({reportFollowThrough:{attempt:reportContinuations,reason:'no-verified-report'}})
@@ -1788,7 +1794,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
             deliveryError = '成品尚不能确认为可交付与保存的版本。'
           }
         }
-        const missingWechatReport=skill==='wechat-report' && reportRequested(String(latest.content),Boolean(entry && existsSync(join(entry.workspaceDir,'wechat-report/report_data.json')))) && !question && !delivery.webLinks?.length
+        const missingWechatReport=skill==='wechat-report' && reportIntent.enabled && !question && !delivery.webLinks?.length
         if (missingIndustryBuild) finalText = expectsIndustryWeb(originalUserText)
           ? '本轮网页版报告尚未交付。'
           : '本轮产教报告未通过构建，未产生可下载的修订稿。'
@@ -1889,7 +1895,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       }
       if(skill==='wechat-report' && entry) {
         const file=join(entry.workspaceDir,'report-turn.json')
-        writeFileSync(file,JSON.stringify({schema:'plaza-report-turn/1',runId,startedAt,enabled:reportRequested(String(latest.content),existsSync(join(entry.workspaceDir,'wechat-report/report_data.json'))),revision:reportRevisionRequested(String(latest.content)),requestText:String(latest.content).slice(0,12000)}))
+        writeFileSync(file,JSON.stringify({schema:'plaza-report-turn/1',runId,startedAt,enabled:reportIntent.enabled,revision:reportRevisionRequested(originalUserText),requestText:originalUserText.slice(0,12000),originRequestText:reportIntent.originRequestText}))
         chmodSync(file,0o640)
       }
       const basePrompt=params.interactive ? prompt + '\n\n' + QUESTION_INSTRUCTION : prompt

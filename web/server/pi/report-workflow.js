@@ -121,12 +121,18 @@ export default function registerReportWorkflow(pi) {
     else {pi.setActiveTools(baseTools);pi.setThinkingLevel(baseThinking)}
   })
   pi.on('tool_result',(_event,ctx)=>{
-    if(active(ctx) && !current && !reportBuildReady(ctx.cwd,reportTask(ctx.cwd))) {pi.setThinkingLevel(actionThinking);setStage('next')}
+    if(!active(ctx))return
+    if(reportBuildReady(ctx.cwd,reportTask(ctx.cwd))) {pi.setActiveTools([]);return}
+    if(!current) {pi.setThinkingLevel(actionThinking);setStage('next')}
   })
   pi.on('before_provider_request',(event,ctx)=>{
     if(!active(ctx))return
     const task=reportTask(ctx.cwd)
-    if(reportBuildReady(ctx.cwd,task))return
+    if(reportBuildReady(ctx.cwd,task)) {
+      pi.setActiveTools([])
+      const complete={...event.payload,tool_choice:'none'};delete complete.tools
+      return complete
+    }
     requests++
     const payload=event.payload
     // No more tools after the bound. The server then reports a truthful failure

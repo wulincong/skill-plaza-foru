@@ -52,7 +52,8 @@ export function reportBuildReady(workspace,task) {
     const receipt=JSON.parse(readFileSync(join(root,'build_receipt.json'),'utf8'))
     const quality=JSON.parse(readFileSync(join(root,'quality.json'),'utf8'))
     const manifest=readFileSync(join(root,'manifest.json'))
-    return Date.parse(receipt.startedAt)>=task.startedAt && statSync(join(workspace,'delivery.json')).mtimeMs>=task.startedAt &&
+    return Date.parse(receipt.startedAt)>=task.startedAt &&
+      (receipt.deliveryManifest || statSync(join(workspace,'delivery.json')).mtimeMs>=task.startedAt) &&
       quality.all_pass===true && quality.manifest_sha256===createHash('sha256').update(manifest).digest('hex') &&
       receipt.manifestSha256===quality.manifest_sha256
   } catch {return false}

@@ -37,6 +37,7 @@ export function compactReportContext(payload,current,task,scope) {
  }
  const context='【当前报告执行资料】\n当前范围与读者：'+JSON.stringify(scope??{})+
   '\n原始本轮要求：'+(task.requestText??'')+
+  (task.originRequestText?'\n发起报告时的用户要求（范围按本轮选择更新）：'+task.originRequestText:'')+
   '\n'+(current?'当前受信任务（事实与分析只读，按当前工具提交）：'+JSON.stringify(writingView(current)):'本轮范围数据已就绪，先调用report_next读取任务。')+
   (correction?'\n最近工具返回的纠错信息：'+correction:'')
  const content=Array.isArray(user.content)?[...user.content,{type:'text',text:context}]:textOf(user.content)+'\n\n'+context

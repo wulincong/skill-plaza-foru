@@ -12,10 +12,31 @@ export function reportRequested(text: string,hasData=false): boolean {
   return hasData && reportRevisionRequested(text) || /报告|人才需求/.test(text) && /生成|制作|完成|交付|出一份|帮我|修改|重新|继续|优化|加强|调整/.test(text)
 }
 
+interface ReportDecisionRun {
+  runId: string; skill: string; userMessage?: string; answerTo?: string;
+  question?: {question: string};
+}
+
+/** Follow only the current session's validated decision chain, never unrelated history. */
+export function reportTurnIntent(text:string,hasData:boolean,runs:ReportDecisionRun[],answerTo?:string): {enabled:boolean; originRequestText?:string} {
+  if (reportRequested(text,hasData)) return {enabled:true}
+  if (/^(?:请)?(?:不要|别|不用|不需要|取消|停止|结束|暂不|算了)|^(?:请问)?(?:如何|怎么|为什么|发生什么|出了什么)/.test(text.trim())) return {enabled:false}
+  if (!answerTo || runs.at(-1)?.runId !== answerTo) return {enabled:false}
+  let current=runs.at(-1)
+  const seen=new Set<string>()
+  while(current && !seen.has(current.runId)) {
+    seen.add(current.runId)
+    if(current.skill!=='wechat-report' || !current.question || /草稿/.test(current.question.question)) return {enabled:false}
+    if(current.userMessage && reportRequested(current.userMessage,hasData)) return {enabled:true,originRequestText:current.userMessage}
+    current=current.answerTo ? runs.find(run=>run.runId===current!.answerTo) : undefined
+  }
+  return {enabled:false}
+}
+
 export const reportScopeQuestion=(answer:string):boolean=>/请(?:提供|说明|告诉我|明确).*(?:地区|地域|省份|行业|产业)|希望(?:分析|研究).*(?:地区|行业)|(?:哪个|哪些|什么|何种).*(?:地区|地域|省份|行业|产业)/.test(answer)
 
-export function needsReportFollowThrough(input: {skill:string;request:string;answer:string;hasDelivery:boolean;hasQuestion:boolean;hasData?:boolean;attempts:number}): boolean {
-  if(input.skill!=='wechat-report'||!reportRequested(input.request,input.hasData)||input.hasDelivery||input.hasQuestion||input.attempts>=2)return false
+export function needsReportFollowThrough(input: {skill:string;request:string;answer:string;hasDelivery:boolean;hasQuestion:boolean;hasData?:boolean;attempts:number;requested?:boolean}): boolean {
+  if(input.skill!=='wechat-report'||!(input.requested ?? reportRequested(input.request,input.hasData))||input.hasDelivery||input.hasQuestion||input.attempts>=2)return false
   return Boolean(input.hasData)||!reportScopeQuestion(input.answer)
 }
 

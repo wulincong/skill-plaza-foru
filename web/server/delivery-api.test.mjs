@@ -114,6 +114,27 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     body:JSON.stringify({username:'admin', password})})
   assert.equal(login.status,200)
   cookie = login.headers.get('set-cookie').split(';')[0]
+  await t.test('wechat scope answers retain the report workflow and original request',async t=>{
+    const sessionId='wechat-scope-'+randomBytes(10).toString('hex')
+    t.after(()=>rmSync(join(serverDir,'workspace',sessionId),{recursive:true,force:true}))
+    const ask=async(content,extra={})=>{
+      const response=await fetch(base+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({skill:'wechat-report',model:'youcai',sessionId,interactive:true,messages:[{role:'user',content}],...extra})})
+      assert.equal(response.status,200)
+      const frames=(await response.text()).split('\n').filter(line=>line.startsWith('data: ')).map(line=>JSON.parse(line.slice(6)))
+      return frames.find(frame=>frame.type==='done')
+    }
+    const original='帮我生成广东省机器人人才需求报告 follow-up ask-fixture-single'
+    const first=await ask(original)
+    assert.ok(first.question)
+    const answer='使用机器人产业 (ID=15) + 自定义分析规则 follow-up ask-fixture-single'
+    const next=await ask(answer,{answerTo:first.runId,requestId:randomBytes(16).toString('hex')})
+    assert.ok(next.question)
+    const task=JSON.parse(readFileSync(join(serverDir,'workspace',sessionId,'report-turn.json'),'utf8'))
+    assert.equal(task.enabled,true)
+    assert.equal(task.requestText,answer)
+    assert.equal(task.originRequestText,original)
+  })
   await t.test('a pending industry decision hides even a fresh delivery and malformed control text in both streams',async t=>{
     for (const protocol of ['plaza','openai']) {
       const sessionId='decision-stream-'+randomBytes(10).toString('hex')

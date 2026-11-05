@@ -54,7 +54,8 @@ def main():
         'stages':stages,'pipelineFiles':pipeline,
         'reportDataSha256':sha(BASE/'report_data.json'),'analysisSha256':sha(BASE/'report_analysis.json'),
         'outlineSha256':sha(BASE/'output/outline/report_outline.json'),
-        'manifestSha256':sha(BASE/'output/report/manifest.json')}
+        'manifestSha256':sha(BASE/'output/report/manifest.json'),
+        'deliveryManifest':json.loads(declaration.read_text('utf-8'))}
     temporary=receipt.with_suffix('.tmp')
     temporary.write_text(json.dumps(payload,ensure_ascii=False,indent=2),'utf-8')
     os.replace(temporary,receipt)
