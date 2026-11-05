@@ -24,5 +24,6 @@
 - [使用 FORU 门户页面设计参考](../.agents/skills/foru-web-ui/docs/index.md) （`foru-web-ui`）
 - [使用技能广场开发手记](../.agents/skills/plaza-dev-notes/docs/index.md) （`plaza-dev-notes`）
 - [初始化仓库协作约定](../.agents/skills/repo-bootstrap/docs/index.md) （`repo-bootstrap`）
+- [报告网页设计](../.agents/skills/report-rendering/docs/index.md) （`report-rendering`）
 - [查询产业岗位目录与人才统计](../.agents/skills/talent-data-query/docs/index.md) （`talent-data-query`）
 - [从 WeKnora 知识库查找并引用原文](../.agents/skills/weknora-retrieval/docs/index.md) · [WeKnora 知识库盘点（2026-11-04）](../.agents/skills/weknora-retrieval/docs/inventory-20261104.md) （`weknora-retrieval`）

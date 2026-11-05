@@ -1,0 +1,4 @@
+interface:
+  display_name: "报告网页设计"
+  short_description: "将文字与数据整理成可分享的报告网页，按内容选图表、表格和主题"
+  default_prompt: "使用 $report-rendering 将这份 Markdown 和数据整理成清晰的报告网页。"

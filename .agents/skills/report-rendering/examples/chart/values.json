@@ -1,0 +1,18 @@
+[
+  {
+    "kind": "barh",
+    "title": "数量",
+    "x_label": "条",
+    "y_label": "分组",
+    "rows": [
+      {
+        "category": "甲",
+        "value": 3
+      },
+      {
+        "category": "乙",
+        "value": 0
+      }
+    ]
+  }
+]

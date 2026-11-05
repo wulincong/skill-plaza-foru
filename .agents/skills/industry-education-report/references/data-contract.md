@@ -52,6 +52,6 @@
 
 `charts[].type` 保留 `table`，供 Markdown 和历史观察版回查。使用本轮 `report.py build` 打印的目录，其中的 report.json 已补齐绑定的数值与分组。工作区根目录的同名草稿可以省略这些字段。为每项比较选取相应的 `metrics[].id`。例如学历分布从该指标的 `breakdown.groups` 提取 label 和 count，映射到横条图的 category 和 value，以条为单位。图注明确 `breakdown.denominator`、筛选范围、展示了多少组以及证据时点。引用计数时不拿分母代替某组的值，缺测不补零。多指标比较先核实单位、时期和分母含义。
 
-给每张图一个报告内唯一的 figure/1 id。将指标 ID 和可公开的来源、定位写入图稿的 source，内部结果路径和原始查询留在会话内。规格与渲染目录存于工作区公开目录之外。用 [chart-visualization 的命令](../../chart-visualization/SKILL.md)生成并复验，逐项对照 figure.html 数值表与原指标。规格、图稿和数值表留在同一工作区供复算。在 HTML 模板对应判断旁留 `<!-- chart:F_EDU -->`（F_EDU 换成该图 id），运行 `python3 <产教报告目录>/scripts/embed_chart.py <规格.json> <已渲染目录> output/public/site/index.html`。它复验成品并插入完整图块，保留 data-chart-skill、data-chart-id、SVG 无障碍标题与描述，以及可见图注和数值表。模板样式给 `.chart-viewport` 设置 `overflow-x:auto`，窄屏只滚动图幅。
+给每张图一个报告内唯一的 figure/1 id。将指标 ID 和可公开的来源、定位写入图稿的 source，内部结果路径和原始查询留在会话内。规格与渲染目录存于工作区公开目录之外。用 [chart-visualization 的命令](../../chart-visualization/SKILL.md)生成并复验，逐项对照 figure.html 数值表与原指标。规格、图稿和数值表留在同一工作区供复算。网页交给 [report-rendering](../../report-rendering/SKILL.md)，由其内部 figure 块调用同一 verify 并嵌入完整图稿。业务层保留指标选择、判断与图稿的对应关系；渲染层负责主题、组件、表格和公开目录。自定义 HTML 可用其 scripts/embed_chart.py 填充图稿占位。原产教 scripts/embed_chart.py 保留为共享入口的兼容调用。
 
 [历史样板](../assets/examples/observation/report.json) 可用于复现旧格式。旧样板不是新范围的数据源。

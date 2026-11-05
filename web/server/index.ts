@@ -46,7 +46,7 @@ import {
 } from './lib/htmlReport.ts'
 import { serverEnv } from './lib/agentEnv.ts'
 import { loadLocalEnv } from './lib/env.ts'
-import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, INDUSTRY_CHART_RULE, INDUSTRY_DECISION_SUFFIX, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills, skillDir } from './lib/skills.ts'
+import { SKILL_PROMPTS, INSTALLED_SKILLS, SKILL_DATA_DEPENDENCIES, LEGACY_INDUSTRY_CHART_RULE, INDUSTRY_CHART_RULE, INDUSTRY_DECISION_SUFFIX, SIDECAR_SKILLS, HTML_REPORT_CONTRACTS, HTML_REPORT_SKILLS, PDF_REPORT_SKILLS, listPlazaSkills, skillDir } from './lib/skills.ts'
 import {
   extractSidecar,
   validateMeta,
@@ -354,6 +354,8 @@ function promptWrappers(skill: string): Array<{ prefix: string; suffix: string }
   if (skill === 'industry-education-report') {
     const prefix = `/skill:${skill} `
     const oldSuffix = '\n\n（生成或修订正式报告时，使用报告技能的 report.py build 交付。已保存的同口径数据由 build 离线核验。成功后保留脚本登记的四份下载，结束工具调用并简述结论和缺口。）'
+    const chartSuffix = INDUSTRY_DECISION_SUFFIX + '\n\n' + LEGACY_INDUSTRY_CHART_RULE
+    wrappers.push({ prefix, suffix: chartSuffix }, { prefix: '', suffix: chartSuffix })
     wrappers.push({ prefix, suffix: INDUSTRY_DECISION_SUFFIX }, { prefix: '', suffix: INDUSTRY_DECISION_SUFFIX })
     wrappers.push({ prefix, suffix: oldSuffix }, { prefix: '', suffix: oldSuffix }, { prefix, suffix: '' })
   }

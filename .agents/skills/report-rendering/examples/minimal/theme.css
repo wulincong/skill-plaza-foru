@@ -1,0 +1,19 @@
+:root {
+  --report-bg: #fff;
+  --report-surface: #f6f7f9;
+  --report-ink: #1c1c1e;
+  --report-muted: #626268;
+  --report-line: #e4e4e8;
+  --report-accent: #0064d9;
+  --report-accent-soft: #eef5ff;
+  --report-attention: #a34b00;
+  --report-font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --report-width: 1040px;
+  --report-radius: 16px;
+  --report-section-gap: 64px;
+  --report-title-size: clamp(30px, 5vw, 56px);
+  --report-columns: 2;
+}
+.report-summary { border: 1px solid var(--report-line); }
+.report-hero { padding-top: 72px; }
+.report-metric { background: white; }

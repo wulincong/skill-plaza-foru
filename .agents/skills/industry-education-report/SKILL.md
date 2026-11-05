@@ -5,7 +5,7 @@ description: 为院校、园区和政府研判培养、实训或专业建设决�
 
 # 产教决策报告
 
-**先找决定。** 从任务中提取读者、要做的决定、对象、地域和时期。已明确的直接采用；只有歧义会改变取证方向时才问。单项决策默认用三节简报 decision；明确要求全景、十二章或历史复现才用 observation。仅问数量、薪酬等统计时交由 [talent-data-query](../talent-data-query/SKILL.md) 回答。
+**先找决定。** 从任务中提取读者、要做的决定、对象、地域和时期。已明确的直接采用；只有歧义会改变取证方向时才问。本校材料已能支持决定而城市未提供时，用“本校”描述范围，示例中的地域不能补入事实。单项决策默认用三节简报 decision；明确要求全景、十二章或历史复现才用 observation。仅问数量、薪酬等统计时交由 [talent-data-query](../talent-data-query/SKILL.md) 回答。
 
 **在约定范围内取证。** 从每个核心判断倒推需要的材料。岗位要求用来判断企业需要什么；开课、扩招、采购的可行性另需本校任务、容量、师资或去向中与该决定有关的依据。用户已粘贴的原句就是材料，按原给的页、条款或段落引用，无须上传同一份文档。有实际可读的授权知识库材料时，回查原文与适用范围。如果同期排课已满且无法调整，场地这一项就足以否决本期开班；未知师资影响以后何时能开班，不妨碍本期结论。用户指定“只用所给材料”就遵守该范围。岗位统计优先核验并复用本会话同范围的 data/tq-…/result.json，换样本、缺指标或明确刷新时才按查询技能的契约取数。统计附范围、读取时间、分母与指标定位；不用 SQL 或其他地区数据补缺。仅在明确复现广东旧样板时读取 [05 快照](references/05-数据库字段摸底与口径.md)。
 
@@ -15,6 +15,6 @@ description: 为院校、园区和政府研判培养、实训或专业建设决�
 
 **复核与交付。** 可成稿时先用 `python3 <技能目录>/scripts/report.py render report.json` 看读者会拿到的文字：开篇是否答题、每段论据是否支持判断、结尾是否指出行动条件、表格分母及来源是否可定位。将审核者、日期、逐条 claim 的判断和理由写入 review.md，有误则修订。调用 `python3 <技能目录>/scripts/report.py build report.json --review review.md` 登记正文、结构化报告、结构验收、证据复核四份下载。同口径修订沿用已有证据，只复核受影响的结论。保留脚本生成的 delivery.json，回复简述结论与未决项。明确要求 Word/PDF 时另外检查实际导出页的表头、分页和图注。
 
-**绘图。** 决策简报和完整观察版都由 [chart-visualization](../chart-visualization/SKILL.md) 绘制统计图。用户要求图文结合且有可比较的数据时，选择直接支撑结论的指标出图。从本轮 build 输出的 report.json 读取指标值、分组明细与来源，按[图稿规格](../chart-visualization/references/figure-spec.md)写 figure/1。以会话工作区为当前目录，运行 `python3 <chart-visualization目录>/scripts/figure.py render <规格.json> --out <新图稿目录>`。独立图稿用同参数的 `verify` 复验，网页版由下述嵌图脚本执行同一复验。Word/PDF 采用已复验图稿的矢量文件及图注。修订时核对指标、分母和图注，有变动就重绘。复验失败先修正规格；仍无法出图则交代原因，保留可核查的数值表。避免自编绘图脚本或手写 SVG 绕过共享技能。纯质性材料、未决事项或无法比较的数字用原文或表格表达。
+**绘图。** 决策简报和完整观察版都由 [chart-visualization](../chart-visualization/SKILL.md) 绘制统计图。用户要求图文结合且有可比较的数据时，选择直接支撑结论的指标出图。从本轮 build 输出的 report.json 读取指标值、分组明细与来源，按[图稿规格](../chart-visualization/references/figure-spec.md)写 figure/1。以会话工作区为当前目录，运行 `python3 <chart-visualization目录>/scripts/figure.py render <规格.json> --out <新图稿目录>`。独立图稿用同参数的 `verify` 复验，网页版由 report-rendering 执行同一复验。Word/PDF 采用已复验图稿的矢量文件及图注。修订时核对指标、分母和图注，有变动就重绘。复验失败先修正规格；仍无法出图则交代原因，保留可核查的数值表。避免自编绘图脚本或手写 SVG 绕过共享技能。纯质性材料、未决事项或无法比较的数字用原文或表格表达。
 
-**网页版。** 用户要求网页版或 HTML 报告时，先完成本轮 build，再依据其报告正文排版。用户要图文报告且未指定格式时，随四份下载提供含图网页版；明确指定格式时遵循原要求。按[报告嵌图规范](../chart-visualization/references/common-rules.md)在正文留一个 `<!-- chart:图稿ID -->` 占位。运行 `python3 <产教报告目录>/scripts/embed_chart.py <规格.json> <图稿目录> <网页路径>`，它调用共享 verify 后插入完整 figure、图注和可展开的数值表。网页采用内联图块；平台会拦截 object、embed 和 iframe。将图放在对应判断旁，推断与未决事项仍然可见。复制所需样式以便窄屏读图；只把公开 HTML 及所需资源放入独立目录（如 output/public/site），用相对路径引用，实际打开并检查图文、数字和移动端版面。保留本轮 delivery.json 的 files，在同一清单加入 `"web":[{"name":"报告网页版","directory":"output/public/site","entry":"index.html"}]`。交付以平台返回的网页链接为准。
+**网页版。** 用户要求网页版或 HTML 报告时，先完成本轮 build，再将成品正文、已核指标、来源和未决项交给 [report-rendering](../report-rendering/SKILL.md)。用户要图文报告且未指定格式时，随四份下载提供含图网页版。业务层选择要突出的判断和支撑它的数据，渲染技能负责内部内容整理、主题、组件、表格与图稿嵌入。默认用纸感简报主题，用户可指定其他风格。已有 report.json 直接交接，由渲染技能内部映射。实际打开成品核对图文和移动端后，在本轮 delivery.json 保留 files 并追加 web。交付使用平台返回的网页链接。

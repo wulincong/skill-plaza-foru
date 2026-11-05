@@ -1,0 +1,16 @@
+:root {
+  --report-bg: #f7f4ee;
+  --report-surface: #fffdf9;
+  --report-ink: #1b2530;
+  --report-muted: #5d6672;
+  --report-line: #ddd6cb;
+  --report-accent: #0d6e63;
+  --report-accent-soft: #e8f1ef;
+  --report-attention: #b4530a;
+  --report-font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --report-width: 1000px;
+  --report-radius: 3px;
+  --report-section-gap: 52px;
+  --report-title-size: clamp(30px, 5vw, 52px);
+  --report-columns: 2;
+}

@@ -1,0 +1,33 @@
+{
+  "schema": "figure/1",
+  "id": "CHECK",
+  "lang": "zh",
+  "title": "示意数量",
+  "caption": "两个示意分组，计数单位为条。",
+  "source": "组件示意数据",
+  "datasets": {
+    "数据": [
+      {
+        "组": "甲",
+        "值": 3
+      },
+      {
+        "组": "乙",
+        "值": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "kind": "barh",
+      "data": "数据",
+      "title": "数量",
+      "fields": {
+        "category": "组",
+        "value": "值"
+      },
+      "x_label": "条",
+      "y_label": "分组"
+    }
+  ]
+}

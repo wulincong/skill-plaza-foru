@@ -1,0 +1,407 @@
+{
+  "title": "报告，由清晰的元素组成",
+  "eyebrow": "REPORT DESIGN · 组件陈列",
+  "subtitle": "文字与数据，组成可阅读、可核对的报告。",
+  "meta": [
+    "两种主题",
+    "八种表格模式",
+    "组件示意数据"
+  ],
+  "blocks": [
+    {
+      "type": "summary",
+      "title": "阅读摘要",
+      "lead": "让判断、数据与行动各得其所。",
+      "text": "同一份材料，按读者的阅读顺序组织。从主要发现出发，用表格核对数字，再回到行动与适用条件。",
+      "note": "本页是组件陈列，所有数字均为示意数据。"
+    },
+    {
+      "type": "metrics",
+      "items": [
+        {
+          "label": "覆盖样本",
+          "value": 1280,
+          "unit": "条记录",
+          "note": "记录数与独立对象数分开表达。"
+        },
+        {
+          "label": "参与机构",
+          "value": 36,
+          "unit": "家",
+          "note": "保留统计对象和时间。"
+        },
+        {
+          "label": "待核对事项",
+          "value": 3,
+          "unit": "项",
+          "tone": "attention",
+          "note": "状态用文字与颜色共同表达。"
+        },
+        {
+          "label": "新增记录",
+          "value": 0,
+          "unit": "条",
+          "note": "实测零值按零显示。"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "从一句判断展开论证",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "阅读者先看到结论，再了解支撑它的材料。**一段文字回答一个具体问题**，图表放在相关段落旁。原始记录中的数值、单位和来源跟随内容，换肤之后仍可逐项回查。"
+        },
+        {
+          "type": "quote",
+          "text": "“先核对现有安排，再决定下一步。”",
+          "source": "会议摘录示例，第 2 段"
+        },
+        {
+          "type": "callout",
+          "text": "适用条件应直接可见。材料没有给出的日期与负责人，按原意保留为未知。",
+          "tone": "attention"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "图形与可核对的数字",
+      "blocks": [
+        {
+          "type": "text",
+          "text": "用共享图稿表达两个分组的数量差异，展开图下数值表可核对零值。"
+        },
+        {
+          "type": "figure",
+          "spec": "chart.json",
+          "bundle": "chart"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "每一种数据，都有合适的表格",
+      "blocks": [
+        {
+          "type": "table",
+          "pattern": "key-value",
+          "title": "01 · 对象与属性",
+          "columns": [
+            {
+              "label": "项目",
+              "numeric": false
+            },
+            {
+              "label": "内容",
+              "numeric": false
+            }
+          ],
+          "rows": [
+            [
+              "地域",
+              "广州市"
+            ],
+            [
+              "时期",
+              "2026 年秋季"
+            ],
+            [
+              "统计对象",
+              "本次材料中列出的项目"
+            ]
+          ],
+          "note": "适合范围说明和条件核对。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "comparison",
+          "title": "02 · 同口径比较",
+          "columns": [
+            {
+              "label": "方案",
+              "numeric": false
+            },
+            {
+              "label": "工位（个）",
+              "numeric": true
+            },
+            {
+              "label": "课时（小时）",
+              "numeric": true
+            }
+          ],
+          "rows": [
+            [
+              "方案甲",
+              24,
+              48
+            ],
+            [
+              "方案乙",
+              18,
+              36
+            ]
+          ],
+          "note": "不同单位分列，逐项比较。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "composition",
+          "title": "03 · 整体构成",
+          "columns": [
+            {
+              "label": "类别",
+              "numeric": false
+            },
+            {
+              "label": "数量（条）",
+              "numeric": true
+            },
+            {
+              "label": "占比",
+              "numeric": true
+            }
+          ],
+          "rows": [
+            [
+              "已完成",
+              60,
+              "60%"
+            ],
+            [
+              "进行中",
+              40,
+              "40%"
+            ]
+          ],
+          "note": "示意分母 100 条，类别互斥且穷尽。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "time",
+          "title": "04 · 逐期观测",
+          "columns": [
+            {
+              "label": "月份",
+              "numeric": false
+            },
+            {
+              "label": "数量（条）",
+              "numeric": true
+            }
+          ],
+          "rows": [
+            [
+              "7 月",
+              12
+            ],
+            [
+              "8 月",
+              null
+            ],
+            [
+              "9 月",
+              0
+            ],
+            [
+              "10 月",
+              18
+            ]
+          ],
+          "note": "8 月未提供，9 月观测为零。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "matrix",
+          "title": "05 · 交叉矩阵",
+          "columns": [
+            {
+              "label": "方向",
+              "numeric": false
+            },
+            {
+              "label": "基础模块（课时）",
+              "numeric": true
+            },
+            {
+              "label": "进阶模块（课时）",
+              "numeric": true
+            }
+          ],
+          "rows": [
+            [
+              "方向甲",
+              24,
+              12
+            ],
+            [
+              "方向乙",
+              0,
+              null
+            ]
+          ],
+          "note": "每格单位相同，缺失与零分别表达。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "detail",
+          "title": "06 · 记录明细",
+          "columns": [
+            {
+              "label": "编号",
+              "numeric": false
+            },
+            {
+              "label": "对象",
+              "numeric": false
+            },
+            {
+              "label": "记录说明",
+              "numeric": false
+            }
+          ],
+          "rows": [
+            [
+              "R-01",
+              "实训室甲",
+              "包含桌面设备与可移动工位，安排需要与现有课程逐项核对。"
+            ],
+            [
+              "R-02",
+              "实训室乙",
+              "正在核对下一周期可用时段。"
+            ]
+          ],
+          "note": "长说明自然换行，原始记录可回查。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "action",
+          "title": "07 · 行动分工",
+          "columns": [
+            {
+              "label": "事项",
+              "numeric": false
+            },
+            {
+              "label": "负责人",
+              "numeric": false
+            },
+            {
+              "label": "时间",
+              "numeric": false
+            },
+            {
+              "label": "完成条件",
+              "numeric": false
+            }
+          ],
+          "rows": [
+            [
+              "核对排课",
+              "课程负责人",
+              "下周",
+              "形成可用时段表"
+            ],
+            [
+              "复核设备",
+              "实训管理员",
+              "排课确认后",
+              "设备与工位清单一致"
+            ]
+          ],
+          "note": "顺序和依赖以材料为准。",
+          "source": "报告组件示意数据"
+        },
+        {
+          "type": "table",
+          "pattern": "evidence",
+          "title": "08 · 证据回查",
+          "columns": [
+            {
+              "label": "判断",
+              "numeric": false
+            },
+            {
+              "label": "材料",
+              "numeric": false
+            },
+            {
+              "label": "定位",
+              "numeric": false
+            },
+            {
+              "label": "适用范围",
+              "numeric": false
+            }
+          ],
+          "rows": [
+            [
+              "上午已排满",
+              "排课表",
+              "第 3 行",
+              "本学期"
+            ],
+            [
+              "有 24 个工位",
+              "设备清单",
+              "表 2",
+              "实训室甲"
+            ]
+          ],
+          "note": "来源、定位与范围同时呈现。",
+          "source": "报告组件示意数据"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "把阅读落到行动",
+      "blocks": [
+        {
+          "type": "actions",
+          "items": [
+            {
+              "title": "核对原始材料",
+              "text": "沿着来源定位检查关键数字与限制。",
+              "owner": "材料负责人",
+              "when": "排版前",
+              "condition": "数字、单位、范围一致"
+            },
+            {
+              "title": "检查实际成品",
+              "text": "打开手机与桌面页面，检查表头、图注和长段落。",
+              "owner": "报告负责人",
+              "condition": "各元素可读，链接可打开"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "sources",
+      "title": "设计来源",
+      "items": [
+        {
+          "label": "广州具身智能决策简报",
+          "text": "纸感主题与阅读节奏的参考。",
+          "url": "http://biubiubiu.vip:14188/p/990b3946916f6836bcb0025e33c7c84f/0/index.html"
+        },
+        {
+          "label": "W3C 表格教程",
+          "text": "表格标题、行列头与可访问关联。",
+          "url": "https://www.w3.org/WAI/tutorials/tables/"
+        }
+      ]
+    }
+  ],
+  "footer": "报告网页设计 · 元素与主题"
+}

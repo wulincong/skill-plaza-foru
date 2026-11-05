@@ -558,7 +558,9 @@ export class PiRunner extends AgentRunner {
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
-    if (opts.skill === 'industry-education-report') args.push('--skill', skillDir('chart-visualization'))
+    if (opts.skill === 'industry-education-report') {
+      args.push('--skill', skillDir('chart-visualization'), '--skill', skillDir('report-rendering'))
+    }
     if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
