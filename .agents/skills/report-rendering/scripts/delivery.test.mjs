@@ -28,6 +28,10 @@ test('a report embeds the verified shared chart and the published entry renders 
     panels:[{kind:'barh',title:'学历要求',data:'edu',fields:{category:'label',value:'count'},x_label:'岗位记录数 (条)',y_label:'学历'}]}
   await writeFile(join(root,'spec.json'),JSON.stringify(spec))
   success(figure,'render','spec.json','--out','chart')
+  success(figure,'render','spec.json','--out','new-parent/deep/chart')
+  const savedFigure=await readFile(join(root,'new-parent/deep/chart/figure.svg'))
+  assert.notEqual(run(figure,'render','spec.json','--out','new-parent/deep/chart').status,0)
+  assert.deepEqual(await readFile(join(root,'new-parent/deep/chart/figure.svg')),savedFigure)
   const site = 'output/public/site', entry = join(site,'index.html')
   await mkdir(join(root,site),{recursive:true})
   manifest.web = [{name:'报告',directory:site,entry:'index.html'}]
@@ -35,6 +39,11 @@ test('a report embeds the verified shared chart and the published entry renders 
   const template = '<html><body><!-- chart:EDU --></body></html>'
   await writeFile(join(root,entry),'<html><body><figure><img alt="实训室布局"><figcaption>校方提供的平面图</figcaption></figure></body></html>')
   assert.equal(publish().webLinks.length,1)
+  const scalar={value:16,unit:'人',region:'广州',period:'本次调研',population:'培训意向人数'}
+  const compare=[scalar,{...scalar,value:12}]
+  assert.throws(()=>checkReportWebEntry(join(root,entry),compare),/没有统计图/)
+  assert.throws(()=>checkReportWebEntry(join(root,entry),[{breakdown:{groups}}]),/没有统计图/)
+  assert.doesNotThrow(()=>checkReportWebEntry(join(root,entry),[scalar,{...scalar,value:20,unit:'工位',population:'实训容量'}]))
   for (const bad of ['<object data="chart/figure.svg"></object>','<figure><svg class="chart"></svg></figure>',
     '<div><svg role="img"><text>本科</text></svg></div>','<img src="chart/figure.svg">',template]) {
     await writeFile(join(root,entry),bad)
@@ -46,6 +55,7 @@ test('a report embeds the verified shared chart and the published entry renders 
   const embeddedPage = await readFile(join(root,entry),'utf8')
   assert.equal(embeddedPage.split(block).length,2)
   assert.ok(!embeddedPage.includes('<!-- chart:EDU -->'))
+  assert.doesNotThrow(()=>checkReportWebEntry(join(root,entry),compare))
   const links = publish()
   assert.equal(links.webLinks.length,1)
   const id = new URL(links.webLinks[0].url).pathname.split('/')[2]

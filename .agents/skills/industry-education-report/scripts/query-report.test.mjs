@@ -15,7 +15,7 @@ import { expectsIndustryBuild, industryDelivery, parseDeliveredReport } from '..
 import { deliveryFingerprint, handleDelivery, publishDelivery } from '../../../../web/server/lib/delivery.ts'
 
 const cli = fileURLToPath(new URL('./report.py', import.meta.url))
-const template = JSON.parse(await readFile(new URL('../assets/templates.json', import.meta.url))).observation
+const template = JSON.parse(await readFile(new URL('../assets/templates.json', import.meta.url))).full
 const readAt = '2026-10-01T00:00:00Z'
 const readJson = async path => JSON.parse(await readFile(path, 'utf8'))
 
@@ -38,8 +38,8 @@ async function savedResult(dir, n, partial) {
 
 function draft(result) {
   const id = 'M1', sid = 'D1'
-  return {
-    title:'测试样本岗位观察',edition:'observation',region:'全国',industry:'不限',
+  return full({
+    title:'测试样本岗位观察',edition:'full',region:'全国',industry:'不限',
     period:'在招截面',as_of:'2026-10-01',status:'draft',
     sources:[{id:sid,title:'测试结果',publisher:'测试',url:result.artifacts.result,locator:'all',
       published:'未标注',accessed:'2026-10-01',scope:'全国',excerpt:'岗位计数',
@@ -47,10 +47,18 @@ function draft(result) {
     metrics:[{id,label:'记录数',value:result.metrics.find(m => m.name==='positions.count').value,
       unit:'条',period:'在招截面',region:'全国',population:'平台岗位',definition:'按岗位去重',
       source_ids:[sid],binding:{metricId:'all/positions.count',field:'value'}}],
-    claims:[{id:'C1',kind:'fact',text:'观测到平台岗位数。',metric_ids:[id],limitation:'仅限测试样本'}],
+    claims:[{id:'C1',kind:'fact',text:'观测到平台岗位数。',basis:'同口径样本计数。',implication:'只能解释该样本。',metric_ids:[id],limitation:'仅限测试样本'}],
     sections:template.sections.map(s=>({id:s.id,claim_ids:['C1'],gap_ids:['G1']})),
     gaps:[{id:'G1',description:'缺院校材料',owner:'院校',required_data:'课程表',impact:'待核实课程建议'}],
-  }
+  })
+}
+
+function full(report) {
+  report.decision ??= {reader:'专业负责人',question:'样本能说明什么？',critical_gap_ids:[]}
+  report.decision.evidence_checks = ['scope','demand','feasibility'].map(topic=>({topic,status:'supported',reason:'本测试材料限定范围和判断。',source_ids:report.sources.map(s=>s.id)}))
+  report.claims.push({...report.claims[0],id:'ACTION',kind:'recommendation',owner:'专业负责人',next_step:'核对课程与岗位任务',condition:'课程调整前',verification:'对照企业访谈逐项核对'})
+  report.sections=template.sections.map(s=>({id:s.id,claim_ids:[s.id==='F08'?'ACTION':report.claims[0].id],gap_ids:report.gaps.map(g=>g.id)}))
+  return report
 }
 
 test('a verified result can be revised offline; changed values or artifacts cannot replace a delivery', async t => {
@@ -58,7 +66,7 @@ test('a verified result can be revised offline; changed values or artifacts cann
   t.after(()=>rm(root,{recursive:true,force:true}))
   const file=join(root,'report.json')
   const run=(...args)=>spawnSync('python3',[cli,...args],{cwd:root,encoding:'utf8'})
-  await writeFile(join(root,'review.md'),'审核者逐项核对 C1 和 G1。')
+  await writeFile(join(root,'review.md'),'审核者逐项核对 C1、ACTION 和 G1。')
   const result=await savedResult(root,4,true)
   assert.equal(result.status,'partial')
   const report=draft(result)
@@ -99,7 +107,7 @@ test('a verified result can be revised offline; changed values or artifacts cann
   await writeFile(join(root,'review.md'),'C10 已核对')
   assert.notEqual(build().status,0)
   assert.deepEqual(await readJson(join(root,'delivery.json')),published)
-  await writeFile(join(root,'review.md'),'C1 已核对')
+  await writeFile(join(root,'review.md'),'C1、ACTION 已核对')
   report.metrics[0].value=5
   await writeFile(file,JSON.stringify(report))
   const changed=build()
@@ -135,12 +143,12 @@ test('empty evidence is distinct from failed collection and an all-gap draft nee
   assert.equal((await validate()).structure_pass,true)
   report.sources=[]; report.metrics=[]; report.claims=[]
   report.sections.forEach(s=>{s.claim_ids=[]})
-  assert.equal((await validate()).structure_pass,true)
+  assert.equal((await validate()).structure_pass,false)
   report.status='final'
   assert.equal((await validate()).structure_pass,false)
 })
 
-test('the decision brief waits for the user on a material gap; minor gaps do not block an answer', async t=>{
+test('the full report waits for the user on a material gap; minor gaps do not block an answer', async t=>{
   const root=await mkdtemp(join(tmpdir(),'industry-choice-'))
   t.after(()=>rm(root,{recursive:true,force:true}))
   const cliRun=command=>spawnSync('python3',[cli,command,'report.json'],{cwd:root,encoding:'utf8'})
@@ -148,20 +156,20 @@ test('the decision brief waits for the user on a material gap; minor gaps do not
   const excerpt='企业希望练习安全停机与复位。'
   const source={id:'T',title:'访谈',publisher:'企业',url:'user:访谈',locator:'第2条',excerpt,
     published:'未标注',accessed:'2026-11-04',scope:'本次调研'}
-  const report={
-    title:'是否增开实训班',edition:'decision',region:'佛山',industry:'机器人',period:'下学期',as_of:'2026-11-04',
+  const report=full({
+    title:'是否增开实训班',edition:'full',region:'佛山',industry:'机器人',period:'下学期',as_of:'2026-11-04',
     status:'draft',decision:{reader:'专业负责人',question:'能否新增一个班？',critical_gap_ids:['G']},
     sources:[source],metrics:[],
     claims:[{id:'C',kind:'inference',text:'可把复位操作纳入校企访谈。',basis:excerpt,implication:'应先核实工位。',limitation:'单次访谈',source_ids:['T']}],
     gaps:[{id:'G',description:'缺实训室排课表',owner:'教务处',required_data:'空闲课时',impact:'能否增班未决'}],
-    sections:['D01','D02','D03'].map(id=>({id,claim_ids:['C'],gap_ids:['G']})),
-  }
+    sections:[],
+  })
   const save=()=>writeFile(join(root,'report.json'),JSON.stringify(report))
   const runId='20261104-121314-test'
   let previousBuildRun
   const context=(message,offered,uploads=[])=>writeFile(join(root,'industry-report-input.json'),
     JSON.stringify({runId,previousBuildRun,message,offered,earlierMessages:[excerpt],uploads}))
-  await save(); await writeFile(join(root,'review.md'),'C 已核对访谈。')
+  await save(); await writeFile(join(root,'review.md'),'C、ACTION 已核对访谈。')
   await context('请直接生成报告',false)
   for (const command of ['preview','build']) assert.notEqual(cliRun(command).status,0)
   await assert.rejects(readFile(join(root,'delivery.json')), {code:'ENOENT'})
@@ -187,7 +195,9 @@ test('the decision brief waits for the user on a material gap; minor gaps do not
   assert.equal(built.status,0,built.stderr+built.stdout)
   let manifest=await readJson(join(root,'delivery.json'))
   previousBuildRun=runId
-  await writeFile(join(root,'delivery.json'),JSON.stringify({files:[{name:'模型另打的包',path:'output/report.zip'}]}))
+  await mkdir(join(root,'output/public/site'),{recursive:true})
+  await writeFile(join(root,'output/public/site/index.html'),'<!doctype html><title>完整报告</title>')
+  await writeFile(join(root,'delivery.json'),JSON.stringify({files:[{name:'模型另打的包',path:'output/report.zip'}],web:[{name:'报告',directory:'output/public/site',entry:'index.html'}]}))
   const declared=industryDelivery(root,runId,undefined,'按现有证据继续')
   assert.deepEqual(declared.files,manifest.files)
   assert.equal(industryDelivery(root,runId,undefined,'请提供压缩包').files.length,5)
@@ -235,11 +245,11 @@ test('a requested industry report website and its assets are served alongside th
   const runId = '20261104-150053-cwtb'
   const request = '生成网页版报告，注意图文结合'
   const report = draft(await savedResult(root,4,false))
-  report.decision = {reader:'专业负责人',question:'调研样本覆盖多少岗位？',critical_gap_ids:[]}
+  Object.assign(report.decision,{reader:'专业负责人',question:'调研样本覆盖多少岗位？',critical_gap_ids:[]})
   Object.assign(report.claims[0], {basis:'同一查询结果记录了岗位数。',implication:'按这个样本解释岗位范围。'})
   await writeFile(join(root,'industry-report-input.json'), JSON.stringify({runId,message:request,offered:false,earlierMessages:[],uploads:[]}))
   await writeFile(join(root,'report.json'), JSON.stringify(report))
-  await writeFile(join(root,'review.md'), 'C1 已复核岗位计数。')
+  await writeFile(join(root,'review.md'), 'C1、ACTION 已复核岗位计数。')
   const built = spawnSync('python3',[cli,'build','report.json'],{cwd:root,encoding:'utf8'})
   assert.equal(built.status,0,built.stderr+built.stdout)
   const originals = (await readJson(join(root,'industry-build-'+runId+'.json'))).files
@@ -280,7 +290,7 @@ test('a requested industry report website and its assets are served alongside th
   assert.throws(()=>industryDelivery(root,'20261104-150054-other',beforeWeb,request),/未通过本轮 build/)
   assert.throws(()=>industryDelivery(root,runId,deliveryFingerprint(root),request),/网页/)
   assert.deepEqual(industryDelivery(root,runId,beforeWeb,'把图例改一下').web,[page])
-  for (const message of ['只要正文，不要网页版','网页报告的证据足够么','参考网页报告，生成 Markdown']) {
+  for (const message of ['只要正文，不要网页版']) {
     const filesOnly = industryDelivery(root,runId,beforeWeb,message)
     assert.deepEqual(filesOnly.files,originals)
     assert.equal(filesOnly.web?.length ?? 0,0)
@@ -288,9 +298,30 @@ test('a requested industry report website and its assets are served alongside th
   assert.equal(expectsIndustryBuild('为什么没有生成网页版报告',''),false)
   await writeFile(join(root,'delivery.json'),JSON.stringify({files:originals}))
   assert.throws(()=>industryDelivery(root,runId,beforeWeb,request),/网页/)
-  const ordinary = industryDelivery(root,runId,beforeWeb,'生成决策报告')
-  assert.deepEqual(ordinary.files,originals)
-  assert.equal(ordinary.web?.length ?? 0,0)
+  assert.throws(()=>industryDelivery(root,runId,beforeWeb,'生成决策报告'),/网页/)
+  assert.throws(()=>industryDelivery(root,runId,beforeWeb,'扩大范围'),/网页/)
   await writeFile(join(root,'delivery.json'),JSON.stringify({web:[{...page,directory:'uploads'}]}))
   assert.throws(()=>publishDelivery(root,industryDelivery(root,runId,beforeWeb,request),store,origin))
+
+  const revisedRun='20261105-180001-revised'
+  await writeFile(join(root,'industry-report-input.json'),JSON.stringify({runId:revisedRun,previousBuildRun:runId}))
+  await mkdir(join(root,'output/public/site-r2'),{recursive:true})
+  const revisedHtml='<!doctype html><title>修订后的完整报告</title><p>已修订图例</p>'
+  await writeFile(join(root,'output/public/site-r2/index.html'),revisedHtml)
+  const beforeRevision=deliveryFingerprint(root)
+  await writeFile(join(root,'delivery.json'),JSON.stringify({files:originals,web:[{...page,directory:'output/public/site-r2'}]}))
+  const revised=industryDelivery(root,revisedRun,beforeRevision,'调整网页图例')
+  assert.deepEqual(revised.files,originals,'presentation work reuses the exact content hashes')
+  const newLinks=publishDelivery(root,revised,store,origin)
+  assert.equal(await (await fetch(newLinks.webLinks[0].url)).text(),revisedHtml)
+  assert.equal(await (await fetch(links.webLinks[0].url)).text(),html,'published snapshots remain immutable')
+  assert.deepEqual((await readJson(join(root,`industry-build-${revisedRun}.json`))).files,originals)
+  const nextRun='20261105-180002-revised'
+  await writeFile(join(root,'industry-report-input.json'),JSON.stringify({runId:nextRun,previousBuildRun:revisedRun}))
+  assert.equal(industryDelivery(root,nextRun,deliveryFingerprint(root),'为什么没有图表'),undefined)
+  assert.equal(expectsIndustryBuild('为什么没有图表','图表已成功嵌入网页，报告已准备就绪。'),true)
+  await writeFile(join(root,'delivery.json'),JSON.stringify({files:originals.slice(1),web:[page]}))
+  assert.throws(()=>industryDelivery(root,nextRun,beforeRevision,'调整网页图例'),/四份原件/)
+  assert.throws(()=>industryDelivery(root,nextRun,beforeRevision,'改为珠海市的数据，重新分析网页'),/本轮 build/)
+  assert.throws(()=>industryDelivery(root,nextRun,beforeRevision,'生成完整报告网页'),/本轮 build/)
 })

@@ -146,5 +146,5 @@ export function projectIndustryReply(raw: string, interactive: boolean): Questio
     }
     if (lines.length) text += (text ? '\n\n' : '') + lines.join('\n')
   }
-  return { text, question, waiting }
+  return { text, question, waiting: waiting || !!question }
 }

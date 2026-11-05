@@ -1,6 +1,6 @@
 # 112 · 产教简报的决策问题、关键缺证和交付
 
-**状态**：已实现。沿用 [109](109-industry-report-query-handoff.md) 的共享取数和四件套协议，落实 [110](110-report-evidence-and-writing.md) 的产教报告部分。
+**状态**：简报选择与可选网页交付已由 [116](116-industry-full-web-delivery.md) 的完整报告流程替代；其余证据与历史约定继续沿用。沿用 [109](109-industry-report-query-handoff.md) 的共享取数和四件套协议，落实 [110](110-report-evidence-and-writing.md) 的产教报告部分。
 
 ## 动机
 

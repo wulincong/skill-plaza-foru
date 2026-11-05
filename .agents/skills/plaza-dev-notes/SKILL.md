@@ -70,7 +70,8 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | # | 主题 | 状态 | 文件 |
 |---|---|---|---|
 | 113 | 共享报告渲染的自由输入、UI 元素、表格、主题与多图选型 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
-| 115 | 产教业务稿与共享渲染彻底分离 | 分离已实现；交接、质量与修订发布缺口待修 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
+| 115 | 产教业务稿与共享渲染彻底分离 | 已实现；后续交接修复见 116 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
+| 116 | 完整产教报告、人类决策与端到端网页交付 | 已实现（真实模型交付与浏览器验收通过） | [116-industry-full-web-delivery.md](references/116-industry-full-web-delivery.md) |
 
 | 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现（真实草稿与回读已验证） | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
 

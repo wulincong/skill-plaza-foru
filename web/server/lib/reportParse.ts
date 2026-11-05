@@ -1,5 +1,5 @@
 /** 运行详情从已交付的报告正文提取章节、引用和结论统计。 */
-import { readFileSync, statSync } from 'node:fs'
+import { readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { deliveryFingerprint, readDeliveryManifest, type DeliveryLinks, type DeliveryManifest } from './delivery.ts'
 import { industryReportSections } from './skills.ts'
@@ -7,10 +7,10 @@ import { industryReportSections } from './skills.ts'
 const webFormat = /网页|html\b|web\s*page/i
 
 /** A fresh website may accompany a revision even when the user simply asks
- * to change the legend. A reference to a page is not a request to publish it. */
+ * to change the legend. References alone do not request a build; completed content defaults to web delivery. */
 function webIntent(request: string): 'required' | 'omit' | 'unspecified' {
   if (!webFormat.test(request)) return 'unspecified'
-  let intent: 'required' | 'omit' = 'omit'
+  let intent: 'required' | 'omit' | 'unspecified' = 'unspecified'
   for (const clause of request.split(/[，,。；;！!？?\n]/).filter(text => webFormat.test(text))) {
     if (/(?:不要|无需|不用|不需要|不必|禁止|别|不(?:再)?(?:生成|制作|发布|交付|输出|做)|no |without ).{0,6}(?:网页|html|web\s*page)/i.test(clause)) {
       intent = 'omit'
@@ -24,13 +24,32 @@ function webIntent(request: string): 'required' | 'omit' | 'unspecified' {
 }
 
 export function expectsIndustryWeb(request: string): boolean {
-  return webIntent(request) === 'required'
+  return webIntent(request) !== 'omit'
+}
+
+/** Only presentation work can reuse a previously delivered content version. */
+export function isIndustryPresentationRevision(request: string): boolean {
+  return /网页|排版|样式|主题|图表|图例|配色|字体|布局|html/i.test(request) &&
+    !/完整报告|全量|重查|刷新|重新(?:分析|查询|评估|生成|制作)|改.{0,8}(?:地区|范围|城市|产业|数据|结论)|(?:换|改为|改成).{0,12}(?:市|省|专业)|新(?:的)?报告/.test(request)
 }
 
 /** A current build receipt supplies the four originals. A fresh public manifest
  * may additionally declare a requested website or file format. */
 export function industryDelivery(workspace: string, runId: string, previous: string | undefined, request: string): DeliveryManifest | undefined {
-  const receipt = readDeliveryManifest(workspace, undefined, `industry-build-${runId}.json`)
+  const publicManifest = readDeliveryManifest(workspace, previous)
+  let receipt = readDeliveryManifest(workspace, undefined, `industry-build-${runId}.json`)
+  let reused = false
+  if (!receipt && publicManifest?.web?.length && isIndustryPresentationRevision(request)) {
+    const context = JSON.parse(readFileSync(join(workspace, 'industry-report-input.json'), 'utf8'))
+    const prior = context.previousBuildRun
+    if (context.runId === runId && /^[0-9]{8}-[0-9]{6}-[a-z0-9]+$/.test(prior ?? '')) {
+      receipt = readDeliveryManifest(workspace, undefined, `industry-build-${prior}.json`)
+      reused = !!receipt
+      if (receipt && JSON.stringify(publicManifest.files) !== JSON.stringify(receipt.files)) {
+        throw new Error('纯呈现修订须保留上一已交付版本的四份原件及指纹；内容改变请重新 build')
+      }
+    }
+  }
   if (!receipt) {
     if (deliveryFingerprint(workspace) !== previous) throw new Error('产教报告未通过本轮 build，不能交付')
     return undefined
@@ -45,23 +64,17 @@ export function industryDelivery(workspace: string, runId: string, previous: str
     {request: /zip|压缩包/i, ext: /\.zip$/i},
   ].filter(f => f.request.test(request) && !new RegExp('(?:不要|无需|不用|不需要)\\s*(?:' + f.request.source + ')', 'i').test(request))
   const intent = webIntent(request)
-  let publicManifest: DeliveryManifest | undefined
-  if (intent !== 'omit' || formats.length) {
-    try {
-      publicManifest = readDeliveryManifest(workspace, previous)
-    } catch (error) {
-      // Optional additions cannot invalidate the verified originals.
-      if (intent === 'required' || formats.length) throw error
-    }
-  }
   const extra = formats.length ? publicManifest?.files ?? [] : []
   const files = [...originals, ...extra.filter(f => formats.some(format => format.ext.test(f.path)))]
   const web = intent !== 'omit' ? publicManifest?.web : undefined
   if (!web?.length) {
-    if (intent === 'required') throw new Error('本轮没有登记网页版报告，请在 delivery.json 的 web 中登记 HTML 入口')
+    if (intent !== 'omit') throw new Error('完整报告须交付网页：请按 report-rendering 完成并更新 delivery.json 的 web，不能停在四份业务文件')
     return {files}
   }
   if (!Array.isArray(web) || web.some(item => !item?.directory?.startsWith('output/public/'))) throw new Error('网页版报告须使用 output/public/ 下的专用站点目录')
+  // Keep the content association for subsequent presentation-only revisions.
+  // publishDelivery still verifies every original against these hashes.
+  if (reused) writeFileSync(join(workspace, `industry-build-${runId}.json`), JSON.stringify({files: originals}), {flag:'wx',mode:0o640})
   return {web, files}
 }
 
@@ -70,8 +83,13 @@ export function expectsIndustryBuild(request: string, answer: string): boolean {
   if (intent === 'required') return true
   if (intent === 'omit') request = request.split(/[，,。；;！!？?\n]/).filter(text => !webFormat.test(text)).join('。')
   if (/仅用文字|只(?:在|用)对话|(?:无需|不用|不要|不需要).{0,4}(?:文件|下载)|(?:怎么|如何).{0,8}(?:生成|构建|下载)/.test(request)) return false
+  if (isIndustryPresentationRevision(request) &&
+      /(?:报告|网页|图表)[^。\n]{0,12}已(?:生成|完成|更新|准备就绪)|已(?:成功)?[^。\n]{0,12}(?:生成|嵌入|更新|交付)[^。\n]{0,12}(?:报告|网页|图表)/.test(answer)) return true
+  if (/^(?:为什么|为何|怎么|如何|解释)/.test(request.trim())) return false
   const deliver = /(?:生成|出具|撰写|交付|修订|制作|重写).{0,30}(?:报告|简报|四份文件)|按(?:现有证据|已有材料)继续|(?:把|将)(?:报告)?标题改(?:为|成)/s
   if (deliver.test(request)) return true
+  if (/^(?:继续|扩大范围|补充材料)(?:[，,。；;\s]|$)/.test(request.trim()) ||
+      /(?:评估|研判|分析|判断|帮我看).{0,40}(?:是否|有没有必要|专业|实训|培养)/s.test(request)) return true
   const revises = /生成|交付|修订|制作|改为|改成|改.*标题/.test(request)
   return revises && /已[^。；\n]{0,28}(?:完成|生成|交付|修订)|^#{1,3} .*(?:决策简报|产教决策报告)/m.test(answer)
 }

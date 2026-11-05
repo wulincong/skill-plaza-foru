@@ -4,7 +4,7 @@
 
 ## 从配对观测示例开始
 
-在技能目录执行下面的命令。将输出路径换成一个尚未创建的目录。
+在技能目录执行下面的命令。输出路径指向尚未创建的目录，工具自动创建父目录，无需预建目标目录。修订使用新路径并保留旧图稿。
 
 ```sh
 python3 scripts/figure.py render examples/paired-recovery.json --out /tmp/recovery-figure

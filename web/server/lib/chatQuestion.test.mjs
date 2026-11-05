@@ -72,7 +72,7 @@ test('industry evidence waits remain actionable with valid, malformed and plain 
 test('industry scope questions, finished reports, protocol examples and ordinary replies are preserved',()=>{
   const scope={kind:'input',question:'研究哪个地区？',options:[]}
   const raw=fenced(scope).replace('已核对。','岗位观察还有关键缺口。')
-  assert.deepEqual(projectIndustryReply(raw,true),{text:'岗位观察还有关键缺口。',question:scope,waiting:false})
+  assert.deepEqual(projectIndustryReply(raw,true),{text:'岗位观察还有关键缺口。',question:scope,waiting:true})
   assert.equal(projectIndustryReply(raw,false).text,'岗位观察还有关键缺口。\n\n研究哪个地区？')
   const example='这里是协议示例：\n'+fenced(question).split('\n\n')[1]
   for(const ordinary of ['已生成决策报告。关键缺口在附录。以后如需扩展，请补充材料。','请提供目标地区。',example]){

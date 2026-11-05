@@ -178,7 +178,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
       if(generate){
         assert.match(prompts[1].content[0].text,/^\[plaza:report-continue:/)
         assert.equal(final.resultType,'error')
-        assert.match(final.content,/未产生可下载/)
+        assert.match(final.content,/网页尚未交付/)
         assert.doesNotMatch(frames.filter(f=>f.type==='text').map(f=>f.delta).join(''),/已完成报告/)
       }else assert.equal(final.resultType,'success')
     }

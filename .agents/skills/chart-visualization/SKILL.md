@@ -18,7 +18,7 @@ python3 scripts/figure.py render examples/paired-recovery.json --out /tmp/recove
 python3 scripts/figure.py verify examples/paired-recovery.json --out /tmp/recovery-figure
 ```
 
-输出目录须是新目录。交付矢量 PDF 或 SVG 时附上图注，网页交付可直接使用含图注和数值表的 `figure.html`。[字段、依赖与验收](references/figure-spec.md) · [中文单栏图与图注](examples/paired-recovery.html) · [矢量 PDF](examples/paired-recovery.pdf) · [英文双栏示例](examples/sensor-calibration.html)
+`--out` 必须指向尚不存在的目录；父目录由脚本创建，不要先 mkdir 或 mktemp 创建目标目录。修订改用新路径，不删除旧图稿。交付矢量 PDF 或 SVG 时附上图注，网页交付可直接使用含图注和数值表的 `figure.html`。[字段、依赖与验收](references/figure-spec.md) · [中文单栏图与图注](examples/paired-recovery.html) · [矢量 PDF](examples/paired-recovery.pdf) · [英文双栏示例](examples/sensor-calibration.html)
 
 | 读者要回答的问题 | 数据前提 | 选择 |
 |---|---|---|

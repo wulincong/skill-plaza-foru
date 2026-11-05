@@ -182,7 +182,8 @@ def main():
     parser.add_argument("--out", type=Path, required=True, help="figure bundle directory")
     args = parser.parse_args()
     if args.command == "render":
-        require(not args.out.exists(), "output directory already exists; choose a new path")
+        require(not args.out.exists(), "output directory already exists; pass a nonexistent --out path, do not mkdir or mktemp that target; parent directories are created automatically")
+        args.out.parent.mkdir(parents=True, exist_ok=True)
     else:
         require(args.out.is_dir(), "bundle directory does not exist")
     spec = json.loads(args.spec.read_text(encoding="utf-8"))

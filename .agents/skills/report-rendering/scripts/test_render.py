@@ -7,6 +7,9 @@ import tempfile
 import unittest
 
 import render
+import os
+import hashlib
+from register_delivery import register
 
 
 class RenderTests(unittest.TestCase):
@@ -21,6 +24,31 @@ class RenderTests(unittest.TestCase):
         page = render.build(source, self.root / 'site').read_text()
         for value in ['<h1>标题</h1>', '<strong>保持</strong>', '<td style="text-align:right">0</td>', '<blockquote>', 'scope="col"']:
             self.assertIn(value, page)
+
+    def test_register_revision_preserves_content_and_fails_before_replacing_manifest(self):
+        previous = Path.cwd()
+        os.chdir(self.root)
+        self.addCleanup(os.chdir, previous)
+        source = self.root / 'report.md'
+        source.write_text('# 已审内容\n保留原结论。')
+        files = [{'name':'报告正文','path':'report.md','sha256':hashlib.sha256(source.read_bytes()).hexdigest()}]
+        receipt = self.root / 'receipt.json'
+        receipt.write_text(json.dumps({'files':files}))
+        first = self.root / 'output/public/r1'
+        render.build(source, first)
+        register(first, files_from=receipt)
+        original_page = (first/'index.html').read_bytes()
+        second = self.root / 'output/public/r2'
+        render.build(source, second, theme='minimal')
+        register(second, files_from=receipt)
+        manifest = json.loads((self.root/'delivery.json').read_text())
+        self.assertEqual(manifest['files'],files)
+        self.assertEqual([w['directory'] for w in manifest['web']],['output/public/r2'])
+        self.assertEqual((first/'index.html').read_bytes(),original_page)
+        source.write_text('# 未审内容\n结论被修改。')
+        with self.assertRaisesRegex(ValueError,'原件已改变'):
+            register(second,files_from=receipt)
+        self.assertEqual(json.loads((self.root/'delivery.json').read_text()),manifest)
 
     def test_themes_preserve_same_content_and_missing_values(self):
         source = self.root / 'page.json'

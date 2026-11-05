@@ -132,9 +132,10 @@ export const HTML_REPORT_SKILLS = new Set(Object.keys(HTML_REPORT_CONTRACTS))
     但不属于广场技能卡（listPlazaSkills 过滤），也不在 INSTALLED_SKILLS。 */
 export const GENERAL_SKILL_ID = 'general'
 
-export const INDUSTRY_DECISION_SUFFIX = '\n\n（本轮先按读者的决定核对证据。已粘贴的原文即为材料，按 user: 引用原句，不能要求重传或臆造附件、时段、容量。先检验一个必要条件是否已被证据否决：若唯一可用场地排满且无替代，足以判断本期不能开班；其余设备或师资未知不触发提问，直接成稿。核心缺证时说清已知、缺口及影响，必须提供单选的三个选项“补充材料”“扩大范围”“按现有证据继续”。本轮停在提问，不运行 build。补材料或扩围后重新判断；仅凭“请生成”不能代选继续。单项决定用 decision 三节简报，明确要全景观察时用 observation。关键缺口仍在且用户选择继续，记录其原话。可交付时依技能契约运行 report.py build，保留四份下载。）'
+export const INDUSTRY_DECISION_SUFFIX = '\n\n（本轮按完整报告契约 edition=full 工作，不选择简报。先核对读者、范围、需求依据与实施条件，用户未给的办学层次、预算和偏好不得代定。关键歧义、缺证或取舍先询问并等待真实回复；补证或扩围后重新评估，不能当作允许带缺口出稿。关键缺证提供“补充材料”“扩大范围”“按现有证据继续”，未获明确选择不 build。能有依据地否决方案则如实论证。成稿前读 data-contract.md，逐条核对含义与指标，保留完整论证和可执行建议。业务 build 后继续交接，只有最终网页成功交付才完成。）'
 
-export const INDUSTRY_PRESENTATION_HANDOFF = `需要排版成品时，将本轮 build 的正文和 report.json 交给 ${skillDir('report-rendering')}/SKILL.md，按该技能完成呈现与交付。`
+export const INDUSTRY_PRESENTATION_HANDOFF = `完整报告的最终交付必须包含网页。业务 build 成功后立即读取 ${skillDir('report-rendering')}/SKILL.md，将 build 输出目录中的正文与 report.json 完整交接，依该技能验收并登记 delivery.json 的 web。保留四份业务原件。纯呈现修订沿用已核版本，重新登记网页；平台返回实际网页链接前不能声称已交付。`
+
 
 export const SKILL_PROMPTS: Record<string, string> = {
   [GENERAL_SKILL_ID]:
@@ -146,7 +147,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '你正在按 industry-education-report SKILL 工作。面向院校管理者、政府部门或产业园区，' +
     '围绕目标区域、产业和决策问题，复用相同范围的证据，需要新岗位统计时交由 talent-data-query 取数。' +
     '明确区分事实、推断、建议和缺失数据；所有统计结论都提示核验年份、范围、口径和来源；' +
-    '关键缺证时说明影响，等待用户选择补证、扩围或按现有证据继续。单项决策默认三节简报。' + INDUSTRY_PRESENTATION_HANDOFF,
+    '关键缺证时说明影响，等待用户选择补证、扩围或按现有证据继续。统一交付完整报告，必要取舍由用户决定。' + INDUSTRY_PRESENTATION_HANDOFF,
   'classroom-assistant':
     '你正在按 classroom-assistant SKILL 工作。只在用户明确提供或授权的课程资料范围内完成' +
     '带定位引用的答疑、课堂要点、练习和答疑记录整理。资料不足或问题越界时，明确说明缺口，' +
@@ -246,8 +247,8 @@ export function listPlazaSkills(): PlazaSkillInfo[] {
 export const SIDECAR_SKILLS = new Set<string>()
 
 /** 广场按实际渲染模板核对观察报告章节。 */
-export function industryReportSections(edition: 'decision' | 'observation' = 'observation'): Array<{ id: string; title: string }> {
-  return JSON.parse(readFileSync(join(skillDir('industry-education-report'), 'assets/templates.json'), 'utf8'))[edition].sections
+export function industryReportSections(edition: 'full' | 'decision' | 'observation' = 'full'): Array<{ id: string; title: string }> {
+  return JSON.parse(readFileSync(join(skillDir('industry-education-report'), edition === 'full' ? 'assets/templates.json' : 'assets/legacy-templates.json'), 'utf8'))[edition].sections
 }
 
 /** 已安装技能的目录（供 pi --skill 直接加载）。

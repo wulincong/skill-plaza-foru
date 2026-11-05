@@ -15,6 +15,11 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def templates():
+    # Old editions remain readable; new builds have one full-report contract.
+    return {**json.loads((ROOT / 'assets/legacy-templates.json').read_text()),
+            **json.loads((ROOT / 'assets/templates.json').read_text())}
+
 QUERY = ROOT.parent / 'talent-data-query/scripts/query.mjs'
 RESULT_PATH = re.compile(r'data/(tq-[a-f0-9-]+)/result\.json')
 
@@ -88,6 +93,12 @@ def session_context():
     file = Path('industry-report-input.json')
     return json.loads(file.read_text()) if file.is_file() else None
 
+def excerpt_text(value):
+    # Chinese typography often adds spaces around numbers. Preserve digits,
+    # punctuation and word boundaries (e.g. "1 8" must not become "18").
+    text = ' '.join(str(value).split())
+    return re.sub(r'(?<=[\u3400-\u9fff]) (?=[0-9])|(?<=[0-9]) (?=[\u3400-\u9fff])', '', text)
+
 def validate(d):
     errors = []
     def check(ok, message):
@@ -102,8 +113,7 @@ def validate(d):
         datetime.date.fromisoformat(d.get('as_of',''))
     except (ValueError, TypeError):
         errors.append('invalid as_of')
-    templates = json.loads((ROOT / 'assets/templates.json').read_text())
-    template = templates.get(d.get('edition'))
+    template = templates().get(d.get('edition'))
     check(template is not None, 'invalid edition')
     indexes = {}
     requirements = {
@@ -158,14 +168,14 @@ def validate(d):
                     allowed = url in context['uploads'] and material.is_relative_to(Path.cwd() / 'uploads') and material.is_file()
                     check(allowed, f'{s["id"]}: 没有这份用户上传的附件，粘贴材料应引用 user: 来源')
                     if allowed and material.suffix.lower() in ('.txt', '.md'):
-                        excerpt = ' '.join(str(s.get('excerpt','')).split())
-                        check(excerpt and excerpt in ' '.join(material.read_text(encoding='utf-8-sig').split()),
+                        excerpt = excerpt_text(s.get('excerpt',''))
+                        check(excerpt and excerpt in excerpt_text(material.read_text(encoding='utf-8-sig')),
                               f'{s["id"]}: excerpt 不在上传文件原文中')
             if context and isinstance(url, str) and url.startswith('user:'):
-                excerpt = ' '.join(str(s.get('excerpt', '')).split())
+                excerpt = excerpt_text(s.get('excerpt', ''))
                 messages = [context['message'], *context['earlierMessages']]
-                check(excerpt and any(excerpt in ' '.join(msg.split()) for msg in messages),
-                      f'{s["id"]}: excerpt 须逐字引用用户给出的具体原句或片段')
+                check(excerpt and any(excerpt in excerpt_text(msg) for msg in messages),
+                      f'{s["id"]}: excerpt 须引用用户原句；直接从 industry-report-input.json 的 message/earlierMessages 摘取，不改数字或改写词句')
             check('contentHash' not in s and 'dataReadAt' not in s, f'{s["id"]}: shared source requires result path')
         fields(s, requirements['sources'], 'sources')
         try:
@@ -232,6 +242,9 @@ def validate(d):
         sr = refs(c,'source_ids','sources')
         mr = refs(c,'metric_ids','metrics')
         check(bool(sr or mr), f'{c["id"]}: unsupported claim')
+        if d.get('edition') == 'full' and c.get('kind') == 'fact' and re.search(
+                r'\d+(?:\.\d+)?\s*(?:[%％]|人|条|家|个|元|万元|小时|学时|工位|班)', c.get('text','')):
+            check(bool(mr), f'{c["id"]}: 量化事实须引用 metric_ids；用户材料中的数量也要登记数值、单位、统计对象和来源，不能只留在文字里')
     sections = d.get('sections',[])
     check(isinstance(sections,list), 'sections must be array')
     if not isinstance(sections,list):
@@ -245,9 +258,10 @@ def validate(d):
         check(bool(cs or gs), f'{s.get("id")}: empty section')
         used_claims.update(x for x in cs if isinstance(x,str))
         used_gaps.update(x for x in gs if isinstance(x,str))
+    full = d.get('edition') == 'full'
     brief = d.get('edition') == 'decision'
     decision = d.get('decision')
-    if brief or decision is not None:
+    if full or brief or decision is not None:
         if isinstance(decision, dict):
             for name in ('reader','question'):
                 check(isinstance(decision.get(name),str) and decision[name].strip(), f'decision: missing {name}')
@@ -258,7 +272,7 @@ def validate(d):
                 check(bool(sections[0].get('claim_ids') or critical), '摘要须回答决策问题或指明关键缺口')
             for section in sections:
                 key = section.get('id','')
-                if key == 'D02' or 'S02' <= key <= 'S12':
+                if full or key == 'D02' or 'S02' <= key <= 'S12':
                     for cid in section.get('claim_ids', []):
                         if cid in indexes['claims']:
                             for name in ('basis','implication'):
@@ -266,6 +280,32 @@ def validate(d):
                                 check(isinstance(part,str) and part.strip(), f'{cid}: missing {name}')
         else:
             errors.append('decision: reader, question and critical_gap_ids required')
+    if full and isinstance(decision, dict):
+        check(not decision.get('continue_quote') or bool(decision.get('critical_gap_ids')),
+              'continue_quote only records a user choice about declared critical gaps')
+        checks = decision.get('evidence_checks', [])
+        check(isinstance(checks, list), 'decision: evidence_checks must be array')
+        checks = checks if isinstance(checks, list) else []
+        check([x.get('topic') for x in checks if isinstance(x, dict)] == ['scope', 'demand', 'feasibility'],
+              'decision: evidence_checks must cover scope, demand, feasibility')
+        for item in checks:
+            if not isinstance(item, dict):
+                continue
+            fields(item, ['topic','status','reason'], 'evidence_check')
+            state = item.get('status')
+            check(state in ('supported','missing','not_applicable'), 'invalid evidence_check status')
+            sr, mr, gr = refs(item,'source_ids','sources'), refs(item,'metric_ids','metrics'), refs(item,'gap_ids','gaps')
+            if state == 'supported':
+                check(bool(sr or mr), f'{item.get("topic")}: supported check needs evidence')
+            if state == 'missing':
+                check(bool(gr) and set(gr).issubset(decision.get('critical_gap_ids',[])),
+                      f'{item.get("topic")}: missing decision evidence must retain critical gaps')
+        actions = [indexes['claims'][cid] for s in sections if s.get('id') == 'F08'
+                   for cid in s.get('claim_ids', []) if cid in indexes['claims']
+                   and indexes['claims'][cid].get('kind') == 'recommendation']
+        check(bool(actions), 'F08: needs an actionable recommendation, not a repeated summary')
+        for action in actions:
+            fields(action, ['owner','next_step','condition','verification'], action['id'])
     for c in indexes['claims'].values():
         used_metrics.update(x for x in c.get('metric_ids',[]) if isinstance(x,str))
     check(set(indexes['claims'])==used_claims, 'orphan claims')
@@ -295,7 +335,7 @@ def scope_text(scope):
     return str(scope)
 
 def compose_markdown(d):
-    template = json.loads((ROOT/'assets/templates.json').read_text())[d['edition']]
+    template = templates()[d['edition']]
     indexes = {k:{x['id']:x for x in d[k]} for k in ['claims','gaps','metrics','sources']}
     out = [f'# {d["title"]}', '', f'区域：{scope_text(d["region"])}｜产业：{scope_text(d["industry"])}｜时间窗/基期：{scope_text(d["period"])}｜数据时点：{d["as_of"]}', '',
            f'状态：{d["status"]}；模板：{template["name"]}（研究改编）。',
@@ -326,6 +366,8 @@ def compose_markdown(d):
                 paragraph = ' '.join(part if re.search(r'[。！？.!?；;：:][”’」）)]?$',part) else part + '。' for part in parts)
                 kind = {'fact':'事实','inference':'推断','recommendation':'建议'}[c['kind']]
                 out += [f'{paragraph} 〔{kind} · {cid} · {links}〕', f'适用条件：{c["limitation"]}', '']
+                if c.get('kind') == 'recommendation' and c.get('next_step'):
+                    out += [f'建议责任方：{c["owner"]}；下一步：{c["next_step"]}；启动或调整条件：{c["condition"]}；核验办法：{c["verification"]}', '']
                 continue
             out += [f'- **{cid} · {c["kind"]}**：{c["text"]} {links}', f'  - 适用限制：{c["limitation"]}', '']
         for gid in section['gap_ids']:
@@ -455,6 +497,8 @@ def previous_decision(context):
 
 def build_delivery(d, validation, review, reply_file=None):
     """Publish one complete revision. The previous manifest survives a failed build."""
+    if d.get('edition') != 'full':
+        raise ValueError('新报告统一使用 edition=full；旧版仅支持 validate、preview、verify，请按完整报告契约迁移')
     check_release(d, reply_file)
     if not review.strip():
         raise ValueError('review.md is empty')
@@ -524,6 +568,8 @@ def main():
     p.add_argument('--review',type=Path,default=Path('review.md'))
     a = p.parse_args()
     try:
+        if a.command in ('build','preview') and Path.cwd().resolve().is_relative_to(ROOT):
+            raise ValueError('请在当前会话工作区运行脚本绝对路径，不要 cd 到技能安装目录；否则无法核对用户选择或登记本轮交付')
         d = json.loads(a.report.read_text())
         result = validate(d)
         if a.command=='validate':

@@ -2,11 +2,30 @@
 
 `report.json` 由报告技能编写。查询请求、指标名、单位、分母和清洗规则由 [人才数据库查询](../../talent-data-query/SKILL.md) 定义，以查询结果为准。
 
-## 选择报告结构
+## 完整报告结构
 
-单项决定使用 edition=decision，sections 顺序为 D01 决策摘要、D02 证据与判断、D03 行动与适用条件。各章均写 claim_ids、gap_ids 两个数组。D01 的结论回应原问题；D02 引用的每条 claim 除 text（判断）、limitation、source_ids 或 metric_ids 外，还填 basis（具体证据）和 implication（这对本次决定意味着什么）；D03 写可执行的建议与条件。新观察版在 S02–S12 使用相同的 basis、implication 写论证段。次要缺项只在相关位置交代。
+新报告统一使用 `edition=full`，按 [章节表](../assets/templates.json) 的 F01–F09 排列，不提供简报或观察版选择。F01 先回答问题，F02 交代范围和口径，F03–F06 分别论证需求、门槛与薪酬、培养定位和实施条件，F07 比较备选方案，F08 给出行动与风险，F09 收束结论和未决事项。每节含 claim_ids、gap_ids 数组，至少有一项结论或缺口。与本次决定无关的专题，用有依据的适用性判断说明原因；不要把全部 claims 重复放进每一章。
 
-新报告声明 `decision`，例如 `{"reader":"专业负责人","question":"下学期是否增开调试班？","critical_gap_ids":[]}`。critical_gap_ids 只填阻断当前决定的 gaps ID。与当前任务无关的模板专题不算关键缺口。关键缺证先提问，不构建；只有用户选按现有证据继续才写 `decision.continue_quote`，逐字引用表示同意的原话，例如“按现有证据继续”。只给材料、要求扩围、提问或否定该选项均不授权出稿。范围、指标或用户补充的材料改变时重新判断，不能沿用其他决定的选择。独立命令行运行限定报告时使用 `--user-reply 用户实际回复文件`；广场自动提供本轮原话。Markdown 和 TXT 附件的 excerpt 还会核对文件原句；PDF、Word 的页码和摘录需要在复核时查原件。报告形成的有条件结论不等于审批通过。
+每条 claim 写 text（判断）、basis（可定位证据）、implication（决策影响）和 limitation，引用 source_ids 或 metric_ids。F08 至少有一条 recommendation，另填 owner（建议责任方）、next_step、condition、verification；建议安排不得写成用户已批准的事实。结论与行动不能只是复用同一条摘要。
+
+`decision.evidence_checks` 按 scope、demand、feasibility 顺序记录范围身份、需求依据和实施条件三项检查。每项含 topic、status、reason、source_ids、metric_ids、gap_ids。status 为 supported 时有具体来源或指标；missing 时引用 gaps 并纳入 critical_gap_ids；not_applicable 写清与本次决定的关系及不适用原因。检查理由由真实材料支持，不能把“无登记缺口”视为证据充分。学院层次未知不能写成高职；需求统计不能证明本校可行。必要条件已经否决方案时，说明为什么其余未知不再阻断本期结论。
+
+新报告声明 `decision`。以下仅展示其结构，运行时使用真实材料和判断，不能沿用示例的状态：
+
+```json
+{
+  "reader": "专业负责人",
+  "question": "下学期是否增开调试班？",
+  "critical_gap_ids": ["G_CAPACITY"],
+  "evidence_checks": [
+    {"topic":"scope","status":"supported","reason":"用户明确了本校与下学期。","source_ids":["S_TASK"],"metric_ids":[],"gap_ids":[]},
+    {"topic":"demand","status":"supported","reason":"企业访谈说明调试训练需求。","source_ids":["S_INTERVIEW"],"metric_ids":[],"gap_ids":[]},
+    {"topic":"feasibility","status":"missing","reason":"尚无可用工位与排课依据。","source_ids":[],"metric_ids":[],"gap_ids":["G_CAPACITY"]}
+  ]
+}
+```
+
+critical_gap_ids 只填阻断当前决定的 gaps ID。与当前任务无关的模板专题不算关键缺口。关键缺证先提问，不构建；只有用户选按现有证据继续才写 `decision.continue_quote`，逐字引用表示同意的原话，例如“按现有证据继续”。只给材料、要求扩围、提问或否定该选项均不授权出稿。范围、指标或用户补充的材料改变时重新判断，不能沿用其他决定的选择。独立命令行运行限定报告时使用 `--user-reply 用户实际回复文件`；广场自动提供本轮原话。Markdown 和 TXT 附件的 excerpt 还会核对文件原句；PDF、Word 的页码和摘录需要在复核时查原件。报告形成的有条件结论不等于审批通过。
 
 粘贴材料可按下面两项相互引用（示意；运行时替换为用户的真实原句和时点）：
 
@@ -17,25 +36,24 @@
 }
 ```
 
-明确需要全景观察时选 edition=observation。下表是完整观察版的章节映射。
+## 证据与章节的对应
 
-## 把决策问题映射到章节
-
-| 章节 | 需要回答的问题 | 优先证据 |
+| 章节 | 需要回答的问题 | 证据 |
 |---|---|---|
-| S01–S02 | 样本覆盖哪些岗位、企业和地区？ | 同条件的记录数、企业数与城市分布，标明地域依据和缺失 |
-| S03–S04、S07 | 岗位集中在哪些方向？哪些城市的结构不同？ | 岗位名称排名，有明确分类规则才使用方向分布和城市交叉 |
-| S05–S06、S08 | 入门门槛和薪酬如何影响培养定位？ | 学历、经验、薪酬有效数与中位数。分别统计的边际分布不能拼成联合分布 |
-| S09–S12 | 哪些任务适合纳入课程，需向谁核实？ | 声明词表的技能统计、用户提供的课程和企业材料。单次岗位截面不能证明增长 |
-| S00、附录 A/B/C | 哪些判断已有依据，哪些仍需补证？ | 回引正文的指标和限制，附来源、分母、采集时间与方法 |
+| F02–F03 | 研究什么、需求在哪、样本能说明什么？ | 真实范围、记录数、企业数、城市与岗位分布 |
+| F04–F05 | 面向哪些学习者，培养哪些能力？ | 学历、经验、薪酬及有效数、岗位任务、课程或企业材料 |
+| F06 | 本地需求能否转为本单位实施方案？ | 办学层次、目标人群、教师、场地、预算等与决定相关的材料 |
+| F07–F09 | 选什么路径、谁做什么、什么情况下调整？ | 回引已核证据，比较替代和暂缓方案，登记条件与未决项 |
+
+仅有边际分布不能拼成联合分布；单次快照不能证明增长。完整保留实际用于论证的分布与数值，不能只交四个总量。
 
 ## 结构与引用
 
-- 顶层 `title, edition, region, industry, period, as_of, status`。region、industry、period 写可展示的文字，如“佛山市”“名称含 Java（不限制产业）”“平台更新时间 [起日, 止日)”；查询筛选对象只放在共享请求中。edition 为 decision 或 observation，as_of 为报告证据截止日（YYYY-MM-DD），status 为 sample/draft/final；仍有关键缺口用 draft；只有次要缺项可在相关段落说明。
-- `sections` 按 [章节表](../assets/templates.json) 的对应结构排列，observation 含 S00–S12、APXA/B/C，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
-- `claims` 含 id、kind（fact/inference/recommendation）、text、source_ids、metric_ids、limitation。统计事实引用指标，质性事实引用材料的具体位置，建议说明依据和验证办法。
+- 顶层 `title, edition, region, industry, period, as_of, status`。region、industry、period 写可展示的文字，如“佛山市”“名称含 Java（不限制产业）”“未限定更新时间；读取时点见 dataReadAt”；查询筛选对象只放在共享请求中。只有实际设置了时间筛选才写区间，读取日期不代替时间窗。edition 为 full，as_of 为报告证据截止日（YYYY-MM-DD），status 为 sample/draft/final；仍有关键缺口用 draft；只有次要缺项可在相关段落说明。
+- `sections` 按 [章节表](../assets/templates.json) 的 F01–F09 排列，每项含 id、claim_ids、gap_ids。每章至少一条结论或一个缺口。
+- `claims` 含 id、kind（fact/inference/recommendation）、text、source_ids、metric_ids、limitation。统计事实引用指标，质性事实引用材料的具体位置，建议说明依据和验证办法。用户材料中的人数、工位、金额等数量同样登记 metrics（引用该 user: 来源，无需 binding），同口径数值使用一致的 unit、period、region、population。不能把“文字来源”当作省略结构化数量的理由；所有用于比较的分类值均保留，不能只绑定一个总数。
 - `gaps` 含 id、description、owner、required_data、impact。
-- `sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。用户附件用 uploads/ 相对路径，粘贴材料用 user: 加名称，两者均写页码、表号或段落。粘贴材料的 excerpt 摘录用户原句，不改写，不另建附件；解释写进 claim。历史样板保留原 references/ 节号。
+- `sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。用户附件用 uploads/ 相对路径，粘贴材料用 user: 加名称，两者均写页码、表号或段落。粘贴材料的 excerpt 摘录用户原句，不改写，不另建附件；校验仅容忍中文与数字之间的排版空格，数字、词句及标点仍须一致；解释写进 claim。历史样板保留原 references/ 节号。
 - `metrics` 含 id、label、value（有限数值）、unit、period、region、population、definition、source_ids。描述分母、样本、计量单位与对应限制；派生指标使用 derived.inputs 和 operation（sum/ratio/percent），写明 comparable_group 与 price_basis。输入单位、地区、时期、样本和价格口径必须可比。
 
 ## 引用共享统计
@@ -51,3 +69,7 @@
 本轮 build 输出的 report.json 已补齐绑定的数值、分组明细与来源，可交给下游消费；工作区根目录的同名草稿可能尚未补齐。
 
 [历史样板](../assets/examples/observation/report.json) 用于复现旧统计口径，不是新范围的数据源。
+
+## 业务构建之后
+
+本轮 build 成功后必须交接 report-rendering 继续到最终成品及平台发布；四份原件只是业务交接结果。旧 decision/observation 稿可 validate、preview、verify，不能作为新的完整报告 build；迁移时补齐论证与必要决策，不机械复制章节。
