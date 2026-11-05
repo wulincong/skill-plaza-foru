@@ -255,6 +255,832 @@
           "项目管理"
         ]
       }
+    },
+    "机器人": {
+      "name": "机器人",
+      "version": "2026-11-05.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "perception",
+            "label": "感知与智能算法",
+            "titleAny": [
+              "视觉",
+              "感知",
+              "算法",
+              "SLAM",
+              "导航",
+              "定位"
+            ]
+          },
+          {
+            "key": "control",
+            "label": "运动控制与嵌入式",
+            "titleAny": [
+              "运动控制",
+              "控制",
+              "嵌入式",
+              "固件",
+              "驱动",
+              "ROS"
+            ]
+          },
+          {
+            "key": "mechanical",
+            "label": "机械结构与仿真",
+            "titleAny": [
+              "机械",
+              "结构",
+              "仿真",
+              "动力学",
+              "机构"
+            ]
+          },
+          {
+            "key": "electrical",
+            "label": "电气与自动化",
+            "titleAny": [
+              "电气",
+              "自动化",
+              "PLC",
+              "电控",
+              "电子",
+              "电路"
+            ]
+          },
+          {
+            "key": "integration",
+            "label": "系统集成与调试",
+            "titleAny": [
+              "集成",
+              "调试",
+              "应用",
+              "实施",
+              "交付"
+            ]
+          },
+          {
+            "key": "software",
+            "label": "软件开发与平台",
+            "titleAny": [
+              "软件",
+              "开发",
+              "上位机",
+              "平台"
+            ]
+          },
+          {
+            "key": "quality",
+            "label": "测试质量与生产",
+            "titleAny": [
+              "测试",
+              "质量",
+              "工艺",
+              "生产",
+              "制造",
+              "装配"
+            ]
+          },
+          {
+            "key": "service",
+            "label": "服务与业务拓展",
+            "titleAny": [
+              "售后",
+              "维修",
+              "维护",
+              "销售",
+              "市场",
+              "产品",
+              "售前",
+              "方案"
+            ]
+          }
+        ],
+        "skills": [
+          "ROS",
+          "SLAM",
+          "Python",
+          "C++",
+          "Linux",
+          "PLC",
+          "机器视觉",
+          "运动控制",
+          "SolidWorks",
+          "CAD",
+          "仿真",
+          "自动化",
+          "嵌入式",
+          "调试",
+          "沟通",
+          "项目管理"
+        ]
+      }
+    },
+    "智能网联汽车": {
+      "name": "智能网联汽车",
+      "version": "2026-11-05.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "autonomous",
+            "label": "智能驾驶与感知",
+            "titleAny": [
+              "智能驾驶",
+              "自动驾驶",
+              "辅助驾驶",
+              "感知",
+              "算法",
+              "ADAS",
+              "SLAM"
+            ]
+          },
+          {
+            "key": "embedded",
+            "label": "嵌入式与汽车电子",
+            "titleAny": [
+              "嵌入式",
+              "电子",
+              "电控",
+              "控制",
+              "驱动",
+              "AUTOSAR",
+              "底层"
+            ]
+          },
+          {
+            "key": "cockpit",
+            "label": "智能座舱与车联网",
+            "titleAny": [
+              "座舱",
+              "车联网",
+              "V2X",
+              "HMI",
+              "车载",
+              "联网"
+            ]
+          },
+          {
+            "key": "software",
+            "label": "软件开发与数据",
+            "titleAny": [
+              "软件",
+              "开发",
+              "数据",
+              "平台",
+              "云端"
+            ]
+          },
+          {
+            "key": "test",
+            "label": "测试验证与质量",
+            "titleAny": [
+              "测试",
+              "验证",
+              "质量",
+              "标定",
+              "仿真",
+              "可靠性"
+            ]
+          },
+          {
+            "key": "hardware",
+            "label": "硬件与系统工程",
+            "titleAny": [
+              "硬件",
+              "电路",
+              "系统",
+              "架构",
+              "通信"
+            ]
+          },
+          {
+            "key": "manufacturing",
+            "label": "工艺制造与装备",
+            "titleAny": [
+              "工艺",
+              "生产",
+              "制造",
+              "机械",
+              "结构",
+              "设备"
+            ]
+          },
+          {
+            "key": "business",
+            "label": "产品交付与市场",
+            "titleAny": [
+              "产品",
+              "项目",
+              "交付",
+              "售前",
+              "销售",
+              "市场",
+              "运营",
+              "方案"
+            ]
+          }
+        ],
+        "skills": [
+          "C++",
+          "Python",
+          "Linux",
+          "AUTOSAR",
+          "CAN",
+          "MATLAB",
+          "Simulink",
+          "嵌入式",
+          "车联网",
+          "智能驾驶",
+          "功能安全",
+          "仿真",
+          "测试",
+          "通信",
+          "沟通",
+          "项目管理"
+        ]
+      }
+    },
+    "跨境电商": {
+      "name": "跨境电商",
+      "version": "2026-11-05.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "platform",
+            "label": "平台与店铺运营",
+            "titleAny": [
+              "亚马逊",
+              "Amazon",
+              "速卖通",
+              "独立站",
+              "Temu",
+              "Shopee",
+              "Lazada",
+              "店铺"
+            ]
+          },
+          {
+            "key": "content",
+            "label": "内容与社媒营销",
+            "titleAny": [
+              "社媒",
+              "内容",
+              "新媒体",
+              "TikTok",
+              "短视频",
+              "直播",
+              "文案"
+            ]
+          },
+          {
+            "key": "advertising",
+            "label": "广告投放与增长",
+            "titleAny": [
+              "投放",
+              "广告",
+              "SEO",
+              "SEM",
+              "增长",
+              "流量",
+              "推广"
+            ]
+          },
+          {
+            "key": "product",
+            "label": "选品采购与供应链",
+            "titleAny": [
+              "选品",
+              "采购",
+              "供应链",
+              "开发产品",
+              "产品开发",
+              "商品"
+            ]
+          },
+          {
+            "key": "logistics",
+            "label": "物流仓储与关务",
+            "titleAny": [
+              "物流",
+              "仓储",
+              "仓库",
+              "关务",
+              "报关",
+              "货代",
+              "运输"
+            ]
+          },
+          {
+            "key": "design",
+            "label": "设计与视觉制作",
+            "titleAny": [
+              "设计",
+              "美工",
+              "摄影",
+              "剪辑",
+              "视觉"
+            ]
+          },
+          {
+            "key": "sales",
+            "label": "外贸销售与客户服务",
+            "titleAny": [
+              "外贸",
+              "销售",
+              "客服",
+              "客户",
+              "业务",
+              "商务"
+            ]
+          },
+          {
+            "key": "support",
+            "label": "数据技术与职能支持",
+            "titleAny": [
+              "数据",
+              "软件",
+              "技术",
+              "开发",
+              "财务",
+              "人事",
+              "人力",
+              "行政"
+            ]
+          }
+        ],
+        "skills": [
+          "Amazon",
+          "Shopify",
+          "TikTok",
+          "英语",
+          "小语种",
+          "选品",
+          "供应链",
+          "物流",
+          "广告投放",
+          "SEO",
+          "Excel",
+          "SQL",
+          "数据分析",
+          "Photoshop",
+          "沟通",
+          "客户服务"
+        ]
+      }
+    },
+    "智能硬件": {
+      "name": "智能硬件",
+      "version": "2026-11-05.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "embedded",
+            "label": "嵌入式与固件",
+            "titleAny": [
+              "嵌入式",
+              "固件",
+              "单片机",
+              "驱动",
+              "BSP",
+              "MCU"
+            ]
+          },
+          {
+            "key": "electronic",
+            "label": "电子硬件与电路",
+            "titleAny": [
+              "硬件",
+              "电子",
+              "电路",
+              "PCB",
+              "射频",
+              "天线"
+            ]
+          },
+          {
+            "key": "structure",
+            "label": "结构设计与工业设计",
+            "titleAny": [
+              "结构",
+              "机械",
+              "工业设计",
+              "ID设计",
+              "模具"
+            ]
+          },
+          {
+            "key": "software",
+            "label": "软件算法与连接",
+            "titleAny": [
+              "软件",
+              "算法",
+              "开发",
+              "物联网",
+              "通信",
+              "蓝牙",
+              "WiFi"
+            ]
+          },
+          {
+            "key": "test",
+            "label": "测试验证与质量",
+            "titleAny": [
+              "测试",
+              "质量",
+              "验证",
+              "可靠性",
+              "认证"
+            ]
+          },
+          {
+            "key": "production",
+            "label": "工艺生产与供应链",
+            "titleAny": [
+              "工艺",
+              "生产",
+              "制造",
+              "供应链",
+              "采购",
+              "设备"
+            ]
+          },
+          {
+            "key": "product",
+            "label": "产品与解决方案",
+            "titleAny": [
+              "产品",
+              "方案",
+              "售前",
+              "项目"
+            ]
+          },
+          {
+            "key": "business",
+            "label": "营销运营与服务",
+            "titleAny": [
+              "销售",
+              "市场",
+              "营销",
+              "运营",
+              "客服",
+              "售后",
+              "维修"
+            ]
+          }
+        ],
+        "skills": [
+          "C++",
+          "嵌入式",
+          "Linux",
+          "单片机",
+          "PCB",
+          "Altium",
+          "蓝牙",
+          "WiFi",
+          "物联网",
+          "SolidWorks",
+          "CAD",
+          "Python",
+          "测试",
+          "供应链",
+          "沟通",
+          "项目管理"
+        ]
+      }
+    },
+    "直播电商": {
+      "name": "直播电商",
+      "version": "2026-11-05.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "live",
+            "label": "主播与直播执行",
+            "titleAny": [
+              "主播",
+              "直播助理",
+              "直播中控",
+              "中控",
+              "场控",
+              "直播运营"
+            ]
+          },
+          {
+            "key": "content",
+            "label": "短视频与内容制作",
+            "titleAny": [
+              "短视频",
+              "内容",
+              "编导",
+              "剪辑",
+              "摄影",
+              "摄像",
+              "文案",
+              "拍摄"
+            ]
+          },
+          {
+            "key": "operation",
+            "label": "店铺与平台运营",
+            "titleAny": [
+              "电商运营",
+              "店铺",
+              "抖音运营",
+              "快手运营",
+              "运营",
+              "淘宝",
+              "天猫"
+            ]
+          },
+          {
+            "key": "growth",
+            "label": "投放与营销增长",
+            "titleAny": [
+              "投放",
+              "广告",
+              "推广",
+              "营销",
+              "增长",
+              "流量"
+            ]
+          },
+          {
+            "key": "supply",
+            "label": "选品与供应链",
+            "titleAny": [
+              "选品",
+              "采购",
+              "供应链",
+              "商品",
+              "仓储",
+              "物流"
+            ]
+          },
+          {
+            "key": "business",
+            "label": "达人商务与客户服务",
+            "titleAny": [
+              "达人",
+              "商务",
+              "招商",
+              "销售",
+              "客服",
+              "客户"
+            ]
+          },
+          {
+            "key": "design",
+            "label": "设计与视觉制作",
+            "titleAny": [
+              "设计",
+              "美工",
+              "视觉"
+            ]
+          },
+          {
+            "key": "support",
+            "label": "数据技术与职能支持",
+            "titleAny": [
+              "数据",
+              "技术",
+              "软件",
+              "开发",
+              "财务",
+              "人事",
+              "行政"
+            ]
+          }
+        ],
+        "skills": [
+          "抖音",
+          "快手",
+          "直播",
+          "短视频",
+          "剪映",
+          "Premiere",
+          "Photoshop",
+          "千川",
+          "投放",
+          "选品",
+          "数据分析",
+          "Excel",
+          "脚本",
+          "供应链",
+          "沟通",
+          "客户服务"
+        ]
+      }
+    },
+    "半导体": {
+      "name": "半导体",
+      "version": "2026-11-05.1",
+      "sections": [
+        "overview",
+        "geography",
+        "requirements",
+        "salary",
+        "vocational",
+        "tracks",
+        "city_tracks",
+        "lq",
+        "track_salary",
+        "skills",
+        "track_skills"
+      ],
+      "audience": "院校管理者与产教融合负责人",
+      "analysis": {
+        "tracks": [
+          {
+            "key": "design",
+            "label": "芯片设计与验证",
+            "titleAny": [
+              "芯片设计",
+              "IC设计",
+              "数字设计",
+              "模拟设计",
+              "验证",
+              "RTL",
+              "FPGA",
+              "前端设计"
+            ]
+          },
+          {
+            "key": "process",
+            "label": "晶圆工艺与器件",
+            "titleAny": [
+              "工艺",
+              "晶圆",
+              "器件",
+              "制程",
+              "光刻",
+              "刻蚀",
+              "薄膜",
+              "扩散"
+            ]
+          },
+          {
+            "key": "equipment",
+            "label": "设备与自动化",
+            "titleAny": [
+              "设备",
+              "自动化",
+              "机械",
+              "电气",
+              "维护",
+              "维修"
+            ]
+          },
+          {
+            "key": "packaging",
+            "label": "封装测试与质量",
+            "titleAny": [
+              "封装",
+              "测试",
+              "质量",
+              "可靠性",
+              "失效",
+              "检测"
+            ]
+          },
+          {
+            "key": "materials",
+            "label": "材料与研发分析",
+            "titleAny": [
+              "材料",
+              "研发",
+              "分析",
+              "化学",
+              "实验"
+            ]
+          },
+          {
+            "key": "application",
+            "label": "应用硬件与软件",
+            "titleAny": [
+              "应用",
+              "硬件",
+              "电子",
+              "软件",
+              "嵌入式",
+              "FAE",
+              "开发"
+            ]
+          },
+          {
+            "key": "production",
+            "label": "生产制造与供应链",
+            "titleAny": [
+              "生产",
+              "制造",
+              "采购",
+              "供应链",
+              "计划",
+              "仓储"
+            ]
+          },
+          {
+            "key": "business",
+            "label": "产品销售与服务",
+            "titleAny": [
+              "销售",
+              "市场",
+              "产品",
+              "客户",
+              "售前",
+              "技术支持",
+              "项目"
+            ]
+          }
+        ],
+        "skills": [
+          "Verilog",
+          "SystemVerilog",
+          "FPGA",
+          "EDA",
+          "Cadence",
+          "SPICE",
+          "Python",
+          "C++",
+          "半导体",
+          "光刻",
+          "封装",
+          "测试",
+          "良率",
+          "质量管理",
+          "沟通",
+          "项目管理"
+        ]
+      }
     }
   }
 }

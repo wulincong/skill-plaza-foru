@@ -9,11 +9,12 @@ KINDS={'city_combo','requirements_flow','paired_share','bubble_matrix','track_tr
 def height(cfg):
     kind=cfg['kind']
     if kind=='city_combo':return 850
-    if kind in ('requirements_flow','skill_network'):return 850
+    if kind in ('requirements_flow','skill_network'):return 680
     if kind=='track_treemap':return 1100
     if kind=='entry_scatter':return 1000
     if kind=='bubble_matrix':return max(680,94*len(cfg.get('rows',[]))+240)
-    if kind in ('paired_share','quantile_interval','specialization_dot'):return max(420,100*len(cfg.get('data',[]))+170)
+    if kind=='quantile_interval':return max(420,100*len(cfg.get('data',[]))+170)
+    if kind in ('paired_share','specialization_dot'):return max(420,82*len(cfg.get('data',[]))+170)
     return 850
 
 
@@ -126,6 +127,7 @@ def chart_js(cfg,el,theme):
         maximum=max([row[3] for row in data] or [1]);numbers='①②③④⑤⑥⑦⑧'
         labeled=set(range(min(3,len(data))))
         if data:labeled.add(max(range(len(data)),key=lambda i:data[i][1]))
+        label_positions={i:('bottom','top','left','right')[j] for j,i in enumerate(sorted(labeled))}
         opt.update(grid={'left':85,'right':65,'top':60,'bottom':400},
             xAxis=dict(axis,type='value',name='入门池薪酬中位数（K/月）',nameLocation='middle',nameGap=50,nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
             yAxis=dict(axis,type='value',min=0,max=100,name='方向内入门池份额（%）',nameLocation='middle',nameGap=55,nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
@@ -134,10 +136,11 @@ def chart_js(cfg,el,theme):
                                'fontSize':22,'lineHeight':28,'fill':colors[i%len(colors)]}} for i,row in enumerate(data)],
             series=[{'type':'scatter','data':[{'name':row[0],'value':[row[1],row[2],row[3],row[4],row[5]],
                      'symbolSize':22+52*math.sqrt(row[3]/maximum),'itemStyle':{'color':colors[i%len(colors)],'opacity':.82},
-                     'label':{'show':i in labeled,'formatter':numbers[i]}} for i,row in enumerate(data)],
+                     'label':{'show':i in labeled,'formatter':numbers[i],
+                              'position':label_positions.get(i,'right'),'distance':12}} for i,row in enumerate(data)],
                      'label':{'show':True,'position':'right','fontSize':23,'color':text,
                               'textBorderColor':'#FFFFFF','textBorderWidth':3},
-                     'labelLine':{'show':True,'lineStyle':{'color':sub}},'labelLayout':{'moveOverlap':'shiftY'}}])
+                     'labelLine':{'show':True,'lineStyle':{'color':sub}},'labelLayout':{'moveOverlap':'shiftY','hideOverlap':True}}])
     else:raise ValueError('未知多维图表类型：'+kind)
     for axes in [opt.get('yAxis')]:
         for item in axes if isinstance(axes,list) else [axes] if axes else []:

@@ -138,7 +138,8 @@ def ensure_context(data,folder):
     if file.exists():
         result=json.loads(file.read_text('utf-8'))
         if result.get('scope')!=wanted:raise ValueError('本地文献资料绑定了其他地域或筛选范围')
-        if result.get('catalogSha256')!=hashlib.sha256(CATALOG.read_bytes()).hexdigest():raise ValueError('地区文献目录已更新，请重开本次报告写作')
+        # Unrelated industries can gain sources without invalidating this snapshot.
+        # The relevant source objects and required IDs are still checked below.
         canonical=catalog_search(wanted['region'],wanted['industry'])
         known={source['id']:source for source in canonical['sources']}
         if result.get('subjectRegion')!=canonical['subjectRegion'] or result.get('contextScope')!=canonical['contextScope']:raise ValueError('本地文献的地区对象不一致')
@@ -148,8 +149,8 @@ def ensure_context(data,folder):
             if not expected or any(source.get(key)!=value for key,value in expected.items()):raise ValueError('文献事实或出处被工作区改写')
         if result.get('schema')!=POLICY or result.get('cacheMaxAgeSeconds')!=canonical['cacheMaxAgeSeconds']:raise ValueError('本地资料策略或有效期被改写')
         created=datetime.fromisoformat(result['createdAtUTC'])
-        catalog_time=datetime.fromisoformat(json.loads(CATALOG.read_text('utf-8'))['verifiedAtUTC'])
-        if created.tzinfo is None or created<catalog_time or created.timestamp()>time.time()+300:raise ValueError('本地资料快照时间与已核对目录不一致')
+        proof_times=[datetime.fromisoformat(source['verification']['verifiedAtUTC']) for source in result.get('sources',[])]
+        if created.tzinfo is None or any(created<stamp for stamp in proof_times) or created.timestamp()>time.time()+300:raise ValueError('本地资料快照时间与已核对来源不一致')
         required={key for key,source in known.items() if 0 <= (created-datetime.fromisoformat(source['verification']['verifiedAtUTC'])).total_seconds() <= result['cacheMaxAgeSeconds']}
         actual=[source['id'] for source in result.get('sources',[])]
         if len(actual)!=len(set(actual)) or not required.issubset(actual):raise ValueError('工作区遗漏或重复了本地区已验证文献')

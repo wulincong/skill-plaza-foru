@@ -2,6 +2,7 @@
 from contextlib import closing
 import hashlib
 import html
+import shutil
 import io
 import json
 import ipaddress
@@ -156,7 +157,9 @@ def save_report(session_id,report_id,account,token_provider):
         from publish_draft import make_card_cover
         cover=folder/'draft-cover.png'
         lead=f"{report['positions']}条在招岗位、{report['companies']}家招聘企业、{report.get('cities',0)}座城市"
-        make_card_cover(report['title'],lead,'产业人才数据观察',str(cover))
+        share_cover=folder/'share-cover.png'
+        if share_cover.is_file():shutil.copyfile(share_cover,cover)
+        else:make_card_cover(report['title'],lead,'产业人才数据观察',str(cover))
         media=post('material/add_material?type=image',image=cover).get('media_id')
         if not media: raise DraftError('微信未返回封面素材标识')
         content=prose+''.join('<p style="margin:0;line-height:0"><img style="width:100%;display:block" src="'+html.escape(url,quote=True)+'"></p>' for url in urls)
@@ -164,7 +167,7 @@ def save_report(session_id,report_id,account,token_provider):
         title=report['title']
         while len(title.encode())>64:title=title[:-1]
         phase='draft'
-        result=post('draft/add',{'articles':[{'title':title,'author':'','digest':'基于平台岗位记录观察地区与产业人才需求。','content':content,'thumb_media_id':media,'content_source_url':report['webLinks'][0]['url']}]})
+        result=post('draft/add',{'articles':[{'title':title,'author':'','digest':report.get('reportCard',{}).get('description','招聘格局、岗位门槛与薪酬，读懂本地人才需求。'),'content':content,'thumb_media_id':media,'content_source_url':report['webLinks'][0]['url']}]})
         if not result.get('media_id'):raise DraftError('微信未返回草稿标识，保存状态需核对',uncertain=True)
         with database() as db:
             db.execute("UPDATE drafts SET state='saved',media_id=?,error_code=NULL,updated_at=? WHERE report_id=? AND account_hash=?",(result['media_id'],time.time(),report_id,account_hash))

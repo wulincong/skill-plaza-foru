@@ -74,6 +74,22 @@ class CatalogTests(unittest.TestCase):
   data['meta']['industry']='生物医药'
   self.assertFalse(lib.complete_default_profile(data))
 
+
+ def test_custom_classification_cannot_pollute_the_default_cache(self):
+  import copy
+  registry=json.loads((ROOT.parent/'.agents/skills/wechat-report/assets/industry_profiles.json').read_text())
+  profile=registry['profiles']['机器人']
+  data={'meta':{'industry':'机器人'},'coverage':[{'section':name,'status':'complete'} for name in profile['sections']]}
+  actual=copy.deepcopy(profile['analysis'])
+  for row in actual['tracks']:
+   row['titleAny']=sorted(row['titleAny']);row['roleIds']=[]
+  binding={'_result':{'request':{'analysis':actual}}}
+  self.assertTrue(lib.complete_default_profile(data,binding))
+  custom=copy.deepcopy(binding);custom['_result']['request']['analysis']['tracks'].reverse()
+  self.assertFalse(lib.complete_default_profile(data,custom))
+  custom=copy.deepcopy(binding);custom['_result']['request']['analysis']['tracks'][0]['titleAny'].append('自定义词')
+  self.assertFalse(lib.complete_default_profile(data,custom))
+
  def test_new_profile_requires_matching_execution_code_and_successful_ordered_stages(self):
   scripts=ROOT.parent/'.agents/skills/wechat-report/scripts';sys.path.insert(0,str(scripts))
   from generate_report import PIPELINE_FILES
@@ -86,11 +102,13 @@ class CatalogTests(unittest.TestCase):
    'stages':[{'script':name,'exitCode':0,'durationMs':1} for name in stages],
    'pipelineFiles':{name:digest((scripts/name).read_bytes()) for name in PIPELINE_FILES},
    'reportDataSha256':digest(b'{}'),'analysisSha256':digest(b'{}'),'outlineSha256':'outline','manifestSha256':'manifest'}
-  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/2'},'editorialPolicy':'wechat-editorial-prose/1','chart_selection':{'policy':'wechat-chart-selection/2'}}
+  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/2'},'editorialPolicy':'wechat-editorial-prose/3','readableLayout':'wechat-readable-layout/1','chart_selection':{'policy':'wechat-chart-selection/2'}}
   quality={'outline_sha256':'outline','manifest_sha256':'manifest'}
+  cover=base/'output/public/site/assets/share-cover.png';cover.parent.mkdir(parents=True);cover.write_bytes(b'cover')
+  receipt['shareCoverSha256']=digest(b'cover')
   file=report/'build_receipt.json'
   file.write_text(json.dumps(receipt));lib.verify_build_receipt(base,outline,quality)
-  for change in [lambda row:row['stages'].pop(),lambda row:row['stages'][1].update(exitCode=1),lambda row:row['pipelineFiles'].update({'chart_recommender.py':'changed'}),lambda row:row.update(analysisSha256='stale')]:
+  for change in [lambda row:row['stages'].pop(),lambda row:row['stages'][1].update(exitCode=1),lambda row:row['pipelineFiles'].update({'chart_recommender.py':'changed'}),lambda row:row.update(analysisSha256='stale'),lambda row:row.update(shareCoverSha256='tampered')]:
    broken=json.loads(json.dumps(receipt));change(broken);file.write_text(json.dumps(broken))
    with self.assertRaises(ValueError):lib.verify_build_receipt(base,outline,quality)
   file.write_text(json.dumps(receipt));(base/'report_analysis.json').write_text('{"changed":true}')

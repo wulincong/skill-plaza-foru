@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 116；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 118；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -71,6 +71,8 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 |---|---|---|---|
 | 113 | 共享报告渲染的自由输入、UI 元素、表格、主题与多图选型 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
 | 115 | 产教业务稿与共享渲染彻底分离 | 分离已实现；交接、质量与修订发布缺口待修 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
+
+| 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现（真实草稿与回读已验证） | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
 
 ### 报告输出协议（就业指导）
 

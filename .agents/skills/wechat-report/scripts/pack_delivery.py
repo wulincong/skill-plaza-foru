@@ -14,7 +14,7 @@ from report_runtime import report_root
 BASE = report_root(__file__)
 
 
-def prepare_delivery(workspace, report, outline, manifest, archive):
+def prepare_delivery(workspace, report, outline, manifest, archive, data):
     """Prepare a self-contained public site; never copies a whole work directory."""
     public = report.parent/'public'
     public.resolve().relative_to(workspace)
@@ -35,9 +35,12 @@ def prepare_delivery(workspace, report, outline, manifest, archive):
             loading = 'eager' if i == 0 else 'lazy'
             blocks.append(f'<img src="assets/{image}" width="{width}" height="{height}" '
                           f'loading="{loading}" alt="第{i+1}页 {alt}">')
+        from share_cover import make_cover
+        make_cover({'region':data['meta']['region'],'industry':data['meta']['industry'],**data['total']},temporary/'assets/share-cover.png')
         title = html.escape(outline['title'])
         document = ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
                     '<meta name="viewport" content="width=device-width,initial-scale=1">'
+                    '<meta property="og:image" content="assets/share-cover.png">'
                     f'<title>{title}</title><style>body{{margin:0;background:#edf0f4}}'
                     'main{max-width:720px;margin:auto;background:white}'
                     'img{display:block;width:100%;height:auto}</style></head><body>'
@@ -106,7 +109,7 @@ def main():
     with zipfile.ZipFile(out, 'w') as z:
         for name, source in files:
             z.write(source, args.name+'/'+name)
-    prepare_delivery(workspace, report, outline, manifest, out)
+    prepare_delivery(workspace, report, outline, manifest, out, data)
     print(str(out))
 
 

@@ -48,8 +48,9 @@ class DraftTests(unittest.TestCase):
    result=drafts.save_report('session1',self.id,'account',lambda:'fake-token')
    self.assertEqual(result['state'],'saved')
    content=self.payload['articles'][0]['content']
-   self.assertLess(content.index('报告发现'),content.index('<img'))
-   self.assertLess(content.index('总结'),content.index('<img'))
+   self.assertLess(content.index('完整报告'),content.index('<img'))
+   self.assertNotIn('报告发现',content)
+   self.assertNotIn('报告解释',content)
    self.assertEqual(content.count('<img'),2)
    calls=len(self.calls)
    self.assertEqual(drafts.save_report('session1',self.id,'account',lambda:'fake-token')['state'],'saved')
@@ -69,14 +70,16 @@ class DraftTests(unittest.TestCase):
    token.assert_not_called()
    network.assert_not_called()
 
- def test_shared_prose_deduplicates_actions_and_keeps_references(self):
+ def test_draft_intro_is_bounded_and_does_not_repeat_report_or_methods(self):
   report={**self.meta,'analysis':{'sections':[{'key':'salary'}]},'screens':[
    {'title':'封面'},{'title':'薪酬','analysis_key':'salary','paragraphs':['薪酬解释','行动建议：核查同类岗位']},
    {'title':'建议','blocks':[['行动','核查同类岗位']]},
    {'title':'参考文献','paragraphs':['国家统计局公报 https://www.stats.gov.cn/']} ]}
   prose=drafts.text_before_images(report)
-  self.assertEqual(prose.count('核查同类岗位'),1)
-  self.assertIn('国家统计局公报',prose)
+  self.assertNotIn('核查同类岗位',prose)
+  self.assertNotIn('国家统计局公报',prose)
+  self.assertIn('完整图片报告',prose)
+  self.assertLess(len(prose),3000)
 
  def test_large_page_is_losslessly_tiled_without_changing_confirmed_archive(self):
   from PIL import Image,ImageDraw
@@ -97,7 +100,7 @@ class DraftTests(unittest.TestCase):
   self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),before)
 
  def test_oversized_prose_fails_before_token_or_upload(self):
-  self.meta['screens'][1]['paragraphs']=['正文'*11000]
+  self.meta['articleLead']={'policy':'wechat-article-lead/2','eyebrow':'产业观察','hook':'本地岗位','opening':'正文'*11000,'signals':[],'value':'阅读价值','guide':'完整报告','source':'来源'}
   with lib.database() as db:db.execute('UPDATE reports SET metadata=?',(json.dumps(self.meta),))
   from unittest.mock import Mock
   token=Mock(return_value='fake')

@@ -10,7 +10,7 @@ BASE = report_root(__file__)
 
 
 def _build_skeleton(data, brand, binding=None):
-    title = data['meta']['region']+data['meta']['industry']+'人才需求观察报告'
+    title = data['meta']['region']+data['meta']['industry']+'产业人才需求观察报告'
     ol = {'schema': 'wechat-outline/2', 'title': title, 'org': brand['org'],
           'generated_at': data['meta']['generated_at'], 'screens': [], 'bindings': {},
           'meta': {'data_source': '优才知路平台数据库', 'sample_n': data['total']['positions'],

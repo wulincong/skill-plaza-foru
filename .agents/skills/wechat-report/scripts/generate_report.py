@@ -17,7 +17,7 @@ PIPELINE_FILES=['gen_outline.py','verify_data.py','render_report.py','render_che
     'browser_renderer.py','bound_report.py','report_analysis.py','build_article.py',
     'evidence_sheet.py','pack_delivery.py','generate_report.py','adapt_query_result.mjs','collect_data.mjs','refresh_policy.mjs','prepare_session.py',
     'joint_report_charts.py','joint_chart_layout.py','joint_findings.py','executive_analysis.py',
-    'deep_outline.py','report_references.py','report_runtime.py','report.py','analysis_quality.py','article_content.py','writing_batches.py','report_preflight.py','analytical_reasoning.py','regional_reasoning.py','editorial_prose.py','editorial_projects.py','regional_research.py','../assets/regional_sources.json','../assets/official_context.json']
+    'deep_outline.py','report_references.py','report_runtime.py','report.py','analysis_quality.py','article_content.py','writing_batches.py','report_preflight.py','analytical_reasoning.py','regional_reasoning.py','editorial_prose.py','editorial_projects.py','regional_research.py','../assets/regional_sources.json','../assets/official_context.json','readable_layout.py','share_cover.py','../references/article-styles.md','../assets/industry_profiles.json']
 
 
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -55,7 +55,7 @@ def main():
         'reportDataSha256':sha(BASE/'report_data.json'),'analysisSha256':sha(BASE/'report_analysis.json'),
         'outlineSha256':sha(BASE/'output/outline/report_outline.json'),
         'manifestSha256':sha(BASE/'output/report/manifest.json'),
-        'deliveryManifest':json.loads(declaration.read_text('utf-8'))}
+        'deliveryManifest':json.loads(declaration.read_text('utf-8')),'shareCoverSha256':sha(BASE/'output/public/site/assets/share-cover.png')}
     temporary=receipt.with_suffix('.tmp')
     temporary.write_text(json.dumps(payload,ensure_ascii=False,indent=2),'utf-8')
     os.replace(temporary,receipt)

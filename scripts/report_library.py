@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 REPO = Path(__file__).resolve().parent.parent
 STORE = Path(os.environ.get('REPORT_LIBRARY_ROOT', str(REPO/'web/server/report-library'))).resolve()
 POLICY = 'wechat-report-library/1'
-DEEP_PROFILE = 'education-regional-editorial-v3'
+DEEP_PROFILE = 'education-readable-editorial-v4.2'
 PUBLIC_PROFILE = DEEP_PROFILE
 
 
@@ -37,6 +37,8 @@ def database():
       profile TEXT NOT NULL, title TEXT NOT NULL, data_at TEXT NOT NULL, created_at REAL NOT NULL,
       content_hash TEXT NOT NULL, metadata TEXT NOT NULL, state TEXT NOT NULL DEFAULT 'ready');
     CREATE INDEX IF NOT EXISTS scope_reports ON reports(scope_key,created_at);
+    CREATE INDEX IF NOT EXISTS reports_default_lookup
+      ON reports(region,industry,profile,state,data_at DESC,created_at DESC);
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY, report_id TEXT NOT NULL, pending INTEGER NOT NULL DEFAULT 1,
       updated_at REAL NOT NULL);
@@ -67,7 +69,7 @@ def checked_session(value):
 
 def public_record(row):
     meta=json.loads(row['metadata'])
-    return {k:meta[k] for k in ['id','title','region','industry','dataAt','webLinks','downloads','pageCount','contentHash']}
+    return {k:meta[k] for k in ['id','title','region','industry','dataAt','webLinks','downloads','pageCount','contentHash']} | {'reportCard':meta.get('reportCard',{})}
 
 
 def verify_build_receipt(base,outline,quality):
@@ -92,8 +94,10 @@ def verify_build_receipt(base,outline,quality):
     if started.tzinfo is None or finished.tzinfo is None or started>finished or finished.timestamp()>time.time()+300:raise ValueError('构建回执时间无效')
     if (outline.get('analysis',{}).get('schema')!='wechat-analysis/2'
         or outline['analysis'].get('reasoningPolicy')!='wechat-analytic-reasoning/2'
-        or outline.get('editorialPolicy')!='wechat-editorial-prose/1'
+        or outline.get('editorialPolicy')!='wechat-editorial-prose/3'
+        or outline.get('readableLayout')!='wechat-readable-layout/1'
         or outline.get('chart_selection',{}).get('policy')!='wechat-chart-selection/2'):raise ValueError('新版成品缺少总分总论证、受信结构分析或适用图型选择')
+    if receipt.get('shareCoverSha256')!=digest((base/'output/public/site/assets/share-cover.png').read_bytes()):raise ValueError('分享封面与构建回执不一致')
     return receipt
 
 
@@ -116,12 +120,26 @@ def standard_scope(data,binding):
             and audience in ('院校管理者与产教融合负责人','院校与产业研究读者','院校管理者','院校人才培养与校企合作读者','院校与产教融合负责人','院校人才培养与校企合作','职业院校'))
 
 
-def complete_default_profile(data):
+def complete_default_profile(data,binding=None):
     registry=json.loads((REPO/'.agents/skills/wechat-report/assets/industry_profiles.json').read_text('utf-8'))
     profile=registry['profiles'].get(data['meta']['industry'])
     if not profile:return False
     available={row['section'] for row in data.get('coverage',[]) if row.get('status')=='complete'}
-    return set(profile['sections']).issubset(available)
+    if not set(profile['sections']).issubset(available):return False
+    if binding is None:return True
+    # A complete custom taxonomy must never displace the default report cache.
+    actual=binding.get('_result',{}).get('request',{}).get('analysis')
+    def canonical(value):
+        if not isinstance(value,dict) or set(value)!={'tracks','skills'}:return None
+        tracks=[]
+        for row in value['tracks']:
+            if set(row)-{'key','label','titleAny','roleIds'}:return None
+            tracks.append({'key':row['key'],'label':row['label'],
+                           'titleAny':sorted(row.get('titleAny',[])),
+                           'roleIds':sorted(row.get('roleIds',[]))})
+        return {'tracks':tracks,'skills':value['skills']}
+    expected=canonical(profile['analysis'])
+    return expected is not None and canonical(actual)==expected
 
 
 def register(args):
@@ -163,7 +181,7 @@ def register(args):
     filters=data['meta']['filters']; profile=DEEP_PROFILE if modern else 'education-general-v1'
     if args.get('profile',profile)!=profile:raise ValueError('不能覆盖报告的实际质量版本')
     standard=standard_scope(data,binding)
-    if not standard or not complete_default_profile(data): profile='custom-scope'
+    if not standard or not complete_default_profile(data,binding): profile='custom-scope'
     key=scope_key(filters,profile)
     image_hashes=[digest(p.read_bytes()) for p in files]
     report_id=stable_report_id(key,binding['source']['contentHash'],quality['outline_sha256'],image_hashes) if modern else digest((key+binding['source']['contentHash']+quality['outline_sha256']+quality['manifest_sha256']).encode())[:32]
@@ -172,9 +190,11 @@ def register(args):
           'contentHash':binding['source']['contentHash'],'filters':filters,'profile':profile,
           'analysis':outline['analysis'],'screens':outline['screens'],'positions':data['total']['positions'],
           'companies':data['total']['companies'],'cities':data['total'].get('cities'),
-          'imageHashes':image_hashes,
+          'imageHashes':image_hashes,'articleLead':outline.get('articleLead'),
           'sourceRun':args.get('runId'), 'humanReview':'pending',
           'programQuality':'pass','buildReceipt':receipt,'qualityProfile':DEEP_PROFILE if modern else 'education-general-v1'}
+    from article_content import card_fields
+    meta['reportCard']=card_fields(meta,links[0]['url'])
     destination=STORE/'reports'/report_id
     with database() as db:
         if not destination.exists():
@@ -182,6 +202,7 @@ def register(args):
             temporary.mkdir(mode=0o700)
             try:
                 (temporary/'images').mkdir()
+                shutil.copyfile(base/'output/public/site/assets/share-cover.png',temporary/'share-cover.png')
                 for i,file in enumerate(files): shutil.copyfile(file,temporary/'images'/f'page_{i+1:02}.png')
                 (temporary/'report.json').write_text(json.dumps(meta,ensure_ascii=False))
                 destination.parent.mkdir(exist_ok=True)
@@ -200,7 +221,7 @@ def register(args):
 
 
 PROVINCES=['广东省','山东省','浙江省','江苏省','河南省','河北省','四川省','湖北省','湖南省','福建省','安徽省','陕西省','北京市','上海市','重庆市','天津市']
-INDUSTRIES=['人工智能','智能制造','机器人','低空经济','新能源汽车','新一代信息技术','纺织服装','生物医药','新能源']
+INDUSTRIES=['人工智能','智能制造','机器人','低空经济','新能源汽车','新一代信息技术','智能网联汽车','跨境电商','智能硬件','直播电商','半导体','纺织服装','生物医药','新能源']
 
 
 def parse_brief(text):
@@ -234,6 +255,15 @@ def lookup(args):
             session=checked_session(args['sessionId'])
             db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?,1,?)',(session,row['id'],time.time()))
         return {'status':'hit','report':report}
+
+
+def describe(args):
+    """Card metadata for an already-published exact URL; never changes consent."""
+    url=args.get('url','')
+    if not isinstance(url,str) or len(url)>2000:return {'status':'miss'}
+    with database() as db:
+        row=db.execute("SELECT * FROM reports WHERE state='ready' AND json_extract(metadata,'$.webLinks[0].url')=? ORDER BY created_at DESC LIMIT 1",(url,)).fetchone()
+        return {'status':'hit','report':public_record(row)} if row else {'status':'miss'}
 
 
 YES={'是','是的','好','好的','可以','需要','确定','确认','保存','存草稿','保存草稿','存到草稿箱','存入草稿箱','保存到草稿箱','保存到公众号草稿箱','确认保存'}
@@ -276,7 +306,7 @@ def state(args):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['register','lookup','consent','state','list'])
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['register','lookup','consent','state','list','describe'])
     action=parser.parse_args().action
     args=json.loads(sys.stdin.read(1024*1024) or '{}')
     if action=='list':

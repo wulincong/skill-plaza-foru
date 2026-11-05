@@ -17,6 +17,7 @@ def problems(text,field,semantic=True):
             issues.append(field+'包含当前横截面无法证明的动态、回报或显著性判断：'+sentence[:140])
         if re.search(r'源于|得益于|导致|带动了|必然|证明了',sentence) and not (qualified or re.search(r'可能|需核|核实|核对|检验|避免|防止|若|如果',sentence)):
             issues.append(field+'把解释写成已证实因果；需核实机制并排除替代解释：'+sentence[:140])
+        if re.search(r'(?:说明|反映|表明).{0,30}实际需求',sentence) and not qualified:issues.append(field+'把描述提及直接推成实际需求；应只解释岗位描述的差异')
         if not semantic:continue
         if re.search(r'显著|稳定需求|人才短缺|供不应求|人才缺口|吸引力|高端岗位|低端岗位|领先全省|更倾向|重视程度|产业阶段|产业优势',sentence) and not qualified:
             issues.append(field+'包含未获当前样本支持的显著性、供需、时间或产业层次判断：'+sentence[:80])

@@ -402,6 +402,7 @@ def assemble_analysis(data,binding,writing):
     result.update(schema='wechat-analysis/2' if deep else VERSION,evidenceHash=fingerprint(pack),coverageGaps=pack['coverageGaps'],
                   executive=writing.get('executive',{}),sections=writing.get('sections',[]),limitations=writing.get('limitations',[]))
     if writing.get('reasoningPolicy'):result['reasoningPolicy']=writing['reasoningPolicy']
+    if writing.get('editorialRepairs'):result['editorialRepairs']=writing['editorialRepairs']
     result['executive']=dict(result['executive'])
     if deep:result['executive']['findingIds']=list(dict.fromkeys(fid for claim in result['executive'].get('claims',[]) for fid in claim.get('findingIds',[])))
     result['executive'].setdefault('findingIds',default_findings(pack))
@@ -520,6 +521,10 @@ def apply_analysis(outline, data, binding, analysis):
         outline['bindings']=rebound
         from editorial_prose import POLICY as EDITORIAL_POLICY
         outline['editorialPolicy']=EDITORIAL_POLICY
+        from readable_layout import compact
+        from article_content import build_lead
+        compact(outline,data,binding)
+        outline['articleLead']=build_lead(data,analysis)
     return outline
 
 
@@ -536,6 +541,15 @@ def verify_analysis_outline(data, binding, outline):
     modern=analysis.get('reasoningPolicy')=='wechat-analytic-reasoning/2'
     for i, screen in enumerate(outline['screens']):
         key = screen.get('analysis_key')
+        if screen.get('analysis_keys'):
+            from readable_layout import merged_expected,PAIRS
+            ps,summary=merged_expected(screen,items,facts,data)
+            keys=screen['analysis_keys'];seen.extend(keys)
+            if screen.get('paragraphs')!=ps or screen.get('summary')!=summary or screen['title']!=PAIRS[keys[0]][1]:raise ValueError('合并章节丢失或改写了分析正文')
+            from editorial_prose import spec
+            for j,section_key in enumerate(keys):
+                if outline['bindings'].get(f'/screens/{i}/paragraphs/{j}')!=(spec(data,items[section_key],'section',binding) if j==0 else spec(data,items[section_key],'section-distinct',binding,items[keys[0]])):raise ValueError('合并章节绑定不一致')
+            continue
         if key in items:
             seen.append(key)
             item = items[key]
@@ -570,6 +584,9 @@ def verify_analysis_outline(data, binding, outline):
         raise ValueError('报告缺少分析章节，不能只交付统计骨架')
     if modern:
         from editorial_prose import content_audit
+        from article_content import build_lead
+        from readable_layout import POLICY as LAYOUT_POLICY
+        if outline.get('readableLayout')!=LAYOUT_POLICY or outline.get('articleLead')!=build_lead(data,analysis):raise ValueError('精简结构或公众号导语与证据不一致')
         content_audit(outline)
 
 

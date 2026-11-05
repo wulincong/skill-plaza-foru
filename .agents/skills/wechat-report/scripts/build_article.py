@@ -1,4 +1,4 @@
-"""Private draft article: all verified visible prose first, then all ordered images."""
+"""Private draft article: a short verified editorial lead first, then all ordered images."""
 import argparse
 import html
 import json
@@ -18,11 +18,12 @@ def main():
     parser.add_argument('--report-dir',default=str(BASE/'output/report'))
     parser.add_argument('--out',default=str(BASE/'output/article'))
     parser.add_argument('--demo',action='store_true')
-    parser.add_argument('--style',choices=['data','voc','scene'],default='data',help='兼容旧参数；正文始终消费已验证分析')
+    parser.add_argument('--style',choices=['auto','data','voc','scene','question','ranking','policy','trend'],default='auto',help='auto消费证据绑定导语；明确指定须与当前大纲样式相同')
     args=parser.parse_args()
     data,binding=load_data(args.data,args.demo)
     outline=json.loads(Path(args.outline).read_text('utf-8'))
     if binding:verify_outline(data,binding,outline)
+    if args.style!='auto' and args.style!=outline.get('articleLead',{}).get('style'):raise ValueError('指定样式与已验证导语不一致，请在新版本大纲中选择样式')
     manifest=json.loads((Path(args.report_dir)/'manifest.json').read_text('utf-8'))
     if manifest.get('outline_sha256')!=digest(Path(args.outline).read_bytes()):raise ValueError('图片来自其他排版版本')
     out=Path(args.out);out.mkdir(parents=True,exist_ok=True)

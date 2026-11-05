@@ -5,7 +5,7 @@ non-numeric interpretation/application text, which is checked independently.
 """
 import re
 
-POLICY='wechat-editorial-prose/1'
+POLICY='wechat-editorial-prose/3'
 NUMBERS=('一','二','三')
 
 
@@ -47,18 +47,15 @@ def regional_profile(data):
         'directionSkillLeaders':[{ 'direction':track['name'],'skills':sorted([row for row in data.get('job_skill_rows',[]) if row.get('track')==track['key']],key=lambda row:-row['count'])[:3]} for track in tracks[:3]],
         'overallSalary':data.get('salary',{}),'entrySalary':pool.get('salary',{}),
         'entryPositions':pool.get('count'),
-        'writingFocus':'用本地区的城市、方向和条件差别确定课程任务、对接对象与实施先后；研究口径集中写在方法部分，不把核验数据的工作写成报告主要结论。'}
+        'writingFocus':'围绕招聘格局、岗位入口、薪酬和能力组合，解释本地区数据回答了什么问题；教学实施只在结尾集中讨论。'}
 
 
 def summary(data,item):
-    meta=data['meta'];total=data['total'];cities=ordered_cities(data)
-    scope=meta['region']+meta['industry']
-    text=f"摘要｜本报告按企业关联地区筛选{scope}的{number(total['positions'])}条在招岗位记录及{number(total.get('companies',0))}家招聘企业，分析地域分布、岗位条件、薪酬和能力要求。"
+    total=data['total'];meta=data['meta'];cities=ordered_cities(data)
+    text=f"摘要｜基于优才知路平台的{number(total['positions'])}条在招岗位记录和{number(total.get('companies',0))}家招聘企业，本报告观察{meta['region']}{meta['industry']}的人才需求。"
     if len(cities)>=2:
-        top=cities[:2]
-        text+=f"{top[0]['name']}、{top[1]['name']}合计占样本{percent(sum(row['count'] for row in top),total['positions'])}%，构成本次样本的主要企业关联地区。"
-    text+=item['opening']
-    if (data.get('voc_pool') or {}).get('count') is not None:text+='文中职教入门样本按学历与经验条件的交集筛选，完整口径见研究方法。'
+        text+='岗位主要集中于'+'、'.join(row['name'] for row in cities[:2])+'，合计占样本'+percent(sum(row['count'] for row in cities[:2]),total['positions'])+'%。'
+    text+='进一步联立岗位方向、学历经验与薪酬，才能辨认规模排名之外的入口差别。'
     return text
 
 
@@ -68,15 +65,15 @@ def core_measurements(data,item,index,facts):
     if index==0 and cities and 'count' in pool and 'city' in pool and len(cities)>1:
         head=cities[0];entry=dict(pool.get('city',[])).get(head['name'],0)
         return (f"{head['name']}有{number(head['count'])}条岗位，占本次样本{percent(head['count'],total)}%；"
-            f"其中{number(entry)}条满足本报告职教入门条件，覆盖率{percent(entry,head['count'])}%，"
-            f"本次范围平均为{percent(pool['count'],total)}%。")
+            f"其中{number(entry)}条满足本报告入门条件，覆盖率{percent(entry,head['count'])}%，"
+            f"本次范围同口径为{percent(pool['count'],total)}%。")
     sal=data.get('salary') or {};entry_sal=pool.get('salary') or {}
     if index==1 and sal.get('median') is not None and entry_sal.get('valid',0)>=30 and entry_sal.get('median') is not None:
         bounds=''
         if entry_sal.get('p25') is not None and entry_sal.get('p75') is not None:
             bounds=f"，中间一半位于{number(entry_sal['p25'])}—{number(entry_sal['p75'])}K/月"
-        return (f"全部有效薪酬样本中位数为{number(sal['median'])}K/月；职教入门样本为{number(entry_sal['median'])}K/月{bounds}"
-            f"（职教入门有效样本{number(entry_sal['valid'])}条）。")
+        return (f"全部有效薪酬样本中位数为{number(sal['median'])}K/月；入门条件样本为{number(entry_sal['median'])}K/月{bounds}"
+            f"（入门有效样本{number(entry_sal['valid'])}条）。")
     tracks=ordered_tracks(data)
     if index==2 and len(tracks)>=2:
         entry={row.get('key'):row['count'] for row in pool.get('track',[])}
@@ -96,24 +93,26 @@ def core(data,item,index,facts):
     if index==1:interpretation=re.sub(r'宜以入门样本的中位数及四分位区间组织就业沟通，再按具体方向和岗位条件说明差别。$','',interpretation)
     if index==2:interpretation=interpretation.removesuffix('课程容量结合匹配岗位和实际项目资源确定，共享流程与专项工具分别组织。')
     text+=interpretation
-    implication=claim['implication']
-    if implication.startswith(claim['title']):implication=implication[len(claim['title']):].lstrip('，,。；; ')
-    if implication:text+=implication.rstrip('。')+'。'
+
     return text
 
 
-def section(data,item,facts):
-    return ''.join(compact_fact(facts[fid]['text']) for fid in item['findingIds'])+item['interpretation']
+def section(data,item,facts,exclude=()):
+    texts=list(dict.fromkeys(compact_fact(facts[fid]['text']) for fid in item['findingIds']))
+    return ''.join(text for text in texts if text not in exclude)+item['interpretation']
 
 
 def paragraphs(data,item,facts,executive=False):
     if executive:
         return [summary(data,item)]+[core(data,item,index,facts) for index in range(3)],None
-    return [section(data,item,facts),'应用建议：'+item['action']],{
-        'title':'项目实施与学习评价','text':item['validation']+' '+item.get('decisionRule','')}
+    headings={'geography':'区域人才策略启示','jobtype':'入口观察','education':'门槛解读','experience':'经历要求','access':'交叉分析的价值','salary':'薪酬定位','tracks':'方向格局判断','track_salary':'量价观察','city_tracks':'本地结构','lq':'地方专长','skills':'能力底座','track_skills':'方向差别','vocational':'人才策略启示'}
+    return [section(data,item,facts)],{'title':headings[item['key']],'text':item['action']}
+
 
 
 def paths(data,item,kind,index=None):
+    if kind=='section-distinct':
+        return list(dict.fromkeys(paths(data,item,'section')+paths(data,index,'section')))
     if kind=='summary':
         return ['/total/positions','/total/companies']+(['/city_profiles'] if data.get('city_profiles') else [])
     if kind=='core':
@@ -147,6 +146,7 @@ def project(data,specification):
     if kind=='summary':return summary(data,item)
     if kind=='core':return core(data,item,index,facts)
     if kind=='section':return section(data,item,facts)
+    if kind=='section-distinct':return section(data,item,facts,[compact_fact(facts[fid]['text']) for fid in index['findingIds']])
     raise ValueError('未知融合段落类型')
 
 
@@ -156,9 +156,10 @@ PROCESS_WORDS=re.compile(r'待核验|待审核|待核实|待验证|待确认|尚
 def content_audit(outline):
     issues=[]
     for screen in outline.get('screens',[]):
-        strings=[screen.get('title','')]+screen.get('paragraphs',[])+[screen.get('summary',{}).get('text','')]
+        strings=[screen.get('title','')]+screen.get('paragraphs',[])+[screen.get('summary',{}).get('title',''),screen.get('summary',{}).get('text','')]
         strings.extend(text for block in screen.get('blocks',[]) for text in block)
         for text in strings if screen.get('no')!='文献' else []:
+            if '应用建议' in text or '项目实施与学习评价' in text:issues.append('成品仍含已停用的固定建议标签')
             match=PROCESS_WORDS.search(text)
             if match:issues.append(screen.get('title','')+'含过程性措辞：'+match.group())
         if screen.get('analysis_key')=='overview':

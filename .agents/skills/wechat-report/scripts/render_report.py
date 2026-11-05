@@ -589,8 +589,8 @@ def render_screen(s, idx, total, org, scale, meta=None):
                 number,title=paragraph.split('｜',1)
                 paras_html.append('<h3 style="font-size:33px;line-height:1.55;color:%s;margin:30px 0 14px"><span style="color:%s">%s</span>｜%s</h3>'%(TH('primary'),TH('accent'),number,title))
                 continue
-            label, _, body = paragraph.partition('：')
-            if s.get('analysis_key') == 'recommendations' or label in ('综合分析', '结构解读与分析推断','总体判断','分析','决策启示'):
+            label, separator, body = paragraph.partition('：')
+            if separator and len(label)<=12 and (s.get('analysis_key') == 'recommendations' or label in ('综合分析', '结构解读与分析推断','总体判断','分析','决策启示')):
                 label = '解读' if label == '结构解读与分析推断' else label
                 paras_html.append(f'<p><span class="label">{label}</span>{body}</p>')
             else:
@@ -615,6 +615,8 @@ def render_screen(s, idx, total, org, scale, meta=None):
                                   % (cap(c1),
                                      chart_div(c1, CONTENT_W - 48, h1), src_line))
         if s.get('chart2'):
+            if s.get('compact_pair') and rest_paras:
+                body_parts.append('<div class="paras">'+''.join(rest_paras)+'</div>');rest_paras=[]
             c2=s['chart2'];h2=chart_height(c2)
             if c2.get('kind')=='table':body_parts.append(render_table(dict(c2,caption=cap(c2)),src_line))
             elif c2.get('kind')=='bignum':body_parts.append(render_bignum(c2,src_line))
