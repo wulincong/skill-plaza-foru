@@ -16,7 +16,9 @@
 | 来源与去向 | 桑基图 | 可核验的来源、去向和权重，核对流量关系 |
 | 多维能力轮廓 | 雷达图 | 维度含义明确、量表和方向一致，归一化方法可说明 |
 
-图型与字段以 [chart-visualization](../../chart-visualization/SKILL.md) 的实际入口为准。figure/1 已提供 bar/barh、line、grouped-line、faceted-line、distribution、histogram、ecdf、scatter、paired、change-distribution、median-change、interval、matrix、province-map。堆叠、桑基、雷达和下级行政区图另有专题规范。当前渲染器的 figure 块通过共享 render/verify 嵌入，优先选已有可复验图型；需要专题图时先在共享绘图层完善相应出图与验收，再交给渲染层。专题指南的存在不等于脚本已经支持该 kind。[独立图稿规格](../../chart-visualization/references/figure-spec.md)
+图型与字段以 [chart-visualization](../../chart-visualization/SKILL.md) 的最新入口为准。每次需要选图时重新读取该入口，沿索引查看相关规格、示例和实现状态。上表只给出分析目的与图型的对应示例，新增能力可以直接参与选型。可执行的 kind 和字段从当前[独立图稿规格](../../chart-visualization/references/figure-spec.md)读取。
+
+渲染层通过共享 render/verify 接收完整图块，按通用 figure 协议嵌入。新图型沿用该协议时，报告侧无需增加类型分支。只有专题设计文档而出图尚未实现时，先在共享绘图层完成出图和复验。若新能力改变了图稿协议或依赖外部脚本，再核对网页嵌入与平台静态托管的兼容性。
 
 ## 组合与复核
 
