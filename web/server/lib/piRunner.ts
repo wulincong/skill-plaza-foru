@@ -559,7 +559,8 @@ export class PiRunner extends AgentRunner {
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
     if (opts.skill === 'industry-education-report') {
-      args.push('--skill', skillDir('chart-visualization'), '--skill', skillDir('report-rendering'))
+      args.push('--skill', skillDir('talent-data-query'), '--skill', skillDir('chart-visualization'), '--skill', skillDir('report-rendering'))
+      args.push('--extension', join(skillDir('talent-data-query'),'scripts/pi-tools.mjs'))
     }
     if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径

@@ -40,7 +40,7 @@
 
 ## 引用共享统计
 
-从真实 `query` 或离线 `inspect` 取得工件位置。每份结果建一项 source，url 原样填写工作区的 `data/tq-…/result.json`，生成脚本从已校验工件写入 **contentHash** 和 **dataReadAt**，并可据此填写 accessed 和未标注的 published。在 scope 写清实际地域、产业/岗位筛选与时间窗；在 locator 标记样本组。正文使用可读单位，记录数和企业数分别陈述。
+在线从 `talent_query` 或离线 `talent_inspect` 取得工件位置；无原生工具时由查询技能使用其 CLI。报告侧不构造数据库请求。每份结果建一项 source，url 原样填写工作区的 `data/tq-…/result.json`，生成脚本从已校验工件写入 **contentHash** 和 **dataReadAt**，并可据此填写 accessed 和未标注的 published。在 scope 写清实际地域、产业/岗位筛选与时间窗；在 locator 标记工具实际返回的样本组。正文使用可读单位，记录数和企业数分别陈述。
 
 每个直接引用的报告指标加 `binding`，写稿时可省略 value，生成脚本从对应数值字段填入；手填数值或指纹与原件不符会验收失败。例如引用样本组 all 的岗位数时填 `{"metricId":"all/positions.count","field":"value"}`；薪酬中位数用 value.median，首行计数用 rows.0.count，按真实返回的行标签陈述。field 取完整结果的原值，share 是 0–1 比例；若需百分数，在正文格式化或用同口径计数派生。结构脚本调用共享工具的离线 inspect，核对工件、指纹和字段值。分母、行标签、中文单位及结论含义仍需逐条语义复核。
 

@@ -33,7 +33,7 @@ export function normalizeGeography(row,region) {
 }
 
 export class EntityResolver {
-  constructor({adapter,state,sourceKey,deadlineAt}) {Object.assign(this,{adapter,state,sourceKey,deadlineAt});this.evidence=[]}
+  constructor({adapter,state,sourceKey,deadlineAt,signal}) {Object.assign(this,{adapter,state,sourceKey,deadlineAt,signal});this.evidence=[]}
   async light(jobs) {
     // One shared metadata slot; heavy statistical work uses a separate single slot.
     return this.state.lock(`light:${this.sourceKey}`,this.deadlineAt,async({onSpawn})=>{
@@ -41,7 +41,7 @@ export class EntityResolver {
       this.evidence.push(...r.logs)
       if(r.error) fail(r.error.code,r.error.message)
       return r.logs
-    })
+    },this.signal)
   }
   async dictionary(kind) {
     const table={industry:'c_industry_chain_info',role:'c_position_type'}[kind]
@@ -55,7 +55,7 @@ export class EntityResolver {
       if(log.rows.length>40000) fail('RESULT_LIMIT','字典超过行数上限')
       if(log.rows.some(row=>!/^\d+$/.test(row.id)||row.pid!==null&&!/^-?\d+$/.test(row.pid)||typeof row.name!=='string'))fail('INVALID_DB_VALUE','字典 ID/父级/名称类型不正确')
       return this.state.write('dictionaries',key,{kind,rows:log.rows,version:hash(log.rows),readAt:log.finishedAt,evidence:log})
-    })
+    },this.signal)
     this.evidence.push({kind:'dictionary-cache',dictionary:kind,version:saved.payload.version,dataReadAt:saved.payload.readAt,originalQuery:saved.payload.evidence})
     return saved.payload
   }

@@ -1,5 +1,7 @@
 # 请求、结果与操作
 
+本文是查询技能内部 CLI 契约。在线调用方有 `talent_query` 时只提交[受管取数需求](managed-query.md)，不自行生成本页的请求文件。
+
 ## 最小请求
 
 在会话工作区创建 request.json。下面按岗位名称包含“机器人”查询广州市；不代表整个机器人产业。
@@ -65,7 +67,7 @@ city/province/title 的 TOP N 返回 totalCount、displayedCount、otherCount、
 
 executedAt 是原任务时间，dataReadAt 是原统计事务的客户端观察时间，servedAt 是本次返回时间；sourceReadTime 是数据库时钟原值；sourceLatestUpdateAt 仅在请求 `data_quality.summary` 时计算样本内平台更新时间最大值，源时区未换算，否则为 null。命中缓存不将 dataReadAt 改成今天。consistency.completeTransaction 指示整个批次是否完成。
 
-`execution.queryCount` 是实际统计 SQL 条数，`logicalCohortCount` 是样本组数；合并的四个指标可共同引用同一个真实 evidenceId。`sqlBatchMs` 包含建连、查询与传输；逐语句日志 elapsedMs 受 mysql stdout 缓冲影响，不能当作可靠的服务端计时。引擎版本参与缓存键；升级后不复用旧版本统计缓存，已有结果仍按其记录的引擎版本验证指纹。
+`execution.queryCount` 是实际统计 SQL 条数，`logicalCohortCount` 是样本组数；合并的四个指标可共同引用同一个真实 evidenceId。`sqlBatchMs` 包含建连、查询与传输；逐语句日志 elapsedMs 受 mysql stdout 缓冲影响，不能当作可靠的服务端计时。新执行的完整语句另有 serverElapsedMs，记录数据库时钟包围该语句的间隔，含边界语句开销；未完成及旧结果为 null/缺省。execution.stages 和受管阶段日志用于区分当前调用的各层耗时。引擎版本参与缓存键；升级后不复用旧版本统计缓存，已有结果仍按其记录的引擎版本验证指纹。
 
 退出码 complete/empty=0、partial=3、需澄清/修正=2、failed=1。始终检查结构化状态及逐指标 status；无岗位为 empty，没有有效薪资为 unavailable，未识别地域为 needs_clarification，查询超时不是 0 岗位。失败结果不缓存为可复用统计。
 

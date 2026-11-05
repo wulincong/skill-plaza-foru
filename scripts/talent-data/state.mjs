@@ -60,10 +60,11 @@ export class StateStore {
     } finally { await rm(temporary,{force:true}) }
     return envelope
   }
-  async lock(name, deadlineAt, work) {
+  async lock(name, deadlineAt, work, signal) {
     const directory = join(this.root,'locks',hash(name))
     let waited = false
     while (true) {
+      if(signal?.aborted)fail('QUERY_ABORTED','查询已取消')
       if (Date.now() >= deadlineAt) fail('DEADLINE_EXCEEDED','等待查询队列超出任务预算')
       try {
         await mkdir(directory,{mode:0o2770})
