@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import {exactRegionMatches,turnRegionText,filterIntentProblems} from '../../../../scripts/report-request.mjs'
 // Only the public talent-data-query CLI is a dependency. Works from a session cwd.
-import {readFile,writeFile,mkdir,realpath,access} from 'node:fs/promises'
+import {readFile,writeFile,mkdir,realpath,access,rm,rename} from 'node:fs/promises'
 import {resolve,dirname,join,relative} from 'node:path'
 import {fileURLToPath} from 'node:url'
 import {execFile} from 'node:child_process'
@@ -15,7 +16,7 @@ const VOC_EDU=['DAZHUAN','GAOZHI','ZHONGZHUAN/ZHONGJI','GAOZHONG','CHUZHONGJIYIX
 export function applyProfile(plan,profile) {
   if(plan.industryLabel&&plan.industryLabel!==profile.name)throw new Error('报告产业标签与所选分析规则不一致')
   if(plan.analysis&&JSON.stringify(plan.analysis)!==JSON.stringify(profile.analysis))throw new Error('当前命令使用产业profile，请从plan.json移除analysis后重试同一命令；如需保留用户指定的自定义analysis，则移除--profile。filters保持不变。')
-  return {...plan,industryLabel:profile.name,sections:plan.sections??profile.sections,audience:plan.audience??profile.audience,analysis:profile.analysis}
+  return {...plan,industryLabel:profile.name,sections:plan.sections??profile.sections.filter(key=>plan.filters?.region?.level!=='city'||!['city_tracks','lq'].includes(key)),audience:plan.audience??profile.audience,analysis:profile.analysis}
 }
 export function inferProfileName(plan,profiles,candidatesByName) {
   if(plan.analysis || plan.filters?.industries?.length!==1)return undefined
@@ -66,6 +67,8 @@ export async function collect(opts) {
     for(const candidate of [join(process.cwd(),'report-turn.json'),join(process.cwd(),'../report-turn.json')]) {
       try {const value=JSON.parse(await readFile(candidate,'utf8'));if(value.schema==='plaza-report-turn/1'){turn=value;break}} catch {}
     }
+    if(turn&&!exactRegionMatches(plan.filters?.region,turnRegionText(turn)))throw new Error('采集范围与用户指定地区不一致：城市报告不得扩大为省份，请修正filters.region后重试')
+    if(turn){const issues=filterIntentProblems(plan.filters,turnRegionText(turn));if(issues.length)throw new Error(issues.join('；')+'。只修正这些筛选，保留用户的其他原始要求。')}
     plan={...plan,execution:collectionExecution(plan,turn)}
     const registry=JSON.parse(await readFile(new URL('../assets/industry_profiles.json',import.meta.url),'utf8'))
     if(opts.profile) {
@@ -107,6 +110,14 @@ export async function collect(opts) {
   if(selectedProfile)binding.collectionProfile={name:selectedProfile.name,version:selectedProfile.version,sha256:sha(JSON.stringify(selectedProfile))}
   // A failure leaves no new report data; a data/binding mismatch is rejected by consumers.
   await writeFile(bindingFile,JSON.stringify(binding,null,2)+'\n');await writeFile(out,dataText)
+  if(out===resolve(dirname(out),'report_data.json')){
+    const archive=join(dirname(out),'output/analysis/history',Date.now()+'-'+randomUUID());
+    for(const [sourceName,targetName] of [['output/analysis/writing_progress.json','writing_progress.json'],['report_analysis.json','report_analysis.json'],['report_writing.json','report_writing.json']]){
+      try{await access(join(dirname(out),sourceName));await mkdir(archive,{recursive:true});await rename(join(dirname(out),sourceName),join(archive,targetName))}catch(e){if(e.code!=='ENOENT')throw e}
+    }
+  }
+  const research=join(dirname(out),'report_research.json')
+  try {const old=JSON.parse(await readFile(research,'utf8'));const scope={region:data.meta.region,industry:data.meta.industry,filters:data.meta.filters??{}};if(JSON.stringify(old.scope)!==JSON.stringify(scope))await rm(research)}catch(e){if(e.code!=='ENOENT'&&!(e instanceof SyntaxError))throw e}
   return {status:result.status,data:relative(process.cwd(),out),binding:relative(process.cwd(),bindingFile),positions:data.total.positions,coverage:data.coverage,collectionMs:binding.collectionMs,execution:result.execution}
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))try{console.log(JSON.stringify(await collect(options(process.argv.slice(2)))))}catch(e){console.error(JSON.stringify({status:'failed',message:e.message}));process.exitCode=1}

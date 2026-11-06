@@ -1,3 +1,4 @@
+import {requestedRegion,exactRegionMatches,turnRegionText,filterIntentProblems} from '../../../scripts/report-request.mjs'
 import {dataRefreshRequested} from '../../../.agents/skills/wechat-report/scripts/refresh_policy.mjs'
 export {dataRefreshRequested}
 import { readFileSync,existsSync,statSync } from 'node:fs'
@@ -11,13 +12,12 @@ export function reportTask(workspace) {
   } catch {return undefined}
 }
 
-const provinces=['北京市','天津市','河北省','山西省','内蒙古自治区','辽宁省','吉林省','黑龙江省','上海市','江苏省','浙江省','安徽省','福建省','江西省','山东省','河南省','湖北省','湖南省','广东省','广西壮族自治区','海南省','重庆市','四川省','贵州省','云南省','西藏自治区','陕西省','甘肃省','青海省','宁夏回族自治区','新疆维吾尔自治区']
 const industries=['人工智能','智能制造','机器人','低空经济','新能源汽车','新一代信息技术','智能网联汽车','跨境电商','智能硬件','直播电商','半导体','纺织服装','生物医药','新能源']
 const shortRegion=value=>value.replace(/(?:壮族|回族|维吾尔)?自治区$|[省市]$/,'')
 
 export function reportScopeMatches(meta,text) {
- const regions=provinces.filter(name=>text.includes(name)||text.includes(shortRegion(name)))
- if(regions.length>1||regions.length===1&&shortRegion(regions[0])!==shortRegion(meta.region??''))return false
+ const actual=meta.filters?.region??requestedRegion(meta.region??'').region
+ if(!actual||!exactRegionMatches(actual,text)||filterIntentProblems(meta.filters??{},text).length)return false
  const sectors=industries.filter(name=>text.includes(name)).filter(name=>!industries.some(other=>other!==name&&other.includes(name)&&text.includes(other)))
  if(sectors.length>1||sectors.length===1&&sectors[0]!==meta.industry)return false
  return true
@@ -30,7 +30,7 @@ export function reportDataReady(workspace) {
   if(!task)return false
   const file=join(workspace,'wechat-report/report_data.json')
   const data=JSON.parse(readFileSync(file,'utf8'))
-  const text=task.requestText??''
+  const text=turnRegionText(task)
   if(!data.meta?.region||!data.meta?.industry||!Array.isArray(data.city_profiles)||!reportScopeMatches(data.meta,text))return false
   // New collection during this turn is authoritative. Saved data is reused only
   // for an explicit same-scope revision/resume or a plain default-scope request.

@@ -21,8 +21,11 @@ def compact(outline,data,binding):
             charts=[]
             for source in (screen,second):
                 slots=[name for name in ('chart','chart2','chartA','chartB') if source.get(name)]
-                if len(slots)!=1:raise ValueError('合并章节必须各有一张主图：'+source['title'])
+                if len(slots)!=1:break
                 charts.append(slots[0])
+            if len(charts)!=2:
+                new.append(screen)
+                continue
             first=dict(screen);first['analysis_keys']=[key,other]
             first['title']=title;first['section']=kicker;first.pop('no',None)
             from editorial_prose import section,spec as editorial_spec,compact_fact

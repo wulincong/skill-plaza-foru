@@ -1,3 +1,4 @@
+import {isReportRequest} from '../../../scripts/report-request.mjs'
 /** Bounded continuation when a report agent ends with a plan but no deliverable. */
 import type { UsageSummary } from './traceExport.ts'
 
@@ -9,7 +10,7 @@ export function reportRequested(text: string,hasData=false): boolean {
   if (/^(?:请)?(?:不要|别|不用|不需要)(?:再)?(?:生成|修改|优化|制作|重写)/.test(text.trim())) return false
   if (/^(?:请)?继续(?:生成|完成)?[。！!\s]*$/.test(text.trim())) return true
   if (/^(?:请问)?(?:什么是|如何|怎么|为什么|介绍|解释|报告是什么意思)/.test(text.trim())) return false
-  return hasData && reportRevisionRequested(text) || /报告|人才需求/.test(text) && /生成|制作|完成|交付|出一份|帮我|修改|重新|继续|优化|加强|调整/.test(text)
+  return hasData && reportRevisionRequested(text) || isReportRequest(text)
 }
 
 interface ReportDecisionRun {

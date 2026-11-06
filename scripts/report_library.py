@@ -13,6 +13,8 @@ import time
 import uuid
 from datetime import datetime,timezone
 from urllib.parse import urlsplit
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from report_request import region_request,scope_matches,normalize,filter_intent_problems,INDUSTRIES as REQUEST_INDUSTRIES
 
 REPO = Path(__file__).resolve().parent.parent
 STORE = Path(os.environ.get('REPORT_LIBRARY_ROOT', str(REPO/'web/server/report-library'))).resolve()
@@ -111,7 +113,7 @@ def standard_scope(data,binding):
     all_cohort=next((row for row in binding['_result']['cohorts'] if row['id']=='all'),{})
     entities=all_cohort.get('resolved',{}).get('industries',{}).get('entities',[])
     audience=data['meta'].get('audience')
-    return (filters.get('region',{}).get('level')=='province' and not filters.get('updatedAt')
+    return (filters.get('region',{}).get('level') in ('province','city') and not filters.get('updatedAt')
             and all(not filters.get(key) for key in ('education','experience','jobType','roles'))
             and all(not value for value in filters.get('title',{}).values())
             and len(filters.get('industries',[]))==1 and len(entities)==1
@@ -125,7 +127,9 @@ def complete_default_profile(data,binding=None):
     profile=registry['profiles'].get(data['meta']['industry'])
     if not profile:return False
     available={row['section'] for row in data.get('coverage',[]) if row.get('status')=='complete'}
-    if not set(profile['sections']).issubset(available):return False
+    required=set(profile['sections'])
+    if data.get('meta',{}).get('filters',{}).get('region',{}).get('level')=='city':required-={'city_tracks','lq'}
+    if not required.issubset(available):return False
     if binding is None:return True
     # A complete custom taxonomy must never displace the default report cache.
     actual=binding.get('_result',{}).get('request',{}).get('analysis')
@@ -155,6 +159,15 @@ def register(args):
     try:
         os.chdir(base)
         data,binding=load_data(base/'report_data.json')
+        task_file=workspace/'report-turn.json'
+        if task_file.exists():
+            task=json.loads(task_file.read_text());text=task.get('requestText','')
+            if region_request(text)['status']=='missing':text=task.get('originRequestText','')
+            if not scope_matches(data['meta']['filters']['region'],text):raise ValueError('实际报告地域与用户要求不一致，不能交付或入库')
+            issues=filter_intent_problems(data['meta']['filters'],text)
+            if issues:raise ValueError('；'.join(issues))
+            sectors=[x for x in REQUEST_INDUSTRIES if x in normalize(text)];sectors=[x for x in sectors if not any(x!=y and x in y for y in sectors)]
+            if len(sectors)==1 and data['meta']['industry']!=sectors[0]:raise ValueError('实际报告产业与用户要求不一致，不能交付或入库')
         outline_file=base/'output/outline/report_outline.json'
         outline=json.loads(outline_file.read_text())
         verify_outline(data,binding,outline)
@@ -228,21 +241,24 @@ def parse_brief(text):
     """Conservative fast path only: non-default dates/audiences/personal uploads bypass it."""
     if not re.search(r'报告|人才需求',text) or re.search(r'去年|今年|(?:近|过去)[一二三四五六七八九十两\d]|最近|同比|月份|季度|年度|年报|\d{4}年|重新|最新|刷新|附件|上传|简历|企业内部|面向企业|中职|本科生|高职生',text):
         return None
-    region=[p for p in PROVINCES if p in text or p.removesuffix('省').removesuffix('市') in text]
+    requested=region_request(text)
+    if requested['status']!='ready' or requested['region']['level'] not in ('province','city'):return None
+    region=[requested['region']['name']]
     industry=[p for p in INDUSTRIES if p in text]
     industry=[p for p in industry if not any(p!=q and p in q for q in industry)]
     if len(region)!=1 or len(industry)!=1: return None
     # Only a whole-province, otherwise unqualified request may use the shared fast path.
     # Unknown cities, readers, salary/skill filters and presentation instructions remain for Pi.
     rest=text.replace(region[0],'').replace(region[0].removesuffix('省').removesuffix('市'),'').replace(industry[0],'')
-    fillers=['微信公众号','人才需求观察报告','人才需求分析报告','人才需求报告','人才需求','观察报告','分析报告','产业链','帮我','帮忙','我想要','想看','请您','麻烦','提供','生成','制作','针对','关于','一份','一篇','公众号','行业','产业','报告','全省','地区','给我','请','的','来','做','需要','我','想','要']
+    if requested['region'].get('province'):rest=rest.replace(requested['region']['province'],'').replace(requested['region']['province'].removesuffix('省'),'')
+    fillers=['用户补充','来份','看看','看一下','想了解','想看看','我需要','给一份','整理','调研','招聘情况','人才情况','出个','出','微信公众号','人才需求观察报告','人才需求分析报告','人才需求报告','人才需求','观察报告','分析报告','产业链','帮我','帮忙','我想要','想看','请您','麻烦','提供','生成','制作','针对','关于','一份','一篇','公众号','行业','产业','报告','全省','地区','给我','请','的','来','做','需要','我','想','要']
     for word in sorted(fillers,key=len,reverse=True):rest=rest.replace(word,'')
     if re.sub(r'[\s，。！？、：:,.!?]+','',rest): return None
     return region[0],industry[0]
 
 
 def lookup(args):
-    brief=parse_brief(args.get('text',''))
+    brief=parse_brief(normalize(args.get('text','')))
     if not brief: return {'status':'miss','reason':'not_default_scope'}
     age=min(max(float(args.get('maxAgeSeconds',7*86400)),0),30*86400)
     with database() as db:

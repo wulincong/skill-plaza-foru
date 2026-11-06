@@ -1,3 +1,4 @@
+import {requestedRegion,turnRegionText} from '../../../scripts/report-request.mjs'
 /** Pi stays the sole model client. The model writes small evidence-bound parts. */
 import { Type } from '@earendil-works/pi-ai'
 import { execFile } from 'node:child_process'
@@ -58,6 +59,9 @@ export default function registerReportWorkflow(pi) {
       if(!reportDataReady(ctx.cwd)) {
         current=undefined
         const prepared=JSON.parse(await invoke(ctx,'init',[],signal))
+        const region=requestedRegion(turnRegionText(task)).region
+        if(region)prepared.planTemplate.filters.region=region
+        prepared.planNotes+=' 地域必须严格使用用户指定的层级与名称；城市请求不得改为所在省。'
         if(dataRefreshRequested(task?.requestText))prepared.planTemplate.execution={freshness:'live',deadlineMs:360000}
         return {content:[{type:'text',text:JSON.stringify({...prepared,status:'collection_required',
           next:'按当前用户范围resolve产业，照planTemplate填写plan.json，再执行collect。已有文件不代表当前范围已就绪；不得用旧范围写作。'})}],details:{status:'collection_required'}}

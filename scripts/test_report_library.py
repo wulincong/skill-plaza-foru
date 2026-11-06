@@ -29,6 +29,16 @@ class CatalogTests(unittest.TestCase):
  def test_extra_time_or_distinct_region_bypasses(self):
   for text in ['广东省人工智能近一年人才报告','广东省人工智能2025年报告','山东省人工智能报告','广东和山东人工智能报告','广东人工智能面向企业报告','广东深圳人工智能报告','广东人工智能Python岗位报告','广东人工智能报告读者为政府']:
    self.assertEqual(lib.lookup({'text':text})['status'],'miss',text)
+
+ def test_city_never_uses_parent_province_cache(self):
+  self.assertEqual(lib.lookup({'text':'生成广州的人工智能报告','maxAgeSeconds':30*86400})['status'],'miss')
+  meta=dict(self.meta,id='gz',region='广州市',title='广州市人工智能报告')
+  with lib.database() as db:
+   db.execute('INSERT INTO reports(id,scope_key,region,industry,profile,title,data_at,created_at,content_hash,metadata) VALUES(?,?,?,?,?,?,?,?,?,?)',('gz','city-key','广州市','人工智能',lib.PUBLIC_PROFILE,meta['title'],meta['dataAt'],time.time(),'city',json.dumps(meta)))
+  self.assertEqual(lib.lookup({'text':'来一份广州AI报告','maxAgeSeconds':30*86400})['report']['id'],'gz')
+  self.assertEqual(lib.lookup({'text':'广东人工智能报告','maxAgeSeconds':30*86400})['report']['id'],'r1')
+  self.assertEqual(lib.lookup({'text':'广州人工智能大专学历报告','maxAgeSeconds':30*86400})['status'],'miss')
+
  def test_confirmation_bound_to_last_report(self):
   self.assertEqual(lib.consent({'sessionId':'fresh','text':'确定'})['status'],'unhandled')
   lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
