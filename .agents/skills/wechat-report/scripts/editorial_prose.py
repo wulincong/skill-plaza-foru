@@ -18,11 +18,22 @@ def percent(count,total):
     return number(round(count/total*100,2)) if total else '0'
 
 
+def scope_label(data):
+    filters=data.get('meta',{}).get('filters',data.get('filters',{}))
+    education={'BUXIAN':'学历不限','CHUZHONGJIYIXIA':'初中及以下','GAOZHONG':'高中','ZHONGZHUAN/ZHONGJI':'中专／中技','GAOZHI':'高职','DAZHUAN':'大专','BENKE':'本科','SHUOSHI':'硕士','BOSHI':'博士'}
+    experience={'BUXIAN':'经验不限','ON_CAMPUS':'在校生','GRADUATING':'应届生','LESS_THAN_1':'一年以内','LESS_THAN_3':'三年以内','LESS_THAN_5':'五年以内','LESS_THAN_10':'十年以内','MORE_THAN_10':'十年以上'}
+    result=[]
+    if filters.get('education'):result.append('学历为'+'、'.join(education.get(v,v) for v in filters['education']))
+    if filters.get('experience'):result.append('经验标签为'+'、'.join(experience.get(v,v) for v in filters['experience']))
+    return '；'.join(result)
+
+
 def compact_fact(text):
     """Keep measurements; explanatory conventions live once in the methods."""
     text=re.sub(r'；(?:薪酬差和学历份额差|这是类别分布比较|不同枚举类别|规则归类不等同|该条件比例的分母|这是未控制|比较的是招聘条件结构|排除未分类后|条件覆盖率不代表|条件满足不代表|不同词的记录可以重叠|词表提及不代表|这是方向内部比例比较|该指数描述当前结构|该单元格样本较小|地址层级仍需核对|指数描述的是结构|未取得描述|需人工核实).*','。',text)
     text=re.sub(r'。(?:薪酬差和学历份额差|比较的是招聘条件结构|排除未分类后|条件覆盖率不代表|分位数是岗位样本分布|规模、条件覆盖与薪酬需同时比较|招聘类型与条件交集定义不同|计数反映规模|分母包含该方向缺少描述).*','。',text)
     text=re.sub(r'。仅在城市不少于.*','。',text)
+    text=re.sub(r'(市|省|自治区)全部\s*([\d,])',r'\1本次样本共\2',text)
     return text.strip().rstrip('。；')+'。'
 
 
@@ -52,7 +63,8 @@ def regional_profile(data):
 
 def summary(data,item):
     total=data['total'];meta=data['meta'];cities=ordered_cities(data)
-    text=f"摘要｜基于优才知路平台的{number(total['positions'])}条在招岗位记录和{number(total.get('companies',0))}家招聘企业，本报告观察{meta['region']}{meta['industry']}的人才需求。"
+    qualifier=('本次限定'+scope_label(data)+'，以下总量、份额和薪酬均限于这一筛选样本。') if scope_label(data) else ''
+    text=f"摘要｜{qualifier}基于优才知路平台的{number(total['positions'])}条在招岗位记录和{number(total.get('companies',0))}家招聘企业，本报告观察{meta['region']}{meta['industry']}的人才需求。"
     if len(cities)>=2:
         text+='岗位主要集中于'+'、'.join(row['name'] for row in cities[:2])+'，合计占样本'+percent(sum(row['count'] for row in cities[:2]),total['positions'])+'%。'
     text+='进一步联立岗位方向、学历经验与薪酬，才能辨认规模排名之外的入口差别。'

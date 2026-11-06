@@ -24,7 +24,7 @@ def first_sentences(text,limit=120):
     return result.strip()
 
 def build_lead(data,analysis,style=None):
-    from editorial_prose import number,percent,ordered_cities,ordered_tracks
+    from editorial_prose import number,percent,ordered_cities,ordered_tracks,scope_label
     from report_analysis import derive_findings
     guide,guide_hash=style_guide();meta=data['meta'];total=data['total']
     values={'region':meta['region'],'industry':meta['industry'],'positions':number(total['positions']),
@@ -52,7 +52,7 @@ def build_lead(data,analysis,style=None):
     signals.append({'title':'同一产业，不止一条工作路径','text':text})
     return {'policy':POLICY,'style':selected,'styleLabel':settings['label'],'reference':'references/article-styles.md',
        'referenceSha256':guide_hash,'eyebrow':'产业观察 · 人才需求',
-       'hook':settings['hook'].format(**values),'opening':settings['opening'].format(**values),
+       'hook':settings['hook'].format(**values),'opening':(('本次报告限定'+scope_label(data)+'，以下岗位量、份额和薪酬均在该范围内比较。') if scope_label(data) else '')+settings['opening'].format(**values),
        'signals':signals,'value':'这份报告将招聘格局、岗位方向、学历经验和薪酬放在一起看，帮助读者辨认本地机会、比较岗位条件，并找到人才培养与企业需求的连接点。',
        'guide':'下滑查看完整图片报告：先看摘要和招聘格局，再读岗位门槛、薪酬与交叉分析。',
        'source':'数据来源：优才知路平台数据库。数据读取日期：'+meta['generated_at'][:10]+'。统计范围与研究边界见报告末页。'}
@@ -91,8 +91,10 @@ def html_prose(report):
 
 def card_fields(report,url):
     from urllib.parse import urljoin
+    from editorial_prose import scope_label
     title=report['region']+report['industry']+'产业人才需求报告'
     lead=lead_for(report)
     description=f"{report.get('positions',0):,}条岗位｜{report.get('companies',0):,}家企业。招聘格局、岗位门槛与薪酬分析。"
+    if scope_label(report):description=f"{report.get('positions',0):,}条岗位｜{report.get('companies',0):,}家企业。筛选：{scope_label(report)}。"
     while len(description.encode())>120:description=description[:-1]
     return {'title':title,'description':description,'url':url,'imageUrl':urljoin(url,'assets/share-cover.png')}

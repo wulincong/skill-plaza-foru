@@ -3,7 +3,7 @@ import unittest,sys,copy
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'.agents/skills/wechat-report/scripts'))
 from editorial_projects import public_insight_problems
-from article_content import build_lead,html_prose,prose_blocks
+from article_content import build_lead,html_prose,prose_blocks,card_fields
 
 class PublicInsightTests(unittest.TestCase):
  def setUp(self):
@@ -29,6 +29,17 @@ class PublicInsightTests(unittest.TestCase):
   self.data['exp'][0]['count']=80
   self.assertFalse(self.issues('experience','经验不限占比高，说明多数岗位未限定年限。'))
   self.assertTrue(self.issues('jobtype','校招标签为空白。'))
+ def test_education_scope_is_visible_in_abstract_article_and_card(self):
+  from editorial_prose import summary,compact_fact
+  self.data['meta']['filters']={'region':{'level':'city','name':'广州市','province':'广东省'},'education':['DAZHUAN'],'experience':[]}
+  self.data['meta']['region']='广州市'
+  abstract=summary(self.data,{})
+  self.assertIn('学历为大专',abstract);self.assertIn('筛选样本',abstract)
+  lead=build_lead(self.data,{})
+  self.assertIn('学历为大专',lead['opening'])
+  card=card_fields({'region':'广州市','industry':'机器人','positions':100,'companies':20,'filters':self.data['meta']['filters']},'https://example.test/p/x/0/')
+  self.assertIn('学历为大专',card['description'])
+  self.assertNotIn('市全部',compact_fact('广州市全部 100 条岗位中，有 20 条符合条件。'))
  def test_article_is_an_independent_short_intro_and_ignores_free_claims(self):
   lead=build_lead(self.data,{'executive':{'claims':[{'interpretation':'图片中的冗长正文不应被复制'}]}})
   report={'articleLead':lead};text=''.join(t for _,t in prose_blocks(report))
