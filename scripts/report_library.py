@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime,timezone
 from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from report_request import region_request,scope_matches,normalize,filter_intent_problems,INDUSTRIES as REQUEST_INDUSTRIES
+from report_request import region_request,scope_matches,normalize,filter_intent_problems,INDUSTRIES as REQUEST_INDUSTRIES,classify
 
 REPO = Path(__file__).resolve().parent.parent
 STORE = Path(os.environ.get('REPORT_LIBRARY_ROOT', str(REPO/'web/server/report-library'))).resolve()
@@ -239,7 +239,7 @@ INDUSTRIES=['人工智能','智能制造','机器人','低空经济','新能源�
 
 def parse_brief(text):
     """Conservative fast path only: non-default dates/audiences/personal uploads bypass it."""
-    if not re.search(r'报告|人才需求',text) or re.search(r'去年|今年|(?:近|过去)[一二三四五六七八九十两\d]|最近|同比|月份|季度|年度|年报|\d{4}年|重新|最新|刷新|附件|上传|简历|企业内部|面向企业|中职|本科生|高职生',text):
+    if not (re.search(r'报告|人才需求',text) or classify(text)['intent']=='report') or re.search(r'去年|今年|(?:近|过去)[一二三四五六七八九十两\d]|最近|同比|月份|季度|年度|年报|\d{4}年|重新|最新|刷新|附件|上传|简历|企业内部|面向企业|中职|本科生|高职生',text):
         return None
     requested=region_request(text)
     if requested['status']!='ready' or requested['region']['level'] not in ('province','city'):return None
@@ -251,7 +251,7 @@ def parse_brief(text):
     # Unknown cities, readers, salary/skill filters and presentation instructions remain for Pi.
     rest=text.replace(region[0],'').replace(region[0].removesuffix('省').removesuffix('市'),'').replace(industry[0],'')
     if requested['region'].get('province'):rest=rest.replace(requested['region']['province'],'').replace(requested['region']['province'].removesuffix('省'),'')
-    fillers=['用户补充','来份','看看','看一下','想了解','想看看','我需要','给一份','整理','调研','招聘情况','人才情况','出个','出','微信公众号','人才需求观察报告','人才需求分析报告','人才需求报告','人才需求','观察报告','分析报告','产业链','帮我','帮忙','我想要','想看','请您','麻烦','提供','生成','制作','针对','关于','一份','一篇','公众号','行业','产业','报告','全省','地区','给我','请','的','来','做','需要','我','想','要']
+    fillers=['用户补充','分析','研究','调研','来份','看看','看一下','想了解','想看看','我需要','给一份','整理','调研','招聘情况','人才情况','出个','出','微信公众号','人才需求观察报告','人才需求分析报告','人才需求报告','人才需求','观察报告','分析报告','产业链','帮我','帮忙','我想要','想看','请您','麻烦','提供','生成','制作','针对','关于','一份','一篇','公众号','行业','产业','报告','全省','地区','给我','请','的','来','做','需要','我','想','要']
     for word in sorted(fillers,key=len,reverse=True):rest=rest.replace(word,'')
     if re.sub(r'[\s，。！？、：:,.!?]+','',rest): return None
     return region[0],industry[0]

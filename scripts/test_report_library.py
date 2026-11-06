@@ -30,6 +30,11 @@ class CatalogTests(unittest.TestCase):
   for text in ['广东省人工智能近一年人才报告','广东省人工智能2025年报告','山东省人工智能报告','广东和山东人工智能报告','广东人工智能面向企业报告','广东深圳人工智能报告','广东人工智能Python岗位报告','广东人工智能报告读者为政府']:
    self.assertEqual(lib.lookup({'text':text})['status'],'miss',text)
 
+ def test_plain_analysis_wording_reuses_default_report_but_extra_scope_does_not(self):
+  self.assertEqual(lib.parse_brief('来一份广州人工智能分析'),('广州市','人工智能'))
+  self.assertEqual(lib.parse_brief('广州人工智能分析给我一份'),('广州市','人工智能'))
+  self.assertIsNone(lib.parse_brief('来一份广州人工智能分析，只看大专学历'))
+  self.assertIsNone(lib.parse_brief('广州人工智能技术路线研究报告'))
  def test_city_never_uses_parent_province_cache(self):
   self.assertEqual(lib.lookup({'text':'生成广州的人工智能报告','maxAgeSeconds':30*86400})['status'],'miss')
   meta=dict(self.meta,id='gz',region='广州市',title='广州市人工智能报告')
