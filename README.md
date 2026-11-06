@@ -2,6 +2,8 @@
 
 面向产教任务的智能体平台。用户可在广场在线运行智能体，应用可通过 `POST /v1/chat/completions` 提交任务。两种接入方式与可复制的调用示例见[使用指南](http://biubiubiu.vip:14188/#/docs/guide)。
 
+[项目图文介绍](docs/project-overview/README.md) · [下载项目介绍 PDF](docs/project-overview/project-overview.pdf)
+
 - 前端：`web/`，Vue 3 + TypeScript + Vite
 - 后端：`web/server/index.ts`，node:http 零第三方依赖；`PiRunner` 通过 `pi --mode rpc` 为每会话启动常驻子进程（JSONL over stdio）。
 - 技能：`.agents/skills/` 存放主仓库维护的技能和各自的使用文档（见「技能组织模式」）；Pi 用 `--skill` + `/skill:` 命令加载技能。
