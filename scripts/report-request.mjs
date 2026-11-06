@@ -1,13 +1,17 @@
 import {readFileSync} from 'node:fs'
 const regions=JSON.parse(readFileSync(new URL('./data/report-regions.json',import.meta.url),'utf8')).regions
+function negatedRegionPrefix(text,start) {
+ const prefix=text.slice(0,start).split(/[,，。；;\n]/).at(-1)
+ return /(?:不要|不用|不需要|别|无需|不能|不许|不是|并非|排除|不含|不包括)[^，,。；;\n]{0,12}$/.test(prefix)&&!/(?:而是|只要|改用|而要|请用|仅用)[^，,。；;\n]{0,4}$/.test(prefix)
+}
 export function requestedRegion(text='') {
- const changes=[...text.matchAll(/改为|改成|换成|改看|只看/g)]
+ const changes=[...text.matchAll(/改为|改成|换成|改看|只看/g)].filter(m=>!negatedRegionPrefix(text,m.index))
  if(changes.length){const last=changes.at(-1),tail=text.slice(last.index+last[0].length);if(regions.some(r=>[r.name,...r.aliases??[]].some(a=>tail.includes(a))))text=tail}
  const hits=[]
  for(const region of regions)for(const alias of new Set([region.name,...region.aliases??[]])) {
   if(alias.length<2)continue
   let start=text.indexOf(alias)
-  while(start>=0){hits.push({start,end:start+alias.length,region});start=text.indexOf(alias,start+1)}
+  while(start>=0){if(!negatedRegionPrefix(text,start))hits.push({start,end:start+alias.length,region});start=text.indexOf(alias,start+1)}
  }
  const chosen=hits.filter(h=>!hits.some(v=>v.start<=h.start&&v.end>=h.end&&v.end-v.start>h.end-h.start))
  const unique=[...new Map(chosen.map(h=>[[h.region.level,h.region.province,h.region.name].join('|'),h.region])).values()]
@@ -42,8 +46,9 @@ export function isReportRequest(value='') {
  if(/(?:怎么|如何|怎样).{0,6}(?:生成|制作|获取|使用).{0,12}(?:报告|简报)|报告.{0,6}(?:怎么|如何|多久|多长|几分钟).*生成|生成.{0,10}(?:多久|多长|几分钟)/.test(text))return false
  const region=requestedRegion(text)
  const sector=/人工智能|智能制造|机器人|低空经济|新能源汽车|新一代信息技术|智能网联汽车|跨境电商|智能硬件|直播电商|半导体|纺织服装|生物医药|新能源/.test(text)
+ const artifact=/(?:一份|一篇|一版|一张|份|篇).{0,35}(?:分析|研究|调研|调查|观察|画像|概览)|(?:分析|研究|调研|调查|观察|画像|概览).{0,20}(?:一份|一篇|一版|一张)/.test(text)
  const subject=/报告|简报|研报|人才需求|人才供需|岗位需求|招聘需求|招聘(?:情况|格局|分析)|用人需求/.test(text)
- return subject&&(/生成|制作|整理|写|做|给|来|出|要|想|需要|希望|麻烦|请|看看|了解|分析|调研|完成|交付|修改|重新|继续|优化|加强|调整/.test(text)||region.status!=='missing'&&sector)||region.status!=='missing'&&sector&&/(?:做|写|出|给|整理|需要|想要|希望).{0,30}(?:分析|研究|调研)|分析一下|调研一下|招人情况|人才情况|就业情况|岗位需求|招聘需求/.test(text)
+ return artifact&&/生成|制作|整理|写|做|给|来|出|要|想|需要|希望|麻烦|请/.test(text)||subject&&(/生成|制作|整理|写|做|给|来|出|要|想|需要|希望|麻烦|请|看看|了解|分析|调研|完成|交付|修改|重新|继续|优化|加强|调整/.test(text)||region.status!=='missing'&&sector)||region.status!=='missing'&&sector&&/(?:做|写|出|给|来|整理|需要|想要|希望).{0,30}(?:分析|研究|调研)|分析一下|调研一下|招人情况|人才情况|就业情况|岗位需求|招聘需求/.test(text)
 }
 
 export function filterIntentProblems(filters={},text='') {

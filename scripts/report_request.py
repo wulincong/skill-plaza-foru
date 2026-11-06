@@ -11,9 +11,14 @@ def normalize(text):
         text=re.sub(r'(?<![A-Za-z])'+re.escape(alias)+r'(?![A-Za-z])',name,text,flags=re.I) if alias=='AI' else text.replace(alias,name)
     return text
 
+def negated_region_prefix(text,start):
+    prefix=re.split(r'[,，。；;\n]',text[:start])[-1]
+    return bool(re.search(r'(?:不要|不用|不需要|别|无需|不能|不许|不是|并非|排除|不含|不包括)[^，,。；;\n]{0,12}$',prefix)) and not re.search(r'(?:而是|只要|改用|而要|请用|仅用)[^，,。；;\n]{0,4}$',prefix)
+
+
 def region_request(text):
     # The latest explicit scope change supersedes earlier places in this turn.
-    changes=list(re.finditer(r'改为|改成|换成|改看|只看',text))
+    changes=[m for m in re.finditer(r'改为|改成|换成|改看|只看',text) if not negated_region_prefix(text,m.start())]
     if changes:
         tail=text[changes[-1].end():]
         if any(alias in tail for x in REGIONS for alias in [x['name'],*x.get('aliases',[])]):text=tail
@@ -21,7 +26,8 @@ def region_request(text):
     for region in REGIONS:
         for alias in {region['name'],*region.get('aliases',[])}:
             if len(alias)<2:continue
-            for match in re.finditer(re.escape(alias),text):hits.append((match.start(),match.end(),region))
+            for match in re.finditer(re.escape(alias),text):
+                if not negated_region_prefix(text,match.start()):hits.append((match.start(),match.end(),region))
     hits=[h for h in hits if not any(a<=h[0] and b>=h[1] and b-a>h[1]-h[0] for a,b,_ in hits)]
     unique={(x['level'],x.get('province',''),x['name']):x for _,_,x in hits}
     cities=[x for x in unique.values() if x['level']=='city'];provinces=[x for x in unique.values() if x['level']=='province']
@@ -57,19 +63,22 @@ def classify(text):
     if re.search(r'(?:怎么|如何|怎样).{0,6}(?:生成|制作|获取|使用).{0,12}(?:报告|简报)|报告.{0,6}(?:怎么|如何|多久|多长|几分钟).*生成|生成.{0,10}(?:多久|多长|几分钟)',text):return {'intent':'help'}
     sectors=[x for x in INDUSTRIES if x in text];sectors=[x for x in sectors if not any(x!=y and x in y for y in sectors)]
     if re.search(r'(?:不要|不用|不需要|别)(?:再|帮我)?(?:生成|制作|写|做)?.{0,12}(?:报告|简报|研报)',text):return {'intent':'none'}
+    if not region.get('region') and not sectors and re.search(r'(?:能|可以|会|支持).{0,6}(?:做|写|生成|制作).{0,6}(?:什么|哪些|哪种)?报告',text):return {'intent':'help'}
     if re.search(r'(?:怎么|如何|怎样|能不能|可以).{0,6}(?:生成|制作|使用|获得|获取).{0,6}报告',text) and not region.get('region') and not sectors:return {'intent':'help'}
-    if text in ('报告','生成报告','报告生成','报告帮助','报告用法','使用报告','报告指南','/报告生成'):return {'intent':'help'}
+    if text in ('报告','报告帮助','报告用法','使用报告','报告指南','/报告生成'):return {'intent':'help'}
+    artifact=bool(re.search(r'(?:一份|一篇|一版|一张|份|篇).{0,35}(?:分析|研究|调研|调查|观察|画像|概览)|(?:分析|研究|调研|调查|观察|画像|概览).{0,20}(?:一份|一篇|一版|一张)',text))
     subject=bool(re.search(r'报告|简报|研报|人才需求|人才供需|岗位需求|招聘需求|招聘(?:情况|格局|分析)|用人需求',text))
     desire=bool(re.search(r'生成|制作|整理|写|做|给|来|出|要|想|需要|希望|麻烦|请|看看|了解|分析|调研',text))
-    if not (subject and (desire or (region['status']!='missing' and sectors)) or region.get('region') and sectors and re.search(r'(?:做|写|出|给|整理|需要|想要|希望).{0,30}(?:分析|研究|调研)|分析一下|调研一下|招人情况|人才情况|就业情况|岗位需求|招聘需求',text)):
+    if not (artifact and desire or subject and (desire or (region['status']!='missing' and sectors)) or region.get('region') and sectors and re.search(r'(?:做|写|出|给|来|整理|需要|想要|希望).{0,30}(?:分析|研究|调研)|分析一下|调研一下|招人情况|人才情况|就业情况|岗位需求|招聘需求',text)):
         return {'intent':'none'}
     missing=[]
     if region['status']=='missing':missing.append('地区（省或城市）')
     if not sectors:
-        rest=text
+        rest=re.sub(r'(?:只看|仅看|限定|筛选)[^\n，;；。]*','',text)
+        rest=re.sub(r'用户补充(?:（[^）]*）)?[:：]?','',rest)
         for x in REGIONS:
             for alias in sorted({x['name'],*x.get('aliases',[])},key=len,reverse=True):rest=rest.replace(alias,'')
-        for word in sorted(['微信公众号','人才需求观察报告','人才需求报告','人才需求','行业分析报告','产业分析报告','生成','制作','整理','分析','报告','简报','研报','产业链','行业','产业','帮我','想要','我想','需要','一份','一篇','给我','请','帮忙','麻烦','的','做','写','要','我','来','出'],key=len,reverse=True):rest=rest.replace(word,'')
+        for word in sorted(['微信公众号','人才需求观察报告','人才需求报告','人才需求','行业分析报告','产业分析报告','生成','制作','整理','分析','研究','调研','调查','观察','画像','概览','做份','报告','简报','研报','产业链','行业','产业','帮我','想要','我想','需要','一份','一篇','一版','一张','一个','这份','那份','给我','请','帮忙','麻烦','的','做','写','要','我','来','出'],key=len,reverse=True):rest=rest.replace(word,'')
         if not re.sub(r'[\s，。！？、：:,.!?]+','',rest):missing.append('产业，例如人工智能、机器人或半导体')
     if region['status'] in ('ambiguous','unsupported'):return {'intent':'report','status':region['status'],'message':region['message'],'text':text}
     if len(sectors)>1:return {'intent':'report','status':'ambiguous','message':'这次涉及多个产业，请先选一个产业，或明确要比较的范围。','text':text}

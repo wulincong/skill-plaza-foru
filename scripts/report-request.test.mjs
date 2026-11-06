@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {requestedRegion,exactRegionMatches,turnRegionText,filterIntentProblems} from './report-request.mjs'
+import {requestedRegion,exactRegionMatches,turnRegionText,filterIntentProblems,isReportRequest} from './report-request.mjs'
 test('city request retains level, parent and name, rejects broader province',()=>{
  const actual={level:'city',province:'广东省',name:'广州市'}
  for(const text of ['生成广州的人工智能报告','广东广州人工智能报告','广州AI报告，只看大专学历']) {
@@ -24,4 +24,15 @@ test('an unrequested work-year filter is rejected while the explicit diploma sta
  assert(filterIntentProblems({education:[]},text).length)
  assert.deepEqual(filterIntentProblems({education:['DAZHUAN'],experience:[]},text),[])
  assert.deepEqual(filterIntentProblems({education:['DAZHUAN']},'请继续生成'),[])
+})
+
+test('requested analysis artifacts do not need a known industry or report keyword',()=>{
+ for(const text of ['来一份广州人工智能分析','来份广州光伏产业分析','广州AI分析给我一份'])assert.equal(isReportRequest(text),true,text)
+})
+
+test('negative scope-change wording never changes Guangzhou into Guangdong',()=>{
+ for(const text of ['生成广州AI报告，不要改为广东省','广州人工智能报告，不要换成深圳市','不是广东省，而是广州市人工智能报告']) {
+  assert.equal(requestedRegion(text).region.name,'广州市',text)
+  assert.equal(exactRegionMatches({level:'province',name:'广东省'},text),false)
+ }
 })

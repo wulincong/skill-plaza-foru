@@ -13,6 +13,11 @@ class ScopeTests(unittest.TestCase):
  def test_non_geographic_filter_keeps_original_city(self):
   self.assertEqual(region_request('生成广州AI报告，只看大专学历和三年以内经验')['region']['name'],'广州市')
   self.assertEqual(region_request('原为广东，改为深圳人工智能报告')['region']['name'],'深圳市')
+ def test_negative_scope_change_cannot_expand_city_to_province(self):
+  for text in ['生成广州AI报告，不要改为广东省','广州人工智能报告，不要换成深圳市','不是广东省，而是广州市人工智能报告']:
+   with self.subTest(text=text):
+    self.assertEqual(region_request(text)['region']['name'],'广州市')
+    self.assertFalse(scope_matches({'level':'province','name':'广东省'},text))
  def test_provinces_and_municipalities(self):
   for name in ['广东省','广西壮族自治区','新疆维吾尔自治区','北京市','上海市','香港特别行政区']:
    with self.subTest(name=name):self.assertEqual(region_request(name+'人工智能报告')['region']['name'],name)
@@ -23,7 +28,7 @@ class ScopeTests(unittest.TestCase):
   for text in ['人工智能是什么','不要生成广州AI报告','报告是什么意思','/报告生成器']:self.assertEqual(classify(text)['intent'],'none')
   for text in ['报告怎么生成','如何使用 /报告生成','报告帮助']:self.assertEqual(classify(text)['intent'],'help')
  def test_intent_without_magic_phrase(self):
-  for text in ['广州AI报告','来一份广州人工智能报告','想看看山东机器人行业的人才需求','帮我分析广州AI的招聘情况']:
+  for text in ['广州AI报告','来一份广州人工智能分析','来份广州光伏产业分析','来一份广州人工智能报告','想看看山东机器人行业的人才需求','帮我分析广州AI的招聘情况']:
    with self.subTest(text=text):self.assertEqual(classify(text)['status'],'ready')
  def test_no_invented_work_experience_or_missing_explicit_education(self):
   text='想看看深圳半导体的招聘情况，只看大专学历'
