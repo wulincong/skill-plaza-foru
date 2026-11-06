@@ -250,6 +250,7 @@ def parse_brief(text):
     # Only a whole-province, otherwise unqualified request may use the shared fast path.
     # Unknown cities, readers, salary/skill filters and presentation instructions remain for Pi.
     rest=text.replace(region[0],'').replace(region[0].removesuffix('省').removesuffix('市'),'').replace(industry[0],'')
+    rest=rest.replace('用户补充（本次地区明确改为）：','').replace('用户补充：','')
     if requested['region'].get('province'):rest=rest.replace(requested['region']['province'],'').replace(requested['region']['province'].removesuffix('省'),'')
     fillers=['用户补充','分析','研究','调研','来份','看看','看一下','想了解','想看看','我需要','给一份','整理','调研','招聘情况','人才情况','出个','出','微信公众号','人才需求观察报告','人才需求分析报告','人才需求报告','人才需求','观察报告','分析报告','产业链','帮我','帮忙','我想要','想看','请您','麻烦','提供','生成','制作','针对','关于','一份','一篇','公众号','行业','产业','报告','全省','地区','给我','请','的','来','做','需要','我','想','要']
     for word in sorted(fillers,key=len,reverse=True):rest=rest.replace(word,'')

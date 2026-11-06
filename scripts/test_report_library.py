@@ -33,6 +33,8 @@ class CatalogTests(unittest.TestCase):
  def test_plain_analysis_wording_reuses_default_report_but_extra_scope_does_not(self):
   self.assertEqual(lib.parse_brief('来一份广州人工智能分析'),('广州市','人工智能'))
   self.assertEqual(lib.parse_brief('广州人工智能分析给我一份'),('广州市','人工智能'))
+  self.assertEqual(lib.parse_brief('生成报告\n用户补充（本次地区明确改为）：广州\n用户补充：人工智能'),('广州市','人工智能'))
+  self.assertIsNone(lib.parse_brief('生成报告，只看大专学历\n用户补充（本次地区明确改为）：广州\n用户补充：人工智能'))
   self.assertIsNone(lib.parse_brief('来一份广州人工智能分析，只看大专学历'))
   self.assertIsNone(lib.parse_brief('广州人工智能技术路线研究报告'))
  def test_city_never_uses_parent_province_cache(self):
