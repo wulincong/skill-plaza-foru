@@ -40,6 +40,7 @@
 - **（下一优先）MySQL 只读账号**：给岗位库建仅 SELECT 账号，career-market-query 沙箱侧不再读主凭据——第一层后最大的剩余暴露面。
 - 第二层：systemd-run 瞬态沙箱（ProtectSystem=strict / ReadWritePaths / PrivateTmp / IPAddressAllow），叠加在用户隔离之上。
 - 第三层：容器（Podman rootless），面向公网多用户时。
+- 2026-11-10：本机已安装 gVisor，基于 Docker/runsc 的多用户工作区候选方案见 [119](119-multi-user-gvisor-workspaces.md)。原低权进程链尚未迁移；同一 plaza-sandbox 账户与整树共享组不是用户间隔离。119 为待实现建议，不将 078 的第三层写成已完成。
 - 升级 pi 后：`bash scripts/setup-pi-sandbox.sh --refresh`。
 
 ## 验证

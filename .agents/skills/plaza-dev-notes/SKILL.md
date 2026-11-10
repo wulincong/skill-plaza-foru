@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 119；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 120；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -48,6 +48,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |
 | 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现（探针会话验证；kill 链与技能全链路待观察） | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
+| 119 | 多用户工作区、环境模板与 gVisor 执行边界 | 设计建议，待范围确认与实现；仅本机基础安装已验 | [119-multi-user-gvisor-workspaces.md](references/119-multi-user-gvisor-workspaces.md) |
 | 088 | 产物交付：网页分享与资源下载，轻量双通道 | 已实现（双通道/97项回归/公网网页与下载通过） | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
 | 089 | 服务重启后的对话恢复与低权产物交接 | 已实现（公网历史/下载恢复、低权打包与Pi持久恢复验证通过） | [089-conversation-restart-and-delivery-permissions.md](references/089-conversation-restart-and-delivery-permissions.md) |
 | 079 | doc-translate：PDF 翻译/交付、专用表单、附件会话绑定、真实失败呈现与工件更新校验 | 已实现（真实浏览器全链路/低权 XeLaTeX/下载/历史恢复/21 项回归通过；长文档待验证） | [079-doc-translate-skill.md](references/079-doc-translate-skill.md) |
