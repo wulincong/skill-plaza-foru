@@ -8,6 +8,8 @@
 
 建议以**工作区**作为权限、文件和环境的归属单位，以**沙箱**作为按需创建的运行实例。一个用户可拥有多个工作区，不同用户不共用一个 gVisor sandbox。首版工作区可以与 clientSessionId 一对一，后续再扩展跨会话共享。
 
+用户随后明确“持久状态与当前消息进入 Pi 沙箱、运行后保存、网页链接长期有效”的需求，恢复/提交和独立发布的细化见 [120](120-persistent-execution-and-stable-publications.md)。需求方向已明确，具体协议仍待实现；不改变本文其余产品范围的待确认状态。
+
 ## 已核对的现状
 
 - `web/server/lib/piRunner.ts:532` 的 createSession 构造本机 Pi RPC 子进程，`:573` 选择 sudo 或直接 spawn，尚未调用 Docker/runsc。安装 gVisor 不会自动改变广场执行链。

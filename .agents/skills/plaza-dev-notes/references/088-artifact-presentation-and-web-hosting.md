@@ -109,3 +109,5 @@ python3 /home/wlc/.codex/skills/.system/skill-creator/scripts/quick_validate.py 
 每次交付增加一份文件复制和少量 JSON；同步复制有 256 MiB 上限，未做对象存储/CDN、SQLite、账号分享、预览或独立站点容器。页面脚本受沙箱限制，有外部 API、跨站嵌入或动态后台需求时需另行设计，不能声称静态托管支持。
 
 后续只按实际需求增加维护清理/撤销入口或调整容量，不预建复杂管理。部署迁移时需连同 deliveries 目录和公开 origin 配置迁移；仅搬 Git 仓库不能恢复已生成文件。
+
+2026-11-10：用户明确多用户沙箱下网页链接长期有效的需求，持久执行、独立发布存储、保留/撤销和可选版本别名的设计见 [120](120-persistent-execution-and-stable-publications.md)。当前实现仍为每次交付新 ID 的静态副本；未完成独立托管、多用户权限或版本路由改造。
