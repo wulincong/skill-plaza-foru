@@ -15,3 +15,5 @@
 面向多用户执行服务的工作区、环境模板和沙箱职责，见 [119 · 多用户 gVisor 工作区方案](../references/119-multi-user-gvisor-workspaces.md)。该方案为待实现建议，区分本机安装验证与多租户上线验收。
 
 关于持久会话、单次执行的提交，以及回收沙箱后网页链接继续可用，见 [120 · 持久执行与稳定网页发布](../references/120-persistent-execution-and-stable-publications.md)。其中区分私有工作文件、Pi 恢复状态与独立发布资产。
+
+上线前的故障语义、资源与隔离验收、调试复现及版本维护，见 [121 · 沙箱架构可靠性审查](../references/121-sandbox-architecture-reliability-review.md)。问题等级表示待关闭的设计/实现缺口，不能当作已发现攻击或已完成验收。
