@@ -77,7 +77,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 116 | 完整产教报告、人类决策与端到端网页交付 | 已实现（真实模型交付与浏览器验收通过） | [116-industry-full-web-delivery.md](references/116-industry-full-web-delivery.md) |
 
 | 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现（真实草稿与回读已验证） | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
-| 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现（官方API白名单待恢复） | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
+| 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现；11-13出口变化故障已归因、提示修复与官方关注查询恢复 | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
 
 ### 报告输出协议（就业指导）
 
