@@ -43,6 +43,18 @@
 - 2026-11-10：本机已安装 gVisor，基于 Docker/runsc 的多用户工作区候选方案见 [119](119-multi-user-gvisor-workspaces.md)。原低权进程链尚未迁移；同一 plaza-sandbox 账户与整树共享组不是用户间隔离。119 为待实现建议，不将 078 的第三层写成已完成。
 - 升级 pi 后：`bash scripts/setup-pi-sandbox.sh --refresh`。
 
+## 2026-11-13 修订：工作区属组漂移导致 Pi 启动退出
+
+**状态**：本机权限已恢复，真实低权 Pi 的新建与持久会话恢复验证通过；未修改运行代码或重启服务，未执行模型请求及完整报告回归。
+
+**原因与证据**：用户看到“pi 会话进程退出”。`web/server/lib/piRunner.ts:650` 在进程退出后拒绝待处理 RPC 时返回该通用错误；此次不是空闲回收。低权用户日志明确显示创建 `.pi-sessions` 和追加已有会话 JSONL 时发生 `EACCES`，新建和恢复都在启动阶段失败。工作区树的属主/组已变为 `wlc:users`，而 `plaza-sandbox` 仅属于自身组和 `plaza-run`；已有会话文件的 ctime 集中在 11 月 13 日 10:19 左右。现有证据不能确定触发权限变更的人员或命令，不将 ctime 当作操作审计。
+
+**持续约定**：`web/server/index.ts:204` 创建会话目录后仅补 `2775`，依赖工作区根的 setgid 继承正确属组；chmod 不会把 `users` 修成 `plaza-run`。工作区根和可写子目录应保持 `plaza-run`、组可读写穿行及 setgid；需由 Pi 更新的会话/任务文件应对该组可读写。工程目录批量共享或修改属主/组时必须排除 `web/server/workspace`，维护后核对继承及真实低权写入。不要把 `plaza-sandbox` 加入 `users`，不要给全仓库或所有用户开放写权限。
+
+**恢复与验证**：先检查没有正在执行的 Pi，扫描限定工作区树内的普通文件/目录，拒绝非预期属主及多硬链接文件、跳过符号链接。恢复 12,679 个对象的属组为 `plaza-run`，为目录补必要的组权限/setgid、普通文件补组读写；其中 883 个对象需要模式调整，未改变其他用户权限或文件内容。修复前后对 326 个原生会话 JSONL 做 SHA-256 核对，均相同。随后通过正式 sudo 包装器发送 `get_state`，验证新目录自动继承 `plaza-run`、此前失败的空会话可以启动、旧会话恢复原 native session ID 和 96 条消息；未发送 prompt。临时探针目录已移除，API 及前端代理健康，后端 PID 和重启次数保持不变。
+
+**诊断取舍**：只查看 `journalctl --user -u skill-plaza-backend.service` 未看到此次 Pi 堆栈；补查 `journalctl _UID=997` 才得到低权进程的 `EACCES`（本机 UID，其他部署须先用 `id -u plaza-sandbox` 核对）。`/api/health` 的 CLI 可用不代表工作区可写，`--version` 成功也不能代替会话启动探针。当前通用退出提示没有关联退出码和 stderr 的根因，后续按 121 的 D1/D2 补齐；本次采用局部权限恢复，未扩大为执行器改造。
+
 ## 验证
 
 - 代码静态（2026-10-20）：`import('./lib/piRunner.ts')` 通过且 `piSandboxPrefix()` 缺省返回 null；`node --experimental-strip-types --check index.ts` 通过；`bash -n` 配置脚本通过。

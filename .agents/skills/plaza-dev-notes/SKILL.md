@@ -47,7 +47,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 036 | OpenAI 兼容端点 /v1/chat/completions：外部项目统一接入入口 | 接口与在线运行/API 公开指南已验证；微信机器人两阶段报告接入待实现 | [036-openai-compat-chat-endpoint.md](references/036-openai-compat-chat-endpoint.md) |
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |
-| 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现（探针会话验证；kill 链与技能全链路待观察） | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
+| 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现；11-13 属组漂移已恢复，新/旧会话启动通过；技能全链路待观察 | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
 | 119 | 多用户工作区、环境模板与 gVisor 执行边界 | 设计建议，待范围确认与实现；仅本机基础安装已验 | [119-multi-user-gvisor-workspaces.md](references/119-multi-user-gvisor-workspaces.md) |
 | 120 | 沙箱执行的持久状态、收尾提交与稳定网页发布 | 设计中，未实现；用户已明确持久执行与长期链接需求 | [120-persistent-execution-and-stable-publications.md](references/120-persistent-execution-and-stable-publications.md) |
 | 121 | 多用户沙箱架构审查：故障语义、调试、版本与服务目标 | 审查完成，修订未实现；故障注入/容量验收待做 | [121-sandbox-architecture-reliability-review.md](references/121-sandbox-architecture-reliability-review.md) |
