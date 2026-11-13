@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 122；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 123；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -78,6 +78,8 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 
 | 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现（真实草稿与回读已验证） | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
 | 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现；11-13出口变化故障已归因、提示修复与官方关注查询恢复 | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
+| 122 | 微信接口专用固定公网出口、SSH隧道与独立传输 | 接入与模板已准备；公网服务器授权及真实切换待完成 | [122-wechat-dedicated-fixed-egress.md](references/122-wechat-dedicated-fixed-egress.md) |
+
 
 ### 报告输出协议（就业指导）
 

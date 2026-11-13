@@ -33,14 +33,15 @@ def whitelist_message(detail):
     return message
 
 
-def _post(path, token, payload=None, image=None):
+def _post(path, token, payload=None, image=None, transport=None):
     url='https://api.weixin.qq.com/cgi-bin/'+path
+    client=transport or requests
     try:
         if image:
             with Path(image).open('rb') as f:
-                response=requests.post(url,params={'access_token':token},files={'media':(Path(image).name,f,'image/png')},timeout=(8,90))
+                response=client.post(url,params={'access_token':token},files={'media':(Path(image).name,f,'image/png')},timeout=(8,90))
         else:
-            response=requests.post(url,params={'access_token':token},data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Content-Type':'application/json; charset=utf-8'},timeout=(8,45))
+            response=client.post(url,params={'access_token':token},data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Content-Type':'application/json; charset=utf-8'},timeout=(8,45))
         response.raise_for_status(); result=response.json()
     except requests.Timeout:
         raise DraftError('请求超时，保存状态需核对，不能自动重复创建',uncertain=True) from None
@@ -100,7 +101,7 @@ def upload_image_parts(images,folder,limit=960000):
     return output
 
 
-def save_report(session_id,report_id,account,token_provider):
+def save_report(session_id,report_id,account,token_provider,http_transport=None):
     session_id=checked_session(session_id)
     if not report_id or any(ch not in '0123456789abcdef' for ch in report_id) or len(report_id)!=32:
         raise DraftError('报告标识无效')
@@ -140,7 +141,10 @@ def save_report(session_id,report_id,account,token_provider):
         def post(path,payload=None,image=None):
             nonlocal token
             for attempt in range(2):
-                try: return _post(path,token,payload=payload,image=image)
+                try:
+                    if http_transport is not None:
+                        return _post(path,token,payload=payload,image=image,transport=http_transport)
+                    return _post(path,token,payload=payload,image=image)
                 except DraftError as exc:
                     # An explicit rejected credential is safe to refresh once.
                     # A timeout, unknown create result or any other API error is not.
