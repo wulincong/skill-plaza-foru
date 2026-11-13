@@ -10,6 +10,7 @@ import re
 import time
 from pathlib import Path
 import sys
+from urllib.parse import urlsplit
 
 import requests
 
@@ -60,6 +61,24 @@ def text_before_images(report):
     sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'.agents/skills/wechat-report/scripts'))
     from article_content import html_prose
     return html_prose(report)
+
+
+def draft_fields(report):
+    """Validate news fields before any uploads, per the official draft/add contract."""
+    title=report.get('title')
+    if not isinstance(title,str) or not title.strip():raise DraftError('草稿标题不能为空')
+    title=title.strip()[:32]
+    description=(report.get('reportCard') or {}).get('description') or '招聘格局、岗位门槛与薪酬，读懂本地人才需求。'
+    if not isinstance(description,str):raise DraftError('草稿摘要格式无效')
+    source=(report.get('webLinks') or [{}])[0].get('url','')
+    if not isinstance(source,str) or len(source.encode('utf-8'))>1024:
+        raise DraftError('草稿原文链接超过1KB或格式无效')
+    parsed=urlsplit(source)
+    if (parsed.scheme not in ('http','https') or not parsed.hostname or parsed.username or parsed.password
+        or re.search(r'[\x00-\x20\x7f]',source)):
+        raise DraftError('草稿原文链接格式无效')
+    return {'article_type':'news','title':title,'author':'','digest':description.strip()[:120],
+            'content_source_url':source,'need_open_comment':0,'only_fans_can_comment':0}
 
 
 def upload_image_parts(images,folder,limit=960000):
@@ -127,6 +146,7 @@ def save_report(session_id,report_id,account,token_provider,http_transport=None)
         if len(images)!=report['pageCount']: raise DraftError('归档图片不完整')
         if [hashlib.sha256(p.read_bytes()).hexdigest() for p in images]!=report.get('imageHashes'):
             raise DraftError('归档图片与已确认版本不一致，拒绝保存草稿')
+        fields=draft_fields(report)
         prose=text_before_images(report)
         if len(prose)>=20000 or len(prose.encode())>=1000000:raise DraftError('完整文字超过当前草稿预算，已停止保存，原成品保留')
         upload_images=upload_image_parts(images,folder)
@@ -168,10 +188,8 @@ def save_report(session_id,report_id,account,token_provider,http_transport=None)
         if not media: raise DraftError('微信未返回封面素材标识')
         content=prose+''.join('<p style="margin:0;line-height:0"><img style="width:100%;display:block" src="'+html.escape(url,quote=True)+'"></p>' for url in urls)
         if len(content)>=20000 or len(content.encode())>=1000000:raise DraftError('图片链接与完整文字超过当前草稿预算，已停止创建，原成品保留')
-        title=report['title']
-        while len(title.encode())>64:title=title[:-1]
         phase='draft'
-        result=post('draft/add',{'articles':[{'title':title,'author':'','digest':report.get('reportCard',{}).get('description','招聘格局、岗位门槛与薪酬，读懂本地人才需求。'),'content':content,'thumb_media_id':media,'content_source_url':report['webLinks'][0]['url']}]})
+        result=post('draft/add',{'articles':[{**fields,'content':content,'thumb_media_id':media}]})
         if not result.get('media_id'):raise DraftError('微信未返回草稿标识，保存状态需核对',uncertain=True)
         with database() as db:
             db.execute("UPDATE drafts SET state='saved',media_id=?,error_code=NULL,updated_at=? WHERE report_id=? AND account_hash=?",(result['media_id'],time.time(),report_id,account_hash))

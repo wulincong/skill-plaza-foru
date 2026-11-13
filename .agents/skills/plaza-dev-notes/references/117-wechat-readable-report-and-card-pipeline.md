@@ -38,3 +38,26 @@
 三轮内容检查分别处理固定教学视角与重复、版式与独立导语、未测量推断。最终图片和验收包由用户审阅；新产业仍须先解析真实根节点和声明规则。后续可扩充已核对官方来源，不能使用搜索摘要直接写数字。
 
 补充验收（2026-11-05）：真实Vue页面缓存交付0.46秒，并通过页面确认保存机器人草稿；最新AI草稿官方接口回读549字符导语和17张图片通过。安徽AI未命中缓存的真实签名消息耗时106秒，返回报告卡片并保留保存提示；测试最初逐字要求“公众号后台草稿箱”，实际回复“公众号草稿箱”，功能正确，已按语义核对并记录原始日志。最终13范围共39次导语/段落/图表篡改拒绝，见readable-v42-final-binding-audit.json。机器人补丁806f67d（wechat-report-followup-v4.2-20261105）在新报告SSE正文非空时保留结构化存稿追问，并尊重用户已取消的状态。
+
+
+### 2026-11-13 按官方新增草稿文档复核
+
+状态：字段校验补强、实际广场API到公众号草稿创建、官方回读和重复保存幂等验证均通过，固定出口未启用且不是当前接口可用的前提。
+
+本轮核对2026-11-02更新的官方draft_add文档及上传正文图片、永久素材、getDraft四份文档。官方draft_get旧猜测路径404，实际文档为api_getdraft.html；业务接口仍为POST /cgi-bin/draft/get。文档文本和响应SHA256见traces/wechat-draft-official-docs-20261113，不能以第三方教程的旧字段限制代替官方当前契约。
+
+代码接入：scripts/report_drafts.py新增draft_fields，上传前验证标题、摘要、原文URL。标题按32字限制，替换此前64字节截断，避免过早截短中文标题；摘要按当前120字限制截断（官方变更记录2026-07-14已对齐120字）。显式article_type=news，支持独立HTML导语在前、图片在后；newspic仅支持相应图片消息结构，不能误用来承载本产品长导语。原文URL校验HTTP(S)、无内嵌用户名密码、UTF-8不超过1024字节。JSON始终ensure_ascii=False，新增回归防止把中文写成字面Unicode转义。正文少于2万字符/1MB、正文图片上传取得微信URL、永久素材封面、确认版本和不确定状态保护保持原逻辑。
+
+用户明确要求逐项执行实际草稿流程后，使用独立验收会话绑定已交付的河源市AI成品，走实际/v1/chat/completions保存指令、Node本地成品确认、带签名的/internal/reports/draft及官方微信API，没有直接绕过pending确认。公司账号后缀b940，当前办公网出口14.19.90.74已放行，WECHAT_API_PROXY为空；服务空闲后只重启wechat-bot加载新模块，签名GET和无确认草稿联网前拒绝验证通过。
+
+实际草稿为“河源市人工智能产业人才需求观察报告”，14张归档PNG哈希一致，最大674796字节，均低于正文上传1MB限制。实际创建14.892秒；官方draft/get回读约0.201秒：article_type=news、17字标题、29字摘要、542字导语、14张微信CDN图片、永久封面和原文URL匹配，图片后无额外文字。微信回读把img.src规范化为data-src，验收脚本须同时识别；最初只识别src造成校验误报，修正后只回读原草稿，没有重新创建。草稿数54→55；重复保存0.233秒返回同一media_id，数量仍55。未调用发布/群发接口，也未给真实粉丝发送测试信息。
+
+回归：36项主库草稿/成品库/公开分析检查、12项机器人传输/草稿桥检查通过。证据为traces/wechat-draft-official-audit-20261113.json，只留media_id哈希，不留token或AppSecret。独立验收会话不向用户原公众号会话发送模拟指令；用户后续在原会话保存相同版本会复用现有草稿。
+
+结论与后续：当前草稿链路已经实测可用；没有固定公网出口不会在当前IP已被放行时自动阻断草稿。记录122的专用固定出口仍待服务器管理员授权，它解决将来办公网IP变化后的长期稳定性，不作为本次草稿验收的前置依赖。后台视觉效果由用户搜索上述标题查看。
+
+官方来源：
+- https://developers.weixin.qq.com/doc/service/api/draftbox/draftmanage/api_draft_add.html
+- https://developers.weixin.qq.com/doc/service/api/material/permanent/api_uploadimage.html
+- https://developers.weixin.qq.com/doc/service/api/material/permanent/api_addmaterial.html
+- https://developers.weixin.qq.com/doc/service/api/draftbox/draftmanage/api_getdraft.html

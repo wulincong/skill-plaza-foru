@@ -61,6 +61,44 @@ class DraftTests(unittest.TestCase):
   with self.assertRaises(drafts.DraftError):drafts.save_report('session1',self.id,'account',lambda:'fake')
   with self.assertRaises(drafts.DraftError):drafts.save_report('other',self.id,'account',lambda:'fake')
 
+ def test_news_fields_follow_current_character_limits_and_keep_utf8_title(self):
+  title='河源市人工智能产业人才需求报告与岗位结构薪酬学历经验综合观察专题'
+  description='完整的岗位薪酬学历经验分析。'*20
+  self.meta.update(title=title,reportCard={'description':description})
+  with lib.database() as db:db.execute('UPDATE reports SET metadata=?',(json.dumps(self.meta),))
+  self.calls=[]
+  with patch.object(drafts,'_post',side_effect=self.fake_post),patch('publish_draft.make_card_cover'):
+   result=drafts.save_report('session1',self.id,'account',lambda:'fake')
+  self.assertEqual(result['state'],'saved')
+  article=self.payload['articles'][0]
+  self.assertEqual(article['article_type'],'news')
+  self.assertEqual(article['title'],title[:32])
+  self.assertGreater(len(article['title'].encode()),64)
+  self.assertEqual(article['digest'],description[:120])
+  self.assertEqual(article['content_source_url'],'https://example.test/report')
+  self.assertNotIn('image_info',article)
+
+ def test_invalid_title_or_source_fails_before_credentials_and_upload(self):
+  for title,source in [('', 'https://example.test/report'),('报告','https://example.test/'+'界'*400),('报告','javascript:alert(1)'),('报告','https://user:pass@example.test/report')]:
+   with self.subTest(title=title,source=source):
+    self.meta.update(title=title,webLinks=[{'url':source}])
+    with lib.database() as db:
+     db.execute('DELETE FROM drafts');db.execute('UPDATE sessions SET pending=2')
+     db.execute('UPDATE reports SET metadata=?',(json.dumps(self.meta),))
+    provider=Mock(return_value='token')
+    with patch.object(drafts,'_post') as network:
+     result=drafts.save_report('session1',self.id,'account',provider)
+    self.assertEqual(result['state'],'failed')
+    provider.assert_not_called();network.assert_not_called()
+
+ def test_outbound_json_uses_literal_utf8_chinese(self):
+  response=Mock();response.json.return_value={'media_id':'draft'}
+  with patch.object(drafts.requests,'post',return_value=response) as network:
+   drafts._post('draft/add','fake',{'articles':[{'title':'河源市人工智能报告'}]})
+  body=network.call_args.kwargs['data']
+  self.assertIn('河源市人工智能报告'.encode(),body)
+  self.assertNotIn(b'\\u',body)
+
  def test_tampered_image_never_uploads(self):
   (self.store/'reports'/self.id/'images/page_01.png').write_bytes(b'changed')
   with patch.object(drafts,'_post') as network:
