@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智能体搭子 · 从工作流到通用智能体</title>
+<style>
+/* ============================================================
+   智能体搭子 · 架构汇报网页 PPT
+   视觉语言沿用产品令牌层（web/src/styles/tokens.css）：
+   白底黑主色 + 四分类语义色，胶囊控件 + 大圆角卡片。
+   ============================================================ */
+:root {
+  --canvas: #FFFFFF;
+  --card: #FFFFFF;
+  --sunken: #F5F6F7;
+  --inverse: #17181C;
+  --line: #ECEDEF;
+  --line-edge: #D9DCE0;
+  --ink: #17181C;
+  --ink-2: #4A4F57;
+  --ink-3: #8A8F98;
+  --on-inverse: #FFFFFF;
+
+  --c-industry: #2E7CF6;  --c-industry-soft: #EAF2FE;
+  --c-teaching: #8B5CF6;  --c-teaching-soft: #F2EDFE;
+  --c-career:   #F0821E;  --c-career-soft:   #FDF0E3;
+  --c-data:     #14B87A;  --c-data-soft:     #E5F7F0;
+
+  --ok: #16A34A;
+  --shadow: 0 1px 2px rgba(23,24,28,.04), 0 8px 24px -8px rgba(23,24,28,.10);
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC",
+          "Microsoft YaHei", "Hiragino Sans GB", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  background: #E9EAEC;
+  color: var(--ink);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 舞台与翻页 ---------- */
+.deck { position: fixed; inset: 0; }
+.stage {
+  position: absolute; left: 50%; top: 50%;
+  width: 1280px; height: 720px;
+  transform: translate(-50%, -50%);
+  transform-origin: center center;
+}
+.slide {
+  position: absolute; inset: 0;
+  width: 1280px; height: 720px;
+  background: var(--canvas);
+  opacity: 0; visibility: hidden;
+  transform: translateY(14px);
+  transition: opacity .38s ease, transform .38s ease, visibility .38s;
+  overflow: hidden;
+}
+.slide.active { opacity: 1; visibility: visible; transform: translateY(0); }
+.slide.dark { background: var(--inverse); color: var(--on-inverse); }
+/* ?still：禁用过渡，供截图/导出确定性感光 */
+html.still .slide { transition: none !important; }
+
+/* ---------- 幻灯片公共骨架 ---------- */
+.pad { position: absolute; inset: 0; padding: 52px 64px 76px; }
+.chapter-chip {
+  position: absolute; top: 30px; left: 64px;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: .08em;
+  color: var(--ink-2);
+  background: var(--sunken); border-radius: 999px; padding: 6px 14px;
+}
+.chapter-chip .no { color: var(--ink-3); font-family: var(--mono); font-weight: 500; }
+.brandmark {
+  position: absolute; top: 36px; right: 64px;
+  font-size: 12px; font-weight: 600; letter-spacing: .12em; color: var(--ink-3);
+}
+h2.slide-title { font-size: 40px; font-weight: 700; line-height: 1.25; letter-spacing: .01em; }
+.slide-sub { margin-top: 8px; font-size: 15px; color: var(--ink-3); }
+.titleblock { margin-top: 34px; }
+.content { margin-top: 26px; }
+
+.takeaway {
+  position: absolute; left: 64px; right: 64px; bottom: 50px;
+  background: var(--inverse); color: var(--on-inverse);
+  border-radius: 12px; height: 46px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-size: 14.5px; font-weight: 500; letter-spacing: .04em;
+}
+.takeaway::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--c-data); flex: none;
+}
+.pagenum {
+  position: absolute; left: 24px; bottom: 8px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  letter-spacing: .06em;
+}
+.slide.dark .pagenum { color: rgba(255,255,255,.45); }
+
+/* ---------- 通用小件 ---------- */
+.pill {
+  display: inline-flex; align-items: center;
+  border-radius: 999px; padding: 5px 12px;
+  font-size: 12.5px; font-weight: 500; line-height: 1;
+  background: var(--sunken); color: var(--ink-2);
+  white-space: nowrap;
+}
+.pill.blue   { background: var(--c-industry-soft); color: var(--c-industry); }
+.pill.purple { background: var(--c-teaching-soft); color: var(--c-teaching); }
+.pill.orange { background: var(--c-career-soft);   color: var(--c-career); }
+.pill.green  { background: var(--c-data-soft);     color: var(--c-data); }
+.pill.ghost  { background: transparent; border: 1px solid var(--line-edge); color: var(--ink-3); }
+
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 16px; box-shadow: var(--shadow);
+}
+.dot { display:inline-block; width:9px; height:9px; border-radius:50%; }
+
+/* ============================================================
+   P1 封面
+   ============================================================ */
+.cover .pad { padding: 64px 84px; }
+.cover-topline {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; font-weight: 600; letter-spacing: .14em; color: var(--ink-3);
+}
+.cover-main { margin-top: 106px; }
+.cover-occasion {
+  display: inline-flex; gap: 8px; align-items: center;
+  font-size: 13.5px; font-weight: 600; color: var(--c-industry);
+  background: var(--c-industry-soft); border-radius: 999px; padding: 7px 16px;
+  letter-spacing: .08em;
+}
+.cover h1 {
+  margin-top: 26px;
+  font-size: 88px; font-weight: 800; line-height: 1.14; letter-spacing: .015em;
+}
+.cover h1 .em { color: var(--c-industry); }
+.cover-sub { margin-top: 24px; font-size: 19px; color: var(--ink-2); letter-spacing: .02em; }
+.cover-sub b { font-weight: 600; color: var(--ink); }
+.cover-sub .plus { color: var(--ink-3); font-family: var(--mono); padding: 0 6px; }
+.cover-cats { margin-top: 40px; display: flex; gap: 26px; }
+.cover-cats .cat { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.cover-meta {
+  position: absolute; left: 84px; bottom: 44px;
+  font-size: 13.5px; color: var(--ink-3); letter-spacing: .06em;
+}
+.cover-hint { display: none; }.cover-glyph {
+  position: absolute; right: 84px; top: 178px;
+  width: 218px; display: flex; flex-direction: column; align-items: stretch;
+}
+.cover-glyph .g-box {
+  border-radius: 14px; padding: 15px 18px;
+  font-size: 13.5px; font-weight: 600; letter-spacing: .1em;
+  text-align: center;
+}
+.cover-glyph .g-h { background: var(--inverse); color: #fff; }
+.cover-glyph .g-a { background: var(--card); border: 2px solid var(--ink); color: var(--ink); }
+.cover-glyph .g-link {
+  align-self: center; min-width: 96px; height: 56px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+}
+.cover-glyph .g-link .g-rpc { font-size: 10.5px; color: var(--ink-2); font-family: var(--mono); letter-spacing: .04em; white-space: nowrap; }
+.cover-glyph .g-link .g-wire { position: relative; width: 2px; flex: 1; background: var(--line-edge); }
+.cover-glyph .g-link .g-wire::before, .cover-glyph .g-link .g-wire::after {
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%);
+  border: 4px solid transparent;
+}
+.cover-glyph .g-link .g-wire::before { bottom: -1px; border-bottom-color: var(--ink-3); }
+.cover-glyph .g-link .g-wire::after { top: -1px; border-top-color: var(--ink-3); }
+
+/* ============================================================
+   P2 目录
+   ============================================================ */
+.toc-grid {
+  margin-top: 34px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+}
+.toc-card {
+  padding: 20px 22px 18px; min-height: 148px;
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 10px;
+}
+.toc-card .no { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+.toc-card .name { font-size: 21px; font-weight: 700; }
+.toc-card .desc { font-size: 13px; color: var(--ink-3); margin-top: auto; }
+.toc-card.core { background: var(--inverse); border-color: var(--inverse); }
+.toc-card.core .no { color: rgba(255,255,255,.5); }
+.toc-card.core .name { color: #fff; }
+.toc-card.core .desc { color: rgba(255,255,255,.65); }
+.toc-slogan {
+  display: flex; flex-direction: column; align-items: flex-start; justify-content: center;
+  background: var(--sunken); border: 1px dashed var(--line-edge);
+  gap: 6px; padding: 20px 22px;
+}
+.toc-slogan .l1 { font-size: 20px; font-weight: 700; }
+.toc-slogan .l2 { font-size: 13px; color: var(--ink-3); }
+
+/* ============================================================
+   P3 业务需求
+   ============================================================ */
+.need-grid { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.need-card { padding: 22px 24px 20px; display: flex; flex-direction: column; min-height: 348px; }
+.need-card .nc-head { display: flex; align-items: center; gap: 10px; }
+.need-card .nc-bar { width: 5px; height: 22px; border-radius: 3px; flex: none; }
+.need-card .nc-title { font-size: 19px; font-weight: 700; }
+.need-card .nc-tag { font-size: 12px; color: var(--ink-3); margin-top: 4px; padding-left: 15px; }
+.need-hero { display: flex; align-items: baseline; gap: 18px; margin: 18px 0 6px; }
+.need-hero .big {
+  font-size: 56px; font-weight: 800; line-height: 1; letter-spacing: -.01em;
+}
+.need-hero .unit { font-size: 15px; color: var(--ink-3); font-weight: 500; }
+.need-hero .big.second { font-size: 40px; color: var(--ink-3); font-weight: 700; }
+.need-list { margin-top: 12px; display: flex; flex-direction: column; gap: 9px; }
+.need-list .li { display: flex; gap: 9px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+.need-list .li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; margin-top: 8px; flex: none; }
+.need-card.b  .need-list .li::before, .need-card.b .need-hero .big { background: none; color: var(--c-industry); }
+.need-card.g  .need-hero .big { color: var(--c-data); }
+.need-card.p  .need-hero .big { color: var(--c-teaching); }
+.need-card.b  .need-hero .big { color: var(--c-industry); }
+.need-card.b .need-list .li::before { background: var(--c-industry); }
+.need-card.g .need-list .li::before { background: var(--c-data); }
+.need-card.p .need-list .li::before { background: var(--c-teaching); }
+
+/* ============================================================
+   P4 服务框架 · 分层
+   ============================================================ */
+.layers { margin-top: 22px; display: flex; flex-direction: column; }
+.layer {
+  border-radius: 14px; padding: 11px 20px;
+  display: flex; align-items: center; gap: 16px; min-height: 64px;
+}
+.layer .lname { font-size: 14px; font-weight: 700; width: 128px; flex: none; letter-spacing: .04em; }
+.layer .lname small { display: block; font-size: 10px; font-weight: 500; color: var(--ink-3); letter-spacing: .12em; margin-top: 2px; }
+.layer .chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.layer.l-access { background: var(--sunken); }
+.layer.l-harness { background: var(--inverse); }
+.layer.l-harness .lname, .layer.l-harness .lname small { color: #fff; }
+.layer.l-harness .lname small { color: rgba(255,255,255,.5); }
+.layer.l-harness .pill { background: rgba(255,255,255,.12); color: #fff; }
+.layer.l-agent { background: var(--card); border: 2px solid var(--ink); }
+.layer.l-skill { background: var(--sunken); }
+.layer.l-res { background: var(--card); border: 1px dashed var(--line-edge); }
+.layer-arrow {
+  height: 20px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-3); font-size: 11px; letter-spacing: .3em;
+}
+.layer-arrow::before { content: "▼"; font-size: 9px; letter-spacing: 0; }
+
+/* ============================================================
+   P5 方案对比
+   ============================================================ */
+.vs-wrap { margin-top: 26px; display: grid; grid-template-columns: 1fr 64px 1fr; align-items: stretch; }
+.vs-panel { padding: 22px 26px 18px; display: flex; flex-direction: column; }
+.vs-panel .vp-tag { align-self: flex-start; font-size: 12px; font-weight: 600; letter-spacing: .1em; border-radius: 999px; padding: 5px 12px; }
+.vs-panel .vp-title { font-size: 21px; font-weight: 700; margin-top: 12px; }
+.vs-panel .vp-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 3px; }
+.vs-list { margin-top: 16px; display: flex; flex-direction: column; gap: 11px; }
+.vs-list .li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.5; color: var(--ink-2); }
+.vs-list .li b { font-weight: 600; color: var(--ink); }
+.vs-panel.old { background: var(--sunken); border: 1px solid var(--line); box-shadow: none; }
+.vs-panel.old .vp-tag { background: #EAECF0; color: var(--ink-3); }
+.vs-panel.new { background: var(--inverse); border: 1px solid var(--inverse); }
+.vs-panel.new .vp-title { color: #fff; }
+.vs-panel.new .vp-sub { color: rgba(255,255,255,.68); }
+.vs-panel.new .vp-tag { background: var(--c-data); color: #fff; }
+.vs-panel.new .li { color: rgba(255,255,255,.82); }
+.vs-panel.new .li b { color: #fff; }
+.vs-mid { display: flex; align-items: center; justify-content: center; }
+.vs-mid .vs-badge {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--canvas); border: 1px solid var(--line-edge);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--ink-3);
+}
+.vs-src { margin-top: 16px; font-size: 12px; color: var(--ink-3); text-align: center; }
+
+/* ============================================================
+   P6 金句页
+   ============================================================ */
+.quote .pad { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 0 110px; }
+.quote-chip { font-size: 13px; letter-spacing: .2em; color: rgba(255,255,255,.5); font-weight: 600; }
+.quote h1 { margin-top: 30px; font-size: 72px; font-weight: 800; line-height: 1.3; letter-spacing: .04em; }
+.quote h1 .h { color: var(--c-industry); }
+.quote h1 .a { color: var(--c-data); }
+.quote-dots { margin-top: 46px; display: flex; gap: 14px; align-items: center; }
+.quote-dots span { width: 10px; height: 10px; border-radius: 50%; opacity: .9; }
+.quote-bgtext {
+  position: absolute; right: -28px; bottom: 34px;
+  font-family: var(--mono); font-size: 218px; font-weight: 800; line-height: 1;
+  letter-spacing: -.04em; color: rgba(255,255,255,.05); pointer-events: none; user-select: none;
+}
+
+/* ============================================================
+   P7 Harness + Agent 架构
+   ============================================================ */
+.arch-wrap { margin-top: 24px; display: grid; grid-template-columns: 1fr 236px 1fr; gap: 0; align-items: stretch; }
+.arch-block { border-radius: 18px; padding: 20px 24px; display: flex; flex-direction: column; }
+.arch-block .ab-tag { font-size: 11.5px; font-weight: 700; letter-spacing: .16em; }
+.arch-block .ab-title { font-size: 20px; font-weight: 700; margin-top: 6px; }
+.arch-block .ab-list { margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.arch-block .ab-list .li { display: flex; gap: 10px; font-size: 14px; line-height: 1.5; align-items: baseline; }
+.arch-block .ab-list .li .tick { font-family: var(--mono); font-size: 11px; flex: none; }
+.arch-harness { background: var(--inverse); }
+.arch-harness .ab-tag { color: var(--c-industry); }
+.arch-harness .ab-title { color: #fff; }
+.arch-harness .li { color: rgba(255,255,255,.85); }
+.arch-harness .li .tick { color: var(--c-industry); }
+.arch-agent { background: var(--card); border: 2px solid var(--ink); }
+.arch-agent .ab-tag { color: var(--c-data); }
+.arch-agent .li { color: var(--ink-2); }
+.arch-agent .li .tick { color: var(--c-data); }
+.arch-agent .proc {
+  margin-top: 12px; background: var(--sunken); border-radius: 10px;
+  padding: 9px 14px; font-family: var(--mono); font-size: 12.5px; color: var(--ink-2);
+  display: flex; align-items: center; gap: 8px;
+}
+.arch-agent .proc .live { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); flex: none; }
+.mount-strip { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.mount-strip .pill { justify-content: flex-start; padding: 7px 13px; font-size: 12.5px; }
+.arch-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 8px; }
+.arch-mid .rpc-label {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; color: var(--ink-2);
+  background: var(--sunken); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; text-align: center;
+}
+.arch-mid .wire { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.arch-mid .wire .dir { font-size: 11px; color: var(--ink-2); font-family: var(--mono); }
+.arch-mid .arrowline { width: 2px; height: 20px; background: var(--line-edge); position: relative; }
+.arch-mid .arrowline::after {
+  content: ""; position: absolute; left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent;
+}
+.arch-mid .arrowline.down::after { top: -1px; border-top-color: var(--ink-3); }
+.arch-mid .arrowline.up::after { bottom: -1px; border-bottom-color: var(--ink-3); }
+.arch-concept {
+  margin-top: 20px; border-radius: 12px; background: var(--sunken);
+  padding: 12px 18px; display: flex; justify-content: space-evenly;
+  font-size: 15px; font-weight: 600; color: var(--ink-2);
+}
+.arch-concept b { color: var(--ink); }
+
+/* ============================================================
+   P8 调用链
+   ============================================================ */
+.flow-band { margin-top: 28px; display: flex; flex-direction: column; gap: 0; }
+.flow-row { display: flex; align-items: stretch; gap: 10px; }
+.step {
+  flex: 1; padding: 14px 14px 12px; position: relative;
+  display: flex; flex-direction: column; gap: 6px; min-height: 108px;
+}
+.step .sno {
+  font-family: var(--mono); font-size: 11px; font-weight: 700;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sunken); color: var(--ink-3);
+}
+.step.key .sno { background: var(--inverse); color: #fff; }
+.step .stitle { font-size: 16.5px; font-weight: 700; }
+.step .snote { font-size: 12px; color: var(--ink-3); line-height: 1.5; }
+.step.key { border-color: var(--ink); border-width: 1.5px; }
+.flow-arrow {
+  align-self: center; color: var(--ink-3); font-size: 13px; flex: none; width: 14px; text-align: center;
+}
+.flow-turn { display: flex; justify-content: flex-end; padding-right: 74px; height: 26px; align-items: center; color: var(--ink-3); font-size: 12px; }
+.flow-gap { height: 12px; }
+
+/* ============================================================
+   P9 截图墙
+   ============================================================ */
+.shot-grid { margin-top: 22px; display: grid; grid-template-columns: 1.05fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; gap: 14px; height: 452px; }
+.shot { display: flex; flex-direction: column; overflow: hidden; }
+.shot .img { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--sunken); }
+.shot img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.shot .cap { flex: none; padding: 7px 12px 9px; font-size: 12px; color: var(--ink-2); display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--line); }
+.shot .cap .tag { font-size: 10.5px; font-weight: 600; color: var(--ink-3); background: var(--sunken); border-radius: 999px; padding: 3px 8px; flex: none; font-family: var(--mono); }
+.shot.big { grid-row: span 3; }
+.shot.stat {
+  background: var(--inverse); border-color: var(--inverse);
+  align-items: flex-start; justify-content: center; padding: 18px 20px; gap: 8px;
+}
+.shot.stat .n1 { font-size: 44px; font-weight: 800; color: #fff; line-height: 1; }
+.shot.stat .n1 small { font-size: 16px; font-weight: 600; color: rgba(255,255,255,.6); margin-left: 4px; }
+.shot.stat .n2 { font-size: 13px; color: rgba(255,255,255,.65); line-height: 1.6; }
+
+/* ============================================================
+   P10 案例
+   ============================================================ */
+.case-wrap { margin-top: 22px; display: grid; grid-template-columns: 1fr 1.18fr; gap: 26px; height: 452px; }
+.case-story { display: flex; flex-direction: column; gap: 12px; }
+.case-story .cs-chiprow { display: flex; gap: 8px; }
+.case-story .cs-item { flex: 1; align-items: center; }
+.cs-item {
+  display: flex; gap: 12px; align-items: center;
+  background: var(--sunken); border-radius: 12px; padding: 12px 16px;
+}
+.cs-item .k {
+  flex: none; font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+  border-radius: 999px; padding: 4px 10px; min-width: 52px; text-align: center;
+}
+.cs-item .v { font-size: 14.5px; color: var(--ink-2); line-height: 1.55; }
+.cs-item .v b { color: var(--ink); font-weight: 700; }
+.cs-item.ask   .k { background: var(--c-industry-soft); color: var(--c-industry); }
+.cs-item.ev    .k { background: var(--c-career-soft); color: var(--c-career); }
+.cs-item.gap   .k { background: var(--c-teaching-soft); color: var(--c-teaching); }
+.cs-item.concl .k { background: var(--c-data-soft); color: var(--c-data); }
+.cs-item.concl { background: var(--c-data-soft); }
+.case-shots { display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+.case-shots .shot { flex: 1; min-height: 0; }
+.case-shots .shot .img { position: relative; }
+.case-shots .shot .img img { position: absolute; inset: 0; margin: auto; }
+
+/* ============================================================
+   P11 沙箱三道边界
+   ============================================================ */
+.sandbox-grid { margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.sbx-card { padding: 22px 24px; min-height: 300px; display: flex; flex-direction: column; }
+.sbx-card .sbx-no { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .1em; }
+.sbx-card .sbx-title { font-size: 20px; font-weight: 700; margin-top: 8px; }
+.sbx-card .sbx-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+.sbx-card .li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+.sbx-card .li code {
+  font-family: var(--mono); font-size: 11.5px; background: var(--sunken);
+  border-radius: 6px; padding: 1px 6px; color: var(--ink);
+}
+.sbx-card.b .sbx-no { color: var(--c-industry); }
+.sbx-card.g .sbx-no { color: var(--c-data); }
+.sbx-card.o .sbx-no { color: var(--c-career); }
+.sbx-note {
+  margin-top: 18px; display: flex; align-items: center; gap: 10px; justify-content: center;
+  font-size: 12.5px; color: var(--ink-3);
+}
+.sbx-note .pill { font-size: 11px; padding: 4px 10px; }
+
+/* ============================================================
+   P12 协议与交付
+   ============================================================ */
+.proto-grid { margin-top: 26px; display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.proto-card { padding: 20px 24px; min-height: 336px; display: flex; flex-direction: column; }
+.proto-card .pc-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.proto-card .pc-title .ic { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.frame-flow { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.frame-flow .fr {
+  font-family: var(--mono); font-size: 11px; font-weight: 600;
+  background: var(--sunken); border: 1px solid var(--line);
+  border-radius: 8px; padding: 5px 8px; color: var(--ink);
+}
+.frame-flow .fr.hl { background: var(--inverse); color: #fff; border-color: var(--inverse); }
+.frame-flow .fa { color: var(--ink-3); font-size: 10px; }
+.proto-list { margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.proto-list .li { display: flex; gap: 9px; font-size: 13.5px; color: var(--ink-2); line-height: 1.55; }
+.proto-list .li b { color: var(--ink); font-weight: 600; }
+.proto-list .li code {
+  font-family: var(--mono); font-size: 11.5px; background: var(--sunken);
+  border-radius: 6px; padding: 1px 6px; color: var(--ink);
+}
+
+/* ============================================================
+   P13 参数
+   ============================================================ */
+.param-heroes { margin-top: 24px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+.ph { padding: 16px 16px 14px; display: flex; flex-direction: column; gap: 6px; }
+.ph .v { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
+.ph .v small { font-size: 14px; font-weight: 600; color: var(--ink-3); margin-left: 2px; }
+.ph .k { font-size: 12.5px; color: var(--ink-2); font-weight: 600; }
+.ph .s { font-size: 11px; color: var(--ink-3); line-height: 1.45; }
+.param-table { margin-top: 20px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.pt-row { display: grid; grid-template-columns: 190px 1fr 190px 1fr; }
+.pt-row > div { padding: 10px 18px; font-size: 13px; border-top: 1px solid var(--line); }
+.pt-row:first-child { border-top: none; }
+.pt-row .k { color: var(--ink-3); background: var(--sunken); font-weight: 500; }
+.pt-row .v { color: var(--ink-2); }
+.pt-row .v b { color: var(--ink); font-weight: 600; }
+.param-src { margin-top: 12px; font-size: 11.5px; color: var(--ink-3); text-align: center; }
+
+/* ============================================================
+   P14 结尾
+   ============================================================ */
+.ending .pad { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.ending .end-chip { font-size: 13px; letter-spacing: .2em; color: rgba(255,255,255,.5); font-weight: 600; }
+.ending h1 { margin-top: 28px; font-size: 62px; font-weight: 800; line-height: 1.35; letter-spacing: .03em; }
+.ending h1 .h { color: var(--c-industry); }
+.ending .end-sub { margin-top: 24px; font-size: 16.5px; color: rgba(255,255,255,.7); letter-spacing: .05em; }
+.ending .end-meta { margin-top: 56px; font-size: 13px; color: rgba(255,255,255,.45); letter-spacing: .1em; }
+.ending .quote-dots { justify-content: center; }
+
+/* ---------- 导航控件 ---------- */
+.nav {
+  position: fixed; right: 18px; bottom: 14px; z-index: 50;
+  display: flex; align-items: center; gap: 8px;
+}
+.nav button {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--line-edge); background: rgba(255,255,255,.92);
+  font-size: 15px; color: var(--ink-2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.nav button:hover { background: var(--inverse); color: #fff; }
+.nav .np { font-family: var(--mono); font-size: 12px; color: var(--ink-3); min-width: 56px; text-align: center; }
+.progress { position: fixed; left: 0; top: 0; height: 3px; background: var(--inverse); width: 0; z-index: 60; transition: width .3s ease; }
+
+/* ---------- 打印 ---------- */
+@media print {
+  body { overflow: visible; background: #fff; }
+  .deck { position: static; }
+  .stage { position: static; transform: none !important; width: 1280px; height: auto; }
+  .slide { position: relative; opacity: 1; visibility: visible; transform: none; page-break-after: always; margin: 0 auto; }
+  .nav, .progress { display: none; }
+  @page { size: 1280px 720px; margin: 0; }
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck">
+  <div class="stage" id="stage">
+
+    <!-- ================= P1 封面 ================= -->
+    <section class="slide cover active" id="s1">
+      <div class="pad">
+        <div class="cover-topline">
+          <span>智能体搭子 · SKILL PLAZA</span>
+          <span>AGENT PLATFORM FOR INDUSTRY–EDUCATION</span>
+        </div>
+        <div class="cover-main">
+          <span class="cover-occasion">项目汇报 · 对内对外通用版</span>
+          <h1>从工作流<br>到<span class="em">通用智能体</span></h1>
+          <div class="cover-sub">智能体搭子 —— <b>Harness</b><span class="plus">+</span><b>Agent</b> 架构的产教实践</div>
+          <div class="cover-cats">
+            <span class="cat"><span class="dot" style="background:var(--c-industry)"></span>产业与专业建设</span>
+            <span class="cat"><span class="dot" style="background:var(--c-teaching)"></span>课程与教学开发</span>
+            <span class="cat"><span class="dot" style="background:var(--c-career)"></span>实训与就业</span>
+            <span class="cat"><span class="dot" style="background:var(--c-data)"></span>数据治理与底座</span>
+          </div>
+        </div>
+        <div class="cover-glyph">
+          <div class="g-box g-h">HARNESS · 平台层</div>
+          <div class="g-link"><span class="g-rpc">JSONL-RPC</span><span class="g-wire"></span></div>
+          <div class="g-box g-a">AGENT · 执行体</div>
+        </div>
+        <div class="cover-meta">技术团队 · 智能体搭子项目组 · 2026 年 11 月</div>
+      </div>
+    </section>
+
+    <!-- ================= P2 目录 ================= -->
+    <section class="slide" id="s2">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no"> agenda</span>汇报框架</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">七个部分：从需求到落地</h2>
+          <div class="slide-sub">前半讲业务与框架，后半讲架构与证据</div>
+        </div>
+        <div class="toc-grid content">
+          <div class="card toc-card"><span class="no">01</span><span class="name">业务需求</span><span class="desc">三类真实场景</span></div>
+          <div class="card toc-card"><span class="no">02</span><span class="name">服务框架</span><span class="desc">广场服务全景</span></div>
+          <div class="card toc-card"><span class="no">03</span><span class="name">技术痛点</span><span class="desc">传统开发之困</span></div>
+          <div class="card toc-card core"><span class="no">04</span><span class="name">技术架构</span><span class="desc">Harness + Agent</span></div>
+          <div class="card toc-card"><span class="no">05</span><span class="name">效果呈现</span><span class="desc">真实运行截图</span></div>
+          <div class="card toc-card"><span class="no">06</span><span class="name">实现细节</span><span class="desc">安全与协议</span></div>
+          <div class="card toc-card"><span class="no">07</span><span class="name">参数</span><span class="desc">核实过的数字</span></div>
+          <div class="toc-slogan">
+            <span class="l1">需求千变，底座不变</span>
+            <span class="l2">所有智能体需求，长在同一套平台上</span>
+          </div>
+        </div>
+        <div class="pagenum">02 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P3 业务需求 ================= -->
+    <section class="slide" id="s3">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">01</span>业务需求</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">需求成批涌来，交付仍是“一项目一开发”</h2>
+        </div>
+        <div class="need-grid content">
+          <div class="card need-card b">
+            <div class="nc-head"><span class="nc-bar" style="background:var(--c-industry)"></span><span class="nc-title">院校智能体项目</span></div>
+            <div class="nc-tag">项目制 · 形态分散</div>
+            <div class="need-hero">
+              <span class="big">20</span><span class="unit">所院校</span>
+              <span class="big second">10<span class="unit"> 个已结项目</span></span>
+            </div>
+            <div class="need-list">
+              <div class="li">广州院校明确智能体招标需求</div>
+              <div class="li">已结项目包含智能体交付</div>
+              <div class="li">每个项目重复造轮子</div>
+            </div>
+          </div>
+          <div class="card need-card g">
+            <div class="nc-head"><span class="nc-bar" style="background:var(--c-data)"></span><span class="nc-title">平台数据智能体</span></div>
+            <div class="nc-tag">产教融合平台 · 数据资产</div>
+            <div class="need-hero">
+              <span class="big">1000<small style="font-size:24px">万+</small></span><span class="unit">岗位数据</span>
+            </div>
+            <div class="need-list">
+              <div class="li">数据要治理、要取数、要成报</div>
+              <div class="li">否则数据是死的，用不起来</div>
+              <div class="li">人工分析慢，口径不统一</div>
+            </div>
+          </div>
+          <div class="card need-card p">
+            <div class="nc-head"><span class="nc-bar" style="background:var(--c-teaching)"></span><span class="nc-title">课智能体</span></div>
+            <div class="nc-tag">课程建设 · 自动化</div>
+            <div class="need-hero">
+              <span class="big">3</span><span class="unit">大场景全自动</span>
+            </div>
+            <div class="need-list">
+              <div class="li">PPT 课件生成</div>
+              <div class="li">教案生成</div>
+              <div class="li">教学过程管理</div>
+            </div>
+          </div>
+        </div>
+        <div class="takeaway">共同点：数据取证 ＋ 专业判断 ＋ 成品交付的长任务</div>
+        <div class="pagenum">03 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P4 服务框架 ================= -->
+    <section class="slide" id="s4">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">02</span>服务框架</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">智能体广场：网页与 API，共用一套底座</h2>
+        </div>
+        <div class="layers content">
+          <div class="layer l-access">
+            <span class="lname">接入层<small>ACCESS</small></span>
+            <div class="chips">
+              <span class="pill">智能体广场</span><span class="pill">在线对话</span><span class="pill">在线运行</span>
+              <span class="pill">文档中心</span><span class="pill blue">兼容 API /v1</span><span class="pill ghost">管理后台</span>
+            </div>
+          </div>
+          <div class="layer-arrow"></div>
+          <div class="layer l-harness">
+            <span class="lname">Harness<small>平台服务层</small></span>
+            <div class="chips">
+              <span class="pill">会话编排</span><span class="pill">SSE 流式</span><span class="pill">模型路由</span>
+              <span class="pill">报告校验</span><span class="pill">交付发布</span><span class="pill">三层留痕</span>
+            </div>
+          </div>
+          <div class="layer-arrow"></div>
+          <div class="layer l-agent">
+            <span class="lname">Agent<small>执行层</small></span>
+            <div class="chips">
+              <span class="pill">每会话一个 Pi 引擎进程</span>
+              <span class="pill purple">技能 · 模型 · 思考档位，按任务注入</span>
+            </div>
+          </div>
+          <div class="layer-arrow"></div>
+          <div class="layer l-skill">
+            <span class="lname">技能层<small>SKILLS</small></span>
+            <div class="chips">
+              <span class="pill">产教决策报告</span><span class="pill">新技术预判</span><span class="pill">公众号报告</span>
+              <span class="pill">就业指导</span><span class="pill">简历优化警察</span><span class="pill">AI 面试练习</span>
+              <span class="pill">文档翻译</span><span class="pill ghost">＋ 内置提示词入口</span>
+            </div>
+          </div>
+          <div class="layer-arrow"></div>
+          <div class="layer l-res">
+            <span class="lname">资源层<small>RESOURCES</small></span>
+            <div class="chips">
+              <span class="pill green">人才数据库 · 只读查询</span><span class="pill">WeKnora 知识库</span><span class="pill">用户上传材料</span>
+            </div>
+          </div>
+        </div>
+        <div class="takeaway">一次搭建：网页用户与应用开发者，用同一套技能与执行环境</div>
+        <div class="pagenum">04 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P5 技术痛点 ================= -->
+    <section class="slide" id="s5">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">03</span>技术痛点</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">写死的工作流，追不上变化的任务</h2>
+        </div>
+        <div class="vs-wrap content">
+          <div class="card vs-panel old">
+            <span class="vp-tag">传统做法</span>
+            <div class="vp-title">为每个需求写专门工作流</div>
+            <div class="vp-sub">节点与分支预先编排，逐步验收</div>
+            <div class="vs-list">
+              <div class="li"><b>开发慢</b>每个智能体单独编排节点</div>
+              <div class="li"><b>智能化低</b>输入缺项，照样往下走</div>
+              <div class="li"><b>不灵活</b>中途出现反证，无法回退</div>
+              <div class="li"><b>升级难</b>换个对象就要改分支</div>
+              <div class="li"><b>成本高</b>时间与迭代成本双高</div>
+            </div>
+          </div>
+          <div class="vs-mid"><div class="vs-badge">VS</div></div>
+          <div class="vs-panel new">
+            <span class="vp-tag">目标能力</span>
+            <div class="vp-title">通用 Agent 按证据决定下一步</div>
+            <div class="vp-sub">接受目标，调用工具，读取结果再决策</div>
+            <div class="vs-list">
+              <div class="li"><b>自适应</b>步骤无需预先穷举</div>
+              <div class="li"><b>会止损</b>缺关键证据，暂停请人选择</div>
+              <div class="li"><b>可迁移</b>任务换对象，技能不变</div>
+              <div class="li"><b>易升级</b>换技能包，不动底座</div>
+              <div class="li"><b>可复用</b>一次搭建，多场景共享</div>
+            </div>
+          </div>
+        </div>
+        <div class="vs-src">架构区分依据：Anthropic《Building effective agents》—— 工作流适合可预先约定的步骤，Agent 适合无法穷举路径的任务</div>
+        <div class="takeaway">步骤无法预先穷举的任务，交给按证据行走的智能体</div>
+        <div class="pagenum">05 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P6 金句页 ================= -->
+    <section class="slide dark quote" id="s6">
+      <div class="pad">
+        <span class="quote-chip">04 · 技术架构 — HARNESS ＋ AGENT</span>
+        <h1><span class="h">平台</span>管工程，<br><span class="a">智能体</span>管判断</h1>
+        <div class="quote-dots">
+          <span style="background:var(--c-industry)"></span>
+          <span style="background:var(--c-teaching)"></span>
+          <span style="background:var(--c-career)"></span>
+          <span style="background:var(--c-data)"></span>
+        </div>
+        <div class="quote-bgtext">H+A</div>
+      </div>
+      <div class="pagenum">06 / 14</div>
+    </section>
+
+    <!-- ================= P7 技术架构 ================= -->
+    <section class="slide" id="s7">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">04</span>技术架构</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">Harness ＋ Agent：底座与执行体分离</h2>
+        </div>
+        <div class="arch-wrap content">
+          <div class="arch-block arch-harness">
+            <span class="ab-tag">HARNESS</span>
+            <div class="ab-title">广场平台层 · 管工程问题</div>
+            <div class="ab-list">
+              <div class="li"><span class="tick">01</span>会话与工作区管理</div>
+              <div class="li"><span class="tick">02</span>SSE 协议 ＋ OpenAI 兼容出口</div>
+              <div class="li"><span class="tick">03</span>沙箱与安全边界</div>
+              <div class="li"><span class="tick">04</span>报告校验与交付发布</div>
+              <div class="li"><span class="tick">05</span>三层留痕与回放</div>
+            </div>
+          </div>
+          <div class="arch-mid">
+            <div class="wire">
+              <span class="dir">prompt / 任务下发</span>
+              <div class="arrowline down"></div>
+            </div>
+            <div class="rpc-label">JSONL<br>-RPC</div>
+            <div class="wire">
+              <div class="arrowline up"></div>
+              <span class="dir">message_update / 事件流</span>
+            </div>
+          </div>
+          <div class="arch-block arch-agent">
+            <span class="ab-tag">AGENT</span>
+            <div class="ab-title">执行体 · 管专业判断</div>
+            <div class="proc"><span class="live"></span>pi --mode rpc · 每会话一个进程</div>
+            <div class="mount-strip">
+              <span class="pill blue">模型 ×3 ＋ 思考档位 · 按任务选择</span>
+              <span class="pill purple">技能 SKILL.md · 规定证据与验收</span>
+              <span class="pill green">工具 · 检索 · 取数 · 文件</span>
+            </div>
+          </div>
+        </div>
+        <div class="arch-concept content" style="margin-top:18px">
+          <span>使用者选<b>目标</b></span><span>技能规定<b>证据</b></span><span>Pi 执行<b>任务</b></span><span>人作<b>取舍</b></span>
+        </div>
+        <div class="takeaway">升级智能体＝换技能包，升级平台＝智能体无感，两侧独立演进</div>
+        <div class="pagenum">07 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P8 调用链 ================= -->
+    <section class="slide" id="s8">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">04</span>技术架构</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">一次任务：从提交到交付</h2>
+        </div>
+        <div class="flow-band content">
+          <div class="flow-row">
+            <div class="card step"><span class="sno">01</span><span class="stitle">提交任务</span><span class="snote">网页表单，或应用走 API</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="card step"><span class="sno">02</span><span class="stitle">建工作区</span><span class="snote">会话专属 AGENTS.md</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="card step"><span class="sno">03</span><span class="stitle">启动 Agent</span><span class="snote">低权用户 · 沙箱内运行</span></div>
+            <div class="flow-arrow">→</div>
+            <div class="card step"><span class="sno">04</span><span class="stitle">展开技能</span><span class="snote">/skill 注入证据规则</span></div>
+          </div>
+          <div class="flow-turn">↓</div>
+          <div class="flow-row">
+            <div class="card step key"><span class="sno">08</span><span class="stitle">交付留痕</span><span class="snote">/p/ 公开链接 · 可回放</span></div>
+            <div class="flow-arrow">←</div>
+            <div class="card step key"><span class="sno">07</span><span class="stitle">校验报告</span><span class="snote">固定章节 · 四份原件</span></div>
+            <div class="flow-arrow">←</div>
+            <div class="card step"><span class="sno">06</span><span class="stitle">流式回传</span><span class="snote">SSE 过程与结论分流</span></div>
+            <div class="flow-arrow">←</div>
+            <div class="card step"><span class="sno">05</span><span class="stitle">工具取证</span><span class="snote">查库 · 检索 · 读材料</span></div>
+          </div>
+        </div>
+        <div class="takeaway">过程只登记真实工具调用，全程留痕、可回放、可复核</div>
+        <div class="pagenum">08 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P9 效果呈现 ================= -->
+    <section class="slide" id="s9">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">05</span>效果呈现</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">真实运行的智能体广场<span style="font-size:16px;color:var(--ink-3);font-weight:500">　2026-11 实拍</span></h2>
+        </div>
+        <div class="shot-grid content">
+          <div class="card shot big">
+            <div class="img"><img src="assets/catalog.png" alt="智能体广场目录"></div>
+            <div class="cap"><span class="tag">广场</span>按角色筛选技能 · 卡片写明材料与入口</div>
+          </div>
+          <div class="card shot">
+            <div class="img"><img src="assets/chat.png" alt="技能选择菜单"></div>
+            <div class="cap"><span class="tag">对话</span>输入 $ 挂载技能</div>
+          </div>
+          <div class="card shot">
+            <div class="img"><img src="assets/form.png" alt="任务表单"></div>
+            <div class="cap"><span class="tag">运行</span>任务表单 · 提示备料</div>
+          </div>
+          <div class="card shot">
+            <div class="img"><img src="assets/decision.png" alt="人工决策卡"></div>
+            <div class="cap"><span class="tag">决策</span>缺证时由人选择</div>
+          </div>
+          <div class="card shot">
+            <div class="img"><img src="assets/report.png" alt="报告网页"></div>
+            <div class="cap"><span class="tag">交付</span>报告网页 · 结论先行</div>
+          </div>
+          <div class="card shot">
+            <div class="img"><img src="assets/api.png" alt="API 文档"></div>
+            <div class="cap"><span class="tag">接入</span>API 示例可复制</div>
+          </div>
+          <div class="card shot stat">
+            <span class="n1">9<small>项技能入口</small></span>
+            <span class="n2">覆盖 4 类业务<br>网页与 API 同一套技能</span>
+          </div>
+        </div>
+        <div class="takeaway">同一平台：筛选、挂载、决策、交付、接入全链路实拍</div>
+        <div class="pagenum">09 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P10 案例深看 ================= -->
+    <section class="slide" id="s10">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">05</span>效果呈现</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">实训班能不能开，由哪份材料决定？</h2>
+        </div>
+        <div class="case-wrap content">
+          <div class="case-story">
+            <div class="cs-chiprow">
+              <span class="pill blue">广州某高职 · 模拟演练</span>
+              <span class="pill ghost">产教决策报告技能</span>
+            </div>
+            <div class="cs-item ask"><span class="k">问题</span><span class="v">下学期是否增开 <b>18 人</b>机器人调试实训班？</span></div>
+            <div class="cs-item gap"><span class="k">第一轮</span><span class="v">仅有企业访谈 → 智能体<b>请求补充材料</b></span></div>
+            <div class="cs-item ev"><span class="k">补证</span><span class="v">排课表：唯一实训室 <b>20 个工位已满</b>，无法调课</span></div>
+            <div class="cs-item ev"><span class="k">证据</span><span class="v">3 家企业 36 人中 <b>16 人</b>首选调试培训——有人想学</span></div>
+            <div class="cs-item concl"><span class="k">结论</span><span class="v"><b>建议暂缓新增</b>：先补故障记录训练，腾出工位再评估</span></div>
+          </div>
+          <div class="case-shots">
+            <div class="card shot">
+              <div class="img"><img src="assets/report.png" alt="报告首页"></div>
+              <div class="cap"><span class="tag">报告</span>首页：问题 · 暂缓结论 · 模拟范围</div>
+            </div>
+            <div class="card shot">
+              <div class="img"><img src="assets/chart.png" alt="培训意向分布"></div>
+              <div class="cap"><span class="tag">图表</span>培训意向分布：调试 16 · 装调 12 · 维护 8</div>
+            </div>
+          </div>
+        </div>
+        <div class="takeaway">结论由证据决定，不由流程预设；交付网页 ＋ 四份可复核原件</div>
+        <div class="pagenum">10 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P11 实现细节 · 沙箱 ================= -->
+    <section class="slide" id="s11">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">06</span>实现细节</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">三道边界，让智能体只碰该碰的</h2>
+        </div>
+        <div class="sandbox-grid content">
+          <div class="card sbx-card b">
+            <span class="sbx-no">BOUNDARY 01</span>
+            <div class="sbx-title">上下文隔离</div>
+            <div class="sbx-list">
+              <div class="li"><code>--no-context-files</code> 断开目录链发现</div>
+              <div class="li">注入会话专属 <code>AGENTS.md</code></div>
+              <div class="li">只声明本任务可用的工具与边界</div>
+            </div>
+          </div>
+          <div class="card sbx-card g">
+            <span class="sbx-no">BOUNDARY 02</span>
+            <div class="sbx-title">文件边界</div>
+            <div class="sbx-list">
+              <div class="li">低权系统用户 <code>plaza-sandbox</code> 运行</div>
+              <div class="li"><code>sudo</code> 白名单包装脚本启动</div>
+              <div class="li">只能写本会话工作区</div>
+            </div>
+          </div>
+          <div class="card sbx-card o">
+            <span class="sbx-no">BOUNDARY 03</span>
+            <div class="sbx-title">凭据边界</div>
+            <div class="sbx-list">
+              <div class="li">模型 Key 服务端回环转发</div>
+              <div class="li">密钥永不进入沙箱</div>
+              <div class="li">配置文件 <code>640</code> ＋ 只读 ACL</div>
+            </div>
+          </div>
+        </div>
+        <div class="sbx-note"><span class="pill green">演进</span>gVisor（runsc）多用户工作区 · 本机已装待迁</div>
+        <div class="takeaway">每会话独立工作区，任务资料互不串扰</div>
+        <div class="pagenum">11 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P12 实现细节 · 协议与交付 ================= -->
+    <section class="slide" id="s12">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">06</span>实现细节</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">过程可回放，交付可复核</h2>
+        </div>
+        <div class="proto-grid content">
+          <div class="card proto-card">
+            <div class="pc-title"><span class="ic" style="background:var(--c-industry)"></span>流式协议 · SSE</div>
+            <div class="frame-flow">
+              <span class="fr">started</span><span class="fa">→</span>
+              <span class="fr">status</span><span class="fa">→</span>
+              <span class="fr hl">text</span><span class="fa">→</span>
+              <span class="fr">execution</span><span class="fa">→</span>
+              <span class="fr">usage</span><span class="fa">→</span>
+              <span class="fr hl">done</span>
+            </div>
+            <div class="proto-list">
+              <div class="li"><b>过程与结论分流</b>：过程叙述进 status，最终答复进 text</div>
+              <div class="li"><b>工具时间线</b>：只登记真实调用，不渲染参数细节</div>
+              <div class="li"><b>OpenAI 兼容出口</b>：<code>/v1/chat/completions</code> · JSON 与 SSE 双模</div>
+              <div class="li"><b>心跳保活</b>：15 秒心跳，长任务网络空闲不断流</div>
+              <div class="li"><b>断线自愈</b>：requestId 幂等，刷新可续跑原任务</div>
+            </div>
+          </div>
+          <div class="card proto-card">
+            <div class="pc-title"><span class="ic" style="background:var(--c-data)"></span>报告契约 · 交付</div>
+            <div class="proto-list" style="margin-top:16px">
+              <div class="li"><b>结构校验</b>：固定 h2 章节契约，缺章不发布</div>
+              <div class="li"><b>四份原件</b>：<code>report.md</code> · <code>report.json</code> · <code>validation.json</code> · <code>review.md</code> ＋ sha256</div>
+              <div class="li"><b>公开交付</b>：<code>/p/&lt;id&gt;/</code> 链接 · CSP 沙箱隔离</div>
+              <div class="li"><b>三层留痕</b>：<code>events.jsonl</code> · trace · <code>index.jsonl</code></div>
+              <div class="li"><b>超时兜底</b>：先抢救工件，再报超时</div>
+            </div>
+          </div>
+        </div>
+        <div class="takeaway">读者可以从结论回到材料，逐项复核每个数字</div>
+        <div class="pagenum">12 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P13 参数 ================= -->
+    <section class="slide" id="s13">
+      <div class="pad">
+        <span class="chapter-chip"><span class="no">07</span>参数</span>
+        <span class="brandmark">智能体搭子</span>
+        <div class="titleblock">
+          <h2 class="slide-title">关键参数<span style="font-size:16px;color:var(--ink-3);font-weight:500">　核实于 2026-11-06</span></h2>
+        </div>
+        <div class="param-heroes content">
+          <div class="card ph"><span class="v" style="color:var(--c-industry)">9</span><span class="k">技能入口</span><span class="s">7 技能包 ＋ 2 内置</span></div>
+          <div class="card ph"><span class="v" style="color:var(--c-teaching)">3</span><span class="k">在线模型</span><span class="s">优才 · Flash · Pro</span></div>
+          <div class="card ph"><span class="v">0.87<small>.1</small></span><span class="k">Pi 引擎</span><span class="s">RPC 驱动会话</span></div>
+          <div class="card ph"><span class="v" style="color:var(--c-data)">49</span><span class="k">产业目录</span><span class="s">岗位目录快照</span></div>
+          <div class="card ph"><span class="v" style="color:var(--c-data)">2,713</span><span class="k">岗位名称</span><span class="s">3,590 岗位节点</span></div>
+          <div class="card ph"><span class="v" style="color:var(--c-career)">1000<small>万+</small></span><span class="k">岗位数据</span><span class="s">治理 · 取数 · 成报</span></div>
+        </div>
+        <div class="param-table">
+          <div class="pt-row">
+            <div class="k">上下文窗口</div><div class="v"><b>262,144 token</b>（优才模型）· 输出上限 8,192</div>
+            <div class="k">任务超时</div><div class="v">技能任务 <b>20 分钟</b> · 通用对话 10 分钟</div>
+          </div>
+          <div class="pt-row">
+            <div class="k">材料上传</div><div class="v">单文件 <b>≤ 6 MiB</b> · PDF / DOCX / DOC / MD / TXT</div>
+            <div class="k">会话回收</div><div class="v">空闲 <b>30 分钟</b> · SSE 心跳 15 秒</div>
+          </div>
+          <div class="pt-row">
+            <div class="k">本机入口</div><div class="v">前端 <b>127.0.0.1:4188</b> · 后端 <b>127.0.0.1:8767</b></div>
+            <div class="k">技术栈</div><div class="v">Vue 3 ＋ Vite · Node 原生 HTTP · systemd 双服务</div>
+          </div>
+        </div>
+        <div class="param-src">来源：/api/health · /api/skills · 产业链岗位目录快照 2026-11-03 · 人才数据库按范围查询</div>
+        <div class="pagenum">13 / 14</div>
+      </div>
+    </section>
+
+    <!-- ================= P14 结尾 ================= -->
+    <section class="slide dark ending" id="s14">
+      <div class="pad">
+        <span class="end-chip">智能体搭子 · 产教智能体广场</span>
+        <h1>让每个智能体需求<br>长在同一个<span class="h">底座</span>上</h1>
+        <div class="end-sub">从工作流到通用智能体 —— Harness 管工程 · Agent 管判断 · 人作取舍</div>
+        <div class="quote-dots">
+          <span style="background:var(--c-industry)"></span>
+          <span style="background:var(--c-teaching)"></span>
+          <span style="background:var(--c-career)"></span>
+          <span style="background:var(--c-data)"></span>
+        </div>
+        <div class="end-meta">技术团队 · 2026 年 11 月 · 恳请批评指正</div>
+      </div>
+      <div class="pagenum">14 / 14</div>
+    </section>
+
+  </div>
+</div>
+
+<div class="nav">
+  <button id="prev" aria-label="上一页">‹</button>
+  <button id="next" aria-label="下一页">›</button>
+</div>
+
+<script>
+(function () {
+  if (location.search.indexOf('still') >= 0) document.documentElement.classList.add('still');
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cur = 0;
+  var stage = document.getElementById('stage');
+  var progress = document.getElementById('progress');
+
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function (s, idx) { s.classList.toggle('active', idx === cur); });
+    progress.style.width = ((cur + 1) / slides.length * 100) + '%';    if (history.replaceState) history.replaceState(null, '', '#' + (cur + 1));
+  }
+  function fit() {
+    var s = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  document.getElementById('prev').addEventListener('click', function () { show(cur - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(cur + 1); });
+  window.addEventListener('resize', fit);
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'Enter') { e.preventDefault(); show(cur + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(cur - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var tx = null;
+  window.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  window.addEventListener('touchend', function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 40) show(dx < 0 ? cur + 1 : cur - 1);
+    tx = null;
+  }, { passive: true });
+  var h = parseInt((location.hash || '#1').slice(1), 10);
+  fit();
+  show(isNaN(h) ? 0 : h - 1);
+
+  /* ?debug：把视口与当前页关键元素几何写入 DOM，供无头 dump-dom 量测 */
+  if (location.search.indexOf('debug') >= 0) {
+    window.addEventListener('load', function () {
+      var st = stage.getBoundingClientRect();
+      var sc = st.height / 720;
+      var out = ['VP=' + innerWidth + 'x' + innerHeight, 'scale=' + sc.toFixed(3)];
+      var sel = ['.titleblock h2', '.content', '.takeaway', '.case-wrap', '.case-shots', '.shot-grid',
+                 '.case-shots .shot', '.shot-grid .shot', '.shot img', '.toc-grid', '.layers', '.param-table'];
+      sel.forEach(function (s) {
+        var els = slides[cur].querySelectorAll(s);
+        for (var k = 0; k < els.length; k++) {
+          var r = els[k].getBoundingClientRect();
+          out.push(s + '[' + k + '] cssY=' + Math.round((r.top - st.top) / sc) +
+            '..' + Math.round((r.bottom - st.top) / sc) + ' h=' + Math.round(r.height / sc));
+        }
+      });
+      var meta = document.createElement('div');
+      meta.id = 'debugout';
+      meta.textContent = 'DEBUG::' + out.join(' | ');
+      document.body.appendChild(meta);
+    });
+  }
+})();
+</script>
+</body>
+</html>

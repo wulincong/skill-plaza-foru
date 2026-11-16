@@ -75,6 +75,8 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 113 | 共享报告渲染的自由输入、UI 元素、表格、主题与多图选型 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
 | 115 | 产教业务稿与共享渲染彻底分离 | 已实现；后续交接修复见 116 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
 | 116 | 完整产教报告、人类决策与端到端网页交付 | 已实现（真实模型交付与浏览器验收通过） | [116-industry-full-web-delivery.md](references/116-industry-full-web-delivery.md) |
+| 123 | 产教报告编号流程、取数前置呈现计划与验收硬约束 | 已实现（文档约定层；真实端到端待验证） | [123-industry-explicit-process-acceptance-and-presentation-plan.md](references/123-industry-explicit-process-acceptance-and-presentation-plan.md) |
+| 124 | 报告正文段落化渲染：结构化字段不作可见标签 | 已实现（本次交付重渲染验证；真实会话复验待验证） | [124-prose-paragraph-rendering-no-field-labels.md](references/124-prose-paragraph-rendering-no-field-labels.md) |
 
 | 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现；11-13按官方文档真实创建、回读及重复保存验证通过 | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
 | 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现；11-13出口变化故障已归因、提示修复与官方关注查询恢复 | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
