@@ -30,3 +30,14 @@
 取得115.231.218.150管理连接或由其管理员完成专用公钥授权；确认该服务器出站IP固定并与微信白名单匹配。先独立只读预检，后空闲切换；做断线不回落、自动重连、真实用户报告卡片及经明确确认的草稿保存回读。运维步骤见机器人deploy/egress-operations.md。
 
 参考：Requests官方Advanced Usage代理/SOCKS文档；OpenSSH官方ssh(1)、sshd_config(5)。
+
+
+### 2026-11-16 独立FRP微信信道实测
+
+用户明确要求只在192.168.10.7新增微信信道并请求一次token后，建立独立STCP测试配置。既有frpc版本0.63.0；复制其common运行参数到~/.config/wechat-frp-probe/channel.ini（目录0700、配置0600），但不复制原SSH代理段，不更改原frpc.ini。移除独立进程会冲突的admin/start/includes配置，使用新的provider/visitor名称、随机STCP密钥及独立日志。provider和visitor均位于报告主机；visitor仅监听127.0.0.1:19443，provider固定连接api.weixin.qq.com:443，不开放公网端口或通用SOCKS代理。配置verify和systemd单元检查通过，以独立wechat-frp-probe.service启动，未启用自启或设置生产WECHAT_API_PROXY。
+
+测试严格走本机visitor→115.231.218.150公网frps→本机provider→微信。Python HTTPSConnection只将底层TCP固定连接到本机visitor端口，TLS使用系统默认信任及api.weixin.qq.com SNI/主机名校验，没有直连回落。仅发出一次GET token，AppID和Secret在运行内存中读取，query和token不进入日志或回执。微信HTTP 200但业务返回40164，错误明确回显来源14.19.93.239，未获得token；总耗时0.962秒，TLSv1.2校验通过。凭据获取成功与HTTP连接成功不得混淆。
+
+该实验实证：公网frps中转后又交回本机provider连接目标，并不能将目标看到的来源改成frps公网IP。若用FRP实现固定微信出口，应让负责连接微信的provider/受限代理运行于固定公网出口一侧；只在本机增配映射不够。亦不能在内网frpc启用socks5/http_proxy插件后，就认定出站发生在frps侧。官方参考：https://gofrp.org/zh-cn/docs/examples/stcp/ 及 https://gofrp.org/zh-cn/docs/features/common/client-plugin/ 。
+
+完成后停止测试服务，保留私有配置和复测脚本~/.config/wechat-frp-probe/request-token.py。公众号与前后端生产服务仍active，既有SSH/网站配置未修改。复测需先启动该独立服务，再从wechat-ai-bot工作目录使用其venv和PYTHONPATH=.运行复测脚本；默认不应将这个已证实不能固定出口的实验信道接入生产。证据：web/server/traces/wechat-frp-token-probe-20261116.json（脱敏，无token/Secret）。公网出口节点授权仍待完成。
