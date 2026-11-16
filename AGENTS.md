@@ -36,6 +36,14 @@
 - 查看状态用 `systemctl --user status <服务名>`，跟踪日志用 `journalctl --user -u <服务名> -f`。重启后端后用 `curl -fsS http://127.0.0.1:8767/api/health` 验证；通过前端访问同一接口可验证代理。
 - unit 源文件在 `deploy/systemd/`。修改 unit 后把对应文件安装到 `~/.config/systemd/user/`，执行 `systemctl --user daemon-reload`，再重启对应服务。首次安装与开机自启步骤见 README「启动步骤」。
 
+## 微信接口固定出口
+
+- 报告主机 `192.168.10.7` 的微信API通过 SSH SOCKS 隧道固定从 `115.231.218.150` 出站；隧道使用已有的 `root@115.231.218.150` 密钥认证，本地仅监听 `127.0.0.1:1080`。
+- 隧道由 `wlc` 的 `wechat-ssh-egress.service` 管理，已 enable，用户 `Linger=yes`，无需登录或保持终端。SSH保活30秒、连续3次无响应退出，systemd等待3秒自动重连；自动重连已验证，未重启整机验收。
+- `wechat-bot.service` 的独立覆盖文件注入 `WECHAT_API_PROXY=socks5h://127.0.0.1:1080`。只代理微信请求，不设置全局代理；隧道故障时停止请求，不退回公司动态出口。
+- 检查状态：`systemctl --user status wechat-ssh-egress.service wechat-bot.service`；查看日志：`journalctl --user -u wechat-ssh-egress.service -n 50`。故障先检查隧道，不反复追加公司动态IP白名单；公众号重启前确认没有运行中的报告或草稿任务。
+- 详细配置和验证记录见 `.agents/skills/plaza-dev-notes/references/122-wechat-dedicated-fixed-egress.md`。AppSecret和SSH私钥保持在原受限配置中，禁止写进代码、文档或日志。
+
 ## 开发备忘录
 
 文件`MEMORANDUM.MD`，开发人员备忘录，这里记录一些小设计，但如果我没让你做这部分，先不用管它。
