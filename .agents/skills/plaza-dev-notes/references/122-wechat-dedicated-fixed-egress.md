@@ -1,6 +1,6 @@
 # 122 · 微信接口专用固定公网出口
 
-状态：客户端接入、依赖、专用公钥与部署模板已准备，96项回归通过；公网服务器管理授权缺失，未启用固定出口，未修改公司主机路由或现有公网转发。当前公众号仍使用已加入白名单的办公网出口。
+状态：2026-11-16已启用生产微信专用出口；使用用户指定的root@115.231.218.150及现有密钥建立127.0.0.1:1080 SSH SOCKS隧道。实际出口、token、关注查询、草稿GET/POST回读、失败不直连和自动重连均通过。早期专用账号授权方案未启用，不再是前置条件。下文保留设计与试验历史，现行配置见末尾。
 
 ## 动机
 
@@ -41,3 +41,16 @@
 该实验实证：公网frps中转后又交回本机provider连接目标，并不能将目标看到的来源改成frps公网IP。若用FRP实现固定微信出口，应让负责连接微信的provider/受限代理运行于固定公网出口一侧；只在本机增配映射不够。亦不能在内网frpc启用socks5/http_proxy插件后，就认定出站发生在frps侧。官方参考：https://gofrp.org/zh-cn/docs/examples/stcp/ 及 https://gofrp.org/zh-cn/docs/features/common/client-plugin/ 。
 
 完成后停止测试服务，保留私有配置和复测脚本~/.config/wechat-frp-probe/request-token.py。公众号与前后端生产服务仍active，既有SSH/网站配置未修改。复测需先启动该独立服务，再从wechat-ai-bot工作目录使用其venv和PYTHONPATH=.运行复测脚本；默认不应将这个已证实不能固定出口的实验信道接入生产。证据：web/server/traces/wechat-frp-token-probe-20261116.json（脱敏，无token/Secret）。公网出口节点授权仍待完成。
+
+
+### 2026-11-16 root SSH出口正式启用
+
+用户明确指定ssh -N -D 127.0.0.1:1080 root@115.231.218.150后，实测报告主机现有/home/wlc/.ssh/id_ed25519已能对root完成认证，StrictHostKeyChecking保持yes。此前wlc和wechat-egress被拒绝不代表root缺少授权；确认正确登录账号后无需新增授权、账号或移动公众号Secret。公网服务器实际出站IP为115.231.218.150，公众号白名单已包含它。
+
+现行单元是机器人deploy/wechat-ssh-egress.service，已安装并enable --now到wlc用户systemd；SSH -NT -D仅监听127.0.0.1:1080，使用现有密钥、IdentitiesOnly/BatchMode/StrictHostKeyChecking、ExitOnForwardFailure，ServerAliveInterval=30/CountMax=3，Restart=always/RestartSec=3。用户Linger=yes，已配置开机启动，未重启整台主机验收。没有修改云端账号、sshd、FRP或防火墙。
+
+机器人deploy/wechat-bot-egress.conf已安装为~/.config/systemd/user/wechat-bot.service.d/egress.conf，以Wants/After依赖上述单元并注入WECHAT_API_PROXY=socks5h://127.0.0.1:1080。检查无报告、草稿、近两分钟聊天及回调连接后，受控重启wechat-bot；签名GET健康检查和无确认草稿联网前拒绝通过。只影响微信HTTP客户端；不设置全局HTTP(S)_PROXY，Pi、LLM和岗位库仍走原路径。
+
+实测：经1080访问IP查询服务返回115.231.218.150；获取token约0.514秒成功，draft/count成功（55份）；主动停止隧道后微信请求抛连接错误、不回落办公网；恢复后读取成功。定向终止该SSH单元的主进程后，systemd创建新进程且真实API重新成功，验证自动重连。所有故障测试均在切换公众号生产流量前完成。生产切换后的独立同配置检查再次验证token和草稿读取成功；真实原用户关注查询成功；POST draft/get读取原河源报告成功，news类型、14张图片。本轮没有新增草稿或发真实粉丝测试消息。
+
+证据：web/server/traces/wechat-fixed-egress-active-20261116.json，不含token/Secret/openid或私钥。故障处理：检查systemctl --user status wechat-ssh-egress.service及本地1080监听，恢复该专用服务即可；不应通过追加办公网IP或关闭代理校验掩盖隧道故障。回退仍仅针对本次独立egress.conf，且直接出口必须在白名单；早期wechat-egress.service/19080专用账号配置仅为未启用的备选方案。

@@ -77,6 +77,6 @@
 
 ## 草稿接口与保存结果
 
-公众号草稿使用微信官方[新增草稿](https://developers.weixin.qq.com/doc/service/api/draftbox/draftmanage/api_draft_add.html)图文消息类型。独立导语在前，正文图片上传到微信后依次放在后面，封面使用永久素材；同一版本重复保存会复用已有草稿。
+公众号草稿使用微信官方[新增草稿](https://developers.weixin.qq.com/doc/subscription/api/draftbox/draftmanage/api_draft_add.html)图文消息类型。独立导语在前，正文图片上传到微信后依次放在后面，封面使用永久素材；同一版本重复保存会复用已有草稿。
 
 标题与摘要分别按官方32字、120字限制处理，正文按官方字符与体积限制检查。保存到草稿箱后仍由运营者在后台检查和决定后续发布。当前出口在微信白名单内且接口权限正常即可保存；固定出口方案用于减少未来网络IP变化造成的中断。
