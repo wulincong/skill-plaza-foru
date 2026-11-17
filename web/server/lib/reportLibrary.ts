@@ -37,6 +37,12 @@ export function catalog(action: string, input: object): Promise<CatalogResult> {
 
 export const saveQuestion = (): ChatQuestion => ({kind:'confirm',question:'是否将这份报告存入公众号后台草稿箱？',options:[{label:'保存到草稿箱'},{label:'暂不保存'}],note:'只存草稿，不群发。'})
 
+export function reviewDelivery(report:CatalogReport,kind='review',message?:string):LocalReportReply {
+  const date=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium'}).format(new Date(report.dataAt))
+  return {content:message || `《${report.title}》已就绪，数据读取于${date}。请查看下方报告；需要调整时直接提出修改要求，确认满意后点击“确认报告质量”。`,
+    webLinks:report.webLinks,downloads:report.downloads,reportId:report.id,kind}
+}
+
 export async function saveDraft(sessionId: string, reportId: string): Promise<{state:string;message:string}> {
   const timestamp=String(Math.floor(Date.now()/1000))
   const body=JSON.stringify({sessionId,reportId})
@@ -59,7 +65,10 @@ export async function localReportReply(sessionId: string, skill: string, text: s
       return {content:'未能核实当前成品版本，尚未执行保存草稿。报告仍然保留，请稍后重试。',kind:'draft-failed'}
     return
   }
-  if(consent.status==='declined')return {content:'好的，这份报告暂不保存到公众号草稿箱。',kind:'declined'}
+  if(consent.status==='reviewed' && consent.report)return {...reviewDelivery(consent.report,'reviewed','已确认这份报告质量合格。'),question:saveQuestion()}
+  if(consent.status==='review-required' && consent.report)return reviewDelivery(consent.report,'review-required','请先查看这份报告并确认质量合格；需要修改时可直接提出要求。')
+  if(consent.status==='review-stale' && consent.report)return reviewDelivery(consent.report,'review-stale','报告已更新，请查看并确认下面的最新版本。')
+  if(consent.status==='declined')return consent.report ? reviewDelivery(consent.report,'declined','好的，这份报告暂不保存到公众号草稿箱。') : {content:'好的，这份报告暂不保存到公众号草稿箱。',kind:'declined'}
   if(consent.status==='confirmed' && consent.reportId){
     try {
       const result=await saveDraft(sessionId,consent.reportId)
@@ -72,9 +81,7 @@ export async function localReportReply(sessionId: string, skill: string, text: s
   const found=await catalog('lookup',{sessionId,text})
   if(found.status!=='hit' || !found.report)return
   const report=found.report
-  const date=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',dateStyle:'medium'}).format(new Date(report.dataAt))
-  return {content:`已找到同范围的报告，共${report.pageCount}张图片，数据读取于${date}。`,question:saveQuestion(),
-          webLinks:report.webLinks,downloads:report.downloads,reportId:report.id,kind:'cache'}
+  return reviewDelivery(report,'cache')
 }
 
 export async function registerReport(input: {workspace:string;sessionId:string;runId:string} & DeliveryLinks): Promise<CatalogReport | undefined> {

@@ -19,7 +19,7 @@ from report_request import region_request,scope_matches,normalize,filter_intent_
 REPO = Path(__file__).resolve().parent.parent
 STORE = Path(os.environ.get('REPORT_LIBRARY_ROOT', str(REPO/'web/server/report-library'))).resolve()
 POLICY = 'wechat-report-library/1'
-DEEP_PROFILE = 'education-readable-editorial-v4.2'
+DEEP_PROFILE = 'education-readable-editorial-v4.3'
 PUBLIC_PROFILE = DEEP_PROFILE
 
 
@@ -48,6 +48,8 @@ def database():
       report_id TEXT NOT NULL, account_hash TEXT NOT NULL, state TEXT NOT NULL,
       media_id TEXT, error_code TEXT, updated_at REAL NOT NULL,
       PRIMARY KEY(report_id,account_hash));
+    CREATE TABLE IF NOT EXISTS report_reviews (
+      session_id TEXT PRIMARY KEY, report_id TEXT NOT NULL, approved_at REAL NOT NULL);
     ''')
     try:
         yield db
@@ -96,7 +98,7 @@ def verify_build_receipt(base,outline,quality):
     if started.tzinfo is None or finished.tzinfo is None or started>finished or finished.timestamp()>time.time()+300:raise ValueError('构建回执时间无效')
     if (outline.get('analysis',{}).get('schema')!='wechat-analysis/2'
         or outline['analysis'].get('reasoningPolicy')!='wechat-analytic-reasoning/2'
-        or outline.get('editorialPolicy')!='wechat-editorial-prose/3'
+        or outline.get('editorialPolicy')!='wechat-editorial-prose/4'
         or outline.get('readableLayout')!='wechat-readable-layout/1'
         or outline.get('chart_selection',{}).get('policy')!='wechat-chart-selection/2'):raise ValueError('新版成品缺少总分总论证、受信结构分析或适用图型选择')
     if receipt.get('shareCoverSha256')!=digest((base/'output/public/site/assets/share-cover.png').read_bytes()):raise ValueError('分享封面与构建回执不一致')
@@ -205,6 +207,7 @@ def register(args):
           'companies':data['total']['companies'],'cities':data['total'].get('cities'),
           'imageHashes':image_hashes,'articleLead':outline.get('articleLead'),
           'sourceRun':args.get('runId'), 'humanReview':'pending',
+          'sourceWorkspace':workspace.name,
           'programQuality':'pass','buildReceipt':receipt,'qualityProfile':DEEP_PROFILE if modern else 'education-general-v1'}
     from article_content import card_fields
     meta['reportCard']=card_fields(meta,links[0]['url'])
@@ -229,6 +232,7 @@ def register(args):
         temporary_meta.write_text(json.dumps(meta,ensure_ascii=False),'utf-8');os.replace(temporary_meta,destination/'report.json')
         session=checked_session(args['sessionId'])
         db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?,1,?)',(session,report_id,time.time()))
+        db.execute('DELETE FROM report_reviews WHERE session_id=?',(session,))
         row=db.execute('SELECT * FROM reports WHERE id=?',(report_id,)).fetchone()
         return {'status':row['state'],'report':public_record(row)}
 
@@ -261,7 +265,9 @@ def parse_brief(text):
 def lookup(args):
     brief=parse_brief(normalize(args.get('text','')))
     if not brief: return {'status':'miss','reason':'not_default_scope'}
-    age=min(max(float(args.get('maxAgeSeconds',7*86400)),0),30*86400)
+    # Snapshot reports retain their original data date; explicit fresh/time
+    # requirements bypass this default-scope cache rather than relabel old data.
+    age=min(max(float(args.get('maxAgeSeconds',30*86400)),0),30*86400)
     with database() as db:
         cutoff=datetime.fromtimestamp(time.time()-age,timezone.utc).isoformat().replace('+00:00','Z')
         row=db.execute("SELECT * FROM reports WHERE region=? AND industry=? AND profile=? AND state='ready' AND data_at>=? ORDER BY data_at DESC,created_at DESC LIMIT 1",
@@ -271,6 +277,7 @@ def lookup(args):
         if args.get('sessionId'):
             session=checked_session(args['sessionId'])
             db.execute('INSERT OR REPLACE INTO sessions VALUES(?,?,1,?)',(session,row['id'],time.time()))
+            db.execute('DELETE FROM report_reviews WHERE session_id=?',(session,))
         return {'status':'hit','report':report}
 
 
@@ -300,6 +307,23 @@ def consent(args):
     with database() as db:
         row=db.execute('SELECT s.*,r.metadata FROM sessions s JOIN reports r ON r.id=s.report_id WHERE s.id=?',(session,)).fetchone()
         if not row: return {'status':'unhandled'}
+        report=json.loads(row['metadata'])
+        public={key:report[key] for key in ('id','title','region','industry','dataAt','webLinks','downloads','pageCount','contentHash')}
+        public['reportCard']=report.get('reportCard',{})
+        approval=bool(re.search(r'(?:报告|成品|内容|质量|这版|这一版|这份).{0,12}(?:质量合格|合格|没问题|满意|可以定稿|确认定稿|验收通过)|^(?:确认报告质量|确认质量|验收通过|确认定稿|就用这版)',text))
+        approval=approval and not re.search(r'不合格|不满意|没合格|未合格|还有问题|如果|是否|能否|如何|怎么|吗|[?？]',text)
+        # A positive verdict with an additional edit still requests a new version.
+        revision_text=re.sub(r'(?:不需要|不用|无需|不要)(?:再)?(?:修改|优化|调整|补充)', '', text)
+        approval=approval and not re.search(r'修改|优化|重写|调整|改成|改为|改一下|精简|补充|删去|删掉|删除|重新生成',revision_text)
+        if approval:
+            urls=re.findall(r'https?://[^\s<>，。]+',text)
+            if urls and any(url!=report['webLinks'][0]['url'] for url in urls):return {'status':'review-stale','report':public}
+            db.execute('INSERT OR REPLACE INTO report_reviews VALUES(?,?,?)',(session,row['report_id'],time.time()))
+            db.execute('UPDATE sessions SET pending=1,updated_at=? WHERE id=?',(time.time(),session))
+            if re.search(r'暂不保存|不保存|不需要(?:保存|存)|先不存',text):
+                db.execute('UPDATE sessions SET pending=0 WHERE id=?',(session,))
+                return {'status':'declined','report':public}
+            if not re.search(r'保存|存入|存到|存草稿',text):return {'status':'reviewed','report':public}
         explicit=bool(re.fullmatch(r'(?:请帮我|麻烦帮我|麻烦|我想|我要|需要|请|帮我)?(?:把(?:刚才|这份|这个|刚刚)?(?:的)?(?:报告|成品))?(?:保存|存|存入|保存到|存到)(?:到)?(?:公众号|微信)?(?:后台)?(?:的)?草稿(?:箱)?',text))
         if (len(text)<=120 and '草稿' in text and re.search(r'保存|存入|存到',text)
             and not re.search(r'不|取消|别|如果|是否|能否|可否|如何|怎么|吗|么|[?？]|上一|之前|上个|另一',text)):
@@ -307,12 +331,72 @@ def consent(args):
         if not explicit and (not row['pending'] or time.time()-row['updated_at']>86400 or affirmative not in YES and text not in NO):
             # A generic yes after another topic must never authorize a draft.
             db.execute('UPDATE sessions SET pending=0 WHERE id=?',(session,))
+            db.execute('DELETE FROM report_reviews WHERE session_id=?',(session,))
             return {'status':'unhandled'}
         if text in NO:
             db.execute('UPDATE sessions SET pending=0,updated_at=? WHERE id=?',(time.time(),session))
-            return {'status':'declined'}
+            return {'status':'declined','report':public}
+        review=db.execute('SELECT 1 FROM report_reviews WHERE session_id=? AND report_id=? AND approved_at>?',(session,row['report_id'],time.time()-86400)).fetchone()
+        if not review:return {'status':'review-required','report':public}
         db.execute('UPDATE sessions SET pending=2,updated_at=? WHERE id=?',(time.time(),session))
         return {'status':'confirmed','reportId':row['report_id']}
+
+
+def restore(args):
+    """Hydrate only bound report inputs into a cache-only session for revision."""
+    session=checked_session(args['sessionId'])
+    root=(REPO/'web/server/workspace').resolve()
+    destination=Path(args['workspace']).resolve()
+    if destination!=root/session:raise ValueError('修订工作区与当前会话不一致')
+    target=destination/'wechat-report'
+    if target.is_symlink():raise ValueError('修订目录不能是符号链接')
+    if (target/'report_data.json').is_file():return {'status':'present'}
+    with database() as db:
+        row=db.execute('SELECT r.metadata FROM sessions s JOIN reports r ON r.id=s.report_id WHERE s.id=?',(session,)).fetchone()
+    if not row:return {'status':'absent'}
+    meta=json.loads(row[0]);source_session=meta.get('sourceWorkspace')
+    if not source_session:
+        index=REPO/'web/server/traces/index.jsonl'
+        if index.exists():
+            for line in index.open():
+                try:record=json.loads(line)
+                except ValueError:continue
+                if record.get('runId')==meta.get('sourceRun'):source_session=record.get('clientSessionId');break
+    if not source_session:return {'status':'absent'}
+    source=root/checked_session(source_session)/'wechat-report'
+    if source.is_symlink() or not source.resolve().is_relative_to(root):raise ValueError('修订来源目录不合法')
+    binding=json.loads((source/'report_binding.json').read_text())
+    if binding['source']['contentHash']!=meta['contentHash'] or digest((source/'report_data.json').read_bytes())!=binding['reportDataSha256']:
+        raise ValueError('缓存报告与原数据指纹不一致')
+    selected=[source/name for name in ('report_data.json','report_binding.json','plan.json','report_writing.json','report_analysis.json','report_research.json','data','output/analysis') if (source/name).exists()]
+    files=[item for path in selected for item in ([path] if path.is_file() else list(path.rglob('*')))]
+    if len(files)>2000 or any(item.is_symlink() for item in [*selected,*files]) or sum(item.stat().st_size for item in files if item.is_file())>256*1024*1024:
+        raise ValueError('缓存修订输入不符合文件边界')
+    temporary=destination/('.restore-report-'+uuid.uuid4().hex)
+    temporary.mkdir(mode=0o2775,parents=True)
+    try:
+        for path in selected:
+            to=temporary/path.relative_to(source);to.parent.mkdir(parents=True,exist_ok=True)
+            if path.is_dir():shutil.copytree(path,to,copy_function=shutil.copyfile)
+            else:shutil.copyfile(path,to)
+        # Rendering assets always come from the trusted installed skill.
+        assets=temporary/'assets';assets.mkdir()
+        from_root=REPO/'.agents/skills/wechat-report/assets'
+        for name in ('brand.json','themes.json','curriculum_map.json','echarts.min.js','official_context.json'):
+            shutil.copyfile(from_root/name,assets/name)
+        for item in [temporary,*temporary.rglob('*')]:item.chmod(0o2775 if item.is_dir() else 0o664)
+        previous=Path.cwd()
+        try:
+            os.chdir(temporary)
+            sys.path.insert(0,str(REPO/'.agents/skills/wechat-report/scripts'))
+            from bound_report import load_data
+            load_data(temporary/'report_data.json')
+        finally:os.chdir(previous)
+        if target.exists():raise ValueError('目标修订目录已存在，拒绝覆盖')
+        temporary.rename(target)
+    finally:
+        if temporary.exists():shutil.rmtree(temporary)
+    return {'status':'restored','reportId':meta['id']}
 
 
 def state(args):
@@ -323,7 +407,7 @@ def state(args):
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['register','lookup','consent','state','list','describe'])
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['register','lookup','consent','state','list','describe','restore'])
     action=parser.parse_args().action
     args=json.loads(sys.stdin.read(1024*1024) or '{}')
     if action=='list':

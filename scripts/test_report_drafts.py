@@ -33,6 +33,15 @@ class DraftTests(unittest.TestCase):
    db.execute('INSERT INTO reports(id,scope_key,region,industry,profile,title,data_at,created_at,content_hash,metadata) VALUES(?,?,?,?,?,?,?,?,?,?)',
               (self.id,'scope','广东省','人工智能','profile','report','2026-11-03',time.time(),'hash',json.dumps(self.meta)))
    db.execute('INSERT INTO sessions VALUES(?,?,2,?)',('session1',self.id,time.time()))
+   db.execute('INSERT INTO report_reviews VALUES(?,?,?)',('session1',self.id,time.time()))
+
+ def test_unreviewed_or_other_version_cannot_save(self):
+  with lib.database() as db:db.execute('DELETE FROM report_reviews')
+  with patch.object(drafts,'_post') as network:
+   with self.assertRaises(drafts.DraftError):drafts.save_report('session1',self.id,'account',lambda:'fake')
+   network.assert_not_called()
+  with lib.database() as db:db.execute('INSERT INTO report_reviews VALUES(?,?,?)',('session1','older-version',time.time()))
+  with self.assertRaises(drafts.DraftError):drafts.save_report('session1',self.id,'account',lambda:'fake')
 
  def fake_post(self,path,token,payload=None,image=None):
   self.calls.append(path)
@@ -138,7 +147,7 @@ class DraftTests(unittest.TestCase):
   self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),before)
 
  def test_oversized_prose_fails_before_token_or_upload(self):
-  self.meta['articleLead']={'policy':'wechat-article-lead/2','eyebrow':'产业观察','hook':'本地岗位','opening':'正文'*11000,'signals':[],'value':'阅读价值','guide':'完整报告','source':'来源'}
+  self.meta['articleLead']={'policy':'wechat-article-lead/3','eyebrow':'产业观察','hook':'本地岗位','opening':'正文'*11000,'signals':[],'value':'阅读价值','guide':'完整报告','source':'来源'}
   with lib.database() as db:db.execute('UPDATE reports SET metadata=?',(json.dumps(self.meta),))
   from unittest.mock import Mock
   token=Mock(return_value='fake')

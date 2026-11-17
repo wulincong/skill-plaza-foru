@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 123；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 126；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -78,6 +78,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 123 | 产教报告编号流程、取数前置呈现计划与验收硬约束 | 已实现（文档约定层；真实端到端待验证） | [123-industry-explicit-process-acceptance-and-presentation-plan.md](references/123-industry-explicit-process-acceptance-and-presentation-plan.md) |
 | 124 | 报告正文段落化渲染：结构化字段不作可见标签 | 已实现（本次交付重渲染验证；真实会话复验待验证） | [124-prose-paragraph-rendering-no-field-labels.md](references/124-prose-paragraph-rendering-no-field-labels.md) |
 
+| 125 | 报告正文预览、质量确认后存稿与公众号公众卡片 | 已实现（真实Vue/Pi修订/草稿回读/UTF-8与缓存验证） | [125-report-review-before-draft.md](references/125-report-review-before-draft.md) |
 | 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现；11-13按官方文档真实创建、回读及重复保存验证通过 | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
 | 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现；11-13出口变化故障已归因、提示修复与官方关注查询恢复 | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
 | 122 | 微信接口专用固定公网出口、SSH隧道与独立传输 | 11-16已启用115.231.218.150出口，token/关注/草稿回读与自动重连通过 | [122-wechat-dedicated-fixed-egress.md](references/122-wechat-dedicated-fixed-egress.md) |

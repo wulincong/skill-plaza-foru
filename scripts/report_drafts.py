@@ -129,6 +129,8 @@ def save_report(session_id,report_id,account,token_provider,http_transport=None)
         db.execute('BEGIN IMMEDIATE')
         session=db.execute('SELECT * FROM sessions WHERE id=? AND report_id=?',(session_id,report_id)).fetchone()
         previous=db.execute('SELECT * FROM drafts WHERE report_id=? AND account_hash=?',(report_id,account_hash)).fetchone()
+        review=db.execute('SELECT 1 FROM report_reviews WHERE session_id=? AND report_id=? AND approved_at>?',(session_id,report_id,time.time()-86400)).fetchone()
+        if not session or not review:raise DraftError('请先确认这份报告的质量合格')
         if previous and previous['state']=='saved':
             db.execute('UPDATE sessions SET pending=0,updated_at=? WHERE id=? AND report_id=?',(time.time(),session_id,report_id))
             return {'state':'saved','message':'这份报告已在公众号草稿箱中，已保留原草稿，没有重复创建。'}
