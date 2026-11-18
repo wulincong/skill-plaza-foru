@@ -1,0 +1,4 @@
+interface:
+  display_name: "智能课件生成"
+  short_description: "课证对齐、逐页出处可查的课件生成，实训安全内容需教师确认后定稿"
+  default_prompt: "使用 $courseware-studio 为《工业机器人现场编程》单元「工具坐标标定」生成 2 课时课件，材料用我上传的教材第 4 章与实训指导书任务三，课标条目 GQT-3.2 / GQT-3.3。"

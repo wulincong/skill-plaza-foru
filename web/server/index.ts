@@ -15,7 +15,7 @@ import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
 import { handleAdmin } from './lib/adminApi.ts'
 import { historyPrefix, browserSessionPattern, validSessionId, conversationItem } from './lib/browserHistory.ts'
 import { createServer } from 'node:http'
-import { chmodSync, mkdirSync, existsSync, readFileSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
+import { chmodSync, mkdirSync, existsSync, readFileSync, readdirSync, writeFileSync, copyFileSync, renameSync } from 'node:fs'
 import { join, dirname, basename, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -83,7 +83,7 @@ const MAX_BODY_BYTES = 512_000
    base64 膨胀 4/3，6MB 文件 ≈ 8MB body，上限放宽到 10MB */
 const MAX_UPLOAD_BODY_BYTES = 10_000_000
 const MAX_UPLOAD_FILE_BYTES = 6 * 1024 * 1024
-const UPLOAD_EXT_WHITELIST = new Set(['.pdf', '.docx', '.doc', '.md', '.txt', '.csv', '.xlsx'])
+const UPLOAD_EXT_WHITELIST = new Set(['.pdf', '.docx', '.doc', '.md', '.txt', '.csv', '.xlsx', '.png', '.jpg', '.jpeg', '.webp'])
 
 /* ------------------------------------------------------------
    Pi 引擎注册：缺少 CLI 时服务启动失败，避免页面显示无法运行的引擎。
@@ -227,6 +227,17 @@ const EXTRA_ALLOWED_ORIGINS = new Set(
     .map((s) => s.trim().replace(/\/+$/, '').toLowerCase())
     .filter(Boolean),
 )
+
+/** class-placement 续跑判定：工作区是否已有一次求解产物（output 下 placement- 目录里的 result.json） */
+function hasPlacementSolve(workspaceDir?: string): boolean {
+  if (!workspaceDir) return false
+  try {
+    return readdirSync(join(workspaceDir, 'output'))
+      .some(name => name.startsWith('placement-') && existsSync(join(workspaceDir, 'output', name, 'result.json')))
+  } catch {
+    return false
+  }
+}
 
 function originAllowed(origin: string | undefined): boolean {
   if (!origin) return true // 同源或非浏览器
@@ -626,7 +637,7 @@ async function handleUpload(req: any, res: any) {
   const dot = cleaned.lastIndexOf('.')
   const ext = dot >= 0 ? cleaned.slice(dot).toLowerCase() : ''
   if (!cleaned || cleaned === '.' || cleaned === '..' || !UPLOAD_EXT_WHITELIST.has(ext)) {
-    sendJson(res, 400, { error: '仅支持 pdf / docx / doc / md / txt / csv / xlsx 文件。' })
+    sendJson(res, 400, { error: '仅支持 pdf / docx / doc / md / txt / csv / xlsx / png / jpg / webp 文件。' })
     return
   }
   let data: Buffer
@@ -1213,7 +1224,7 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
     : {enabled:false}
   const earlierIndustryMessages = new Set<string>()
   const additionalIndustrySources: string[] = []
-  if (skill === 'industry-education-report') {
+  if (skill === 'industry-education-report' || skill === 'training-program-design') {
     for (const run of priorRuns) {
       if (run.skill !== skill) continue
       for (const text of run.industryUserSources ?? []) earlierIndustryMessages.add(text)
@@ -1418,8 +1429,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
       if (manifest) {
         const content = skill === 'industry-education-report' ? manifest.files?.find(file => file.name === '结构化报告') : undefined
         const metrics = content ? JSON.parse(readFileSync(join(entry.workspaceDir, content.path), 'utf8')).metrics : []
+        /* class-placement 无 industry 指标口径，仍复用共享呈现检查的结构校验：
+           图表占位、残缺图块、单独引用 figure 等在此拦截；是否有图由技能提示词约束 */
         delivery = publishDelivery(entry.workspaceDir, manifest, DELIVERIES_DIR, deliveryBaseUrl(req),
-          skill === 'industry-education-report' ? file => checkReportWebEntry(file, metrics) : undefined)
+          skill === 'industry-education-report' ? file => checkReportWebEntry(file, metrics)
+          : skill === 'class-placement' ? file => checkReportWebEntry(file) : undefined)
       }
       else if (htmlReportFile || pdfReportFile) delivery = publishLegacyDelivery(htmlReportFile, pdfReportFile, taskTitle, DELIVERIES_DIR, deliveryBaseUrl(req))
     } catch (error: any) {
@@ -1762,9 +1776,15 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           (reportContinuations > 0 || !!deliveryError || expectsIndustryBuild(originalUserText, finalText))
         const retryWechat = !deliveryError && needsReportFollowThrough({skill,request:String(latest.content),answer:finalText,
           hasDelivery:Boolean(delivery.webLinks?.length),hasQuestion:Boolean(question),hasData:hasReportData,attempts:reportContinuations,requested:reportIntent.enabled})
-        if (ev.resultType === 'success' && entry && (retryWechat || (missingIndustryBuild && reportContinuations < 1))) {
+        /* class-placement：以计划收尾且无决策卡、无交付时自动续跑一次。
+           决策卡的答复轮（answerTo）必须推进到交付；普通轮看是否已有求解产物，
+           避免对已交付会话的随问答疑误触发 */
+        const missingPlacementSolve = skill === 'class-placement' && ev.resultType === 'success' && !question &&
+          !delivery.downloads?.length &&
+          (answerTo ? true : !hasPlacementSolve(entry?.workspaceDir))
+        if (ev.resultType === 'success' && entry && (retryWechat || missingPlacementSolve || (missingIndustryBuild && reportContinuations < 1))) {
           reportContinuations++
-          recorder.note({reportFollowThrough:{attempt:reportContinuations,reason:'no-verified-report'}})
+          recorder.note({reportFollowThrough:{attempt:reportContinuations,reason: missingPlacementSolve ? 'no-solver-run' : 'no-verified-report'}})
           completedReportUsage=lastUsage
           reportRoundOffset=Math.max(0,...usageRounds.map(round=>round.round))
           deliveryCaptured=false
@@ -1775,6 +1795,10 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
             instruction = `本轮尚无可交付的产教报告。回到本会话工作区，读取 ${skillDir(skill)}/references/data-contract.md。已有本轮有效 build 时直接继续呈现，不重复构建。若本轮是纯呈现修订，按渲染技能复用上一已交付版本并重新登记网页；内容生成或修订则用同一证据完成 edition=full 的 report.json 和 review.md，再运行 python3 ${skillDir(skill)}/scripts/report.py build report.json --review review.md。关键缺口仍需用户选择时只提问。`
             if (previousFailure) instruction += `上次交付检查：${previousFailure}。`
             instruction += INDUSTRY_PRESENTATION_HANDOFF
+          } else if (missingPlacementSolve) {
+            instruction = hasPlacementSolve(entry?.workspaceDir)
+              ? `用户已确认分班，本轮尚未交付。继续完成交付：读取 report-rendering 以 result.json 为数据源制作班级画像对比网页（每个均衡维度至少一幅统计图，经 chart-visualization 绘制并复验后以完整图块嵌入），再运行 python3 ${skillDir(skill)}/scripts/make_files_manifest.py <placement输出目录> --out files.json，并用渲染技能的 register_delivery.py 登记网页与名册、审计下载项。不能再次只给计划。`
+              : `本轮只描述了计划，还没有运行分班脚本。回到本会话工作区实际执行：先运行 python3 ${skillDir(skill)}/scripts/read_roster.py 解析名单并向用户转述字段完整性报告，再按参数组装 params.json 运行 python3 ${skillDir(skill)}/scripts/assign.py 求解（参数 schema 见 ${skillDir(skill)}/references/solver-contract.md），然后给出各班规模与均衡摘要并以 plaza-question 决策卡等待用户确认或重掷。本轮结束时必须有字段报告、求解产物与决策卡之一，不能再次只给计划。`
           } else {
             const dir=join(entry.workspaceDir,'wechat-report')
             const installed=skillDir('wechat-report')
@@ -1896,6 +1920,23 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         writeFileSync(scratch, JSON.stringify(context), { flag: 'wx', mode: 0o640 })
         renameSync(scratch, join(entry.workspaceDir, 'industry-report-input.json'))
         // The shared query Skill owns construction, execution, budgets and diagnostics.
+        const queryScratch = join(entry.workspaceDir, `.talent-query-turn-${runId}`)
+        writeFileSync(queryScratch, JSON.stringify({schema:'talent-query-turn/1',runId,startedAt,
+          caller:skill,messages:[...earlierIndustryMessages,originalUserText]}), {flag:'wx',mode:0o640})
+        renameSync(queryScratch, join(entry.workspaceDir, 'talent-query-turn.json'))
+      }
+      if (skill === 'training-program-design' && entry) {
+        // program-input.json 供 program.py 校验用户原话与附件白名单（决策 userReply、user: 来源 excerpt）
+        const scratch = join(entry.workspaceDir, `.program-input-${runId}`)
+        const context = {
+          runId,
+          message: originalUserText,
+          earlierMessages: [...earlierIndustryMessages],
+          uploads: [...new Set([...priorRuns.flatMap(r => r.attachmentFiles ?? r.attachments?.filter(name => basename(name) === name).map(name => ({ path: 'uploads/' + name, name })) ?? []), ...attachmentFiles].map(f => f.path))],
+        }
+        writeFileSync(scratch, JSON.stringify(context), { flag: 'wx', mode: 0o640 })
+        renameSync(scratch, join(entry.workspaceDir, 'program-input.json'))
+        // talent_query 原生工具要求本轮上下文（pi-tools.mjs 校验 schema 与消息）
         const queryScratch = join(entry.workspaceDir, `.talent-query-turn-${runId}`)
         writeFileSync(queryScratch, JSON.stringify({schema:'talent-query-turn/1',runId,startedAt,
           caller:skill,messages:[...earlierIndustryMessages,originalUserText]}), {flag:'wx',mode:0o640})

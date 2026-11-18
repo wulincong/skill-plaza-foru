@@ -85,6 +85,33 @@ export const SKILLS: Skill[] = [
       '使用 $industry-education-report，为广州高职院校分析机器人产业的岗位门槛，并建议哪些实训项目应优先调整。',
   },
   {
+    slug: 'training-program-design',
+    name: '产教培养方案设计',
+    identifier: 'training-program-design',
+    categoryId: 'industry',
+    audiences: ['manager', 'teacher'],
+    summary: '基于区域岗位取证与国家专业教学标准原文核对，生成或修订产教融合专业人才培养方案，学时学分红线硬校验。',
+    tags: ['培养方案', '产教融合', '课程体系'],
+    preconditions: '专业名称与代码 + 办学层次学制 + 服务区域 + 目标产业范围',
+    outputs: [
+      '培养方案网页版（十一章 + 证据附录）',
+      '可编辑 Word 版',
+      '学时学分红线校验记录',
+      '课程开发任务包',
+      '新旧版差异报告（提供旧版时）',
+    ],
+    dependencies: [
+      '岗位统计由人才数据库查询技能提供，每项岗位判断可回溯查询口径',
+      '国家专业教学标准需知识库或用户提供原文；取不到的要素标待核对并请用户决策',
+    ],
+    limitations: [
+      '任一红线（总学时、实践占比、公共基础课、选修、核心课门数等）不达标即阻断出稿。',
+      '实施保障只引用用户提供的办学条件材料，未提供则标注待补，不编造师资或合作企业。',
+    ],
+    minimalInput:
+      '使用 $training-program-design，为我校高职三年制大数据技术专业（510205）制订产教融合人才培养方案，服务广东省的数字经济产业。',
+  },
+  {
     slug: 'tech-forecast',
     name: '新岗位·新技术预判',
     identifier: 'tech-forecast',
@@ -161,6 +188,35 @@ export const SKILLS: Skill[] = [
     ],
     minimalInput:
       '使用 $classroom-assistant，基于我上传的《新能源汽车概论》第 3 章资料，生成 5 道课堂练习并附答案要点。',
+  },
+  {
+    slug: 'courseware-studio',
+    name: '智能课件生成',
+    identifier: 'courseware-studio',
+    categoryId: 'teaching',
+    audiences: ['teacher'],
+    summary: '在允许的教材与实训材料范围内生成课证对齐、逐页出处可查的课件，实训安全内容确认后定稿。',
+    tags: ['课件生成', '课证对齐', '证据可查'],
+    preconditions: '教学单元主题、课时数与允许使用的材料范围',
+    outputs: [
+      '可编辑 PPTX 课件',
+      '课件网页预览版',
+      '逐页出处与课标对齐标注',
+      '版权与授权状态清单',
+      '教师待确认清单（实训安全步骤）',
+      '资源入库清单',
+    ],
+    dependencies: [
+      '教材章节、教案或实训指导书（上传或明确列示）',
+      '可选：课程标准条目、学生程度、自备图片素材',
+    ],
+    limitations: [
+      '课件内容只来自允许的材料，未覆盖要点标注待教师补充，不用通用知识顶替。',
+      '图片只用教师素材与教材原文图，示意图明确标注，不生成图片冒充设备实图。',
+      '涉及实训安全的内容未经教师确认步骤顺序，不定稿导出。',
+    ],
+    minimalInput:
+      '使用 $courseware-studio，为《工业机器人现场编程》单元「工具坐标标定」生成 2 课时课件，材料用我上传的教材第 4 章与实训指导书任务三。',
   },
   {
     slug: 'ai-interview',
@@ -268,6 +324,32 @@ export const SKILLS: Skill[] = [
     dependencies: ['目标地区与行业', '报告读者及希望回答的问题'],
     limitations: ['未配置数据库时仅可使用明确标注的离线示例。', '直接生成图片成品供审核；存草稿需要明确要求，不自动群发或发布。'],
     minimalInput: '使用 $wechat-report，为广东省人工智能产业生成一份人才需求报告，读者是院校管理者；直接交付报告图片。',
+  },
+  {
+    slug: 'class-placement',
+    name: '智能分班',
+    identifier: 'class-placement',
+    categoryId: 'teaching',
+    audiences: ['manager', 'teacher'],
+    summary: '公平可审计的均衡分班与基于能力画像的分层分班：种子与日志全程留痕，公示前一次受控重掷。',
+    tags: ['均衡分班', '分层分班', '审计复现'],
+    preconditions: '学生名单（CSV/XLSX）+ 班级数量、容量与分班模式',
+    outputs: [
+      '每班名册 CSV 与全员名册',
+      '班级画像对比报告网页（分布图与均值差）',
+      '审计包：随机种子、哈希链求解日志、复现命令',
+      '分层模式的志愿满足率与未满足原因',
+    ],
+    dependencies: [
+      '学生名单（编号或姓名必需，性别、成绩、测评、志愿可部分缺失）',
+      '分班参数：班级数量、每班容量上限、均衡或分层模式',
+    ],
+    limitations: [
+      '分班由固定种子脚本求解，随机性可复现；重掷最多一次且留痕。',
+      '特殊约束只采用申报过的条目，未申报的个人背景不采集、不使用。',
+      '分层模式需要测评画像字段，缺失时先说明再由用户决定处理方式。',
+    ],
+    minimalInput: '使用 $class-placement，上传名单后按均衡模式分 6 个班，每班上限 50 人，维度按成绩与性别。',
   },
 ]
 

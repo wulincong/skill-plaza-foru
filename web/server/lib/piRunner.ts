@@ -29,6 +29,8 @@ import {
   INDUSTRY_DECISION_SUFFIX,
   SKILL_COMPANION_MOUNTS,
   TEACHING_DIAGNOSIS_TURN_SUFFIX,
+  CLASS_PLACEMENT_TURN_SUFFIX,
+  TRAINING_PROGRAM_TURN_SUFFIX,
   SKILL_PROMPTS,
   INSTALLED_SKILLS,
   SIDECAR_SKILLS,
@@ -560,11 +562,11 @@ export class PiRunner extends AgentRunner {
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
-    /* 伴生技能统一查表挂载（skills.ts SKILL_COMPANION_MOUNTS）；pi-tools 扩展仍限产教会话 */
+    /* 伴生技能统一查表挂载（skills.ts SKILL_COMPANION_MOUNTS）；pi-tools 扩展仍限需 talent 原生工具的会话 */
     for (const companion of SKILL_COMPANION_MOUNTS[opts.skill ?? ''] ?? []) {
       args.push('--skill', skillDir(companion))
     }
-    if (opts.skill === 'industry-education-report') {
+    if (opts.skill === 'industry-education-report' || opts.skill === 'training-program-design') {
       args.push('--extension', join(skillDir('talent-data-query'),'scripts/pi-tools.mjs'))
     }
     if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
@@ -734,6 +736,12 @@ export class PiRunner extends AgentRunner {
     }
     if (skill === 'teaching-diagnosis') {
       content += TEACHING_DIAGNOSIS_TURN_SUFFIX
+    }
+    if (skill === 'class-placement') {
+      content += CLASS_PLACEMENT_TURN_SUFFIX
+    }
+    if (skill === 'training-program-design') {
+      content += TRAINING_PROGRAM_TURN_SUFFIX
     }
     if (skill === 'ai-interview') {
       content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'
