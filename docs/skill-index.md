@@ -12,6 +12,7 @@
 - [就业指导](../.agents/skills/career-guidance/docs/index.md) （`career-guidance`）
 - [智能分班使用指南](../.agents/skills/class-placement/docs/index.md) （`class-placement`）
 - [课堂助教](../.agents/skills/classroom-assistant/docs/index.md) （`classroom-assistant`）
+- [排课智能体使用指南](../.agents/skills/course-scheduling/docs/index.md) （`course-scheduling`）
 - [智能课件生成](../.agents/skills/courseware-studio/docs/index.md) （`courseware-studio`）
 - [文档翻译](../.agents/skills/doc-translate/docs/index.md) · [怎样核对一份双栏译文](../.agents/skills/doc-translate/docs/review.md) （`doc-translate`）
 - [产教决策报告](../.agents/skills/industry-education-report/docs/index.md) （`industry-education-report`）

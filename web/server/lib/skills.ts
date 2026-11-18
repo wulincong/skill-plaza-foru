@@ -145,6 +145,7 @@ export const SKILL_COMPANION_MOUNTS: Record<string, readonly string[]> = {
   'training-program-design': ['talent-data-query', 'chart-visualization', 'report-rendering'],
   'teaching-diagnosis': ['chart-visualization', 'report-rendering'],
   'class-placement': ['chart-visualization', 'report-rendering'],
+  'course-scheduling': ['chart-visualization', 'report-rendering'],
 }
 
 export const CLASS_PLACEMENT_TURN_SUFFIX = '\n\n（智能分班本轮规则：分班结果只能来自实际运行技能脚本 assign.py 的输出，不在对话中手工分班或改写结果；解析名单先运行 read_roster.py 并把字段完整性报告如实告知用户。首次求解后先给各班规模与均衡/志愿满足摘要，再用 plaza-question 单选卡让用户选择确认本次分班或用新种子重掷一次，等真实回复不代选；选择重掷就把 params.json 的 attempt 改为 2 重新求解，此后不再提供重掷选项（脚本拒绝第三次求解）。用户确认后读取 report-rendering 交付班级画像对比网页：每个均衡维度至少一幅统计图（成绩等数值维度用分组分布图型，性别等分类维度用构成对比图型），经 chart-visualization 绘制并复验后以完整图块嵌入，只给数值表不算完成；分层模式另加志愿满足构成图。随后运行 make_files_manifest.py 生成 files.json，用 register_delivery.py --files-from 一并登记每班名册与审计文件；未确认前不生成交付。分层模式志愿未满足必须给出量化原因。敏感个人字段只进名册，不进报告正文。最终回复只保留简短结论与平台入口。）'
@@ -238,10 +239,17 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '任一不达标即阻断构建并说明原因；关键取舍以决策卡提交，未获明确选择不出终稿。' +
     '构建产物（正文、结构化方案、校验记录、课程开发任务包、Word）交 report-rendering 渲染网页并登记全部文件，' +
     '只有平台产生真实网页入口才算交付成功。',
+  'course-scheduling':
+    '你正在按 course-scheduling SKILL 工作。作为教务系统的前置沙盘为职业院校排课：' +
+    '用 schedule.py 解析教学任务、教室资源、作息与校历模板并求解 2-3 套零冲突方案，' +
+    '教师、班级、教室、容量类型、实训台套数、连排、占用时段等硬约束必须全部满足，排不进的课程输出归因与放松建议，' +
+    '绝不交付带冲突的课表；企业轮岗、1+X 考试窗口、产业学院混编班、双师同堂等产教约束按技能 references 建模。' +
+    '方案对比网页交接共享 report-rendering 渲染交付，用户经 plaza-question 决策卡选定方案后再导出课表 Excel 与 ics 日历，' +
+    '等待选择期间不构建导出；学期中调停课走最小扰动增量重排并留变更清单。缺关键字段先问用户，不猜默认值。',
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report', 'teaching-diagnosis', 'class-placement', 'courseware-studio', 'training-program-design'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report', 'teaching-diagnosis', 'class-placement', 'courseware-studio', 'training-program-design', 'course-scheduling'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {

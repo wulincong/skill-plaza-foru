@@ -1,0 +1,4 @@
+interface:
+  display_name: "排课智能体"
+  short_description: "零冲突多方案排课，产教约束建模与增量调课"
+  default_prompt: "使用 $course-scheduling，用上传的教学任务、教室、作息与校历数据排本学期课表，生成三套方案对比并推荐；数控实训室周五下午不可用。"

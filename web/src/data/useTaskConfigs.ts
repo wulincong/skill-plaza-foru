@@ -252,6 +252,52 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
     knowledge: [],
   },
   {
+    slug: 'course-scheduling',
+    eyebrow: '排课沙盘工作台',
+    lead: '上传教学任务、班级、教室、作息与校历模板，生成零冲突的多套课表方案；选定后导出课表与日历。',
+    output: '方案对比网页、课表 Excel、课程日历 ics 与冲突归因',
+    promptInstruction: '请先校验模板数据，缺关键字段先问我；求解后给我三套方案对比与推荐，我选定方案后再导出课表和日历。',
+    sections: [
+      {
+        number: '01',
+        title: '学期与偏好',
+        description: '学期信息在校历模板内；这里补充会影响求解的偏好。',
+        fields: [
+          { id: 'semester', label: '学期名称', type: 'text', required: true, placeholder: '例如：2026-2027学年第一学期' },
+          { id: 'preference', label: '方案侧重', type: 'choice', required: true, options: ['自动生成三套对比', '教师到校天数少', '班级与实训室负载均衡'], help: '默认生成教师集中、负载均衡、折中三套方案供对比。' },
+          { id: 'extra', label: '补充说明', type: 'textarea', span: 'full', placeholder: '例如：体育课尽量不排午后；数控实训室周五下午被企业培训占用；双师课按模板教师列填写' },
+        ],
+      },
+      {
+        number: '02',
+        title: '调停课（可选）',
+        description: '学期中增量重排时填写；不填默认整学期排课。',
+        fields: [
+          { id: 'changes', label: '调停课需求', type: 'textarea', span: 'full', placeholder: '例如：T08 老师下周一外出停课；大数据2402 的平台部署实训停开；新开网络安全进阶 2 节给大数据2401' },
+        ],
+      },
+    ],
+    example: {
+      semester: '2026-2027学年第一学期',
+      preference: '自动生成三套对比',
+      extra: '体育课尽量不排午后，实训课错峰',
+      changes: '',
+    },
+    autoFillExample: true,
+    uploads: [
+      { id: 'info', label: '学校信息（必传）', accept: '.csv,.xlsx', demoFile: 'schedInfo', help: '学校名称、学期、开学周一与总周数；模板首表。' },
+      { id: 'tasks', label: '教学任务（必传）', accept: '.csv,.xlsx', demoFile: 'schedTasks', help: '课程、班级、教师、周学时、连排与教室要求；双师/混编用分号分隔多值。' },
+      { id: 'classes', label: '班级名单（必传）', accept: '.csv,.xlsx', demoFile: 'schedClasses', help: '班级ID、名称、人数与专业。' },
+      { id: 'teachers', label: '教师名单（必传）', accept: '.csv,.xlsx', demoFile: 'schedTeachers', help: '教师ID、姓名与授课偏好（集中/分散）；任务表按 ID 或姓名引用。' },
+      { id: 'rooms', label: '教室与实训室（必传）', accept: '.csv,.xlsx', demoFile: 'schedRooms', help: '容量、类型、设备与台套数；台套数是排课硬约束。' },
+      { id: 'timetable', label: '作息时间（必传）', accept: '.csv,.xlsx', demoFile: 'schedTimetable', help: '节次、起止时间与时段（上午/下午）；连排不跨时段。' },
+      { id: 'calendar', label: '校历（必传）', accept: '.csv,.xlsx', demoFile: 'schedCalendar', help: '每周一行；假期、1+X 考试窗口、企业轮岗用标记列注明。' },
+      { id: 'blocks', label: '占用约束与权重（可选）', accept: '.csv,.xlsx', demoFile: 'schedBlocks', help: '每周不可用时段（例会、检修）；软约束权重。' },
+    ],
+    requiredUpload: { accept: '.csv,.xlsx', label: '教学任务表' },
+    knowledge: [],
+  },
+  {
     slug: 'tech-forecast',
     eyebrow: '技术预判工作台',
     lead: '说明地区、技术方向与预判窗口，SKILL 会结合岗位库佐证与内置证据快照，生成证据分级的前瞻报告。',
