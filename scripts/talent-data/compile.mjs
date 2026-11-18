@@ -1,4 +1,4 @@
-import { DIMENSIONS, METRICS, sqlString, likeTerm, canonical, hash } from './core.mjs'
+import { DIMENSIONS, METRICS, LIMITS, sqlString, likeTerm, canonical, hash } from './core.mjs'
 import {trackExpression,skillFields} from './analysis.mjs'
 
 function localPredicates(cohort) {
@@ -50,6 +50,7 @@ function baseFields(request) {
     if(quality||request.metrics.some(m=>METRICS[m].dimension===field))fields[`missing_${field}`]=`COALESCE(SUM(${clean(DIMENSIONS[field])} IS NULL),0)`
   }
   if(request.metrics.includes('companies.count'))fields.companies="COUNT(DISTINCT CASE WHEN p.company_archive_id IS NOT NULL AND CAST(p.company_archive_id AS CHAR) NOT IN ('','0') THEN p.company_archive_id END)"
+  if(request.metrics.includes('description.samples'))fields.describedN="COALESCE(SUM(NULLIF(TRIM(p.description),'') IS NOT NULL),0)"
   return fields
 }
 function needsAddress(request,cohort) {
@@ -113,6 +114,13 @@ export function buildPlan(request,cohorts) {
       const track=request.metrics.includes('track_skills.cross')?trackExpression(request):sqlString('__other__')
       const hits=`JSON_OBJECT(${Object.entries(skillFields(request)).map(([w,s])=>`${sqlString(w)},${s}`).join(',')})`
       jobs.push({id:`${prefix}:skills`,cohortId:prefix,kind:'skills',sql:`SELECT ${jsonRow({track,count:'COUNT(*)',describedN:"COALESCE(SUM(NULLIF(TRIM(p.description),'') IS NOT NULL),0)",hits})} ${base} GROUP BY ${track}`})
+    }
+    if(request.metrics.includes('description.samples')) {
+      // Sampling reads unaggregated rows; truncation happens in SQL, masking in redaction.mjs before any artifact persists.
+      // Per-row NULLIF(TRIM()) serializes as false on this MySQL 5.7 build outside GROUP BY context; CAST keeps values textual.
+      const text=expression=>`CAST(${clean(expression)} AS CHAR)`
+      const fields={positionId:'CAST(p.id AS CHAR)',title:text('p.name'),education:text('p.education'),experience:text('p.experience'),excerpt:`SUBSTRING(p.description,1,${LIMITS.sampleExcerptChars})`,charCount:'CHAR_LENGTH(p.description)'}
+      jobs.push({id:`${prefix}:samples`,cohortId:prefix,kind:'description-samples',sql:`SELECT ${jsonRow(fields)} ${base} AND ${clean('p.description')} IS NOT NULL ORDER BY p.id ASC LIMIT ${LIMITS.samplesPerCohort}`})
     }
     if(request.metrics.some(m=>m.startsWith('salary.')||['track_salary.summary','city_salary.summary'].includes(m))) {
       const {status,mid}=salaryParts()

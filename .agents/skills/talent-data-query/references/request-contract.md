@@ -59,11 +59,13 @@ stdout 返回 talent-preview/1：总体状态、规范化/实际筛选、指标�
 - `inspect --result data/<id>/result.json --full` 在本会话校验清单和内容指纹后返回完整 talent-result/1，不访问数据库，也不读写查询缓存。省略 `--full` 保留有限行预览。
 - result.json：talent-result/1；每个指标保留 metricId、name、cohortId、版本、值或 rows、单位、分母、缺失/有效量、方法与 evidenceIds。
 - summary.md：由同一结果生成的可读概要。
-- evidence.json：实际 SQL、原始聚合行、执行时间、解析字典与校验依据；内部文件。
+- evidence.json：实际 SQL、原始行（JD 抽样摘录已按 jd-excerpt-redaction/1 脱敏）、执行时间、解析字典与校验依据；内部文件。
 - manifest.json：本次文件的大小与 SHA-256；inspect/export 会核验必需工件与内容指纹。
 - 可选 export.json/csv/md：由结果导出，不含实际 SQL。单独 export 操作输出独立派生目录与清单，不修改原结果。
 
 city/province/title 的 TOP N 返回 totalCount、displayedCount、otherCount、missingN；rows[].share 使用完整样本分母，范围 0–1。previewTruncated 只表示 stdout 裁剪。统计分组超过行数/字节预算将失败或部分完成，不把计算截断伪装为全量。
+
+description.samples 返回限量脱敏样本 rows（positionId 为字符串主键、岗位名、学历/经验标签、截断摘录与 SHA-256 指纹），是确定性前 N 条抽样，不是岗位总体分布统计；口径见 [metrics.md](metrics.md)。
 
 executedAt 是原任务时间，dataReadAt 是原统计事务的客户端观察时间，servedAt 是本次返回时间；sourceReadTime 是数据库时钟原值；sourceLatestUpdateAt 仅在请求 `data_quality.summary` 时计算样本内平台更新时间最大值，源时区未换算，否则为 null。命中缓存不将 dataReadAt 改成今天。consistency.completeTransaction 指示整个批次是否完成。
 

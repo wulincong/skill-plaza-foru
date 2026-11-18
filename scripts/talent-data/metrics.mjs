@@ -1,4 +1,4 @@
-import { METRICS, ENUMS, VERSION, hash, fail, semanticRequest, now } from './core.mjs'
+import { METRICS, ENUMS, LIMITS, VERSION, hash, fail, semanticRequest, now } from './core.mjs'
 import { cityCode, provinceEntity, normalizeGeography } from './entities.mjs'
 import {analysisMetrics} from './analysis.mjs'
 
@@ -107,6 +107,24 @@ export function buildResult(request,plan,execution) {
           available=true
         }
       }
+      if(name==='description.samples') {
+        const log=logs.get(`${id}:samples`)
+        if(log&&base&&base.describedN!==undefined) {
+          const described=count(base.describedN)
+          const rows=log.rows.map(row=>{
+            // Position ids are snowflake-scale BIGINTs; keep them as strings instead of unsafe numbers.
+            const positionId=String(row.positionId??'')
+            if(!/^\d{1,19}$/.test(positionId))fail('INVALID_DB_VALUE','抽样岗位主键格式不正确')
+            return {positionId,title:row.title??null,education:label('education',row.education??null),experience:label('experience',row.experience??null),excerpt:typeof row.excerpt==='string'?row.excerpt:'',charCount:count(row.charCount),truncated:count(row.charCount)>LIMITS.sampleExcerptChars,hash:hash(row.excerpt??'')}
+          })
+          const bounded=rows.length<=LIMITS.samplesPerCohort&&rows.length<=described
+          checks.push({id:`${id}:samples-bounds`,pass:bounded,expected:Math.min(described,LIMITS.samplesPerCohort),actual:rows.length})
+          if(bounded) {
+            Object.assign(metric,{value:rows.length,rows,describedN:described,missingN:total-described,method:'description-samples-policy/1; 按岗位主键升序取非空描述前 N 条; SQL 截断至 excerptChars; 联系方式统一脱敏(jd-excerpt-redaction/1); hash 为脱敏后摘录的 sha256',evidenceIds:[baseLog.id,log.id]})
+            available=true
+          }
+        }
+      }
       if(!def.analysis&&(def.dimensions || ['education','experience','jobType'].includes(def.dimension))&&cubeValid) {
         const dimensions=def.dimensions??[def.dimension]
         const contextDimensions=dimensions.includes('city')?[...new Set([...dimensions,'province'])]:dimensions
@@ -141,7 +159,7 @@ export function buildResult(request,plan,execution) {
         available=true
       }
       if(analytical.has(name)){Object.assign(metric,analytical.get(name));available=true}
-      const noDescription=['skills.distribution','track_skills.cross'].includes(name)&&metric.describedN===0&&total>0
+      const noDescription=['skills.distribution','track_skills.cross','description.samples'].includes(name)&&metric.describedN===0&&total>0
       metric.status=available?(total===0?'empty':noDescription||name.startsWith('salary.')&&!salary.validN?'unavailable':'complete'):'failed'
       if(metric.status==='failed'||metric.status==='unavailable')errors.push({code:metric.status==='unavailable'?(noDescription?'NO_VALID_DESCRIPTION':'NO_VALID_SALARY'):execution.error?.code??'VALIDATION_FAILED',metricIds:[metric.metricId],message:metric.status==='unavailable'?(noDescription?'样本有岗位但没有有效描述':'样本有岗位但没有有效薪资'):execution.error?.message??'指标结果缺失或校验未通过',retryable:false})
       metrics.push(metric)
