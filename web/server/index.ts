@@ -1939,7 +1939,24 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         // talent_query 原生工具要求本轮上下文（pi-tools.mjs 校验 schema 与消息）
         const queryScratch = join(entry.workspaceDir, `.talent-query-turn-${runId}`)
         writeFileSync(queryScratch, JSON.stringify({schema:'talent-query-turn/1',runId,startedAt,
-          caller:skill,messages:[...earlierIndustryMessages,originalUserText]}), {flag:'wx',mode:0o640})
+          caller:skill,messages:[...earlierIndustryMessages,originalUserText]}),{flag:'wx',mode:0o640})
+        renameSync(queryScratch, join(entry.workspaceDir, 'talent-query-turn.json'))
+      }
+      if (skill === 'course-development' && entry) {
+        // course-input.json 供 course.py 校验用户原话与附件白名单（决策 userReply、user: 来源 excerpt）
+        const scratch = join(entry.workspaceDir, `.course-input-${runId}`)
+        const context = {
+          runId,
+          message: originalUserText,
+          earlierMessages: [...earlierIndustryMessages],
+          uploads: [...new Set([...priorRuns.flatMap(r => r.attachmentFiles ?? r.attachments?.filter(name => basename(name) === name).map(name => ({ path: 'uploads/' + name, name })) ?? []), ...attachmentFiles].map(f => f.path))],
+        }
+        writeFileSync(scratch, JSON.stringify(context), { flag: 'wx', mode: 0o640 })
+        renameSync(scratch, join(entry.workspaceDir, 'course-input.json'))
+        // talent_query 原生工具要求本轮上下文（pi-tools.mjs 校验 schema 与消息）
+        const queryScratch = join(entry.workspaceDir, `.talent-query-turn-${runId}`)
+        writeFileSync(queryScratch, JSON.stringify({schema:'talent-query-turn/1',runId,startedAt,
+          caller:skill,messages:[...earlierIndustryMessages,originalUserText]}),{flag:'wx',mode:0o640})
         renameSync(queryScratch, join(entry.workspaceDir, 'talent-query-turn.json'))
       }
       if(skill==='wechat-report' && entry) {
