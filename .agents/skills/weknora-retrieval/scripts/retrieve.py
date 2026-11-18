@@ -4,6 +4,7 @@ import argparse
 import http.client
 import json
 import os
+from pathlib import Path
 import re
 import sys
 import urllib.error
@@ -40,12 +41,29 @@ def check_scope(row, kb, document=None):
         raise RetrievalError("forbidden", "返回记录不属于指定范围。")
 
 
+def local_config():
+    path = Path(__file__).resolve().parents[1] / ".env"
+    if not path.is_file():
+        return {}
+    try:
+        values = {}
+        for line in path.read_text().splitlines():
+            key, sep, value = line.strip().partition("=")
+            if sep and key in ("WEKNORA_API_KEY", "WEKNORA_KB_IDS"):
+                values[key] = value.strip().strip("\"'")
+        return values
+    except OSError:
+        raise RetrievalError("configuration_error", "无法读取本地 WeKnora 配置。") from None
+
+
 class WeKnora:
     def __init__(self):
-        self.key = os.environ.get("WEKNORA_API_KEY", "").strip()
-        ids = [item.strip() for item in os.environ.get("WEKNORA_KB_IDS", "").split(",")]
+        config = local_config()
+        self.key = os.environ.get("WEKNORA_API_KEY", config.get("WEKNORA_API_KEY", "")).strip()
+        raw = os.environ.get("WEKNORA_KB_IDS", config.get("WEKNORA_KB_IDS", "")).strip()
+        ids = [item.strip() for item in raw.split(",")] if raw else []
         if not self.key or not all(ID.fullmatch(item) for item in ids):
-            raise RetrievalError("configuration_error", "请配置 WEKNORA_API_KEY 和 WEKNORA_KB_IDS。")
+            raise RetrievalError("configuration_error", "请配置 WEKNORA_API_KEY；可选的 WEKNORA_KB_IDS 必须是有效库 ID。")
         self.bases = list(dict.fromkeys(ids))
         self.http = urllib.request.build_opener(NoRedirect)
 
@@ -134,13 +152,18 @@ def read_page(client, args, document):
 def retrieve(client, args):
     if args.operation == "bases":
         items = []
+        if not client.bases:
+            return {"items": [select(row, "id", "name", "type", "knowledge_count")
+                              for row in rows(client.request("knowledge-bases"))]}
         for kb in client.bases:
             row = client.request(f"knowledge-bases/{kb}")["data"]
             require_api_shape(isinstance(row, dict) and row.get("id") == kb)
             items.append(select(row, "id", "name", "type", "knowledge_count"))
         return {"items": items}
 
-    if args.kb not in client.bases:
+    if not ID.fullmatch(args.kb):
+        raise RetrievalError("invalid_request", "知识库 ID 无效。")
+    if client.bases and args.kb not in client.bases:
         raise RetrievalError("forbidden", "知识库不在本次调用的授权范围内。")
     document = getattr(args, "document", None)
     doc = None
@@ -149,7 +172,11 @@ def retrieve(client, args):
             raise RetrievalError("invalid_request", "文档 ID 无效。")
         doc = client.document(args.kb, document)
     if args.operation == "search":
-        return search_hits(client, args.kb, args.query, document)
+        result = search_hits(client, args.kb, args.query, document)
+        if doc:
+            for hit in result["items"]:
+                hit["knowledge_title"] = hit.get("knowledge_title") or doc.get("title") or doc.get("file_name")
+        return result
     result = read_page(client, args, document)
     if doc:
         result["knowledge_title"] = doc.get("title") or doc.get("file_name")

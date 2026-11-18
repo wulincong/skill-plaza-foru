@@ -33,6 +33,31 @@ class RetrievalTests(unittest.TestCase):
     def response(data, **meta):
         return io.BytesIO(json.dumps({"success": True, "data": data, **meta}).encode())
 
+    def test_bases_without_allowlist(self):
+        with patch.dict(os.environ, {"WEKNORA_KB_IDS": ""}):
+            self.open.return_value = self.response([{"id": "kb2", "name": "Example"}])
+            code, result = self.cli("bases")
+        self.assertEqual((code, result["items"][0]["id"]), (0, "kb2"))
+
+    def test_config_loading_and_environment_override(self):
+        with patch.object(retrieve, "local_config", return_value={"WEKNORA_API_KEY": "local"}), patch.dict(os.environ, {"WEKNORA_KB_IDS": ""}):
+            self.assertEqual(retrieve.WeKnora().key, "test-value")
+            with patch.dict(os.environ):
+                del os.environ["WEKNORA_API_KEY"]
+                self.assertEqual(retrieve.WeKnora().key, "local")
+
+    def test_runtime_library_without_allowlist(self):
+        with patch.dict(os.environ, {"WEKNORA_KB_IDS": ""}):
+            self.open.return_value = self.response([])
+            code, result = self.cli("search", "--kb", "kb2", "--query", "topic")
+        self.assertEqual((code, result["status"]), (0, "empty"))
+        self.assertEqual(json.loads(self.open.call_args.args[0].data)["knowledge_base_id"], "kb2")
+
+    def test_invalid_library_rejected_before_request(self):
+        code, result = self.cli("search", "--kb", "../bad", "--query", "topic")
+        self.assertEqual((code, result["status"]), (1, "invalid_request"))
+        self.open.assert_not_called()
+
     def test_deny_unknown_library_before_any_request(self):
         code, result = self.cli("search", "--kb", "kb2", "--query", "topic")
         self.assertEqual((code, result["status"]), (1, "forbidden"))
