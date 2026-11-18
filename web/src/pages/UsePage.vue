@@ -251,7 +251,8 @@ function run() {
     return
   }
   const required = config.value.requiredUpload
-  if (required && !uploads.value.some(item => item.name.toLowerCase().endsWith(required.accept))) {
+  const requiredExts = required?.accept.split(',').map(ext => ext.trim().toLowerCase()) ?? []
+  if (required && !uploads.value.some(item => requiredExts.some(ext => item.name.toLowerCase().endsWith(ext)))) {
     toast(`请先上传${required.label}`)
     return
   }

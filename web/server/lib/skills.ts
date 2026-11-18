@@ -136,6 +136,15 @@ export const INDUSTRY_DECISION_SUFFIX = '\n\n（本轮按完整报告契约 edit
 
 export const INDUSTRY_PRESENTATION_HANDOFF = `完整报告的最终交付必须包含网页。业务 build 成功后立即读取 ${skillDir('report-rendering')}/SKILL.md，将 build 输出目录中的正文与 report.json 完整交接，依该技能验收并登记 delivery.json 的 web。保留四份业务原件。纯呈现修订沿用已核版本，重新登记网页；平台返回实际网页链接前不能声称已交付。`
 
+export const TEACHING_DIAGNOSIS_TURN_SUFFIX = '\n\n（本轮按学勤与教学诊断契约工作：先核对周期、覆盖范围与数据口径，任何对比必须同范围、同分母、同时间口径；所有统计先运行技能脚本 analyze.py 得出并逐组标注样本量，样本量不足只描述现状不作归因推断；相关性只表述为观察到关联并提示混杂因素，不写因果。报告正文只放聚合结果，不出现可识别个体，不输出教师排名；个体风险名单必须先经决策卡确认授权，再以独立文件交付。改进建议以决策卡逐项确认后写入 archive/<周期ID>/measures.json 留档。业务内容定稿后按技能交接 report-rendering 交付诊断报告网页并登记 delivery.json，平台返回真实网页链接前不能声称已交付。）'
+
+/** 已安装技能额外挂载的伴生技能（--skill 追加，不产生广场卡片、不切换主会话）。
+    piRunner.createSession 据此挂载，替代按技能名单写死的分支。 */
+export const SKILL_COMPANION_MOUNTS: Record<string, readonly string[]> = {
+  'industry-education-report': ['talent-data-query', 'chart-visualization', 'report-rendering'],
+  'teaching-diagnosis': ['chart-visualization', 'report-rendering'],
+}
+
 
 export const SKILL_PROMPTS: Record<string, string> = {
   [GENERAL_SKILL_ID]:
@@ -194,10 +203,15 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '按技能约定在会话 workspace 的独立副本运行，完成真实分析后调用 generate_report.py 连续生成、质检和交付最终图片，不请求大纲确认。' +
     '真实统计统一依赖 talent-data-query，调用共享工具及报告适配器，不自行连接数据库或编写SQL；只在用户明确要求演示时使用并标明样例数据。' +
     '默认只生成本地文件；推送公众号草稿需要用户明确要求与真实配置，不自动群发或发布。',
+  'teaching-diagnosis':
+    '你正在按 teaching-diagnosis SKILL 工作。面向教学质量管理者、专业负责人与督导，基于周期内考勤、成绩与评教等数据完成班级、教师、专业三层诊断。' +
+    '先确认口径并如实报告数据质量问题，统计一律先运行技能脚本 analyze.py 并逐组标注样本量；小样本只描述不推断，相关性只写观察到关联。' +
+    '口径不明、数据缺项或风险名单未获授权时先询问并等待回复；报告正文只出现聚合结果，不出现可识别个体，不输出教师排名。' +
+    '改进建议以决策卡逐项确认并写入周期档案留档，复诊只做同口径对比。最终通过 report-rendering 交付诊断报告网页，授权名单走独立文件。',
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report', 'teaching-diagnosis'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {

@@ -83,7 +83,7 @@ const MAX_BODY_BYTES = 512_000
    base64 膨胀 4/3，6MB 文件 ≈ 8MB body，上限放宽到 10MB */
 const MAX_UPLOAD_BODY_BYTES = 10_000_000
 const MAX_UPLOAD_FILE_BYTES = 6 * 1024 * 1024
-const UPLOAD_EXT_WHITELIST = new Set(['.pdf', '.docx', '.doc', '.md', '.txt'])
+const UPLOAD_EXT_WHITELIST = new Set(['.pdf', '.docx', '.doc', '.md', '.txt', '.csv', '.xlsx'])
 
 /* ------------------------------------------------------------
    Pi 引擎注册：缺少 CLI 时服务启动失败，避免页面显示无法运行的引擎。
@@ -626,7 +626,7 @@ async function handleUpload(req: any, res: any) {
   const dot = cleaned.lastIndexOf('.')
   const ext = dot >= 0 ? cleaned.slice(dot).toLowerCase() : ''
   if (!cleaned || cleaned === '.' || cleaned === '..' || !UPLOAD_EXT_WHITELIST.has(ext)) {
-    sendJson(res, 400, { error: '仅支持 pdf / docx / doc / md / txt 文件。' })
+    sendJson(res, 400, { error: '仅支持 pdf / docx / doc / md / txt / csv / xlsx 文件。' })
     return
   }
   let data: Buffer

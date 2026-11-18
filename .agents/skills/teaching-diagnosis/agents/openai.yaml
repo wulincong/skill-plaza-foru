@@ -1,0 +1,4 @@
+interface:
+  display_name: "学勤与教学诊断"
+  short_description: "三层诊断报告网页与证据链归因，改进措施决策卡确认，同口径复诊对比"
+  default_prompt: "使用 $teaching-diagnosis 诊断 2025-2026学年第一学期大数据技术专业 1-3 班的教学运行状况，考勤与成绩数据已上传，补充了评教表；先核对口径并报告数据质量问题。"

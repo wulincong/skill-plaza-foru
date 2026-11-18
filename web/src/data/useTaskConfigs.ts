@@ -120,6 +120,48 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
     knowledge: [],
   },
   {
+    slug: 'teaching-diagnosis',
+    eyebrow: '教学诊断工作台',
+    lead: '上传周期内考勤与成绩数据，补充评教、课堂行为或教学进度，完成三层诊断、证据链归因与改进建议。',
+    output: '三层诊断报告网页、授权风险名单文件与改进措施留档',
+    promptInstruction: '先核对数据口径并如实报告数据质量问题；口径不明或核心数据缺项先询问。统计结论逐条标注范围与样本量，改进建议成稿后用决策卡让我逐项确认。',
+    sections: [
+      {
+        number: '01',
+        title: '确定诊断范围',
+        description: '考勤与成绩为必传数据；评教、课堂行为、教学进度至少补充一项用于归因。',
+        fields: [
+          { id: 'period', label: '诊断周期', type: 'text', required: true, placeholder: '例如：2025-2026学年第一学期（2025-09-01 至 2026-01-15）' },
+          { id: 'scope', label: '覆盖班级或专业', type: 'text', required: true, placeholder: '例如：大数据技术专业 2401-2403 班' },
+          { id: 'audience', label: '读者角色', type: 'choice', required: true, options: ['教学质量管理者', '专业负责人', '督导'] },
+        ],
+      },
+      {
+        number: '02',
+        title: '明确诊断关注点',
+        description: '预警阈值与上期材料可选，用于风险名单授权与复诊对比。',
+        fields: [
+          { id: 'focus', label: '关注问题', type: 'textarea', span: 'full', placeholder: '例如：出勤下滑的班级与课程；某几门课不及格率偏高' },
+          { id: 'thresholds', label: '预警阈值', type: 'text', span: 'full', placeholder: '留空用默认：缺勤率≥20%或缺勤≥10次；平均分<60或不及格≥2门' },
+        ],
+      },
+    ],
+    example: {
+      period: '2025-2026学年第一学期（2025-09-01 至 2026-01-15）',
+      scope: '大数据技术专业 2401-2403 班',
+      audience: '专业负责人',
+      focus: '排查出勤下滑的班级与不及格率偏高的课程',
+      thresholds: '',
+    },
+    uploads: [
+      { id: 'coreData', label: '考勤与成绩数据（必传）', accept: '.csv,.xlsx', help: '考勤记录与成绩数据各一份，单个文件 ≤6MB。' },
+      { id: 'extraData', label: '评教 / 课堂行为 / 教学进度', accept: '.csv,.xlsx,.md,.txt', help: '可选；至少补充一项，归因分析更充分。' },
+      { id: 'history', label: '上一周期报告或干预记录', accept: '.csv,.xlsx,.md,.txt,.pdf,.docx', help: '用于复诊对比与成长档案。' },
+    ],
+    requiredUpload: { accept: '.csv,.xlsx', label: '考勤与成绩数据' },
+    knowledge: [],
+  },
+  {
     slug: 'tech-forecast',
     eyebrow: '技术预判工作台',
     lead: '说明地区、技术方向与预判窗口，SKILL 会结合岗位库佐证与内置证据快照，生成证据分级的前瞻报告。',
