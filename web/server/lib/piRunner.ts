@@ -34,6 +34,7 @@ import {
 } from './skills.ts'
 import { sidecarInstruction } from './reportMeta.ts'
 import { openModelRelay } from './modelRelay.ts'
+import { openKnowledgeRelay } from './weknora.ts'
 import { loadLocalEnv } from './env.ts'
 
 /* pi CLI 定位：PI_CLI 配置 → PATH；找不到由调用方给配置指引 */
@@ -146,6 +147,7 @@ interface PiSessionOptions {
 }
 
 interface PiSession {
+  knowledgeRelay?: Awaited<ReturnType<typeof openKnowledgeRelay>>
   relay?: Awaited<ReturnType<typeof openModelRelay>>
   running?: boolean
   thinking?: string
@@ -562,19 +564,29 @@ export class PiRunner extends AgentRunner {
       args.push('--skill', skillDir('talent-data-query'), '--skill', skillDir('chart-visualization'), '--skill', skillDir('report-rendering'))
       args.push('--extension', join(skillDir('talent-data-query'),'scripts/pi-tools.mjs'))
     }
+    if (opts.skill === 'student-learning') {
+      args.push('--skill', skillDir('weknora-retrieval'), '--skill', skillDir('report-rendering'))
+      args.push('--extension', join(skillDir('weknora-retrieval'), 'scripts/pi-tools.mjs'))
+    }
     if (opts.skill==='wechat-report') args.push('--extension',fileURLToPath(new URL('../pi/report-workflow.js',import.meta.url)))
     /* 078：sudo -u 前缀把 pi 降到低权用户；this.cli 此时必须是绝对路径
        （PI_CLI 指向包装脚本），否则 sudo 在自身 PATH 里找不到命令 */
     if (opts.youcaiEndpoint) args.push('--plaza-youcai-endpoint', opts.youcaiEndpoint)
     const relay = opts.deepseekKey ? await openModelRelay(opts.deepseekKey) : undefined
+    let knowledgeRelay: Awaited<ReturnType<typeof openKnowledgeRelay>> | undefined
+    try {
+      if (opts.skill === 'student-learning') knowledgeRelay = await openKnowledgeRelay(workspaceDir)
+    } catch (error) { relay?.close(); throw error }
     if (relay) args.push('--plaza-deepseek-route', relay.url)
-    const spawnOptions = { cwd: workspaceDir }
+    const agentEnvironment = { ...process.env }
+    delete agentEnvironment.WEKNORA_API_KEY
+    const spawnOptions = { cwd: workspaceDir, env: agentEnvironment }
     const sudo = piSandboxPrefix()
     const channel = sudo
       ? new JsonlChannel('sudo', [...sudo, this.cli, ...args], spawnOptions)
       : new JsonlChannel(this.cli, args, spawnOptions)
     this.sessions.set(sid, {
-      thinking, relay,
+      thinking, relay, knowledgeRelay,
       channel,
       workspaceDir,
       lastUsed: Date.now(),
@@ -583,7 +595,9 @@ export class PiRunner extends AgentRunner {
     this.wireChannel(channel)
     this.startSweeper()
     /* 就绪确认：pi 启动完成才会应答；spawn 失败（命令不存在等）在这里暴露 */
-    const state = await this.request({ type: 'get_state' }, sid)
+    let state
+    try { state = await this.request({ type: 'get_state' }, sid) }
+    catch (error) { this.disposeSession(sid); throw error }
     const s = this.sessions.get(sid)
     if (s) {
       if (state?.sessionId) s.piSessionId = String(state.sessionId)
@@ -614,6 +628,7 @@ export class PiRunner extends AgentRunner {
     const s = this.sessions.get(sessionId)
     if (!s) return
     s.relay?.close()
+    s.knowledgeRelay?.close()
     this.sessions.delete(sessionId)
     this.turnUsage.delete(sessionId)
     this.callUsage.delete(sessionId)
@@ -631,6 +646,7 @@ export class PiRunner extends AgentRunner {
     const sid = this.sidOf(channel)
     if (!sid) return
     this.sessions.get(sid)?.relay?.close()
+    this.sessions.get(sid)?.knowledgeRelay?.close()
     this.sessions.delete(sid)
     this.turnUsage.delete(sid)
     this.callUsage.delete(sid)
@@ -726,6 +742,9 @@ export class PiRunner extends AgentRunner {
     let content = messages[messages.length - 1].content
     if (skill === 'industry-education-report') {
       content += INDUSTRY_DECISION_SUFFIX + '\n\n' + INDUSTRY_PRESENTATION_HANDOFF
+    }
+    if (skill === 'student-learning') {
+      content += `\n\n学习规划本轮：先读 ${skillDir(skill)}/SKILL.md。知识库只调用 weknora_retrieve。教材入口沿用工具返回的 preview_url/download_url；完整计划必须经过 build.py 来源和时间验收，并交付网页，不在未生成文件时声称完成。`
     }
     if (skill === 'ai-interview') {
       content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'

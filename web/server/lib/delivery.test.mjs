@@ -120,3 +120,15 @@ test('an unreadable declaration fails explicitly even when it predates this turn
     assert.throws(() => readDeliveryManifest(f.workspace, previous), /无法读取 delivery.json.*EACCES/)
   } finally { chmodSync(path, 0o600) }
 })
+
+test('learning material links permit downloads without restoring origin, popups or API access', async t=>{
+  const f=setup(t)
+  writeFileSync(join(f.workspace,'output/public/site/index.html'), '<!doctype html><a href="https://plaza.example.com/api/learning-materials/'+'a'.repeat(48)+'/preview">教材</a>')
+  const result=publishDelivery(f.workspace,f.manifest,f.store,'https://plaza.example.com')
+  const {base}=await listen(t,f.store)
+  const response=await fetch(base+new URL(result.webLinks[0].url).pathname)
+  const csp=response.headers.get('content-security-policy')
+  assert.match(csp,/sandbox allow-scripts allow-downloads;/)
+  assert.doesNotMatch(csp,/allow-same-origin|allow-popups|allow-top-navigation/)
+  assert.match(csp,/connect-src .*\/p\//)
+})

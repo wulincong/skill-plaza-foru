@@ -62,6 +62,24 @@ export interface UseTaskConfig {
 
 export const USE_TASK_CONFIGS: UseTaskConfig[] = [
   {
+    slug: 'student-learning',
+    eyebrow: '个性化学习规划',
+    lead: '告诉我们你想从事的岗位，找到适合自己的课程和学习节奏。',
+    output: '学习路线、每日任务、阶段成果与对应教材入口',
+    promptInstruction: '请优先查询知识库课程包与教材，结合我的基础和时间安排学习顺序，生成带教材入口的个性化学习计划网页。缺少必要信息时先补问。',
+    sections: [{
+      number: '01', title: '填写学习需求', description: '目标岗位必填，其余信息帮助安排适合你的学习内容和时间。',
+      fields: [
+        { id: 'role', label: '目标岗位', type: 'text', required: true, span: 'full', placeholder: '例如：人工智能模型训练助理' },
+        { id: 'goal', label: '学习目标', type: 'select', options: ['求职', '实习', '课程补基础', '项目实践'] },
+        { id: 'foundation', label: '当前基础', type: 'textarea', span: 'full', placeholder: '专业、年级、已掌握的知识或做过的项目' },
+        { id: 'availability', label: '可投入时间', type: 'text', span: 'full', placeholder: '例如：每周5天，每天1小时，希望8周完成' },
+      ],
+    }],
+    example: { role: '人工智能模型训练助理', goal: '实习', foundation: '计算机专业二年级，掌握 Python 基础，尚未训练过模型。', availability: '每周5天，每天1小时，希望8周完成' },
+    knowledge: [],
+  },
+  {
     slug: 'doc-translate',
     eyebrow: '文档翻译工作台',
     lead: '上传 PDF 并指定目标语言，翻译后可查看和下载译文 PDF。',

@@ -130,6 +130,7 @@ function toggleOption(fieldId: string, option: string) {
 }
 
 function buildTaskTitle(): string {
+  if (skill.value.slug === 'student-learning') return `${String(form.role ?? '').trim()} · 学习计划`
   if (skill.value.slug === 'doc-translate') {
     return `${uploads.value[0]?.name.replace(/\.pdf$/i, '') ?? '文档'} · ${String(form.targetLanguage ?? '').trim()}译文`
   }

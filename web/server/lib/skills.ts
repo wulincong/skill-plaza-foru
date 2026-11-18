@@ -152,6 +152,14 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '你正在按 classroom-assistant SKILL 工作。只在用户明确提供或授权的课程资料范围内完成' +
     '带定位引用的答疑、课堂要点、练习和答疑记录整理。资料不足或问题越界时，明确说明缺口，' +
     '不要用模型记忆补充课程事实，并把待确认事项整理给教师。',
+  'student-learning':
+    '你正在按 student-learning SKILL 工作。根据目标岗位、学习目标、当前基础和可投入时间，' +
+    '先调用 weknora_retrieve 分页查询课程分类（课程包）与分类教材，再核对大纲、先修关系和原文。' +
+    '完整匹配沿用教材，部分匹配补充任务，成功核查后确无合适课程才自主规划；访问失败须说明并等待用户选择。' +
+    '生成学习阶段、课程顺序、每个学习日任务、分钟数和阶段成果，不能超过学生时间预算。' +
+    '匹配到的真实教材入口必须关联具体任务。凭据由宿主保管，不读取 Key、不使用需要鉴权的上游 API URL 作为学生链接。' +
+    '按技能约定写 learning-plan.json，运行 scripts/build.py 校验来源、时间并通过 report-rendering 交付 HTML。' +
+    '只有平台返回真实网页入口才可声称交付，最终回复简短。',
   'ai-interview':
     '你正在按 ai-interview SKILL 工作。根据目标岗位、岗位要求和用户简历开展交互式模拟面试。' +
     '一次只问一题，根据用户的真实回答智能追问；不要替用户作答。练习结束后引用用户回答原文，' +
@@ -197,10 +205,11 @@ export const SKILL_PROMPTS: Record<string, string> = {
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
+export const INSTALLED_SKILLS = new Set(['student-learning', 'industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {
+  'student-learning': 'weknora-retrieval',
   'industry-education-report': 'talent-data-query',
   'wechat-report': 'talent-data-query',
 }

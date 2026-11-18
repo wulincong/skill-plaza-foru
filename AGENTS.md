@@ -27,10 +27,10 @@
 
 本机使用两个独立 systemd 用户服务。以后启动、停止、重启和查日志统一使用 `systemctl --user` / `journalctl --user`。不要用 `npm run dev`、`npm run server`、`nohup` 或手工 kill 在同一端口另起进程。
 
-| 服务 | 监听地址 | 单独重启 |
-| --- | --- | --- |
-| `skill-plaza-frontend.service`（Vite） | `127.0.0.1:4188` | `systemctl --user restart skill-plaza-frontend.service` |
-| `skill-plaza-backend.service`（Node API） | `127.0.0.1:8767` | `systemctl --user restart skill-plaza-backend.service` |
+| 服务                                      | 监听地址         | 单独重启                                                |
+| ----------------------------------------- | ---------------- | ------------------------------------------------------- |
+| `skill-plaza-frontend.service`（Vite）    | `127.0.0.1:4188` | `systemctl --user restart skill-plaza-frontend.service` |
+| `skill-plaza-backend.service`（Node API） | `127.0.0.1:8767` | `systemctl --user restart skill-plaza-backend.service`  |
 
 - Vue 和 CSS 日常修改由 Vite 热更新。修改后端代码或后端环境配置后，只重启后端。先确认没有正在执行的任务，避免中断 Pi 会话。服务由 `wlc` 启动，后端按 `web/.env` 配置以 `plaza-sandbox` 运行 Pi。
 - 查看状态用 `systemctl --user status <服务名>`，跟踪日志用 `journalctl --user -u <服务名> -f`。重启后端后用 `curl -fsS http://127.0.0.1:8767/api/health` 验证；通过前端访问同一接口可验证代理。
@@ -51,13 +51,3 @@
 ## UI设计
 
 遵守 $zero4-ui skill的设计原则，其位置在/home/wlc/.codex/skills/zero4-ui
-
-## 行为准则
-
-- **版本管理用 git，不要用 `.bak` 之类的文件备份**：每轮文件改动完成并验证后，先用 `git commit` 保存，再用 `git tag` 标记当前分支上的提交；最终回复列出提交和标签名。不要只创建脱离当前分支的工作区快照。需要回退时用 `git checkout <tag>`。
-
-- **诚实透明**：不确定的事先核实再回答，不要编造。执行有副作用的操作前说明意图。
-
-- **不要添加解释**：不要在网页的地方加很多注释，不要让人感觉这个项目是开发中，不要解释，不要注释测试这类话术，最终产品什么样，你就要做成什么样子。
-
-

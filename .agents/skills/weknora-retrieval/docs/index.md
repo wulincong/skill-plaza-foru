@@ -47,4 +47,21 @@ python3 .agents/skills/weknora-retrieval/scripts/retrieve.py search \
 
 沿用 WeKnora REST 接口和 Python 标准库，检索目标由调用参数决定，凭据与参数分离。保留可选白名单以支持受信调用方进一步限库；不把传入库 ID 视为授权证明。来源归属校验、禁止重定向和错误正文脱敏继续生效。
 
-交付检查包括离线范围与错误测试、真实列库、指定库检索和文档原文回查。上游依据见 [WeKnora v0.6.0 检索接口](https://github.com/Tencent/WeKnora/blob/v0.6.0/docs/api/knowledge-search.md)。本地调用可用不代表广场沙箱已接入；低权运行时需要单独的凭据托管方案。
+交付检查包括离线范围与错误测试、真实列库、指定库检索和文档原文回查。上游依据见 [WeKnora v0.6.0 检索接口](https://github.com/Tencent/WeKnora/blob/v0.6.0/docs/api/knowledge-search.md)。学生个性化学习规划已接入受限原生工具；其他业务技能仍需显式挂载依赖和宿主中继。
+
+## 按课程包分类查询教材
+
+知识库左侧文档分类对应标签，分类和文档均按 `next_page` 翻页：
+
+```sh
+python3 .agents/skills/weknora-retrieval/scripts/retrieve.py tags --kb '库ID'
+python3 .agents/skills/weknora-retrieval/scripts/retrieve.py documents --kb '库ID' --tag '分类ID'
+```
+
+脚本校验分类及文档的知识库归属，也核对文档实际分类。返回的 `preview_api_url` 和 `download_api_url` 需要 `X-API-Key`；普通点击不会自动带该请求头。
+
+## 学习会话中的原生工具
+
+学生学习规划会话使用 `weknora_retrieve`，操作为 tags/documents/search/chunks。宿主限定可查询的知识库，运行 Python 并保管 Key；工具不接收凭据和任意上游网址。分类文档结果另附 `preview_url`、`download_url`，是平台逐文档授权链接，可放在学习报告里点击使用。持链接可访问，不代表公开整个知识库，转发报告时注意教材使用范围。PDF 可预览，Word 等文件按下载交付。
+
+文档列表和检索结果的来源记录由宿主写入会话工作区，供学习报告验收；会话智能体不能创建、改写或从片段重建这些记录。通道随会话关闭撤销，已交付教材链接独立持久保存，并继续受宿主配置库范围和上游权限约束。

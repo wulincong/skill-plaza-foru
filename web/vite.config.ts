@@ -6,11 +6,11 @@ import { skillDocsPlugin } from './scripts/skill-docs-plugin'
   由它桥接 Pi RPC（DeepSeek）并提供受管理员认证保护的运行记录 API。 */
 const apiProxy = {
   '/p/': {
-    target: 'http://127.0.0.1:8767',
+    target: 'http://127.0.0.1:8768',
     changeOrigin: false,
   },
   '/api': {
-    target: 'http://127.0.0.1:8767',
+    target: 'http://127.0.0.1:8768',
     changeOrigin: false,
   },
 }

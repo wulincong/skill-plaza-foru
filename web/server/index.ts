@@ -11,6 +11,7 @@ import { createHash } from 'node:crypto'
 import { localReportReply, registerReport, saveQuestion } from './lib/reportLibrary.ts'
 import { needsReportFollowThrough,reportTurnIntent,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
 import { readWechatDelivery } from './lib/wechatDelivery.ts'
+import { handleLearningMaterial } from './lib/weknora.ts'
 import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
 import { handleAdmin } from './lib/adminApi.ts'
 import { historyPrefix, browserSessionPattern, validSessionId, conversationItem } from './lib/browserHistory.ts'
@@ -273,6 +274,7 @@ function readBody(req: any, limit: number = MAX_BODY_BYTES): Promise<Buffer> {
 }
 
 const server = createServer((req, res) => {
+  if (handleLearningMaterial(req, res)) return
   if (handleDelivery(req, res, DELIVERIES_DIR)) return
   let path: string
   try { path = decodeURIComponent((req.url || '').split('?')[0]) }
@@ -1900,6 +1902,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
         writeFileSync(queryScratch, JSON.stringify({schema:'talent-query-turn/1',runId,startedAt,
           caller:skill,messages:[...earlierIndustryMessages,originalUserText]}), {flag:'wx',mode:0o640})
         renameSync(queryScratch, join(entry.workspaceDir, 'talent-query-turn.json'))
+      }
+      if (skill === 'student-learning' && entry) {
+        const file = join(entry.workspaceDir, '.learning-request.json')
+        const messages = params.messages.filter(m => m.role === 'user').map(m => m.content)
+        writeFileSync(file, JSON.stringify({runId,startedAt,messages:[...messages,originalUserText]}), {mode:0o640})
       }
       if(skill==='wechat-report' && entry) {
         const file=join(entry.workspaceDir,'report-turn.json')

@@ -65,10 +65,11 @@ export class JsonlChannel {
   onLine: (msg: any) => void = () => {}
   onExit: () => void = () => {}
 
-  constructor(command: string, args: string[], opts: { cwd?: string; shell?: boolean } = {}) {
+  constructor(command: string, args: string[], opts: { cwd?: string; shell?: boolean; env?: NodeJS.ProcessEnv } = {}) {
     this.proc = spawn(command, args, {
       stdio: ['pipe', 'pipe', 'inherit'],
       ...(opts.cwd ? { cwd: opts.cwd } : {}),
+      ...(opts.env ? { env: opts.env } : {}),
       ...(opts.shell ? { shell: true } : {}),
     })
     /* pi rpc.md 明确要求：只按 \n 分帧、容忍尾部 \r（readline 会错误地

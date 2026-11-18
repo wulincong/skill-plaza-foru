@@ -121,8 +121,45 @@ def search_hits(client, kb, query, document):
         item["preview_field"] = field
         item["preview"] = row[field][:PREVIEW_CHARS]
         item["truncated"] = len(row[field]) > PREVIEW_CHARS
+        item["content_preview"] = row["content"][:PREVIEW_CHARS]
+        item["content_truncated"] = len(row["content"]) > PREVIEW_CHARS
         items.append(item)
     return {"items": items}
+
+
+def tag_page(client, kb, page=1, keyword=None):
+    params = {"page": page, "page_size": 20}
+    if keyword:
+        params["keyword"] = keyword
+    response = client.request(f"knowledge-bases/{kb}/tags", params=params)
+    data = response["data"]
+    require_api_shape(isinstance(data, dict))
+    items = []
+    for row in rows(data):
+        check_scope(row, kb)
+        require_api_shape(isinstance(row.get("id"), str) and ID.fullmatch(row["id"]))
+        items.append(select(row, "id", "name", "knowledge_base_id", "knowledge_count"))
+    return paginated(data, items, page)
+
+
+def paginated(response, items, page):
+    total, size = response.get("total"), response.get("page_size")
+    require_api_shape(isinstance(total, int) and total >= 0 and isinstance(size, int) and size > 0
+                      and response.get("page") == page)
+    return {"items": items, "total": total, "page": page,
+            "next_page": page + 1 if page * size < total else None}
+
+
+def validate_tag(client, kb, tag):
+    if not ID.fullmatch(tag):
+        raise RetrievalError("invalid_request", "分类 ID 无效。")
+    page = 1
+    while page is not None:
+        result = tag_page(client, kb, page)
+        if any(row["id"] == tag for row in result["items"]):
+            return
+        page = result["next_page"]
+    raise RetrievalError("not_found", "指定知识库中未找到该分类。")
 
 
 def read_page(client, args, document):
@@ -130,8 +167,11 @@ def read_page(client, args, document):
     if args.operation == "documents":
         if args.keyword:
             params["keyword"] = args.keyword
+        if args.tag:
+            validate_tag(client, args.kb, args.tag)
+            params["tag_id"] = args.tag
         path = f"knowledge-bases/{args.kb}/knowledge"
-        fields = ("id", "knowledge_base_id", "title", "file_name", "parse_status")
+        fields = ("id", "knowledge_base_id", "tag_id", "title", "file_name", "file_type", "parse_status")
     else:
         path = f"chunks/{document}"
         fields = ("id", "knowledge_base_id", "knowledge_id", "chunk_index", "content")
@@ -140,13 +180,15 @@ def read_page(client, args, document):
     for row in rows(response):
         check_scope(row, args.kb, document)
         require_api_shape(row.get("id") and (document is None or isinstance(row.get("content"), str)))
-        items.append(select(row, *fields))
-    total = response.get("total")
-    size = response.get("page_size")
-    require_api_shape(isinstance(total, int) and total >= 0 and isinstance(size, int) and size > 0
-                      and response.get("page") == args.page)
-    return {"items": items, "total": total, "page": args.page,
-            "next_page": args.page + 1 if args.page * size < total else None}
+        item = select(row, *fields)
+        if args.operation == "documents":
+            require_api_shape(isinstance(row["id"], str) and ID.fullmatch(row["id"]))
+            if args.tag and row.get("tag_id") != args.tag:
+                raise RetrievalError("forbidden", "返回文档不属于指定分类。")
+            item["preview_api_url"] = f"{API_BASE}/knowledge/{row['id']}/preview"
+            item["download_api_url"] = f"{API_BASE}/knowledge/{row['id']}/download"
+        items.append(item)
+    return paginated(response, items, args.page)
 
 
 def retrieve(client, args):
@@ -165,6 +207,8 @@ def retrieve(client, args):
         raise RetrievalError("invalid_request", "知识库 ID 无效。")
     if client.bases and args.kb not in client.bases:
         raise RetrievalError("forbidden", "知识库不在本次调用的授权范围内。")
+    if args.operation == "tags":
+        return tag_page(client, args.kb, args.page, args.keyword)
     document = getattr(args, "document", None)
     doc = None
     if document is not None:
@@ -206,14 +250,17 @@ def main():
     parser = Parser(description=__doc__)
     commands = parser.add_subparsers(dest="operation", required=True)
     commands.add_parser("bases")
+    tags = commands.add_parser("tags")
     docs = commands.add_parser("documents")
     search = commands.add_parser("search")
     chunks = commands.add_parser("chunks")
-    for command in (docs, search, chunks):
+    for command in (tags, docs, search, chunks):
         command.add_argument("--kb", required=True)
-    for command in (docs, chunks):
+    for command in (tags, docs, chunks):
         command.add_argument("--page", type=page_number, default=1)
+    tags.add_argument("--keyword", type=search_text)
     docs.add_argument("--keyword", type=search_text)
+    docs.add_argument("--tag")
     search.add_argument("--query", required=True, type=search_text)
     search.add_argument("--document")
     chunks.add_argument("--document", required=True)

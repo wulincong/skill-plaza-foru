@@ -59,6 +59,21 @@ export const AUDIENCES: Audience[] = [
 
 export const SKILLS: Skill[] = [
   {
+    slug: 'student-learning',
+    name: '学生个性化学习规划',
+    identifier: 'student-learning',
+    categoryId: 'career',
+    audiences: ['student', 'teacher'],
+    summary: '从目标岗位出发匹配课程包和教材，安排学习路线、每日任务与阶段成果。',
+    introduction: '结合你的学习目标、当前基础和可投入时间，优先使用知识库课程与教材，生成带资料入口的个性化学习计划。',
+    tags: ['学习路线', '课程匹配', '个性化学习'],
+    preconditions: '目标岗位；可补充学习目标、当前基础和可投入时间',
+    outputs: ['个性化学习计划网页', '课程包与教材入口', '每日任务、时间安排与阶段成果'],
+    dependencies: ['平台授权的课程知识库', '共享知识检索与报告呈现能力'],
+    limitations: ['没有匹配资料时采用自主规划并说明依据。', '教材匹配不代表岗位录用保证；Word 教材可能下载后阅读。'],
+    minimalInput: '使用 $student-learning，我想做模型训练助理，有 Python 基础，每周5天每天1小时，请匹配教材并规划学习路线。',
+  },
+  {
     slug: 'industry-education-report',
     name: '产教决策报告',
     identifier: 'industry-education-report',
