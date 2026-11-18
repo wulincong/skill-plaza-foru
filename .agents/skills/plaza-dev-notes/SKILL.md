@@ -61,7 +61,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 108 | AI 面试练习：岗位命题、逐题追问、原话复盘与同题重练 | 已实现（广场与兼容 API 多轮验证） | [108-ai-interview-practice.md](references/108-ai-interview-practice.md) |
 | 122 | teaching-diagnosis：学勤教学诊断技能、csv/xlsx 附件通道与伴生挂载表 | 已实现（单测/构建/接口冒烟通过；Pi 端到端探针见记录） | [122-teaching-diagnosis-skill.md](references/122-teaching-diagnosis-skill.md) |
 | 123 | class-placement：智能分班技能、确定性求解器与审计留痕 | 已实现（脚本回归/全量测试通过；真实 Pi 端到端见记录） | [123-class-placement-skill.md](references/123-class-placement-skill.md) |
-| 124 | training-program-design：产教培养方案技能、红线校验与 T05 任务包 | 已实现（21 项单测/服务端测试/接口与文档收录通过；真实样例端到端待运行） | [124-training-program-design-skill.md](references/124-training-program-design-skill.md) |
+| 124 | training-program-design：产教培养方案技能、红线校验与 T05 任务包 | 已实现（22 项单测/接口/文档收录通过；真实 Pi 端到端样例与两轮修订交付验收完成） | [124-training-program-design-skill.md](references/124-training-program-design-skill.md) |
 | 125 | courseware-studio：智能课件生成技能、stdlib OOXML 写入器与两阶段安全确认 | 已实现（12 项单测/python-pptx 回读/真实 Pi 两轮 E2E 通过；教师机 Office 打开效果待验收） | [125-courseware-studio-skill.md](references/125-courseware-studio-skill.md) |
 | 126 | course-scheduling：排课智能体、零冲突求解器、产教占用块模型与增量重排 | 已实现（14 项单测/服务端 78 项/构建/接口通过；真实 Pi 端到端见记录） | [126-course-scheduling-skill.md](references/126-course-scheduling-skill.md) |
 | 127 | talent-data-query 1.4：受控 JD 原文抽样 description.samples 与单点脱敏 | 已实现（单测/真库 live/inspect/缓存/脱敏扫描通过；城市口径超时为既有现状） | [127-talent-jd-sampling.md](references/127-talent-jd-sampling.md) |

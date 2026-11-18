@@ -17,10 +17,10 @@ description: 为高职院校生成和修订产教融合专业人才培养方案�
 
 **课程体系与证据链。** 课程按公共基础必修、公共选修、专业基础、专业核心（6–8 门）、专业拓展、岗位实习、综合实践分类；每门课的设置理由绑定能力域与岗位证据（rationale 引用可解析的 metricIds/sourceIds），能力支撑用 H/M/L 标注，每个能力项至少一门课程支撑。学时学分在契约中逐课填写，总数、占比与红线结论由脚本计算，不手填。
 
-**红线校验与构建。** 用技能脚本绝对路径，不 cd 到技能目录。草稿先 `python3 <技能目录>/scripts/program.py validate program.json`；按 validation 输出修正结构与证据。定稿 `python3 <技能目录>/scripts/program.py build program.json`，产物在 `output/program-<短哈希>/`（正文、结构化方案、验证记录、T05 任务包、Word 与交付清单）。build 成功只代表业务交接完成。修订一律改 program.json 再重建，不手改产物；用户提供旧版时写 diff 逐项差异（附录 D）。
+**红线校验与构建。** 用技能脚本绝对路径，不 cd 到技能目录。`scripts/test_program.py` 的 `fixture()` 是一份完整合规、红线全过的 program.json 样例（字段结构、学时学分比例、绑定写法）——起草前先读它，用一次 Write 写出完整 program.json，再逐项替换为本任务的真实专业、区域、证据与课程，不要逐段拼装 JSON。草稿先 `python3 <技能目录>/scripts/program.py validate program.json`；按 validation 输出修正结构与证据。定稿 `python3 <技能目录>/scripts/program.py build program.json`，产物在 `output/program-<短哈希>/`（正文、结构化方案、验证记录、T05 任务包、Word 与交付清单）。build 成功只代表业务交接完成。修订一律改 program.json 再重建，不手改产物；用户提供旧版时写 diff 逐项差异（附录 D）。
 
 **需要人判断时询问。** 关键取舍——岗位群取舍、核心课程选择、学时结构方案、样本不足、标准待核对、校本红线覆盖——说清已知、备选与影响，问一个可回答的问题。支持决策卡时用单选或输入卡；缺证三选项固定。未获明确选择不出终稿，status 保持 draft；「请生成」、沉默都不等于授权带缺口定稿。所有关键取舍记入 decisions（含用户原话）。
 
-**继续到最终交付。** build 后立即读取 report-rendering，把方案正文与结构化数据交给它完成网页；随后 `python3 <渲染技能目录>/scripts/register_delivery.py output/public/<站点目录> --name 培养方案网页版 --files-from output/program-<短哈希>/program-files.json` 登记网页与全部文件。只有平台产生真实网页入口才算交付成功；未成功说明停在哪一步并保留工件。最终回复简述结论、红线对照结果与未决项，使用平台返回的链接；不列工作区路径或工具过程。
+**继续到最终交付。** build 后立即读取 report-rendering，把**方案正文全文**（program.md 十一章与全部附录表格，含课程体系全表、红线对照表、支撑矩阵）交给它渲染网页，不得概括成摘要或以「详见结构化方案」代替正文表格；随后 `python3 <渲染技能目录>/scripts/register_delivery.py output/public/<站点目录> --name 培养方案网页版 --files-from output/program-<短哈希>/program-files.json` 登记网页与全部文件。只有平台产生真实网页入口才算交付成功；未成功说明停在哪一步并保留工件。最终回复简述结论、红线对照结果与未决项，使用平台返回的链接；不列工作区路径或工具过程。
 
 **诚实边界。** 不编造数据、岗位名称、企业名称与合作事实；实施保障只引用用户材料。查询失败按查询技能状态停止，不自选降级。区分事实、推断与建议；证据支持与预期相反的结论时如实呈现（如区域岗位量不足以支撑该专业设置）。

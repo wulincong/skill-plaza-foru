@@ -321,9 +321,9 @@ def validate(d):
         elif status == 'insufficient':
             check(bool(evidence_continues), f'{cap_id}: insufficient 能力项缺少用户「按现有证据继续」决策')
 
-    # standards
+    # standards：verified 须原文与来源；pending 只须要素名与继续决策（降级路径无来源可指）
     for item in d.get('standards') if isinstance(d.get('standards'), list) else []:
-        fields(item, ['element', 'sourceId', 'status'], 'standards')
+        fields(item, ['element', 'status'], 'standards')
         check(item.get('element') in STANDARD_ELEMENTS, f'standards: invalid element {item.get("element")}')
         check(item.get('status') in ('verified', 'pending'), f'standards/{item.get("element")}: invalid status')
         if item.get('status') == 'verified':
@@ -339,11 +339,20 @@ def validate(d):
     else:
         check(bool(standards_continues), '标准未核对须有用户继续决策')
 
-    # cultivation
+    # cultivation：有已核对标准时 goalBasis 须引标准来源；降级路径（待核对+继续决策）可只引区域证据
     cult = d.get('cultivation') or {}
     fields(cult, ['goal', 'goalBasis', 'spec'], 'cultivation')
     basis = cult.get('goalBasis') or {}
-    check(basis.get('standardSourceId') in index['sources'], 'cultivation.goalBasis: unresolved standard source')
+    standards_verified = any(s.get('status') == 'verified' for s in d.get('standards', []) if isinstance(s, dict))
+    if basis.get('standardSourceId'):
+        check(basis.get('standardSourceId') in index['sources'], 'cultivation.goalBasis: unresolved standard source')
+    else:
+        check(not standards_verified, 'cultivation.goalBasis: 已核对标准时须引用 standardSourceId')
+        check(bool(standards_continues), 'cultivation.goalBasis: 无标准来源须有待核对继续决策')
+    check(bool(basis.get('metricIds') or basis.get('sourceIds') or basis.get('standardSourceId')),
+          'cultivation.goalBasis: 须引用标准来源或区域证据')
+    resolvable(basis.get('metricIds') or [], 'metrics', index)
+    resolvable(basis.get('sourceIds') or [], 'sources', index)
     dims = {item.get('dimension') for item in cult.get('spec', [])}
     check(dims <= {'素质', '知识', '能力'} and len(dims) == 3, 'cultivation.spec 须覆盖素质/知识/能力三维')
     for item in cult.get('spec', []):
@@ -643,7 +652,10 @@ def compose_blocks(d):
             for group in d['jobGroups'] for pos in group.get('positions', [])]),
         ('h2', '五、培养目标与培养规格'),
         ('p', d['cultivation']['goal']),
-        ('p', f"目标依据：标准来源 {d['cultivation']['goalBasis'].get('standardSourceId')}"
+        ('p', '目标依据：'
+              + (f"标准来源 {d['cultivation']['goalBasis'].get('standardSourceId')}"
+                 if d['cultivation']['goalBasis'].get('standardSourceId')
+                 else '标准原文待核对（已获用户决策按待核对继续），目标在区域岗位证据基础上拟定，待标准原文核对后回填')
               + (f"、区域证据 {'、'.join(d['cultivation']['goalBasis'].get('metricIds', []))}"
                  if d['cultivation']['goalBasis'].get('metricIds') else '')),
     ]

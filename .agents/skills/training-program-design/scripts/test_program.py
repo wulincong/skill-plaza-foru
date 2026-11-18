@@ -355,6 +355,35 @@ class ProgramTests(unittest.TestCase):
             result = program.validate(self.d)
         self.assertTrue(any('userReply 须引用用户原话' in e for e in result['errors']))
 
+    def test_degraded_standards_path_needs_no_standard_source(self):
+        """标准原文不可得（已决策继续）时：pending 条目免 sourceId、goalBasis 免 standardSourceId。"""
+        self.d['decisions'] = [{'id': 'D1', 'question': '标准原文不可得，是否按待核对继续？',
+                                'userReply': '按待核对继续', 'scope': 'standards'}]
+        self.d['meta']['basedOnStandard'] = {'status': 'pending'}
+        self.d['standards'] = [{'element': '职业面向', 'status': 'pending', 'note': '未取得原文'}]
+        self.d['sources'] = [s for s in self.d['sources'] if s['id'] != 'S_STD']
+        # 移除对标准来源的引用：能力项、课程 rationale、规格条目改绑查询/岗位证据
+        for cap in [c for dom in self.d['capabilityDomains'] for c in dom['capabilities']]:
+            if 'S_STD' in (cap['evidence'].get('sourceIds') or []):
+                cap['evidence']['sourceIds'] = []
+                cap['evidence']['metricIds'] = ['M_POS']
+                cap['evidence']['status'] = 'verified'
+        for c in self.d['curriculum']['courses']:
+            c['rationale']['sourceIds'] = [s for s in c['rationale'].get('sourceIds', []) if s != 'S_STD']
+            if not c['rationale']['metricIds'] and not c['rationale']['sourceIds']:
+                c['rationale']['metricIds'] = ['M_POS']
+        for dim in self.d['cultivation']['spec']:
+            for item in dim['items']:
+                item['sourceIds'] = [s for s in item.get('sourceIds', []) if s != 'S_STD'] or None
+                if item['sourceIds'] is None:
+                    item.pop('sourceIds')
+        self.d['cultivation']['goalBasis'] = {'metricIds': ['M_POS'], 'note': '标准待核对，目标先按区域证据拟定'}
+        result = self.validate(self.d)
+        self.assertEqual(result['errors'], [])
+        self.d['status'] = 'final'
+        result = self.validate(self.d)
+        self.assertTrue(any('final 方案不得有待核对标准' in e for e in result['errors']))
+
     def test_user_source_excerpt_verified(self):
         earlier = ['面向数据工程技术人员等职业群', '现有专任教师 12 人，其中双师型 6 人']
         context = {'message': '', 'earlierMessages': earlier, 'uploads': []}
