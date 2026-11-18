@@ -1,0 +1,5995 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#d7e5f4" />
+  <meta name="description" content="优才知路 Agent 规划蓝图、广东高职院校市场预期与 Lumi LLM 智能平台目标技术架构。" />
+  <title>优才知路市场预期、业务蓝图与技术架构 | Lumi LLM</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Montserrat:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <script>document.documentElement.classList.add("js");</script>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f9f8f8;
+      --text: #1e232c;
+      --text-blue: #152443;
+      --description: rgba(0, 0, 0, 0.65);
+      --secondary: rgba(0, 0, 0, 0.7);
+      --quiet: rgba(0, 0, 0, 0.62);
+      --placeholder: #8691a1;
+      --brand: #4d6bfe;
+      --brand-deep: #3a65c2;
+      --brand-reverse: #4176e6;
+      --link-blue: #234792;
+      --navy-950: #07152f;
+      --navy-900: #0a1a3a;
+      --navy-800: #0d1f4a;
+      --navy-700: #1a3870;
+      --navy-600: #2d5f9e;
+      --navy-500: #4a8ac4;
+      --glass: rgba(255, 255, 255, 0.38);
+      --glass-soft: rgba(255, 255, 255, 0.3);
+      --glass-hover: rgba(255, 255, 255, 0.5);
+      --raised: rgba(255, 255, 255, 0.45);
+      --surface: rgba(255, 255, 255, 0.56);
+      --surface-strong: rgba(255, 255, 255, 0.78);
+      --border: rgba(0, 0, 0, 0.1);
+      --border-subtle: rgba(0, 0, 0, 0.06);
+      --divider: rgba(0, 0, 0, 0.08);
+      --font-body: "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", sans-serif;
+      --font-display: "Montserrat", var(--font-body);
+      --font-capability: "DM Sans", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+      --font-domain: "Montserrat", "Noto Sans SC", "PingFang SC", var(--font-body);
+      --shell: min(100% - 48px, 1140px);
+      --ease: cubic-bezier(0.44, 0, 0.56, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      scroll-behavior: smooth;
+      scroll-padding-top: 86px;
+      background: var(--page);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      overflow-x: hidden;
+      background: var(--page);
+      color: var(--text);
+      font-family: var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body.menu-open {
+      overflow: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      color: inherit;
+      font: inherit;
+    }
+
+    img,
+    svg,
+    canvas {
+      display: block;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .page-shell {
+      width: var(--shell);
+      margin-inline: auto;
+    }
+
+    .skip-link {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 300;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow:
+        0 0 1px rgba(0, 0, 0, 0.2),
+        0 12px 32px rgba(0, 0, 0, 0.08);
+      transform: translateY(-160%);
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+    }
+
+    :focus-visible {
+      outline: 2px solid rgba(77, 107, 254, 0.78);
+      outline-offset: 3px;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .site-header {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 80;
+      width: var(--shell);
+      margin-inline: auto;
+      padding-top: 8px;
+    }
+
+    .header-bar {
+      display: flex;
+      min-height: 50px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      padding: 5px 14px;
+      border: 1px solid transparent;
+      border-radius: 100px;
+      transition:
+        background-color 300ms,
+        border-color 300ms,
+        backdrop-filter 300ms;
+    }
+
+    .site-header.is-scrolled .header-bar {
+      border-color: var(--border);
+      background: var(--raised);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: inline-flex;
+      min-width: 0;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-blue);
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 31px;
+      height: 31px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 10px;
+      background: var(--brand-reverse);
+      color: #fff;
+    }
+
+    .brand-mark svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.6;
+    }
+
+    .brand-copy {
+      display: flex;
+      flex-direction: column;
+      line-height: 1;
+    }
+
+    .brand-copy strong {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-copy small {
+      margin-top: 5px;
+      color: var(--quiet);
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .desktop-nav {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+    }
+
+    .desktop-nav a {
+      position: relative;
+      padding: 10px 0;
+      color: rgba(21, 36, 67, 0.72);
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: color 160ms;
+    }
+
+    .desktop-nav a::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 4px;
+      left: 0;
+      height: 1px;
+      background: var(--brand);
+      opacity: 0;
+      transform: scaleX(0.4);
+      transition: opacity 160ms, transform 160ms;
+    }
+
+    .desktop-nav a:hover,
+    .desktop-nav a[aria-current="location"] {
+      color: var(--text-blue);
+    }
+
+    .desktop-nav a:hover::after,
+    .desktop-nav a[aria-current="location"]::after {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+
+    .header-actions {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      min-height: 28px;
+      align-items: center;
+      padding: 0 11px;
+      border: 1px solid rgba(77, 107, 254, 0.18);
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.28);
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .icon-button,
+    .menu-trigger,
+    .menu-close {
+      display: inline-flex;
+      width: 38px;
+      height: 38px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid transparent;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      transition: background-color 160ms, border-color 160ms;
+    }
+
+    .icon-button:hover,
+    .menu-trigger:hover,
+    .menu-close:hover {
+      border-color: rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.36);
+    }
+
+    .icon-button svg,
+    .menu-close svg {
+      width: 19px;
+      height: 19px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+    }
+
+    .menu-trigger {
+      position: relative;
+      display: none;
+      width: 40px;
+      height: 40px;
+      color: var(--text-blue);
+    }
+
+    .menu-trigger span {
+      position: absolute;
+      width: 20px;
+      height: 1.5px;
+      border-radius: 1px;
+      background: currentColor;
+    }
+
+    .menu-trigger span:first-child {
+      transform: translateY(-6px);
+    }
+
+    .menu-trigger span:last-child {
+      transform: translateY(6px);
+    }
+
+    .mobile-menu {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: flex;
+      flex-direction: column;
+      background: var(--page);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 200ms;
+    }
+
+    .mobile-menu.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mobile-menu-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+    }
+
+    .mobile-menu-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 24px;
+    }
+
+    .mobile-menu-body a,
+    .mobile-menu-body button {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 0;
+      border: 0;
+      border-bottom: 1px solid var(--divider);
+      background: transparent;
+      color: var(--text);
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 500;
+      text-align: left;
+    }
+
+    .mobile-menu-body svg {
+      width: 19px;
+      height: 19px;
+      fill: none;
+      stroke: var(--placeholder);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+    }
+
+    .mobile-menu-footer {
+      padding: 24px;
+      color: var(--description);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .hero {
+      position: relative;
+      display: flex;
+      min-height: min(100vh, 1020px);
+      align-items: center;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 70% 58% at 8% 5%, rgba(255, 255, 255, 0.78), transparent 74%),
+        radial-gradient(ellipse 92% 72% at 92% 30%, rgba(128, 157, 211, 0.24), transparent 70%),
+        linear-gradient(180deg, #9cc1e7 0%, rgba(249, 248, 248, 0) 100%);
+    }
+
+    .ambient-canvas,
+    .grid-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      -webkit-mask-image: linear-gradient(#000000fc 0%, #000000e8 9%, transparent 100%);
+      mask-image: linear-gradient(#000000fc 0%, #000000e8 9%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .ambient-canvas {
+      z-index: 0;
+    }
+
+    .grid-canvas {
+      z-index: 1;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      min-height: 470px;
+      grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+      align-items: stretch;
+      gap: 120px;
+      padding: 108px 0 72px;
+    }
+
+    .hero-left {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: 56px;
+    }
+
+    .hero-message {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      padding-left: 12px;
+    }
+
+    .release-note {
+      display: inline-flex;
+      width: fit-content;
+      max-width: 580px;
+      align-items: flex-start;
+      gap: 8px;
+      color: rgba(0, 0, 0, 0.58);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 24px;
+    }
+
+    .sparkle {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+      margin-top: 5px;
+      fill: var(--brand);
+      animation: sparkle-pulse 2.4s ease-in-out infinite;
+    }
+
+    .sparkle-small {
+      transform-origin: center;
+      animation: sparkle-small 2.4s 400ms ease-in-out infinite;
+    }
+
+    .hero h1 {
+      max-width: 720px;
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 46px;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      line-height: 1.42;
+      text-wrap: balance;
+    }
+
+    .hero-summary {
+      max-width: 610px;
+      margin: 0;
+      color: var(--description);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    .cta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+
+    .glass-cta {
+      --border-angle: 0deg;
+      position: relative;
+      display: flex;
+      min-height: 153px;
+      flex-direction: column;
+      gap: 6px;
+      padding: 22px 24px;
+      overflow: visible;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      background: var(--glass);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      transition: background-color 200ms, border-color 200ms;
+    }
+
+    .glass-cta::before {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      padding: 2px;
+      border-radius: inherit;
+      background: conic-gradient(
+        from var(--border-angle),
+        rgba(58, 101, 194, 0.15),
+        rgba(120, 170, 255, 0.72),
+        rgba(58, 101, 194, 0.15),
+        rgba(120, 170, 255, 0.72),
+        rgba(58, 101, 194, 0.15)
+      );
+      opacity: 0;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      transition: opacity 300ms;
+      animation: rotating-border 6s linear infinite;
+      animation-play-state: paused;
+      pointer-events: none;
+    }
+
+    .glass-cta:focus-visible {
+      border-color: transparent;
+      background: var(--glass-hover);
+    }
+
+    .glass-cta:focus-visible::before {
+      opacity: 1;
+      animation-play-state: running;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .glass-cta:hover {
+        border-color: transparent;
+        background: var(--glass-hover);
+      }
+
+      .glass-cta:hover::before {
+        opacity: 1;
+        animation-play-state: running;
+      }
+    }
+
+    .glass-cta > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .glass-cta strong {
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 27px;
+    }
+
+    .glass-cta span {
+      color: var(--description);
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 24px;
+    }
+
+    .mobile-proof {
+      display: none;
+      min-height: 72px;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      align-items: center;
+      column-gap: 8px;
+      row-gap: 4px;
+      margin-bottom: 40px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.3);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .mobile-proof > span {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: start;
+      padding: 4px 8px;
+      border-radius: 100px;
+      background: var(--brand-reverse);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 13px;
+    }
+
+    .mobile-proof strong {
+      grid-column: 1;
+      grid-row: 2;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 20px;
+    }
+
+    .mobile-proof svg {
+      grid-column: 2;
+      grid-row: 2;
+      color: var(--placeholder);
+    }
+
+    .technical-media {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      min-height: 455px;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 32px 32px 36px;
+      border-radius: 16px;
+      background:
+        radial-gradient(circle at 76% 18%, rgba(74, 138, 196, 0.46), transparent 34%),
+        linear-gradient(145deg, var(--navy-700), var(--navy-950));
+      color: #fff;
+      transform: translateZ(0);
+      transition: transform 500ms ease-out;
+    }
+
+    .technical-media canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.88;
+      transition: transform 600ms ease-out;
+    }
+
+    .technical-media::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 32px 32px;
+      -webkit-mask-image: linear-gradient(#000, rgba(0, 0, 0, 0.2) 72%, transparent);
+      mask-image: linear-gradient(#000, rgba(0, 0, 0, 0.2) 72%, transparent);
+      pointer-events: none;
+    }
+
+    .technical-media:hover,
+    .technical-media:focus-visible {
+      transform: translateY(-4px) translateZ(0);
+    }
+
+    .technical-media:hover canvas,
+    .technical-media:focus-visible canvas {
+      transform: scale(1.08);
+    }
+
+    .signal-chain,
+    .runtime-map,
+    .media-copy {
+      position: relative;
+      z-index: 2;
+    }
+
+    .signal-chain {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .signal-chain::before {
+      content: "";
+      position: absolute;
+      top: 8px;
+      right: 9%;
+      left: 9%;
+      height: 1px;
+      background: rgba(151, 203, 255, 0.42);
+    }
+
+    .signal-chain::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      left: 8%;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #c9e7ff;
+      box-shadow: 0 0 14px rgba(169, 218, 255, 0.95);
+      animation: signal-travel 5.4s linear infinite;
+    }
+
+    .signal-chain li {
+      position: relative;
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      color: rgba(255, 255, 255, 0.66);
+      font-size: 10px;
+      line-height: 1.35;
+      text-align: center;
+    }
+
+    .signal-chain i {
+      position: relative;
+      z-index: 1;
+      width: 9px;
+      height: 9px;
+      border: 1px solid rgba(194, 225, 255, 0.86);
+      border-radius: 50%;
+      background: rgba(13, 31, 74, 0.92);
+      box-shadow: 0 0 9px rgba(116, 185, 248, 0.4);
+    }
+
+    .runtime-map {
+      display: grid;
+      min-height: 225px;
+      place-items: center;
+    }
+
+    .orbit {
+      position: relative;
+      width: min(100%, 290px);
+      aspect-ratio: 1.35;
+    }
+
+    .orbit-ring,
+    .orbit-ring::before {
+      position: absolute;
+      inset: 12% 6%;
+      border: 1px solid rgba(149, 200, 248, 0.24);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .orbit-ring::before {
+      inset: 17% 19%;
+    }
+
+    .orbit-core {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: flex;
+      width: 112px;
+      height: 78px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.1);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      transform: translate(-50%, -50%);
+    }
+
+    .orbit-core strong {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .orbit-core span {
+      margin-top: 6px;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .orbit-chip {
+      position: absolute;
+      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 100px;
+      background: rgba(7, 21, 47, 0.56);
+      color: rgba(255, 255, 255, 0.76);
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .orbit-chip:nth-of-type(1) {
+      top: 11%;
+      left: 4%;
+    }
+
+    .orbit-chip:nth-of-type(2) {
+      top: 12%;
+      right: 1%;
+    }
+
+    .orbit-chip:nth-of-type(3) {
+      bottom: 9%;
+      left: 2%;
+    }
+
+    .orbit-chip:nth-of-type(4) {
+      right: 4%;
+      bottom: 8%;
+    }
+
+    .media-copy {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .media-copy strong {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.45;
+    }
+
+    .media-copy span {
+      display: inline-flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255, 255, 255, 0.62);
+      font-size: 13px;
+      transition: color 160ms;
+    }
+
+    .media-copy svg,
+    .mobile-proof svg,
+    .text-link svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+      transition: transform 200ms;
+    }
+
+    .technical-media:hover .media-copy span,
+    .technical-media:focus-visible .media-copy span {
+      color: rgba(255, 255, 255, 0.94);
+    }
+
+    .technical-media:hover .media-copy svg,
+    .technical-media:focus-visible .media-copy svg {
+      transform: translateX(3px);
+    }
+
+    .js .hero-reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      animation: hero-reveal 1s var(--ease) forwards;
+    }
+
+    .js .cta-grid.hero-reveal,
+    .js .technical-media.hero-reveal {
+      animation-delay: 100ms;
+    }
+
+    .report {
+      position: relative;
+      background: var(--page);
+    }
+
+    .report-section {
+      position: relative;
+      padding: 48px 0;
+    }
+
+    .report-section:first-child {
+      padding-top: 120px;
+    }
+
+    .report-section:last-child {
+      padding-bottom: 120px;
+    }
+
+    .report-glass {
+      position: relative;
+      isolation: isolate;
+      padding: clamp(36px, 4vw, 56px);
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      background-color: var(--glass);
+      background-image: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.18),
+        rgba(255, 255, 255, 0) 42%
+      );
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .report-glass > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .js .reveal-on-view {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+
+    .js .reveal-on-view.is-revealing {
+      animation: report-rise-reveal 1s var(--ease) forwards;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      align-items: start;
+      gap: 80px;
+      margin-bottom: 56px;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 18px;
+    }
+
+    .section-index {
+      color: var(--brand);
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 500;
+      letter-spacing: -0.025em;
+      line-height: 1.3;
+    }
+
+    .section-head p {
+      max-width: 680px;
+      margin: 2px 0 0;
+      color: var(--description);
+      font-size: 16px;
+      line-height: 1.8;
+    }
+
+    .section-head p strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .blueprint-topic {
+      position: relative;
+    }
+
+    .blueprint-topic + .blueprint-topic {
+      margin-top: 64px;
+      padding-top: 64px;
+      border-top: 1px solid var(--divider);
+    }
+
+    .blueprint-topic-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+      align-items: start;
+      gap: 80px;
+      margin-bottom: 40px;
+    }
+
+    .blueprint-topic-head h3 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.35;
+    }
+
+    .blueprint-topic-head p {
+      max-width: 680px;
+      margin: 1px 0 0;
+      color: var(--description);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .business-flow {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 16px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .business-flow::before {
+      content: "";
+      position: absolute;
+      top: 21px;
+      right: 8.3%;
+      left: 8.3%;
+      height: 1px;
+      background: rgba(77, 107, 254, 0.3);
+    }
+
+    .business-flow li {
+      position: relative;
+      min-width: 0;
+    }
+
+    .flow-node {
+      position: relative;
+      display: block;
+      width: 11px;
+      height: 11px;
+      margin: 16px auto 22px;
+      border: 2px solid rgba(77, 107, 254, 0.66);
+      border-radius: 50%;
+      background: var(--page);
+      box-shadow: 0 0 0 6px rgba(77, 107, 254, 0.07);
+    }
+
+    .flow-card {
+      min-height: 174px;
+      padding: 22px 20px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.42);
+    }
+
+    .flow-card small {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--brand);
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .flow-card h4 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .flow-card p {
+      margin: 10px 0 0;
+      color: var(--description);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .feedback-loop {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr;
+      align-items: stretch;
+      gap: 0;
+      margin-top: 32px;
+      overflow: hidden;
+      border-radius: 16px;
+      background: var(--navy-900);
+      color: #fff;
+    }
+
+    .feedback-label {
+      display: flex;
+      min-width: 140px;
+      align-items: center;
+      gap: 10px;
+      padding: 22px 24px;
+      background: rgba(255, 255, 255, 0.08);
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .feedback-label svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: #a7d2ff;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+    }
+
+    .feedback-item {
+      display: flex;
+      align-items: center;
+      padding: 20px 24px;
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .feedback-item strong {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .agent-domain {
+      position: relative;
+      min-width: 0;
+      padding: 28px 22px 20px;
+      border: 1px solid var(--border-subtle);
+      border-top: 3px solid var(--brand);
+      border-radius: 0 0 16px 16px;
+      background: rgba(255, 255, 255, 0.48);
+    }
+
+    .agent-domain:nth-child(2) {
+      border-top-color: #5f82e8;
+    }
+
+    .agent-domain:nth-child(3) {
+      border-top-color: #4b92c9;
+    }
+
+    .agent-domain:nth-child(4) {
+      border-top-color: #315c9d;
+    }
+
+    .agent-domain header {
+      min-height: 67px;
+      padding-bottom: 18px;
+    }
+
+    .agent-domain header span {
+      color: var(--quiet);
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .agent-domain h4 {
+      margin: 8px 0 0;
+      color: var(--text-blue);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .agent-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .agent-list li {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 9px;
+      padding: 12px 0;
+      border-top: 1px solid var(--divider);
+      color: rgba(30, 35, 44, 0.76);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .agent-list code {
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.8;
+    }
+
+    .capability-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .capability {
+      padding: 28px 24px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .capability-number {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border-radius: 11px;
+      background: rgba(77, 107, 254, 0.09);
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .capability h4 {
+      min-height: 52px;
+      margin: 18px 0 15px;
+      color: var(--text-blue);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+
+    .capability ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .capability li {
+      position: relative;
+      margin-top: 9px;
+      padding-left: 14px;
+      color: var(--description);
+      font-size: 14px;
+      line-height: 1.65;
+    }
+
+    .capability li::before {
+      content: "";
+      position: absolute;
+      top: 0.72em;
+      left: 0;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+
+    .subsection {
+      margin-top: 72px;
+    }
+
+    .subsection-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 32px;
+      margin-bottom: 28px;
+    }
+
+    .subsection-heading h4 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    .subsection-heading p {
+      max-width: 640px;
+      margin: 0;
+      color: var(--description);
+      font-size: 14px;
+      line-height: 1.7;
+      text-align: right;
+    }
+
+    .governance-panel {
+      padding: 28px;
+      border: 1px solid rgba(77, 107, 254, 0.15);
+      border-radius: 20px;
+      background:
+        linear-gradient(120deg, rgba(223, 234, 250, 0.68), rgba(255, 255, 255, 0.36));
+    }
+
+    .governance-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .governance-item {
+      min-width: 0;
+      padding: 18px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.36);
+    }
+
+    .governance-item span {
+      display: block;
+      margin-bottom: 12px;
+      color: var(--brand);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .governance-item strong {
+      display: block;
+      color: var(--text-blue);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .governance-item p {
+      margin: 8px 0 0;
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .data-statement {
+      margin: 0;
+      padding: 28px 0;
+      border-top: 1px solid var(--divider);
+      border-bottom: 1px solid var(--divider);
+      color: var(--text-blue);
+      font-size: clamp(19px, 2vw, 27px);
+      font-weight: 400;
+      letter-spacing: -0.015em;
+      line-height: 1.75;
+    }
+
+    .data-statement strong {
+      color: var(--brand-deep);
+      font-weight: 500;
+    }
+
+    .data-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .data-domain {
+      min-width: 0;
+      padding: 28px;
+      border: 1px dashed rgba(49, 92, 157, 0.32);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.24);
+    }
+
+    .data-domain h4 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 0;
+      color: var(--text-blue);
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .data-domain h4 span {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 10px;
+      background: rgba(77, 107, 254, 0.09);
+      color: var(--brand-deep);
+      font-size: 12px;
+    }
+
+    .metric {
+      margin-top: 24px;
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 25px;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    .data-domain ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 22px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .data-domain li {
+      padding: 6px 10px;
+      border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.54);
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .data-domain .data-detail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 22px;
+    }
+
+    .data-domain .data-detail-list li {
+      display: block;
+      padding: 11px 0;
+      border: 0;
+      border-top: 1px solid var(--divider);
+      border-radius: 0;
+      background: transparent;
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .data-detail-list strong {
+      color: var(--text-blue);
+      font-weight: 600;
+    }
+
+    .data-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 18px 0 0;
+      padding: 15px 18px;
+      border-left: 2px solid rgba(77, 107, 254, 0.5);
+      color: var(--description);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .data-note svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      margin-top: 2px;
+      fill: none;
+      stroke: var(--brand-deep);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+    }
+
+    /* 01 · 业务蓝图：以与技术架构一致的五层阅读结构承载原有业务信息。 */
+    .blueprint-layers {
+      overflow: hidden;
+      border: 1px solid rgba(49, 95, 159, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .blueprint-layer {
+      display: grid;
+      grid-template-columns: 158px minmax(0, 1fr);
+      min-width: 0;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .blueprint-layer:last-child {
+      border-bottom: 0;
+    }
+
+    .blueprint-layer-title {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      padding: 24px;
+      border-right: 1px solid var(--divider);
+      background: rgba(77, 107, 254, 0.045);
+    }
+
+    .blueprint-layer:nth-child(even) .blueprint-layer-title {
+      background: rgba(77, 107, 254, 0.03);
+    }
+
+    .blueprint-layer-title > span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--brand);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+    }
+
+    .blueprint-layer-title h3 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1.45;
+    }
+
+    .blueprint-layer-title p {
+      margin: 12px 0 0;
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .blueprint-layer-body {
+      min-width: 0;
+      padding: 24px;
+    }
+
+    .blueprint-layer .business-flow {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .blueprint-layer .business-flow::before {
+      top: 14px;
+      right: 7.7%;
+      left: 7.7%;
+    }
+
+    .blueprint-layer .flow-node {
+      width: 9px;
+      height: 9px;
+      margin: 10px auto 16px;
+      box-shadow: 0 0 0 4px rgba(77, 107, 254, 0.07);
+    }
+
+    .blueprint-layer .flow-card {
+      min-height: 140px;
+      padding: 16px 14px;
+      border-color: rgba(49, 95, 159, 0.12);
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .blueprint-layer .flow-card small {
+      margin-bottom: 8px;
+      font-size: 10px;
+    }
+
+    .blueprint-layer .flow-card h4 {
+      font-size: 15px;
+    }
+
+    .blueprint-layer .flow-card p {
+      margin-top: 7px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .blueprint-layer .feedback-loop {
+      margin-top: 16px;
+      border: 1px solid rgba(49, 95, 159, 0.14);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.3);
+      color: var(--text-blue);
+    }
+
+    .blueprint-layer .feedback-label {
+      min-width: 112px;
+      padding: 16px 18px;
+      background: rgba(77, 107, 254, 0.065);
+      color: var(--text-blue);
+      font-size: 12px;
+    }
+
+    .blueprint-layer .feedback-label svg {
+      stroke: var(--brand-deep);
+    }
+
+    .blueprint-layer .feedback-item {
+      padding: 16px 18px;
+      border-color: var(--divider);
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .blueprint-layer .feedback-item strong {
+      color: var(--text-blue);
+    }
+
+    .blueprint-layer .agent-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media screen and (min-width: 768px) and (max-width: 1199px) {
+      #blueprint .agent-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .blueprint-layer .agent-domain {
+      padding: 18px 14px 12px;
+      border-top-width: 2px;
+      border-radius: 0 0 12px 12px;
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    .blueprint-layer .agent-domain header {
+      min-height: 54px;
+      padding-bottom: 10px;
+    }
+
+    .blueprint-layer .agent-domain h4 {
+      margin-top: 5px;
+      font-size: 15px;
+    }
+
+    .blueprint-layer .agent-list li {
+      grid-template-columns: 32px 1fr;
+      gap: 6px;
+      padding: 8px 0;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .agent-capability-chain {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .agent-capability-chain > li {
+      position: relative;
+      min-width: 0;
+    }
+
+    .agent-capability-chain > li:not(:last-child)::after {
+      position: absolute;
+      z-index: 2;
+      top: 50%;
+      right: -6px;
+      width: 5px;
+      height: 5px;
+      border-top: 1px solid rgba(77, 107, 254, 0.6);
+      border-right: 1px solid rgba(77, 107, 254, 0.6);
+      content: "";
+      pointer-events: none;
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .agent-capability-chain article {
+      height: 100%;
+      padding: 16px 13px 14px;
+      border: 1px solid rgba(49, 95, 159, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.32);
+    }
+
+    .agent-capability-chain h4,
+    .data-governance-grid h4 {
+      margin: 0;
+      color: var(--text-blue);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .agent-capability-chain ul {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .agent-capability-chain li li {
+      position: relative;
+      margin-top: 6px;
+      padding-left: 10px;
+      color: var(--description);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .agent-capability-chain li li::before {
+      position: absolute;
+      top: 0.7em;
+      left: 0;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--brand);
+      content: "";
+    }
+
+    .governance-platform-name {
+      margin: 0 0 16px;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .data-governance-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .data-governance-grid article {
+      min-width: 0;
+      padding: 14px 12px;
+      border: 1px solid rgba(49, 95, 159, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.28);
+    }
+
+    .data-governance-grid h4 {
+      font-size: 13px;
+    }
+
+    .data-governance-grid p {
+      margin: 8px 0 0;
+      color: var(--description);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    /* Source: deepseek-homepage-ui → deepseek-color-system + deepseek-font-pairing. */
+    .agent-list--governance {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 32px;
+    }
+
+    /* Source: deepseek-homepage-ui → join-fluid-card / deep-blue feature media. */
+    .industry-model {
+      position: relative;
+      display: flex;
+      min-height: 136px;
+      align-items: flex-end;
+      margin-top: 0;
+      overflow: hidden;
+      padding: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      background:
+        radial-gradient(90% 125% at 100% 100%, rgba(74, 138, 196, 0.9), transparent 58%),
+        radial-gradient(78% 110% at 42% -18%, rgba(45, 95, 158, 0.9), transparent 62%),
+        linear-gradient(145deg, #0a1a3a 0%, #1a3870 48%, #0d1f4a 100%);
+    }
+
+    .industry-model::after {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(10, 26, 58, 0.26), transparent 68%);
+      content: "";
+      pointer-events: none;
+    }
+
+    .industry-model-copy {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 7px;
+    }
+
+    .industry-model-copy > span {
+      display: block;
+      color: rgba(255, 255, 255, 0.6);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      line-height: 1.45;
+    }
+
+    .industry-model-copy strong {
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.7;
+    }
+
+    .industry-model-copy em {
+      color: rgba(255, 255, 255, 0.6);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-style: normal;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 767px) {
+      .agent-list--governance {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .private-data-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      margin: -4px 0;
+    }
+
+    .private-data-line p {
+      display: flex;
+      flex: 1 1 190px;
+      flex-direction: column;
+      min-width: 0;
+      margin: 4px 0;
+      padding: 0 14px;
+      border-left: 1px solid var(--divider);
+    }
+
+    .private-data-line p:first-child {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .private-data-line strong {
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .private-data-line span {
+      margin-top: 7px;
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .architecture-wrap {
+      overflow: hidden;
+      border: 1px solid rgba(49, 95, 159, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .architecture-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--divider);
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--quiet);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .architecture-meta strong {
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .arch-layer {
+      display: grid;
+      grid-template-columns: 158px minmax(0, 1fr);
+      min-height: 108px;
+      border-bottom: 1px solid var(--divider);
+    }
+
+    .arch-layer:last-of-type {
+      border-bottom: 0;
+    }
+
+    .layer-title {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px;
+      border-right: 1px solid var(--divider);
+      background: rgba(77, 107, 254, 0.045);
+      color: var(--text-blue);
+    }
+
+    .arch-layer:nth-of-type(2) .layer-title {
+      background: rgba(77, 107, 254, 0.035);
+    }
+
+    .arch-layer:nth-of-type(3) .layer-title {
+      background: rgba(77, 107, 254, 0.085);
+    }
+
+    .arch-layer:nth-of-type(4) .layer-title {
+      background: rgba(77, 107, 254, 0.04);
+    }
+
+    .arch-layer:nth-of-type(5) .layer-title {
+      background: rgba(77, 107, 254, 0.03);
+    }
+
+    .arch-layer:nth-of-type(6) .layer-title {
+      background: rgba(77, 107, 254, 0.025);
+    }
+
+    .layer-title small {
+      color: rgba(58, 101, 194, 0.72);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+    }
+
+    .layer-title h3 {
+      margin-top: 10px;
+      margin-bottom: 0;
+      color: var(--text-blue);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .layer-content {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      padding: 24px 28px;
+    }
+
+    .arch-items {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .arch-items li {
+      display: flex;
+      min-height: 56px;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 14px;
+      border: 1px solid rgba(49, 95, 159, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.34);
+      color: rgba(21, 36, 67, 0.82);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .arch-layer.is-core {
+      min-height: 312px;
+      background: rgba(77, 107, 254, 0.035);
+    }
+
+    .arch-layer.is-core .layer-content {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mode-note {
+      margin: 0;
+      color: var(--description);
+      font-size: 13px;
+      line-height: 1.65;
+      text-align: center;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mode-card {
+      display: grid;
+      min-height: 105px;
+      grid-template-columns: 43px 1fr;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      border: 1px solid rgba(49, 95, 159, 0.12);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.42);
+      color: var(--text-blue);
+    }
+
+    .mode-card:last-child {
+      background: rgba(77, 107, 254, 0.045);
+    }
+
+    .mode-icon {
+      display: grid;
+      width: 43px;
+      height: 43px;
+      place-items: center;
+      border: 1px solid rgba(77, 107, 254, 0.16);
+      border-radius: 50%;
+      background: rgba(77, 107, 254, 0.08);
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .mode-card h4 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .mode-card p {
+      margin: 6px 0 0;
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .shared-runtime {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .shared-runtime li {
+      padding: 11px 8px;
+      border: 1px solid rgba(49, 95, 159, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.34);
+      color: rgba(21, 36, 67, 0.78);
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .model-service {
+      display: grid;
+      width: 100%;
+      grid-template-columns: minmax(250px, 1.5fr) repeat(3, minmax(0, 0.75fr));
+      gap: 10px;
+    }
+
+    .model-primary,
+    .model-item {
+      display: flex;
+      min-height: 72px;
+      flex-direction: column;
+      justify-content: center;
+      padding: 14px 18px;
+      border: 1px solid rgba(49, 95, 159, 0.1);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.34);
+    }
+
+    .model-primary strong {
+      color: var(--text-blue);
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .model-primary span {
+      margin-top: 5px;
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+    }
+
+    .model-item {
+      align-items: center;
+      color: rgba(21, 36, 67, 0.8);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .data-layer-grid {
+      display: grid;
+      width: 100%;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .data-layer-item {
+      padding: 15px 16px;
+      border: 1px solid rgba(49, 95, 159, 0.15);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .data-layer-item strong {
+      color: var(--text-blue);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .data-layer-item p {
+      margin: 6px 0 0;
+      color: var(--description);
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .architecture-data-line {
+      margin: 0;
+      color: rgba(21, 36, 67, 0.82);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .architecture-data-line strong {
+      color: var(--brand-deep);
+      font-weight: 500;
+    }
+
+    .architecture-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 20px 24px;
+      border-top: 1px solid var(--divider);
+      background: rgba(77, 107, 254, 0.025);
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .architecture-flow svg {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      fill: none;
+      stroke: var(--brand-deep);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+    }
+
+    /* 02 · 技术架构：沿用 DeepSeek 的低对比玻璃材质与克制字体层级。 */
+    .report-glass--architecture .section-head {
+      margin-bottom: 48px;
+    }
+
+    .report-glass--architecture .section-head h2 {
+      font-weight: 500;
+      letter-spacing: -0.03em;
+    }
+
+    .report-glass--architecture .section-head p {
+      max-width: 640px;
+      font-size: 15px;
+      line-height: 1.8;
+    }
+
+    .report-glass--architecture .architecture-wrap {
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.3);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .report-glass--architecture .architecture-meta {
+      min-height: 60px;
+      padding: 18px 24px;
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--description);
+      font-size: 12px;
+      letter-spacing: 0.01em;
+    }
+
+    .report-glass--architecture .architecture-meta strong {
+      font-weight: 500;
+      letter-spacing: 0.06em;
+    }
+
+    .report-glass--architecture .arch-layer {
+      min-height: 112px;
+    }
+
+    .report-glass--architecture .layer-title {
+      padding: 24px;
+      background: rgba(77, 107, 254, 0.04);
+    }
+
+    .report-glass--architecture .arch-layer:nth-of-type(2) .layer-title,
+    .report-glass--architecture .arch-layer:nth-of-type(4) .layer-title,
+    .report-glass--architecture .arch-layer:nth-of-type(6) .layer-title {
+      background: rgba(77, 107, 254, 0.026);
+    }
+
+    .report-glass--architecture .arch-layer.is-core .layer-title {
+      background: rgba(77, 107, 254, 0.075);
+    }
+
+    .report-glass--architecture .layer-title small {
+      color: rgba(58, 101, 194, 0.76);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      line-height: 1.45;
+    }
+
+    .report-glass--architecture .layer-title h3 {
+      margin-top: 9px;
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.45;
+    }
+
+    .report-glass--architecture .layer-content {
+      padding: 24px 28px;
+    }
+
+    .report-glass--architecture .arch-items {
+      gap: 8px;
+    }
+
+    .report-glass--architecture .arch-items li,
+    .report-glass--architecture .shared-runtime li {
+      border-color: rgba(0, 0, 0, 0.07);
+      background: rgba(255, 255, 255, 0.38);
+      color: rgba(21, 36, 67, 0.84);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .report-glass--architecture .arch-items li {
+      min-height: 54px;
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .report-glass--architecture .arch-layer.is-core {
+      background: linear-gradient(100deg, rgba(77, 107, 254, 0.055), rgba(255, 255, 255, 0.12));
+    }
+
+    .report-glass--architecture .arch-layer.is-core .layer-content {
+      gap: 14px;
+    }
+
+    .report-glass--architecture .mode-note {
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .report-glass--architecture .mode-grid {
+      gap: 10px;
+    }
+
+    .report-glass--architecture .mode-card {
+      min-height: 100px;
+      gap: 13px;
+      padding: 18px;
+      border-color: rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.38);
+    }
+
+    .report-glass--architecture .mode-card:last-child {
+      background: rgba(77, 107, 254, 0.045);
+    }
+
+    .report-glass--architecture .mode-icon {
+      border-color: rgba(77, 107, 254, 0.18);
+      background: rgba(77, 107, 254, 0.07);
+      font-weight: 500;
+    }
+
+    .report-glass--architecture .mode-card h4 {
+      font-size: 17px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .report-glass--architecture .mode-card p {
+      color: var(--description);
+      font-size: 12px;
+    }
+
+    .report-glass--architecture .shared-runtime {
+      gap: 8px;
+    }
+
+    .report-glass--architecture .shared-runtime li {
+      padding: 10px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    .report-glass--architecture .model-service {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .report-glass--architecture .model-primary {
+      min-height: 80px;
+      padding: 18px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.38);
+    }
+
+    .report-glass--architecture .model-primary strong {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+    }
+
+    .report-glass--architecture .model-primary span {
+      margin-top: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+    }
+
+    .report-glass--architecture .architecture-data-line {
+      color: rgba(21, 36, 67, 0.8);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .report-glass--architecture .architecture-data-line strong {
+      font-weight: 500;
+    }
+
+    .report-glass--architecture .architecture-flow {
+      min-height: 58px;
+      padding: 16px 24px;
+      background: rgba(77, 107, 254, 0.02);
+      color: var(--description);
+      font-size: 12px;
+    }
+
+    .boundary-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      margin-top: 32px;
+      overflow: hidden;
+      border: 1px solid var(--divider);
+      border-radius: 16px;
+      background: var(--divider);
+    }
+
+    .boundary-column {
+      padding: 28px;
+      background: rgba(255, 255, 255, 0.52);
+    }
+
+    .boundary-column h3 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .boundary-column ul {
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .boundary-column li {
+      position: relative;
+      margin-top: 9px;
+      padding-left: 16px;
+      color: var(--description);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .boundary-column li::before {
+      content: "";
+      position: absolute;
+      top: 0.72em;
+      left: 0;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--brand);
+    }
+
+    .site-footer {
+      padding: 80px 0 40px;
+      border-top: 1px solid var(--divider);
+      background: var(--page);
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 176px minmax(0, 1fr);
+      align-items: start;
+      gap: clamp(32px, 5vw, 72px);
+    }
+
+    .footer-brand {
+      display: flex;
+      min-height: 48px;
+      align-items: flex-start;
+      padding-top: 2px;
+    }
+
+    .footer-brand p {
+      max-width: 400px;
+      margin: 28px 0 0;
+      color: var(--description);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .footer-links {
+      display: grid;
+      grid-template-columns: minmax(145px, 0.85fr) minmax(220px, 1.45fr) minmax(130px, 0.75fr);
+      align-items: start;
+      gap: clamp(28px, 4vw, 56px);
+    }
+
+    .footer-link-group {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .footer-links strong {
+      margin: 0 0 8px;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.5;
+    }
+
+    .footer-links a,
+    .footer-links button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: var(--description);
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.5;
+      text-align: left;
+    }
+
+    .footer-links a:hover,
+    .footer-links button:hover {
+      color: var(--text);
+    }
+
+    @media (min-width: 768px) {
+      .footer-link-group--blueprint {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 24px;
+        row-gap: 16px;
+      }
+
+      .footer-link-group--blueprint strong {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 1023px) {
+      .footer-grid {
+        grid-template-columns: 144px minmax(0, 1fr);
+        gap: 32px;
+      }
+
+      .footer-links {
+        grid-template-columns: minmax(118px, 0.9fr) minmax(155px, 1.35fr) minmax(95px, 0.7fr);
+        gap: 20px;
+      }
+
+      .footer-link-group--blueprint {
+        column-gap: 16px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .footer-link-group--blueprint {
+        display: flex;
+      }
+    }
+
+    /* 01 / 02 共享同一套分层矩阵：左侧层级栏 + 右侧低对比玻璃节点。 */
+    .report-glass--blueprint .blueprint-layers,
+    .report-glass--architecture .architecture-wrap {
+      border-color: rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.3);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .report-glass--blueprint .blueprint-layer,
+    .report-glass--architecture .arch-layer {
+      grid-template-columns: 158px minmax(0, 1fr);
+      border-color: var(--divider);
+    }
+
+    .report-glass--blueprint .blueprint-layer-title,
+    .report-glass--architecture .layer-title {
+      padding: 24px;
+      border-color: var(--divider);
+      background: rgba(77, 107, 254, 0.04);
+    }
+
+    .report-glass--blueprint .blueprint-layer:nth-child(even) .blueprint-layer-title,
+    .report-glass--architecture .arch-layer:nth-of-type(even) .layer-title {
+      background: rgba(77, 107, 254, 0.026);
+    }
+
+    .report-glass--blueprint .blueprint-layer--agents .blueprint-layer-title,
+    .report-glass--architecture .arch-layer.is-core .layer-title {
+      background: rgba(77, 107, 254, 0.075);
+    }
+
+    .report-glass--blueprint .blueprint-layer-title > span,
+    .report-glass--architecture .layer-title small {
+      margin-bottom: 8px;
+      color: rgba(58, 101, 194, 0.76);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      line-height: 1.45;
+    }
+
+    .report-glass--blueprint .blueprint-layer-title h3,
+    .report-glass--architecture .layer-title h3 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1.45;
+    }
+
+    .report-glass--blueprint .blueprint-layer-title p {
+      margin-top: 12px;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .report-glass--blueprint .blueprint-layer-body,
+    .report-glass--architecture .layer-content {
+      padding: 24px;
+    }
+
+    .report-glass--blueprint .business-flow {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .report-glass--blueprint .business-flow::before,
+    .report-glass--blueprint .flow-node,
+    .report-glass--blueprint .agent-capability-chain > li::after {
+      display: none;
+    }
+
+    .report-glass--blueprint .flow-card,
+    .report-glass--blueprint .agent-domain,
+    .report-glass--blueprint .agent-capability-chain article,
+    .report-glass--blueprint .data-governance-grid article,
+    .report-glass--architecture .arch-items li,
+    .report-glass--architecture .mode-card,
+    .report-glass--architecture .model-primary,
+    .report-glass--architecture .shared-runtime li {
+      border: 1px solid rgba(0, 0, 0, 0.07);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.38);
+      box-shadow: none;
+    }
+
+    .report-glass--blueprint .flow-card {
+      display: flex;
+      min-height: 112px;
+      flex-direction: column;
+      justify-content: center;
+      padding: 14px;
+    }
+
+    .report-glass--blueprint .flow-card small {
+      margin-bottom: 7px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .report-glass--blueprint .flow-card h4,
+    .report-glass--blueprint .agent-domain h4,
+    .report-glass--blueprint .agent-capability-chain h4,
+    .report-glass--blueprint .data-governance-grid h4,
+    .report-glass--architecture .mode-card h4,
+    .report-glass--architecture .model-primary strong {
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      line-height: 1.45;
+    }
+
+    .report-glass--blueprint .flow-card p,
+    .report-glass--blueprint .agent-list li,
+    .report-glass--blueprint .agent-capability-chain li li,
+    .report-glass--blueprint .data-governance-grid p,
+    .report-glass--architecture .mode-card p {
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .report-glass--blueprint .agent-grid {
+      gap: 8px;
+    }
+
+    .report-glass--blueprint .agent-domain {
+      padding: 16px 14px 12px;
+      border-top: 1px solid rgba(0, 0, 0, 0.07);
+    }
+
+    .report-glass--blueprint .agent-domain header {
+      min-height: 48px;
+      padding-bottom: 9px;
+    }
+
+    .report-glass--blueprint .agent-domain header span,
+    .report-glass--blueprint .agent-list code {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+    }
+
+    .report-glass--blueprint .agent-domain h4 {
+      margin-top: 5px;
+    }
+
+    .report-glass--blueprint .agent-list li {
+      grid-template-columns: 32px 1fr;
+      gap: 6px;
+      padding: 8px 0;
+    }
+
+    /* Source: deepseek-homepage-ui → glass-cta + deepseek-font-pairing.
+       Agent information remains content-led while using the named glass CTA surface. */
+    .report-glass--blueprint .agent-capability-chain h4 {
+      color: var(--brand-deep);
+      font-family: var(--font-capability);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    .report-glass--blueprint .agent-domain.glass-cta {
+      padding: 22px 24px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      background: var(--glass);
+      box-shadow: none;
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+    }
+
+    .report-glass--blueprint .agent-domain.glass-cta:focus-visible {
+      border-color: transparent;
+      background: var(--glass-hover);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+      .report-glass--blueprint .agent-domain.glass-cta:hover {
+        border-color: transparent;
+        background: var(--glass-hover);
+      }
+    }
+
+    .report-glass--blueprint .agent-domain.glass-cta header span {
+      color: rgba(58, 101, 194, 0.82);
+    }
+
+    .report-glass--blueprint .blueprint-layer--agents .agent-domain h4 {
+      color: var(--brand-deep);
+      font-family: var(--font-domain);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 27px;
+    }
+
+    .report-glass--blueprint .blueprint-layer--governance .agent-domain h4 {
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 27px;
+    }
+
+    .report-glass--blueprint .blueprint-layer--agents .agent-list code,
+    .report-glass--blueprint .blueprint-layer--governance .agent-list code {
+      display: inline-flex;
+      min-width: 30px;
+      height: 20px;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      border-radius: 100px;
+      background: rgba(77, 107, 254, 0.09);
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .report-glass--blueprint .agent-capability-chain,
+    .report-glass--blueprint .data-governance-grid {
+      gap: 8px;
+    }
+
+    .report-glass--blueprint .agent-capability-chain article,
+    .report-glass--blueprint .data-governance-grid article {
+      padding: 14px 12px;
+    }
+
+    .report-glass--blueprint .agent-capability-chain ul {
+      margin-top: 10px;
+    }
+
+    .report-glass--blueprint .agent-capability-chain li li {
+      margin-top: 5px;
+      padding-left: 10px;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .report-glass--blueprint .data-governance-grid h4 {
+      font-size: 13px;
+    }
+
+    .report-glass--blueprint .data-governance-grid p {
+      margin-top: 7px;
+      font-size: 11px;
+      line-height: 1.55;
+    }
+
+    .report-glass--blueprint .private-data-line strong,
+    .report-glass--architecture .architecture-data-line strong {
+      color: var(--brand-deep);
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .report-glass--blueprint .private-data-line span,
+    .report-glass--architecture .architecture-data-line {
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .report-glass--architecture .arch-layer.is-core {
+      background: rgba(77, 107, 254, 0.035);
+    }
+
+    .report-glass--architecture .arch-items {
+      gap: 8px;
+    }
+
+    .report-glass--architecture .arch-items li {
+      min-height: 54px;
+      padding: 12px;
+      color: rgba(21, 36, 67, 0.82);
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .report-glass--architecture .mode-grid {
+      gap: 8px;
+    }
+
+    .report-glass--architecture .mode-card {
+      min-height: 96px;
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .report-glass--architecture .mode-card:last-child {
+      background: rgba(77, 107, 254, 0.045);
+    }
+
+    .report-glass--architecture .mode-card p {
+      margin-top: 5px;
+    }
+
+    .report-glass--architecture .shared-runtime {
+      gap: 8px;
+    }
+
+    .report-glass--architecture .shared-runtime li {
+      padding: 10px 8px;
+      color: rgba(21, 36, 67, 0.78);
+      font-size: 11px;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .report-glass--architecture .model-primary {
+      min-height: 72px;
+      padding: 16px 18px;
+    }
+
+    .report-glass--architecture .model-primary span {
+      margin-top: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+    }
+
+    .report-glass--architecture .architecture-flow {
+      padding: 16px 24px;
+      background: rgba(77, 107, 254, 0.025);
+      color: var(--description);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .report-glass--architecture .arch-items li {
+      font-weight: 600;
+    }
+
+    .report-glass--architecture .mode-card h4,
+    .report-glass--architecture .model-primary strong,
+    .report-glass--architecture .architecture-data-line strong {
+      font-weight: 600;
+    }
+
+    @media (max-width: 1279px) {
+      .report-glass--blueprint .business-flow {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 767px) {
+      .report-glass--blueprint .blueprint-layer,
+      .report-glass--architecture .arch-layer {
+        grid-template-columns: 1fr;
+      }
+
+      .report-glass--blueprint .blueprint-layer-title,
+      .report-glass--architecture .layer-title {
+        min-height: 0;
+        padding: 20px 22px;
+        border-right: 0;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .report-glass--blueprint .blueprint-layer-body,
+      .report-glass--architecture .layer-content {
+        padding: 20px;
+      }
+
+      .report-glass--blueprint .business-flow {
+        grid-template-columns: 1fr;
+        padding-left: 0;
+      }
+
+      .report-glass--blueprint .flow-card {
+        min-height: 0;
+      }
+
+      .report-glass--architecture .arch-items li,
+      .report-glass--architecture .architecture-data-line,
+      .report-glass--architecture .architecture-flow {
+        font-size: 15px;
+      }
+
+      .report-glass--architecture .mode-card p {
+        font-size: 14px;
+      }
+
+      .report-glass--architecture .shared-runtime li {
+        font-size: 12px;
+      }
+    }
+
+    @property --border-angle {
+      syntax: "<angle>";
+      inherits: false;
+      initial-value: 0deg;
+    }
+
+    @keyframes rotating-border {
+      to {
+        --border-angle: 360deg;
+      }
+    }
+
+    @keyframes hero-reveal {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes report-rise-reveal {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes sparkle-pulse {
+      50% {
+        opacity: 1;
+        transform: scale(1.15);
+      }
+    }
+
+    @keyframes sparkle-small {
+      50% {
+        opacity: 0.4;
+        transform: scale(0.6);
+      }
+    }
+
+    @keyframes signal-travel {
+      from {
+        left: 8%;
+      }
+      to {
+        left: calc(92% - 7px);
+      }
+    }
+
+    @media (min-width: 768px) {
+      :root {
+        --shell: min(100% - 144px, 1140px);
+      }
+    }
+
+    @media (min-width: 1560px) {
+      :root {
+        --shell: min(100% - 160px, 1280px);
+      }
+
+      .hero-inner {
+        grid-template-columns: minmax(0, 60fr) minmax(0, 40fr);
+      }
+
+      .governance-grid {
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 1279px) {
+      .hero-inner {
+        gap: 72px;
+      }
+
+      .blueprint-layer .business-flow {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .blueprint-layer .business-flow::before,
+      .blueprint-layer .flow-node {
+        display: none;
+      }
+
+      .agent-capability-chain {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        row-gap: 12px;
+      }
+
+      .agent-capability-chain > li:nth-child(3)::after {
+        display: none;
+      }
+
+      .data-governance-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .desktop-nav {
+        gap: 15px;
+      }
+
+      .governance-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .business-flow {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .business-flow::before,
+      .flow-node {
+        display: none;
+      }
+
+      .flow-card {
+        min-height: 160px;
+      }
+    }
+
+    @media (max-width: 1199px) {
+      .business-flow {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .business-flow::before,
+      .flow-node {
+        display: none;
+      }
+
+      .flow-card {
+        min-height: 160px;
+      }
+    }
+
+    @media (max-width: 1023px) and (min-width: 768px) {
+      .report-glass {
+        padding: 36px;
+      }
+
+      .blueprint-layer {
+        grid-template-columns: 132px minmax(0, 1fr);
+      }
+
+      .blueprint-layer-title,
+      .blueprint-layer-body {
+        padding: 20px;
+      }
+
+      .blueprint-layer-title h3 {
+        font-size: 17px;
+      }
+
+      .blueprint-layer-title p {
+        font-size: 11px;
+      }
+
+      .blueprint-topic-head {
+        gap: 40px;
+      }
+
+      .header-bar {
+        gap: 12px;
+        padding-inline: 10px;
+      }
+
+      .brand-copy small,
+      .status-pill {
+        display: none;
+      }
+
+      .desktop-nav {
+        gap: 12px;
+      }
+
+      .desktop-nav a {
+        font-size: 12px;
+      }
+
+      .hero-inner {
+        grid-template-columns: minmax(0, 45fr) minmax(0, 55fr);
+        gap: 56px;
+      }
+
+      .hero h1 {
+        font-size: 42px;
+      }
+
+      .hero-left {
+        gap: 44px;
+      }
+
+      .cta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .glass-cta {
+        min-height: 112px;
+      }
+
+      .technical-media {
+        padding: 26px;
+      }
+
+      .media-copy {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .business-flow {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .business-flow::before {
+        display: none;
+      }
+
+      .flow-node {
+        display: none;
+      }
+
+      .flow-card {
+        min-height: 160px;
+      }
+
+      .agent-grid,
+      .capability-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .governance-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .shared-runtime {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .model-service {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .model-primary {
+        grid-column: 1 / -1;
+      }
+
+      .arch-items {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .layer-title small {
+        overflow-wrap: anywhere;
+        letter-spacing: 0.08em;
+      }
+    }
+
+    @media (min-width: 768px) and (max-width: 899px) {
+      .hero-inner {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        gap: 0;
+        padding-top: 96px;
+        padding-bottom: 56px;
+      }
+
+      .mobile-proof {
+        display: grid;
+      }
+
+      .hero-left {
+        gap: 44px;
+      }
+
+      .hero-message {
+        max-width: 620px;
+      }
+
+      .cta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .glass-cta {
+        min-height: 135px;
+      }
+
+      .technical-media {
+        display: none;
+      }
+    }
+
+    @media (max-width: 767px) {
+      html {
+        scroll-padding-top: 72px;
+      }
+
+      .desktop-nav,
+      .header-actions {
+        display: none;
+      }
+
+      .menu-trigger,
+      .menu-close {
+        display: inline-flex;
+      }
+
+      .header-bar {
+        min-height: 50px;
+        padding: 4px 10px;
+      }
+
+      .brand-mark {
+        width: 30px;
+        height: 30px;
+      }
+
+      .hero {
+        min-height: min(100vh, 1020px);
+        align-items: flex-start;
+        padding-bottom: 24px;
+      }
+
+      .grid-canvas {
+        display: none;
+      }
+
+      .hero-inner {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        gap: 0;
+        padding-top: 81px;
+        padding-bottom: 32px;
+      }
+
+      .mobile-proof {
+        display: grid;
+      }
+
+      .hero-left {
+        gap: 44px;
+      }
+
+      .hero-message {
+        gap: 24px;
+        padding-left: 4px;
+      }
+
+      .hero h1 {
+        width: 100%;
+        font-size: 38px;
+        line-height: 1.48;
+      }
+
+      .hero-summary {
+        font-size: 15px;
+        line-height: 1.75;
+      }
+
+      .cta-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .glass-cta {
+        min-height: 129px;
+      }
+
+      .technical-media {
+        display: none;
+      }
+
+      .report-section {
+        padding: 32px 0;
+      }
+
+      .report-section:first-child {
+        padding-top: 80px;
+      }
+
+      .report-section:last-child {
+        padding-bottom: 80px;
+      }
+
+      .report-glass {
+        padding: 24px;
+        border-radius: 22px;
+      }
+
+      .section-head {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        margin-bottom: 40px;
+      }
+
+      .section-head h2 {
+        font-size: 30px;
+      }
+
+      .section-head p {
+        font-size: 15px;
+      }
+
+      .blueprint-layers {
+        border-radius: 16px;
+      }
+
+      .blueprint-layer {
+        grid-template-columns: 1fr;
+      }
+
+      .blueprint-layer-title {
+        min-height: 0;
+        padding: 18px 20px;
+        border-right: 0;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .blueprint-layer-title > span {
+        margin-bottom: 5px;
+      }
+
+      .blueprint-layer-title h3 {
+        font-size: 18px;
+      }
+
+      .blueprint-layer-title p {
+        margin-top: 8px;
+        font-size: 12px;
+      }
+
+      .blueprint-layer-body {
+        padding: 18px;
+      }
+
+      .blueprint-layer .business-flow {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        padding-left: 22px;
+      }
+
+      .blueprint-layer .business-flow::before {
+        display: block;
+        top: 16px;
+        bottom: 16px;
+        left: 5px;
+        width: 1px;
+        height: auto;
+      }
+
+      .blueprint-layer .flow-node {
+        position: absolute;
+        top: 18px;
+        left: -22px;
+        display: block;
+        margin: 0;
+      }
+
+      .blueprint-layer .flow-card {
+        min-height: 0;
+      }
+
+      .blueprint-layer .feedback-loop {
+        grid-template-columns: 1fr;
+      }
+
+      .blueprint-layer .feedback-item {
+        border-top: 1px solid var(--divider);
+        border-left: 0;
+      }
+
+      .blueprint-layer .agent-domain header {
+        min-height: 0;
+      }
+
+      .agent-capability-chain,
+      .data-governance-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .agent-capability-chain > li::after {
+        display: none;
+      }
+
+      .agent-capability-chain article {
+        padding: 16px;
+      }
+
+      .governance-platform-name {
+        margin-bottom: 12px;
+      }
+
+      .private-data-line {
+        display: block;
+        margin: 0;
+      }
+
+      .private-data-line p,
+      .private-data-line p:first-child {
+        display: block;
+        margin: 0;
+        padding: 13px 0;
+        border-top: 1px solid var(--divider);
+        border-left: 0;
+      }
+
+      .private-data-line p:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .blueprint-topic + .blueprint-topic {
+        margin-top: 48px;
+        padding-top: 48px;
+      }
+
+      .blueprint-topic-head {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+
+      .blueprint-topic-head h3 {
+        font-size: 23px;
+      }
+
+      .blueprint-topic-head p {
+        font-size: 15px;
+      }
+
+      .business-flow {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding-left: 25px;
+      }
+
+      .business-flow::before {
+        display: block;
+        top: 16px;
+        bottom: 16px;
+        left: 5px;
+        width: 1px;
+        height: auto;
+      }
+
+      .flow-node {
+        position: absolute;
+        top: 18px;
+        left: -25px;
+        display: block;
+        margin: 0;
+      }
+
+      .flow-card {
+        min-height: 0;
+      }
+
+      .feedback-loop {
+        grid-template-columns: 1fr;
+      }
+
+      .feedback-label {
+        min-width: 0;
+      }
+
+      .feedback-item {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 0;
+      }
+
+      .agent-grid,
+      .capability-grid,
+      .data-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .agent-domain header,
+      .capability h4 {
+        min-height: 0;
+      }
+
+      .subsection {
+        margin-top: 56px;
+      }
+
+      .subsection-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .subsection-heading p {
+        text-align: left;
+      }
+
+      .governance-panel {
+        padding: 18px;
+      }
+
+      .governance-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .data-statement {
+        padding: 22px 0;
+        font-size: 18px;
+      }
+
+      .data-note {
+        padding-inline: 14px;
+      }
+
+      .architecture-meta {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .arch-layer {
+        grid-template-columns: 1fr;
+      }
+
+      .layer-title {
+        min-height: 88px;
+        padding: 20px 22px;
+        border-right: 0;
+        border-bottom: 1px solid var(--divider);
+      }
+
+      .layer-content {
+        padding: 20px;
+      }
+
+      .arch-items {
+        grid-template-columns: 1fr;
+      }
+
+      .arch-items li,
+      .mode-note,
+      .mode-card p,
+      .shared-runtime li,
+      .model-item,
+      .architecture-data-line,
+      .architecture-flow {
+        font-size: 15px;
+      }
+
+      .arch-layer.is-core {
+        min-height: 0;
+      }
+
+      .mode-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .shared-runtime {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .model-service,
+      .data-layer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .model-primary {
+        grid-column: auto;
+      }
+
+      .architecture-flow {
+        align-items: flex-start;
+      }
+
+      .report-glass--architecture .section-head {
+        margin-bottom: 36px;
+      }
+
+      .report-glass--architecture .architecture-meta {
+        min-height: 0;
+        padding: 16px 20px;
+      }
+
+      .report-glass--architecture .layer-title {
+        min-height: 88px;
+        padding: 20px 22px;
+      }
+
+      .report-glass--architecture .layer-title h3 {
+        font-size: 18px;
+      }
+
+      .report-glass--architecture .layer-content {
+        padding: 20px;
+      }
+
+      .report-glass--architecture .arch-items li,
+      .report-glass--architecture .architecture-data-line,
+      .report-glass--architecture .architecture-flow {
+        font-size: 15px;
+      }
+
+      .report-glass--architecture .arch-items li {
+        min-height: 56px;
+      }
+
+      .report-glass--architecture .mode-note,
+      .report-glass--architecture .mode-card p {
+        font-size: 14px;
+      }
+
+      .report-glass--architecture .shared-runtime li {
+        font-size: 12px;
+      }
+
+      .report-glass--architecture .model-primary {
+        min-height: 84px;
+      }
+
+      .boundary-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 48px;
+      }
+
+      .footer-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 40px 24px;
+      }
+
+    }
+
+    /*
+      Desktop refinement — intentionally scoped to 1024px and above.
+      The source mobile and tablet layouts remain unchanged in this variant.
+    */
+    @media (min-width: 1024px) {
+      :root {
+        /* Keep all desktop display/body roles on the documented two-stack pairing. */
+        --font-capability: var(--font-body);
+        --font-domain: var(--font-display);
+      }
+
+      .header-bar {
+        min-height: 46px;
+      }
+
+      .hero h1 {
+        line-height: 1.55;
+      }
+
+      .media-copy strong {
+        line-height: 1.7;
+      }
+
+      .media-copy span {
+        font-family: var(--font-body);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      /* The report is a reading plane, not one oversized marketing card. */
+      .report-glass {
+        padding: 0;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+      }
+
+      /* Preserve the 16px nested architecture panels as quiet information surfaces. */
+      .report-glass--blueprint .blueprint-layers,
+      .report-glass--architecture .architecture-wrap {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      /* Agent domains describe the system; they are not primary glass CTAs. */
+      .report-glass--blueprint .agent-domain.glass-cta {
+        min-height: 0;
+        padding: 16px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.3);
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        transition: border-color 160ms, background-color 160ms;
+      }
+
+      .report-glass--blueprint .agent-domain.glass-cta::before {
+        display: none;
+      }
+
+      .report-glass--blueprint .agent-domain.glass-cta:hover,
+      .report-glass--blueprint .agent-domain.glass-cta:focus-visible {
+        border-color: rgba(58, 101, 194, 0.24);
+        background: rgba(255, 255, 255, 0.36);
+      }
+
+      .report-glass--blueprint .agent-capability-chain h4,
+      .report-glass--blueprint .blueprint-layer--agents .agent-domain h4 {
+        font-family: var(--font-display);
+      }
+
+      .site-footer {
+        padding-bottom: 48px;
+      }
+    }
+
+    @media (max-width: 448px) {
+      .glass-cta {
+        width: 100%;
+      }
+
+      .report-glass {
+        padding: 20px;
+      }
+
+      .footer-links {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .architecture-wrap {
+        border-radius: 16px;
+      }
+    }
+
+    @media (hover: none), (pointer: coarse) {
+      .grid-canvas {
+        display: none;
+      }
+
+      .technical-media:hover {
+        transform: none;
+      }
+
+      .technical-media:hover canvas {
+        transform: none;
+      }
+
+      .glass-cta::before {
+        animation: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+
+      .js .hero-reveal,
+      .js .reveal-on-view,
+      .js .reveal-on-view.is-revealing {
+        opacity: 1;
+        animation: none;
+        transform: none;
+      }
+
+      .glass-cta:focus-visible {
+        border-color: rgba(77, 107, 254, 0.42);
+      }
+
+      .glass-cta::before,
+      .signal-chain::after {
+        display: none;
+      }
+
+      .technical-media:hover,
+      .technical-media:focus-visible,
+      .technical-media:hover canvas,
+      .technical-media:focus-visible canvas {
+        transform: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) and (hover: hover) and (pointer: fine) {
+      .glass-cta:hover {
+        border-color: rgba(77, 107, 254, 0.42);
+      }
+    }
+
+    @media print {
+      @page {
+        margin: 14mm;
+      }
+
+      :root {
+        --shell: 100%;
+      }
+
+      html,
+      body,
+      .report,
+      .site-footer {
+        min-width: 0;
+        background: #fff !important;
+      }
+
+      .site-header,
+      .mobile-menu,
+      .skip-link,
+      .ambient-canvas,
+      .grid-canvas,
+      .mobile-proof,
+      .cta-grid,
+      .footer-links {
+        display: none !important;
+      }
+
+      .js .hero-reveal,
+      .js .reveal-on-view,
+      .js .reveal-on-view.is-revealing {
+        opacity: 1 !important;
+        animation: none !important;
+        transform: none !important;
+      }
+
+      .hero {
+        min-height: 0;
+        overflow: visible;
+        background: #fff !important;
+      }
+
+      .hero-inner {
+        display: block;
+        min-height: 0;
+        padding: 16mm 0 10mm;
+      }
+
+      .hero-left {
+        gap: 0;
+      }
+
+      .hero-message {
+        padding: 0;
+      }
+
+      .technical-media {
+        display: none;
+      }
+
+      .report-section,
+      .report-section:first-child,
+      .report-section:last-child {
+        padding: 10mm 0;
+        break-inside: auto;
+      }
+
+      #architecture {
+        break-before: page;
+        page-break-before: always;
+      }
+
+      .report-glass {
+        padding: 0;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        background: #fff !important;
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+      }
+
+      .blueprint-layers {
+        overflow: visible;
+        border: 1px solid rgba(21, 36, 67, 0.28);
+        border-radius: 0;
+        background: #fff;
+      }
+
+      .blueprint-layer {
+        grid-template-columns: 32mm minmax(0, 1fr);
+        border-color: rgba(21, 36, 67, 0.28);
+      }
+
+      .blueprint-layer-title {
+        padding: 5mm;
+        border-color: rgba(21, 36, 67, 0.28);
+        background: #fff !important;
+      }
+
+      .blueprint-layer-title > span {
+        margin-bottom: 2mm;
+      }
+
+      .blueprint-layer-title h3 {
+        font-size: 14px;
+      }
+
+      .blueprint-layer-title p {
+        margin-top: 3mm;
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .blueprint-layer-body {
+        padding: 5mm;
+      }
+
+      .blueprint-layer .business-flow {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .blueprint-layer .business-flow::before,
+      .blueprint-layer .flow-node {
+        display: none;
+      }
+
+      .blueprint-layer .flow-card {
+        min-height: 0;
+        padding: 8px;
+      }
+
+      .blueprint-layer .flow-card h4 {
+        font-size: 11px;
+      }
+
+      .blueprint-layer .flow-card p {
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .blueprint-layer .feedback-loop {
+        margin-top: 6px;
+      }
+
+      .blueprint-layer .feedback-label,
+      .blueprint-layer .feedback-item {
+        padding: 8px 10px;
+        font-size: 9px;
+      }
+
+      .blueprint-layer .agent-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+      }
+
+      .blueprint-layer .agent-domain {
+        padding: 8px;
+      }
+
+      .blueprint-layer .agent-domain header {
+        min-height: 0;
+        padding-bottom: 6px;
+      }
+
+      .blueprint-layer .agent-domain h4 {
+        font-size: 11px;
+      }
+
+      .blueprint-layer .agent-list li {
+        grid-template-columns: 26px 1fr;
+        gap: 4px;
+        padding: 4px 0;
+        font-size: 8px;
+        line-height: 1.4;
+      }
+
+      .agent-capability-chain {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+
+      .agent-capability-chain > li::after {
+        display: none;
+      }
+
+      .agent-capability-chain article,
+      .data-governance-grid article {
+        padding: 8px;
+      }
+
+      .agent-capability-chain h4,
+      .data-governance-grid h4 {
+        font-size: 10px;
+      }
+
+      .agent-capability-chain ul {
+        margin-top: 5px;
+      }
+
+      .agent-capability-chain li li,
+      .data-governance-grid p {
+        margin-top: 3px;
+        font-size: 8px;
+        line-height: 1.4;
+      }
+
+      .governance-platform-name {
+        margin-bottom: 5px;
+        font-size: 11px;
+      }
+
+      .data-governance-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+      }
+
+      .private-data-line {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        margin: 0;
+      }
+
+      .private-data-line p,
+      .private-data-line p:first-child {
+        margin: 0;
+        padding: 6px 8px;
+        border-top: 1px solid rgba(21, 36, 67, 0.18);
+        border-left: 1px solid rgba(21, 36, 67, 0.18);
+      }
+
+      .private-data-line p:nth-child(3n + 1) {
+        border-left: 0;
+      }
+
+      .private-data-line p:nth-child(-n + 3) {
+        border-top: 0;
+      }
+
+      .private-data-line strong {
+        font-size: 10px;
+      }
+
+      .private-data-line span {
+        margin-top: 3px;
+        font-size: 8px;
+        line-height: 1.4;
+      }
+
+      .blueprint-topic + .blueprint-topic {
+        margin-top: 6mm;
+        padding-top: 6mm;
+      }
+
+      .section-head,
+      .blueprint-topic-head {
+        grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+        gap: 12mm;
+        margin-bottom: 6mm;
+      }
+
+      .subsection {
+        margin-top: 6mm;
+      }
+
+      .subsection-heading {
+        align-items: end;
+        flex-direction: row;
+        margin-bottom: 3mm;
+      }
+
+      .subsection-heading p {
+        font-size: 10px;
+        text-align: right;
+      }
+
+      .subsection-heading h4 {
+        flex: 0 0 auto;
+        font-size: 18px;
+        white-space: nowrap;
+      }
+
+      .data-statement {
+        padding: 4mm 0;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      .section-head,
+      .blueprint-topic-head,
+      .flow-card,
+      .agent-capability-chain > li,
+      .data-governance-grid article,
+      .private-data-line p,
+      .feedback-loop,
+      .agent-domain,
+      .capability,
+      .governance-panel,
+      .data-domain,
+      .arch-layer,
+      .boundary-panel,
+      .boundary-column {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .section-head,
+      h1,
+      h2,
+      h3,
+      h4 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+
+      .agent-grid,
+      .capability-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .flow-card {
+        min-height: 0;
+        padding: 12px;
+      }
+
+      .flow-card small {
+        margin-bottom: 6px;
+      }
+
+      .flow-card p {
+        margin-top: 5px;
+        font-size: 10px;
+      }
+
+      .feedback-label,
+      .feedback-item {
+        padding: 10px 12px;
+        font-size: 10px;
+      }
+
+      .agent-domain {
+        padding: 12px;
+      }
+
+      .agent-domain header {
+        min-height: 0;
+        padding-bottom: 8px;
+      }
+
+      .agent-domain h4 {
+        margin-top: 4px;
+        font-size: 13px;
+      }
+
+      .agent-list li {
+        grid-template-columns: 31px 1fr;
+        gap: 5px;
+        padding: 5px 0;
+        font-size: 9px;
+      }
+
+      .capability {
+        padding: 12px;
+      }
+
+      .capability-number {
+        width: 26px;
+        height: 26px;
+      }
+
+      .capability h4 {
+        min-height: 0;
+        margin: 8px 0;
+        font-size: 13px;
+      }
+
+      .capability li {
+        margin-top: 3px;
+        font-size: 10px;
+        line-height: 1.45;
+      }
+
+      .governance-panel {
+        padding: 10px;
+      }
+
+      .governance-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .governance-item {
+        padding: 8px;
+      }
+
+      .governance-item span {
+        margin-bottom: 5px;
+      }
+
+      .governance-item p {
+        margin-top: 4px;
+        font-size: 9px;
+        line-height: 1.45;
+      }
+
+      .business-flow {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .business-flow::before,
+      .flow-node {
+        display: none;
+      }
+
+      .feedback-loop,
+      .feedback-label,
+      .layer-title,
+      .mode-card {
+        border-color: rgba(21, 36, 67, 0.28) !important;
+        background: #fff !important;
+        color: var(--text-blue) !important;
+      }
+
+      .feedback-item {
+        border-color: rgba(21, 36, 67, 0.18) !important;
+        color: var(--description) !important;
+      }
+
+      .feedback-item strong,
+      .layer-title h3,
+      .mode-card h4 {
+        color: var(--text-blue) !important;
+      }
+
+      .layer-title small,
+      .mode-card p {
+        color: var(--description) !important;
+      }
+
+      .mode-icon {
+        border: 1px solid rgba(77, 107, 254, 0.25);
+        background: rgba(77, 107, 254, 0.08) !important;
+        color: var(--brand-deep) !important;
+      }
+
+      .architecture-wrap,
+      .arch-layer.is-core,
+      .governance-panel {
+        background: #fff !important;
+      }
+
+      .architecture-wrap {
+        border-color: rgba(21, 36, 67, 0.2) !important;
+      }
+
+      .architecture-meta {
+        align-items: center;
+        flex-direction: row;
+        padding: 10px 14px;
+      }
+
+      .arch-layer {
+        min-height: 0;
+        grid-template-columns: 132px minmax(0, 1fr);
+      }
+
+      .layer-title {
+        min-height: 0;
+        flex-direction: column;
+        align-items: stretch;
+        padding: 10px 14px;
+        border-right: 1px solid rgba(21, 36, 67, 0.2) !important;
+        border-bottom: 0;
+      }
+
+      .layer-title h3 {
+        margin: 6px 0 0;
+      }
+
+      .layer-content {
+        padding: 10px 14px;
+      }
+
+      .arch-items {
+        grid-template-columns: repeat(var(--columns, 3), minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .arch-items li {
+        min-height: 36px;
+        padding: 6px 8px;
+        font-size: 10px;
+      }
+
+      .arch-layer.is-core {
+        min-height: 0;
+      }
+
+      .arch-layer.is-core .layer-content {
+        gap: 8px;
+      }
+
+      .mode-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+
+      .mode-card {
+        min-height: 0;
+        padding: 8px 12px;
+      }
+
+      .mode-icon {
+        width: 34px;
+        height: 34px;
+      }
+
+      .shared-runtime {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .shared-runtime li {
+        padding: 6px 4px;
+        font-size: 9px;
+      }
+
+      .model-service {
+        grid-template-columns: minmax(210px, 1.5fr) repeat(3, minmax(0, 0.75fr));
+        gap: 6px;
+      }
+
+      .model-primary,
+      .model-item {
+        min-height: 48px;
+        padding: 7px 10px;
+      }
+
+      .mode-note,
+      .mode-card p,
+      .model-item,
+      .architecture-data-line,
+      .architecture-flow {
+        font-size: 9px;
+      }
+
+      .model-primary strong {
+        font-size: 11px;
+      }
+
+      .architecture-flow {
+        padding: 8px 12px;
+      }
+
+      .report-glass--architecture .architecture-wrap,
+      .report-glass--architecture .arch-layer.is-core {
+        background: #fff !important;
+      }
+
+      .report-glass--architecture .layer-title {
+        min-height: 0;
+        padding: 10px 14px;
+        background: #fff !important;
+      }
+
+      .report-glass--architecture .layer-title h3 {
+        margin-top: 6px;
+        font-size: 14px;
+      }
+
+      .report-glass--architecture .layer-content {
+        padding: 10px 14px;
+      }
+
+      .report-glass--architecture .arch-items li {
+        min-height: 36px;
+        padding: 6px 8px;
+        font-size: 10px;
+      }
+
+      .report-glass--architecture .mode-card {
+        min-height: 0;
+        padding: 8px 12px;
+      }
+
+      .report-glass--architecture .mode-card h4 {
+        font-size: 13px;
+      }
+
+      .report-glass--architecture .shared-runtime li {
+        padding: 6px 4px;
+        font-size: 9px;
+      }
+
+      .report-glass--architecture .model-service {
+        grid-template-columns: 1fr;
+      }
+
+      .report-glass--architecture .model-primary {
+        min-height: 48px;
+        padding: 7px 10px;
+        border: 1px solid rgba(21, 36, 67, 0.2);
+        border-radius: 12px;
+        background: #fff;
+      }
+
+      .report-glass--architecture .model-primary strong {
+        font-size: 11px;
+      }
+
+      .report-glass--architecture .architecture-data-line,
+      .report-glass--architecture .architecture-flow {
+        font-size: 9px;
+      }
+
+      .boundary-panel {
+        grid-template-columns: 1fr 1fr;
+        margin-top: 6mm;
+      }
+
+      .boundary-column {
+        padding: 14px;
+      }
+
+      .site-footer {
+        display: none !important;
+      }
+    }
+  
+    /* Market outlook — scoped extension of the existing editorial system. */
+    #market { scroll-margin-top: 0; }
+    .market-shell { color: var(--text-blue); }
+    .market-eyebrow { display:flex; align-items:center; gap:14px; margin-bottom:24px; color:var(--brand-deep); font:500 12px/1.5 var(--font-display); letter-spacing:.14em; }
+    .market-eyebrow::before { content:""; width:28px; height:1px; background:currentColor; }
+    .market-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:32px; margin-bottom:32px; }
+    .market-heading :is(h1, h2) { margin:0 0 16px; font-size:clamp(28px,3.2vw,44px); font-weight:500; line-height:1.35; letter-spacing:-.035em; }
+    .market-heading p { max-width:690px; margin:0; color:#526078; font-size:16px; line-height:1.85; }
+    .market-source-link { flex:none; display:inline-flex; gap:10px; align-items:center; font-size:14px; padding:10px 0; border-bottom:1px solid #9fb4d4; color:var(--link-blue); }
+    .market-facts { display:grid; grid-template-columns:1.04fr 1fr 1fr; gap:20px; }
+    .market-card { min-width:0; border:1px solid #e0e7f0; border-radius:24px; padding:28px; display:flex; flex-direction:column; background:rgba(255,255,255,.56); }
+    .market-card--base { background:linear-gradient(140deg,#d7e6f8,#e9f0fa 80%); border-color:#cedff3; }
+    .market-label { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#506281; font-size:13px; line-height:1.6; }
+    .market-tag { padding:3px 9px; border-radius:100px; background:#eef3fa; border:1px solid #dbe5f2; font-size:12px; white-space:nowrap; color:#456087; }
+    .market-number { display:flex; align-items:baseline; gap:10px; margin:30px 0 16px; color:#3765bf; }
+    .market-number strong { font:500 clamp(40px,4.6vw,64px)/1 var(--font-display); letter-spacing:-.06em; font-variant-numeric:tabular-nums; }
+    .market-card--base .market-number { margin-top:24px; }
+    .market-card--base .market-number strong { font-size:76px; }
+    .market-number span { font-size:17px; }
+    .market-card h3 { margin:0 0 10px; font-size:19px; font-weight:500; line-height:1.65; }
+    .market-card p { margin:0; color:#56647b; font-size:14px; line-height:1.85; }
+    .market-dots { display:grid; grid-template-columns:repeat(18,1fr); gap:7px; max-width:254px; margin:16px 0; }
+    .market-dots i { width:5px; height:5px; border-radius:50%; background:#729bda; }
+    .market-card-footer { margin-top:auto; padding-top:16px; }
+    .market-card-footer > span { display:block; margin-bottom:10px; font-size:13px; line-height:1.65; color:#60708a; }
+    .market-case-link { display:flex; align-items:center; justify-content:space-between; padding-top:14px; border-top:1px solid #dce4ef; color:#345998; font-size:13px; line-height:1.6; gap:10px; }
+    .market-case-link:hover { color:#244ae0; }
+    .market-card--base .market-case-link { border-color:#bdcfe8; }
+    .market-case-link b { font-size:18px; font-weight:400; }
+    .market-scope { display:flex; gap:10px; align-items:baseline; margin:18px 0 0; color:#5c6b81; font-size:13px; line-height:1.8; }
+    .market-scope span { color:#4771b4; flex:none; }
+    .market-path { margin-top:48px; border-top:1px solid #dce3ec; padding-top:30px; }
+    .market-subhead { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; }
+    .market-subhead h3 { margin:0; font-size:24px; font-weight:500; letter-spacing:-.025em; }
+    .market-subhead > span { color:#64758e; font-size:13px; }
+    .market-steps { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3,1fr); gap:28px; }
+    .market-step { min-width:0; }
+    .market-step-top { display:flex; align-items:center; gap:14px; margin-bottom:18px; color:#4b6fa9; font:500 12px var(--font-display); }
+    .market-step-top::after { content:""; height:1px; flex:1; background:#d3ddec; }
+    .market-step h4 { margin:0 0 10px; font-size:19px; font-weight:500; }
+    .market-step p { margin:0; font-size:14px; line-height:1.85; color:#5b687b; }
+    .market-step small { display:block; margin-top:14px; font-size:12px; color:#627ba2; line-height:1.6; }
+    .market-entry { display:flex; gap:20px; align-items:flex-start; padding:22px 24px; margin-top:30px; border:1px solid #dce5f1; border-radius:16px; background:#edf2f9; }
+    .market-entry > span { flex:none; color:#3b62a0; font-size:13px; line-height:1.8; }
+    .market-entry p { margin:0; color:#506179; font-size:14px; line-height:1.8; }
+    .market-entry strong { font-weight:500; color:#274c83; }
+    .market-entry a { color:#315a9d; text-decoration:underline; text-underline-offset:3px; }
+    .hero-market-link { display:inline-flex; align-items:center; gap:14px; margin-top:24px; font-size:14px; color:#315896; }
+    .hero-market-link span { border-bottom:1px solid #829fce; padding-bottom:4px; }
+    @media(min-width:1560px) { .market-card { padding:32px; } }
+    @media(max-width:1023px) {
+      .market-heading { align-items:flex-start; }
+      .market-facts { gap:12px; }
+      .market-card { padding:22px; }
+      .market-card h3 { font-size:17px; }
+      .market-number strong { font-size:46px; }
+      .market-card--base .market-number strong { font-size:70px; }
+      .market-label { flex-wrap:wrap; }
+      .market-dots { gap:6px; }
+    }
+    @media(max-width:767px) {
+      #market { scroll-margin-top:0; }
+      .market-eyebrow { margin-bottom:20px; }
+      .market-heading { display:block; margin-bottom:24px; }
+      .market-heading p { font-size:15px; }
+      .market-source-link { margin-top:14px; }
+      .market-facts { grid-template-columns:1fr; gap:16px; }
+      .market-card { padding:24px; }
+      .market-card h3 { font-size:19px; }
+      .market-card--base .market-number strong { font-size:80px; }
+      .market-number strong { font-size:56px; }
+      .market-number { margin-top:24px; }
+      .market-dots { grid-template-columns:repeat(15,1fr); max-width:260px; gap:8px; }
+      .market-subhead { align-items:flex-start; flex-direction:column; gap:8px; margin-bottom:24px; }
+      .market-subhead h3 { font-size:23px; }
+      .market-steps { grid-template-columns:1fr; gap:24px; }
+      .market-step-top { margin-bottom:12px; }
+      .market-path { margin-top:36px; }
+      .market-entry { flex-direction:column; gap:8px; padding:20px; }
+      .market-scope { align-items:flex-start; }
+    }
+    @media print {
+      #market { break-before:auto; }
+      .market-facts { grid-template-columns:1fr 1fr 1fr; }
+      .market-card { padding:16px; break-inside:avoid; }
+      .market-card--base .market-number strong { font-size:60px; }
+      .market-number strong { font-size:42px; }
+      .market-heading :is(h1, h2) { font-size:30px; }
+      .market-steps { grid-template-columns:repeat(3,1fr); }
+      .market-source-link,.hero-market-link { display:none; }
+      .market-entry { break-inside:avoid; }
+    }
+
+
+    /* Market cards link to internal detail pages. */
+    .market-card { position: relative; transition: border-color 200ms, background-color 200ms; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+    .market-case-link::after { content: ""; position: absolute; inset: 0; border-radius: 24px; }
+    .market-card:focus-within { outline: 2px solid var(--brand); outline-offset: 4px; }
+    .market-case-link:focus-visible { outline: none; }
+    .market-card--base .market-label { flex-wrap: wrap; }
+    @media (hover: hover) and (pointer: fine) {
+      .market-card:hover { border-color: #8ca9d7; background-color: rgba(255,255,255,.78); }
+    }
+  </style><style id="research-home-styles">
+.market-card--base .market-number strong{font-size:84px}.market-card .market-label{flex-wrap:wrap}.market-card-footer span{font-size:12px}.market-card--base .market-card-footer{margin-top:30px}
+@media(max-width:767px){.market-card--base .market-number strong{font-size:72px}}
+</style>
+  <link rel="stylesheet" href="lumi-agent.css" />
+  <link rel="stylesheet" href="lumi-aistudio-flow-border.css" />
+  <link rel="stylesheet" href="lumi-page-background.css" />
+  <style id="blueprint-module-styles">
+    /* Market cards reveal the shared flow effect only during interaction. */
+    .market-flow { --aistudio-flow-radius: 24px; box-shadow: none; }
+    .market-flow > .market-card { background: #edf3fb; }
+    .market-flow > .market-card--base { background: linear-gradient(140deg, #d7e6f8, #e9f0fa 80%); }
+    .market-flow:not(:hover):not(:focus-within) {
+      background: #e0e7f0;
+      animation-play-state: paused;
+    }
+    .market-flow:not(:hover):not(:focus-within)::after { opacity: 0; }
+    @media (hover: none), (pointer: coarse) {
+      .market-flow:not(:focus-within) { background: #e0e7f0; animation-play-state: paused; }
+      .market-flow:not(:focus-within)::after { opacity: 0; }
+    }
+
+    #architecture .aistudio-flow-border { --aistudio-flow-radius: 24px; }
+    #architecture .aistudio-flow-border > .mode-card--link {
+      height: 100%;
+      border: 0;
+      border-radius: 23px;
+    }
+    /* Shared title emphasis for the business and technical matrices. */
+    #blueprint .business-flow {
+      grid-template-columns: repeat(6, minmax(130px, 1fr));
+      gap: 24px;
+      padding: 2px 2px 8px;
+      overflow-x: auto;
+    }
+    #blueprint .business-flow:focus-visible {
+      outline: 2px solid var(--brand);
+      outline-offset: 4px;
+    }
+    #blueprint .business-flow .flow-card { height: 100%; }
+    @media screen {
+      #architecture .mode-card {
+        background: linear-gradient(135deg, #fff, #f5f8fe);
+        border-color: rgba(104, 141, 198, .2);
+        border-radius: 24px;
+        padding: 22px 24px;
+        gap: 16px;
+      }
+      #architecture .mode-card--link {
+        background: linear-gradient(135deg, #fff, #f5f8fe);
+      }
+      #architecture .mode-card h4 {
+        color: var(--brand-deep);
+        line-height: 27px;
+      }
+      #architecture .mode-card p {
+        margin: 6px 0 0;
+        color: #536580;
+        font-size: 15px;
+        line-height: 24px;
+      }
+      #architecture .mode-card:not(.mode-card--link) {
+        box-shadow: 0 3px 3px -1.5px rgba(10, 13, 18, .04),
+          0 8px 8px -4px rgba(10, 13, 18, .03),
+          0 20px 24px -4px rgba(10, 13, 18, .08);
+      }
+      #architecture .mode-icon {
+        background: rgba(77, 107, 254, .07);
+        border-color: rgba(77, 107, 254, .18);
+        color: var(--brand-deep);
+      }
+      #architecture .mode-card-arrow { color: var(--brand-deep); }
+      #architecture .mode-card--link:focus-visible {
+        background: linear-gradient(135deg, #fff, #edf4ff);
+        border-color: transparent;
+      }
+      #architecture .model-primary {
+        background: linear-gradient(135deg, #193b72, #10294f);
+        border-color: rgba(194, 216, 255, .3);
+      }
+      #architecture .model-name,
+      #architecture .model-name strong { color: #fff; }
+    }
+    @media screen and (hover: hover) and (pointer: fine) {
+      #architecture .mode-card--link:hover {
+        background: linear-gradient(135deg, #fff, #edf4ff);
+        border-color: transparent;
+      }
+    }
+    #blueprint .flow-arrow {
+      position: absolute;
+      top: 50%;
+      right: -23px;
+      width: 22px;
+      color: var(--brand-deep);
+      font: 400 22px/1 var(--font-body);
+      text-align: center;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+    @media print {
+      #blueprint .business-flow {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        overflow: visible;
+      }
+    }
+    #blueprint :is(h2, h3, h4, strong),
+    #blueprint .agent-list > li > span,
+    #blueprint .industry-model-copy em,
+    #architecture :is(h2, h3, h4, strong),
+    #architecture .arch-items > li,
+    #architecture .shared-runtime > li,
+    #architecture .model-primary > span,
+    #architecture .architecture-data-line {
+      font-weight: 700;
+    }
+    #blueprint :is(h3, h4),
+    #architecture :is(h3, h4),
+    #architecture .architecture-meta {
+      text-align: center;
+    }
+    #blueprint .agent-list > li > span {
+      text-align: left;
+    }
+    #blueprint .private-data-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    #blueprint .private-data-grid > li {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 64px;
+      padding: 14px;
+      border: 1px solid rgba(0, 0, 0, 0.07);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.38);
+    }
+    #blueprint .private-data-grid h4 {
+      margin: 0;
+      color: var(--text-blue);
+      font-family: var(--font-display);
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      line-height: 1.45;
+    }
+    #blueprint .industry-model {
+      align-items: center;
+      justify-content: center;
+    }
+    #blueprint .industry-model-copy {
+      width: 100%;
+      text-align: center;
+    }
+    #blueprint .model-name,
+    #architecture .model-name {
+      margin: 0;
+      text-align: center;
+      line-height: 1.6;
+    }
+    #blueprint .model-name { font-size: 24px; }
+    #architecture .model-name { font-size: 17px; }
+    #blueprint .model-name strong,
+    #architecture .model-name strong {
+      font-size: inherit;
+    }
+    #blueprint .model-name .model-alias,
+    #architecture .model-name .model-alias {
+      display: inline;
+      margin: 0;
+      color: inherit;
+      font-size: inherit;
+      font-weight: 400;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    #blueprint .model-name { color: #fff; }
+    #architecture .layer-title h3 { font-size: 20px; }
+    #architecture .arch-items li { font-size: 15px; }
+    #architecture .shared-runtime li { font-size: 13px; }
+    #architecture .mode-card h4 { font-size: 20px; }
+    #architecture .mode-card {
+      grid-template-columns: 43px minmax(0, 1fr) 43px;
+    }
+    #architecture .mode-card > div {
+      grid-column: 2;
+      min-width: 0;
+      text-align: center;
+    }
+    #architecture .mode-card-arrow { justify-self: end; }
+    #architecture .architecture-data-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    @media (min-width: 768px) and (max-width: 1023px) {
+      #blueprint .private-data-grid,
+      #architecture .architecture-data-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+    @media (max-width: 767px) {
+      #blueprint .private-data-grid,
+      #blueprint .agent-grid {
+        grid-template-columns: 1fr;
+      }
+      #architecture .arch-items li { font-size: 17px; }
+      #architecture .shared-runtime li { font-size: 14px; }
+      #architecture .architecture-data-grid { grid-template-columns: 1fr; }
+      #architecture .mode-card {
+        grid-template-columns: 24px minmax(0, 1fr) 24px;
+        gap: 8px;
+        padding: 20px;
+      }
+      #architecture .mode-icon { display: none; }
+    }
+  </style>
+  <style id="blueprint-compact-layout">
+    @media screen {
+      #blueprint .blueprint-layer-body { padding: 14px 24px; }
+      #blueprint .blueprint-layer-title {
+        min-height: 0;
+        padding: 14px 18px;
+      }
+      #blueprint .blueprint-layer-title h3 { margin: 0; }
+      #blueprint .flow-card {
+        min-height: 92px;
+        padding: 12px;
+      }
+      #blueprint .flow-card p { margin-top: 6px; }
+      #blueprint .agent-capability-chain article { padding: 12px 10px; }
+      #blueprint .agent-capability-chain ul { margin-top: 6px; }
+      #blueprint .agent-domain {
+        min-height: 0;
+        padding: 14px 16px;
+      }
+      #blueprint .agent-domain header {
+        min-height: 0;
+        padding: 0 0 8px;
+      }
+      #blueprint .agent-domain h4 { margin: 0; }
+      #blueprint .agent-list li { padding: 5px 0; }
+      #blueprint .industry-model {
+        min-height: 88px;
+        padding: 16px 24px;
+      }
+      #blueprint .private-data-grid > li {
+        min-height: 48px;
+        padding: 10px 12px;
+      }
+    }
+    @media screen and (max-width: 767px) {
+      #blueprint .blueprint-layer-body { padding: 12px 16px; }
+      #blueprint .blueprint-layer-title { padding: 12px 16px; }
+      #blueprint .industry-model { padding: 16px; }
+    }
+  </style>
+  <script src="lumi-page-background.js" defer></script>
+  <link rel="stylesheet" href="lumi-agent-sources.css">
+  <link rel="stylesheet" href="lumi-model-production.css">
+  <script src="lumi-agent-sources.js" defer></script>
+</head>
+<body class="lumi-fixed-background">
+  <div class="page-background" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <header class="site-header" data-header>
+    <div class="header-bar">
+      <a class="brand" href="#top" aria-label="优才知路统一蓝图首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 17.5 12 4l7 13.5" />
+            <path d="M8.5 12.5h7M7 17.5h10" />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>优才知路</strong>
+          <small>Lumi LLM</small>
+        </span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="页面导航">
+        <a href="#market" data-nav-link>市场预期</a>
+        <a href="#blueprint" data-nav-link>业务蓝图</a>
+        <a href="#architecture" data-nav-link>技术架构</a>
+      </nav>
+
+      <div class="header-actions">
+        <button class="icon-button" type="button" aria-label="打印页面" data-print>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 9V4h10v5M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+            <path d="M7 14h10v6H7zM17.5 12h.01" />
+          </svg>
+        </button>
+      </div>
+
+      <button class="menu-trigger" type="button" aria-label="打开页面导航" aria-expanded="false" aria-controls="mobile-menu" data-menu-open>
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <aside class="mobile-menu" id="mobile-menu" role="dialog" aria-modal="true" aria-label="页面导航" aria-hidden="true" inert data-mobile-menu>
+    <div class="mobile-menu-header">
+      <a class="brand" href="#top" aria-label="优才知路统一蓝图首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 17.5 12 4l7 13.5" />
+            <path d="M8.5 12.5h7M7 17.5h10" />
+          </svg>
+        </span>
+        <span class="brand-copy">
+          <strong>优才知路</strong>
+          <small>Lumi LLM</small>
+        </span>
+      </a>
+      <button class="menu-close" type="button" aria-label="关闭页面导航" data-menu-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 5l14 14M19 5 5 19" />
+        </svg>
+      </button>
+    </div>
+    <nav class="mobile-menu-body" aria-label="移动端页面导航">
+      <a href="#market"><span>市场预期</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4" /></svg></a>
+      <a href="#blueprint">
+        <span>业务蓝图</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4" /></svg>
+      </a>
+      <a href="#architecture">
+        <span>技术架构</span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4" /></svg>
+      </a>
+      <button type="button" data-print>
+        <span>打印页面</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 9V4h10v5M7 18H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M7 14h10v6H7z" />
+        </svg>
+      </button>
+    </nav>
+    <div class="mobile-menu-footer">目标态架构 · MVP 结构版</div>
+  </aside>
+
+  <main id="main" tabindex="-1">
+    <div class="report" id="top">
+      <section class="report-section" id="market" aria-labelledby="market-title">
+        <div class="page-shell market-shell">
+          <div class="market-eyebrow">01 / MARKET OUTLOOK</div>
+          <header class="market-heading">
+            <div>
+              <h1 id="market-title" tabindex="-1">院校智能体市场与采购需求</h1>
+              <p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>公开采购研究筛选出 20 家潜在客户。<br>均有大模型或智能体直接相关的采购依据。</span></p>
+            </div>
+            <a class="market-source-link" href="lumi-market-sources.html">数据来源 <span aria-hidden="true">→</span></a>
+          </header>
+          <div class="market-facts">
+<div class="aistudio-flow-border market-flow"><article class="aistudio-flow-surface market-card market-card--base"><div class="market-label"><span>客户规模 · 院校基数</span></div><div class="market-number"><strong>180</strong><span>所高校</span></div><h3>院校基数</h3><p>院校客户名单与公开采购信息。<br>按学校与需求类型查看相关记录。</p><div class="market-card-footer"><a class="market-case-link" href="lumi-market-customer-scale.html?group=all"><span>查看院校名单</span><b aria-hidden="true">→</b></a></div></article></div>
+<div class="aistudio-flow-border market-flow"><article class="aistudio-flow-surface market-card"><div class="market-label"><span>客户规模 · 有采购证据</span></div><div class="market-number"><strong>20</strong><span>家</span></div><h3>潜在客户</h3><p>大模型 / 智能体直接相关采购<br>涵盖平台建设与智能体应用</p><div class="market-card-footer"><a class="market-case-link" href="lumi-market-customer-scale.html"><span>查看客户名单</span><b aria-hidden="true">→</b></a></div></article></div>
+<div class="aistudio-flow-border market-flow"><article class="aistudio-flow-surface market-card"><div class="market-label"><span>采购案例 · 公开记录</span><span class="market-tag">更新于 2026.09.08</span></div><div class="market-number"><strong>10</strong><span>条</span></div><h3>有依据的采购记录</h3><p>大模型 / 智能体直接相关项目。<br>保留项目内容、金额和公告日期，<br>引用依据在来源页查看。</p><div class="market-card-footer"><a class="market-case-link" href="lumi-market-procurement.html"><span>查看采购详情</span><b aria-hidden="true">→</b></a></div></article></div>
+</div>
+        </div>
+      </section>
+
+<section class="report-section" id="blueprint" aria-labelledby="blueprint-title">
+        <div class="page-shell">
+          <div class="report-glass report-glass--blueprint reveal-on-view">
+            <header class="section-head">
+              <div class="section-title-wrap">
+                <span class="section-index">02</span>
+                <h2 id="blueprint-title" tabindex="-1">业务蓝图</h2>
+              </div>
+              <p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>业务闭环、Agent 能力、Agent 矩阵、产教融合大模型与私有数据共同组成一套连续蓝图。</span></p>
+            </header>
+
+            <div class="blueprint-layers" aria-label="业务蓝图六层结构">
+              <section class="blueprint-layer blueprint-layer--business" id="business" aria-labelledby="business-title">
+                <header class="blueprint-layer-title">
+                  <h3 id="business-title" tabindex="-1">业务闭环</h3>
+                </header>
+                <div class="blueprint-layer-body">
+                  <ol class="business-flow" tabindex="0" aria-label="业务闭环：从产业需求到终身学习，可横向滚动查看">
+            <li>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <article class="flow-card">
+                <h4>产业需求</h4>
+                <p>产业图谱、产业场景、人才需求</p>
+              </article>
+            </li>
+            <li>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <article class="flow-card">
+                <h4>岗位能力</h4>
+                <p>关键岗位、典型任务、胜任标准</p>
+              </article>
+            </li>
+            <li>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <article class="flow-card">
+                <h4>岗位课程包</h4>
+                <p>培养方案、课程、项目与实训</p>
+              </article>
+            </li>
+            <li>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <article class="flow-card">
+                <h4>精准培养</h4>
+                <p>教学实施、个性化学习与诊断</p>
+              </article>
+            </li>
+            <li>
+              <span class="flow-arrow" aria-hidden="true">→</span>
+              <article class="flow-card">
+                <h4>实习就业</h4>
+                <p>能力测评、岗位匹配与求职提升</p>
+              </article>
+            </li>
+            <li>
+              <article class="flow-card">
+                <h4>终身学习</h4>
+                <p>就业跟踪、画像更新与持续提升</p>
+              </article>
+            </li>
+          </ol>
+
+                </div>
+              </section>
+
+              <section class="blueprint-layer blueprint-layer--agent-capabilities" id="agent-capabilities" aria-labelledby="agent-capabilities-title">
+                <header class="blueprint-layer-title">
+                  <h3 id="agent-capabilities-title" tabindex="-1">Agent 能力</h3>
+                </header>
+                <div class="blueprint-layer-body">
+                  <ol class="agent-capability-chain">
+                    <li>
+                      <article>
+                        <h4>产业需求洞察</h4>
+                        <ul><li>分析产业链和企业分布</li><li>提炼产业环节与场景</li><li>识别产业人才需求变化</li></ul>
+                      </article>
+                    </li>
+                    <li>
+                      <article>
+                        <h4>岗位能力建模</h4>
+                        <ul><li>识别关键岗位和岗位族</li><li>提取典型工作任务</li><li>形成岗位胜任能力标准</li></ul>
+                      </article>
+                    </li>
+                    <li>
+                      <article>
+                        <h4>培养内容转化</h4>
+                        <ul><li>构建岗位课程包</li><li>生成人才培养方案</li><li>设计课程和教学任务</li></ul>
+                      </article>
+                    </li>
+                    <li>
+                      <article>
+                        <h4>精准教学服务</h4>
+                        <ul><li>提供备课与课堂辅助</li><li>规划个性化学习路径</li><li>诊断学情并调整培养</li></ul>
+                      </article>
+                    </li>
+                    <li>
+                      <article>
+                        <h4>评价就业服务</h4>
+                        <ul><li>评估岗位胜任程度</li><li>完成人岗匹配与推荐</li><li>提供简历和面试训练</li></ul>
+                      </article>
+                    </li>
+                    <li>
+                      <article>
+                        <h4>反馈与持续提升</h4>
+                        <ul><li>跟踪培养和就业结果</li><li>更新能力画像与岗位目标</li><li>推荐持续学习路径</li></ul>
+                      </article>
+                    </li>
+                  </ol>
+                </div>
+              </section>
+
+              <div class="agent-source-region" data-agent-sources>
+              <section class="blueprint-layer blueprint-layer--agents" id="agents" aria-labelledby="agents-title">
+                <header class="blueprint-layer-title">
+                  <h3 id="agents-title" tabindex="-1">Agent 矩阵</h3>
+                </header>
+                <div class="blueprint-layer-body">
+                  <div class="agent-grid">
+                    <article class="agent-domain glass-cta">
+                      <header>
+                        <h4>产业与专业建设</h4>
+                      </header>
+                      <ol class="agent-list">
+                        <li data-sources="platform"><code>T01</code><span>产业链分析与产业场景智能体</span></li>
+                        <li data-sources="platform xiongan"><code>T02</code><span>产业岗位画像与学习路径智能体</span></li>
+                        <li data-sources="platform"><code>T03</code><span>产教人才培养方案智能体</span></li>
+                        <li data-sources="platform"><code>T04</code><span>产教决策报告生成智能体</span></li>
+                      </ol>
+                    </article>
+
+                    <article class="agent-domain glass-cta">
+                      <header>
+                        <h4>课程与教学开发</h4>
+                      </header>
+                      <ol class="agent-list">
+                        <li data-sources="platform"><code>T05</code><span>产教课程开发智能体</span></li>
+                        <li data-sources="xiongan"><code>T06</code><span>智能排课智能体</span></li>
+                        <li data-sources="xiongan"><code>T07</code><span>智能分班智能体</span></li>
+                        <li data-sources="xiongan"><code>T08</code><span>智能课件生成智能体</span></li>
+                        <li data-sources="xiongan"><code>T09</code><span>课堂助教智能体</span></li>
+                        <li data-sources="xiongan"><code>T10</code><span>学勤与教学诊断智能体</span></li>
+                      </ol>
+                    </article>
+
+                    <article class="agent-domain glass-cta">
+                      <header>
+                        <h4>实训与就业服务</h4>
+                      </header>
+                      <ol class="agent-list">
+                        <li data-sources="xiongan"><code>T11</code><span>学员个性化学习智能体</span></li>
+                        <li data-sources="platform xiongan"><code>T12</code><span>岗位胜任力测评智能体</span></li>
+                        <li data-sources="xiongan"><code>T13</code><span>岗位智能匹配智能体</span></li>
+                        <li data-sources="xiongan"><code>T14</code><span>简历优化智能体</span></li>
+                        <li data-sources="xiongan"><code>T15</code><span>AI 面试智能体</span></li>
+                      </ol>
+                    </article>
+
+                    <article class="agent-domain glass-cta">
+                      <header>
+                        <h4>特色智能体规划</h4>
+                      </header>
+                      <ol class="agent-list">
+                        <li data-sources="other"><code>T24</code><span>微信公众号营销智能体</span></li>
+                        <li data-sources="other"><code>T25</code><span>skill广场</span></li>
+                        <li data-sources="other"><code>T26</code><span>招投标信息聚合站</span></li>
+                      </ol>
+                    </article>
+                  </div>
+
+                </div>
+              </section>
+
+              <section class="blueprint-layer blueprint-layer--governance" id="data-governance" aria-labelledby="data-governance-title">
+                <header class="blueprint-layer-title">
+                  <h3 id="data-governance-title" tabindex="-1">数据治理</h3>
+                </header>
+                <div class="blueprint-layer-body">
+                  <article class="agent-domain agent-domain--governance glass-cta">
+                    <header>
+                      <h4>数据治理智能体</h4>
+                    </header>
+                    <ol class="agent-list agent-list--governance">
+                      <li data-sources="platform"><code>T16</code><span>数据资产治理与质量智能体</span></li>
+                      <li data-sources="platform"><code>T17</code><span>JD 解析、聚类与统计智能体</span></li>
+                      <li data-sources="platform"><code>T18</code><span>课程资源发现与入库智能体</span></li>
+                      <li data-sources="platform"><code>T19</code><span>标准检索与课程合规校验智能体</span></li>
+                      <li data-sources="platform"><code>T20</code><span>岗位—能力—知识点—课程映射智能体</span></li>
+                      <li data-sources="platform"><code>T21</code><span>知识库运营与引用溯源智能体</span></li>
+                      <li data-sources="platform"><code>T22</code><span>训练样本构造与标注质检智能体</span></li>
+                      <li data-sources="platform"><code>T23</code><span>模型评测与持续迭代智能体</span></li>
+                    </ol>
+                  </article>
+                </div>
+              </section>
+
+                <aside class="agent-source-controls" aria-label="按智能体规划来源突出显示" hidden>
+                  <p>规划来源</p>
+                  <div class="agent-source-slot"><button type="button" data-source="platform" aria-pressed="false" aria-controls="agents data-governance">平台建设</button></div>
+                  <div class="agent-source-slot"><button type="button" data-source="xiongan" aria-pressed="false" aria-controls="agents data-governance">雄安项目</button></div>
+                  <div class="agent-source-slot"><button type="button" data-source="other" aria-pressed="false" aria-controls="agents data-governance">其他</button></div>
+                  <small>再次点击显示全部</small>
+                  <small role="status" aria-live="polite">显示全部 26 个</small>
+                </aside>
+              </div>
+
+              <section class="blueprint-layer blueprint-layer--industry-model" id="industry-model" aria-labelledby="industry-model-title">
+                <header class="blueprint-layer-title">
+                  <h3 id="industry-model-title" tabindex="-1">产教融合大模型</h3>
+                </header>
+                <div class="blueprint-layer-body">
+                  <div class="industry-model join-fluid-card">
+                    <div class="industry-model-copy">
+                      <p class="model-name"><strong>优才知路产教融合大模型</strong><span class="model-alias">（Lumi LLM）</span></p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="blueprint-layer blueprint-layer--private-data" id="private-data" aria-labelledby="private-data-title">
+                <header class="blueprint-layer-title">
+                  <h3 id="private-data-title" tabindex="-1">私有数据</h3>
+                </header>
+                <div class="blueprint-layer-body">
+                  <ul class="private-data-grid" aria-label="私有数据类型">
+                    <li><h4>1000 万条岗位 JD</h4></li>
+                    <li><h4>人才培养方案</h4></li>
+                    <li><h4>产业报告</h4></li>
+                    <li><h4>政策文件</h4></li>
+                    <li><h4>用户简历</h4></li>
+                    <li><h4>课程标准</h4></li>
+                    <li><h4>课程报告</h4></li>
+                  </ul>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="report-section" id="architecture" aria-labelledby="architecture-title">
+        <div class="page-shell">
+          <div class="report-glass report-glass--architecture reveal-on-view">
+            <header class="section-head">
+              <div class="section-title-wrap">
+                <span class="section-index">03</span>
+                <h2 id="architecture-title" tabindex="-1">技术架构</h2>
+              </div>
+              <p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>技术架构采用六层结构。业务请求从三端向下协同，Agent 可按任务确定性与开放度选择运行方式，并调用模型、数据与工具返回业务结果。</span></p>
+            </header>
+
+          <div class="architecture-wrap" role="group" aria-label="优才知路智能平台六层目标技术架构">
+            <div class="architecture-meta">
+              <strong>六层目标技术矩阵</strong>
+            </div>
+
+            <article class="arch-layer">
+              <header class="layer-title">
+                <h3>接入层</h3>
+              </header>
+              <div class="layer-content">
+                <ul class="arch-items" style="--columns: 3">
+                  <li>个人端</li>
+                  <li>企业端</li>
+                  <li>院校端</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="arch-layer">
+              <header class="layer-title">
+                <h3>业务应用层</h3>
+              </header>
+              <div class="layer-content">
+                <ul class="arch-items" style="--columns: 5">
+                  <li>产业需求对接</li>
+                  <li>人才培养方案制定</li>
+                  <li>课程建设</li>
+                  <li>实训实践体系建设</li>
+                  <li>就业能力测评</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="arch-layer is-core">
+              <header class="layer-title">
+                <h3>Agent 能力层</h3>
+              </header>
+              <div class="layer-content">
+                <div class="mode-grid">
+                  <article class="mode-card">
+                    <span class="mode-icon">W</span>
+                    <div>
+                      <h4>受控 Workflow</h4>
+                      <p>明确步骤 · 稳定执行 · 过程可留痕</p>
+                    </div>
+                  </article>
+                  <div class="aistudio-flow-border">
+                  <a class="mode-card mode-card--link aistudio-flow-surface" id="autonomous-agent" href="lumi-agent.html" aria-labelledby="autonomous-agent-title" aria-describedby="autonomous-agent-description">
+                    <span class="mode-icon" aria-hidden="true">A</span>
+                    <div class="mode-card-copy">
+                      <h4 id="autonomous-agent-title">自主 Agent</h4>
+                      <p id="autonomous-agent-description">目标驱动 · 动态规划 · 灵活调用能力</p>
+                    </div>
+                    <svg class="mode-card-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  </a>
+                  </div>
+                </div>
+                <ul class="shared-runtime" aria-label="双模式共享能力">
+                  <li>工具 / MCP</li>
+                  <li>Skills / Plugins</li>
+                  <li>会话管理</li>
+                  <li>记忆系统</li>
+                  <li>Trace</li>
+                  <li>评测</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="arch-layer">
+              <header class="layer-title">
+                <h3>模型服务层</h3>
+              </header>
+              <div class="layer-content">
+                <div class="model-service">
+                  <details class="model-production" id="model-production">
+                    <summary class="model-primary model-production-toggle">
+                      <span class="model-production-heading">
+                        <span class="model-name"><strong>优才知路产教融合大模型</strong><span class="model-alias">（Lumi LLM）</span></span>
+                        <span class="model-production-hint">产教融合领域微调模型 · <span class="model-production-show">展开生产流程</span><span class="model-production-hide">收起生产流程</span></span>
+                      </span>
+                      <svg class="model-production-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+                    </summary>
+                    <div class="model-production-body">
+                      <p class="model-production-intro">基于开源大模型，融入平台领域数据与业务规则，形成 Lumi LLM 专属模型能力。</p>
+                      <ol class="model-production-flow" aria-label="模型生产与持续迭代流程">
+                        <li class="model-production-step model-production-data">
+                          <h4><span>01</span>数据治理</h4>
+                          <p>产业、岗位 JD、课程、培养方案、政策与报告</p>
+                          <small>清洗去重 · 脱敏 · 字段标准化</small>
+                        </li>
+                        <li class="model-production-step model-production-samples">
+                          <h4><span>02</span>样本构造</h4>
+                          <p>专家黄金样例 → 强模型扩增 → 人工抽查修正</p>
+                          <small>形成训练样本，并独立保留评测集</small>
+                        </li>
+                        <li class="model-production-training">
+                          <header><h4><span>03</span>三阶段训练</h4><p>开源基座 + 领域语料 + 业务样本</p></header>
+                          <ol class="model-training-stages" aria-label="CPT、SFT、GRPO 与 DPO 三阶段训练">
+                            <li><span class="model-training-code">CPT</span><h5>继续预训练</h5><p>学习产业、岗位与课程的领域知识</p></li>
+                            <li><span class="model-training-code">SFT</span><h5>监督微调</h5><p>学习业务任务、结构化输出与工具调用</p></li>
+                            <li><span class="model-training-code">GRPO + DPO</span><h5>规则与偏好对齐</h5><p>强化业务规则，优化输出风格与结构</p></li>
+                          </ol>
+                          <p class="model-training-output">训练产出 <strong>Lumi LLM 垂类微调模型</strong></p>
+                        </li>
+                        <li class="model-production-step model-production-integration">
+                          <h4><span>04</span>知识增强与接入</h4>
+                          <p>RAG 检索与引用溯源、工具调用、结构化校验</p>
+                          <small>通过 API 接入平台业务</small>
+                        </li>
+                        <li class="model-production-step model-production-evaluation">
+                          <h4><span>05</span>评测验收</h4>
+                          <p>独立评测集验证，对比通用模型，专家抽检</p>
+                          <small>检查领域准确性、结构与引用</small>
+                        </li>
+                        <li class="model-production-step model-production-release">
+                          <h4><span>06</span>灰度上线</h4>
+                          <p>重点产业、岗位与课程场景先行，逐步扩展</p>
+                          <small>收集人工修正、专家意见与用户反馈</small>
+                        </li>
+                      </ol>
+                      <p class="model-production-feedback"><span aria-hidden="true">↺</span> 线上反馈 → 样本更新 → 迭代训练 → 效果验证</p>
+                    </div>
+                  </details>
+                </div>
+              </div>
+            </article>
+
+            <article class="arch-layer">
+              <header class="layer-title">
+                <h3>数据层</h3>
+              </header>
+              <div class="layer-content">
+                <ul class="arch-items architecture-data-grid" aria-label="数据层模块">
+                  <li>1000 万条岗位 JD</li>
+                  <li>人才培养方案</li>
+                  <li>产业报告</li>
+                  <li>政策文件</li>
+                  <li>用户简历</li>
+                  <li>课程标准</li>
+                  <li>课程报告</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="arch-layer">
+              <header class="layer-title">
+                <h3>基础设施层</h3>
+              </header>
+              <div class="layer-content">
+                <ul class="arch-items" style="--columns: 5">
+                  <li>推理服务 / GPU</li>
+                  <li>Web / API 网关</li>
+                  <li>沙箱运行环境</li>
+                  <li>数据存储</li>
+                  <li>平台管理系统</li>
+                </ul>
+              </div>
+            </article>
+
+            <div class="architecture-flow">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 8h13M14 5l3 3-3 3M20 16H7M10 13l-3 3 3 3" />
+              </svg>
+              <span>三端接入 → 业务应用 → Agent 编排 → 模型、数据与工具调用 → 返回业务结果；基础设施为全链路提供运行支撑。</span>
+            </div>
+          </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-grid page-shell">
+      <div class="footer-brand">
+        <a class="brand" href="#top" aria-label="返回页面顶部">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M5 17.5 12 4l7 13.5" />
+              <path d="M8.5 12.5h7M7 17.5h10" />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>优才知路</strong>
+            <small>Lumi LLM</small>
+          </span>
+        </a>
+      </div>
+
+      <nav class="footer-links" aria-label="页脚导航">
+        <section class="footer-link-group footer-link-group--market" aria-label="市场预期导航">
+          <strong>01 · 市场预期</strong>
+          <a href="#market">市场与采购参考</a>
+          <a href="lumi-market-sources.html">数据来源</a>
+          <a href="#top">返回顶部</a>
+          <button type="button" data-print>打印页面</button>
+        </section>
+        <section class="footer-link-group footer-link-group--blueprint" aria-label="业务蓝图导航">
+          <strong>02 · 业务蓝图</strong>
+          <a href="#blueprint">蓝图总览</a>
+          <a href="#business">业务闭环</a>
+          <a href="#agent-capabilities">Agent 能力</a>
+          <a href="#agents">Agent 矩阵</a>
+          <a href="#data-governance">数据治理</a>
+          <a href="#industry-model">产教融合大模型</a>
+          <a href="#private-data">私有数据</a>
+        </section>
+        <section class="footer-link-group footer-link-group--architecture" aria-label="技术架构导航">
+          <strong>03 · 技术架构</strong>
+          <a href="#architecture">六层技术架构</a>
+        </section>
+
+      </nav>
+    </div>
+
+  </footer>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const header = document.querySelector("[data-header]");
+      const menu = document.querySelector("[data-mobile-menu]");
+      const menuOpen = document.querySelector("[data-menu-open]");
+      const menuClose = document.querySelector("[data-menu-close]");
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)");
+      const desktopQuery = window.matchMedia("(min-width: 768px)");
+      const backgroundNodes = [
+        document.querySelector(".skip-link"),
+        header,
+        document.querySelector("main"),
+        document.querySelector("footer")
+      ].filter(Boolean);
+      let returnFocus = null;
+      let scrollFrame = 0;
+
+      const updateHeader = () => {
+        scrollFrame = 0;
+        if (header) header.classList.toggle("is-scrolled", window.scrollY > 18);
+      };
+
+      window.addEventListener("scroll", () => {
+        if (!scrollFrame) scrollFrame = requestAnimationFrame(updateHeader);
+      }, { passive: true });
+      updateHeader();
+
+      const menuFocusable = () => menu
+        ? Array.from(menu.querySelectorAll("a[href], button:not([disabled])"))
+        : [];
+
+      const setBackgroundInert = (inert) => {
+        backgroundNodes.forEach((node) => {
+          if (inert) node.setAttribute("inert", "");
+          else node.removeAttribute("inert");
+        });
+      };
+
+      const focusElement = (element) => {
+        if (!element || typeof element.focus !== "function") return;
+        try {
+          element.focus({ preventScroll: true });
+        } catch (_) {
+          element.focus();
+        }
+      };
+
+      const closeMenu = (options) => {
+        if (!menu || !menuOpen) return;
+        const settings = options || {};
+        menu.classList.remove("is-open");
+        setBackgroundInert(false);
+        const nextFocus = settings.target || (settings.restore ? returnFocus || menuOpen : null);
+        focusElement(nextFocus);
+        menu.setAttribute("aria-hidden", "true");
+        menu.setAttribute("inert", "");
+        menuOpen.setAttribute("aria-expanded", "false");
+        document.body.classList.remove("menu-open");
+      };
+
+      const openMenu = () => {
+        if (!menu || !menuOpen) return;
+        returnFocus = menuOpen;
+        menu.classList.add("is-open");
+        menu.setAttribute("aria-hidden", "false");
+        menu.removeAttribute("inert");
+        menuOpen.setAttribute("aria-expanded", "true");
+        document.body.classList.add("menu-open");
+        setBackgroundInert(true);
+        requestAnimationFrame(() => {
+          if (menuClose) menuClose.focus();
+        });
+      };
+
+      if (menuOpen) menuOpen.addEventListener("click", openMenu);
+      if (menuClose) menuClose.addEventListener("click", () => closeMenu({ restore: true }));
+
+      if (menu) {
+        menu.querySelectorAll("a[href]").forEach((link) => {
+          link.addEventListener("click", (event) => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            const hash = link.getAttribute("href");
+            const target = hash && hash.startsWith("#") ? document.querySelector(hash) : null;
+            const heading = target ? target.querySelector("h1[tabindex], h2[tabindex]") : null;
+            if (!target || !hash) {
+              closeMenu();
+              return;
+            }
+
+            event.preventDefault();
+            closeMenu();
+            try {
+              const method = window.location.hash === hash ? "replaceState" : "pushState";
+              window.history[method](null, "", hash);
+            } catch (_) {
+              window.location.hash = hash;
+            }
+            target.scrollIntoView({
+              behavior: reduceMotion.matches ? "auto" : "smooth",
+              block: "start"
+            });
+            requestAnimationFrame(() => focusElement(heading || target));
+          });
+        });
+
+        menu.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            closeMenu({ restore: true });
+            return;
+          }
+
+          if (event.key !== "Tab") return;
+          const items = menuFocusable();
+          if (!items.length) return;
+          const first = items[0];
+          const last = items[items.length - 1];
+
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        });
+      }
+
+      document.querySelectorAll('a[href^="#"]').forEach((link) => {
+        if (menu && menu.contains(link)) return;
+
+        link.addEventListener("click", (event) => {
+          if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+          const hash = link.getAttribute("href");
+          if (!hash || hash === "#") return;
+
+          let target = null;
+          try {
+            target = document.querySelector(hash);
+          } catch (_) {
+            return;
+          }
+          if (!target) return;
+
+          const heading = target.matches("h1[tabindex], h2[tabindex], h3[tabindex]")
+            ? target
+            : target.querySelector("h1[tabindex], h2[tabindex], h3[tabindex]");
+
+          event.preventDefault();
+          try {
+            const method = window.location.hash === hash ? "replaceState" : "pushState";
+            window.history[method](null, "", hash);
+          } catch (_) {
+            window.location.hash = hash;
+          }
+
+          target.scrollIntoView({
+            behavior: reduceMotion.matches || link.classList.contains("skip-link") ? "auto" : "smooth",
+            block: "start"
+          });
+          requestAnimationFrame(() => focusElement(heading || target));
+        });
+      });
+
+      const handleDesktopChange = (event) => {
+        if (event.matches && menu && menu.classList.contains("is-open")) {
+          const desktopTarget = document.querySelector(".desktop-nav a") || document.querySelector(".site-header .brand");
+          closeMenu({ target: desktopTarget });
+        }
+      };
+
+      if (typeof desktopQuery.addEventListener === "function") {
+        desktopQuery.addEventListener("change", handleDesktopChange);
+      } else if (typeof desktopQuery.addListener === "function") {
+        desktopQuery.addListener(handleDesktopChange);
+      }
+
+      document.querySelectorAll("[data-print]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (menu && menu.classList.contains("is-open")) closeMenu({ restore: true });
+          window.print();
+        });
+      });
+
+      const navLinks = Array.from(document.querySelectorAll("[data-nav-link]"));
+      const sections = navLinks
+        .map((link) => document.querySelector(link.getAttribute("href")))
+        .filter(Boolean);
+
+      if ("IntersectionObserver" in window && sections.length) {
+        const sectionObserver = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (!visible) return;
+          navLinks.forEach((link) => {
+            if (link.getAttribute("href") === "#" + visible.target.id) {
+              link.setAttribute("aria-current", "location");
+            } else {
+              link.removeAttribute("aria-current");
+            }
+          });
+        }, { rootMargin: "-18% 0px -62% 0px", threshold: [0.05, 0.25, 0.5] });
+
+        sections.forEach((section) => sectionObserver.observe(section));
+      }
+
+      const revealItems = Array.from(document.querySelectorAll(".reveal-on-view"));
+      const revealItem = (item) => item.classList.add("is-revealing");
+
+      if (reduceMotion.matches || !("IntersectionObserver" in window)) {
+        revealItems.forEach(revealItem);
+      } else if (revealItems.length) {
+        const revealObserver = new IntersectionObserver((entries, observer) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            revealItem(entry.target);
+            observer.unobserve(entry.target);
+          });
+        }, { rootMargin: "0px 0px -8% 0px", threshold: 0.06 });
+
+        revealItems.forEach((item) => revealObserver.observe(item));
+      }
+
+      const color = (rgba, alphaScale) => {
+        const alpha = Math.max(0, Math.min(1, rgba[3] * alphaScale));
+        return "rgba(" + rgba[0] + "," + rgba[1] + "," + rgba[2] + "," + alpha + ")";
+      };
+
+      class AmbientField {
+        constructor(canvas, palette, options) {
+          this.canvas = canvas;
+          this.context = canvas.getContext("2d");
+          this.palette = palette;
+          this.options = options || {};
+          this.speed = this.options.speed || 0.00013;
+          this.dprCap = this.options.dprCap || 1.5;
+          this.pointer = { x: 0.5, y: 0.5, smoothX: 0.5, smoothY: 0.5 };
+          this.active = true;
+          this.lastFrame = 0;
+          this.rafId = 0;
+          this.running = false;
+          this.resize = this.resize.bind(this);
+          this.render = this.render.bind(this);
+          this.onPointer = this.onPointer.bind(this);
+          this.onMotionChange = this.onMotionChange.bind(this);
+
+          if (!this.context) return;
+          window.addEventListener("resize", this.resize, { passive: true });
+
+          if (finePointer.matches) {
+            const host = canvas.parentElement || canvas;
+            host.addEventListener("pointermove", this.onPointer, { passive: true });
+          }
+
+          if ("IntersectionObserver" in window) {
+            this.observer = new IntersectionObserver((entries) => {
+              this.active = entries[0].isIntersecting;
+              if (this.active) this.start();
+              else this.stop();
+            });
+            this.observer.observe(canvas);
+          }
+
+          if (typeof reduceMotion.addEventListener === "function") {
+            reduceMotion.addEventListener("change", this.onMotionChange);
+          }
+
+          this.resize();
+          this.start();
+        }
+
+        start() {
+          if (this.running || reduceMotion.matches || !this.active) return;
+          this.running = true;
+          this.rafId = requestAnimationFrame(this.render);
+        }
+
+        stop() {
+          this.running = false;
+          if (this.rafId) cancelAnimationFrame(this.rafId);
+          this.rafId = 0;
+        }
+
+        onMotionChange() {
+          if (reduceMotion.matches) {
+            this.stop();
+            this.draw(performance.now() * this.speed);
+          } else {
+            this.start();
+          }
+        }
+
+        resize() {
+          const rect = this.canvas.getBoundingClientRect();
+          this.width = Math.max(1, Math.round(rect.width));
+          this.height = Math.max(1, Math.round(rect.height));
+          const ratio = Math.min(window.devicePixelRatio || 1, this.dprCap);
+          this.canvas.width = Math.round(this.width * ratio);
+          this.canvas.height = Math.round(this.height * ratio);
+          this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+          this.draw(performance.now() * this.speed);
+          this.start();
+        }
+
+        onPointer(event) {
+          const rect = this.canvas.getBoundingClientRect();
+          this.pointer.x = (event.clientX - rect.left) / Math.max(rect.width, 1);
+          this.pointer.y = (event.clientY - rect.top) / Math.max(rect.height, 1);
+        }
+
+        render(timestamp) {
+          if (!this.running) return;
+          if (reduceMotion.matches || !this.active) {
+            this.stop();
+            return;
+          }
+
+          if (timestamp - this.lastFrame >= 1000 / 30) {
+            this.lastFrame = timestamp;
+            this.pointer.smoothX += (this.pointer.x - this.pointer.smoothX) * 0.04;
+            this.pointer.smoothY += (this.pointer.y - this.pointer.smoothY) * 0.04;
+            this.draw(timestamp * this.speed);
+          }
+
+          this.rafId = requestAnimationFrame(this.render);
+        }
+
+        draw(time) {
+          const context = this.context;
+          context.clearRect(0, 0, this.width, this.height);
+          if (this.palette.base) {
+            context.fillStyle = this.palette.base;
+            context.fillRect(0, 0, this.width, this.height);
+          }
+
+          const blobs = [
+            { x: 0.12 + Math.sin(time * 0.82) * 0.07, y: 0.16 + Math.cos(time * 0.67) * 0.07, radius: 0.74, value: this.palette.a },
+            { x: 0.82 + Math.cos(time * 0.61) * 0.08, y: 0.26 + Math.sin(time * 0.76) * 0.09, radius: 0.7, value: this.palette.b },
+            { x: 0.5 + Math.sin(time * 0.53) * 0.11, y: 0.88 + Math.cos(time * 0.59) * 0.06, radius: 0.68, value: this.palette.c },
+            { x: this.pointer.smoothX, y: this.pointer.smoothY, radius: 0.36, value: this.palette.pointer }
+          ];
+
+          blobs.forEach((blob) => {
+            const radius = Math.max(this.width, this.height) * blob.radius;
+            const x = blob.x * this.width;
+            const y = blob.y * this.height;
+            const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, color(blob.value, 1));
+            gradient.addColorStop(0.56, color(blob.value, 0.28));
+            gradient.addColorStop(1, color(blob.value, 0));
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, this.width, this.height);
+          });
+        }
+      }
+
+      class ReactiveGrid {
+        constructor(canvas) {
+          this.canvas = canvas;
+          this.context = canvas.getContext("2d");
+          this.host = canvas.parentElement;
+          this.nodes = [];
+          this.pointer = { x: Number.NaN, y: Number.NaN };
+          this.active = true;
+          this.lastFrame = 0;
+          this.rafId = 0;
+          this.running = false;
+          this.resize = this.resize.bind(this);
+          this.animate = this.animate.bind(this);
+          this.onPointer = this.onPointer.bind(this);
+          this.onLeave = this.onLeave.bind(this);
+          this.onMotionChange = this.onMotionChange.bind(this);
+
+          if (!this.context || !this.host || !finePointer.matches) return;
+          window.addEventListener("resize", this.resize, { passive: true });
+          this.host.addEventListener("pointermove", this.onPointer, { passive: true });
+          this.host.addEventListener("pointerleave", this.onLeave, { passive: true });
+
+          if ("IntersectionObserver" in window) {
+            this.observer = new IntersectionObserver((entries) => {
+              this.active = entries[0].isIntersecting;
+              if (this.active) this.start();
+              else this.stop();
+            });
+            this.observer.observe(canvas);
+          }
+
+          if (typeof reduceMotion.addEventListener === "function") {
+            reduceMotion.addEventListener("change", this.onMotionChange);
+          }
+
+          this.resize();
+        }
+
+        start() {
+          if (this.running || reduceMotion.matches || !this.active || window.innerWidth < 768) return;
+          this.running = true;
+          this.rafId = requestAnimationFrame(this.animate);
+        }
+
+        stop() {
+          this.running = false;
+          if (this.rafId) cancelAnimationFrame(this.rafId);
+          this.rafId = 0;
+        }
+
+        onMotionChange() {
+          if (reduceMotion.matches) {
+            this.stop();
+            this.draw(false);
+          } else {
+            this.start();
+          }
+        }
+
+        resize() {
+          const rect = this.host.getBoundingClientRect();
+          this.width = Math.ceil(rect.width);
+          this.height = Math.ceil(rect.height);
+          const ratio = Math.min(window.devicePixelRatio || 1, 2);
+          this.canvas.width = Math.round(this.width * ratio);
+          this.canvas.height = Math.round(this.height * ratio);
+          this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+          const spacing = 90;
+          this.columns = Math.ceil(this.width / spacing) + 1;
+          this.rows = Math.ceil(this.height / spacing) + 1;
+          const offsetX = (this.width - (this.columns - 1) * spacing) / 2;
+          const offsetY = (this.height - (this.rows - 1) * spacing) / 2;
+          this.nodes = [];
+
+          for (let row = 0; row < this.rows; row += 1) {
+            for (let column = 0; column < this.columns; column += 1) {
+              const x = offsetX + column * spacing;
+              const y = offsetY + row * spacing;
+              this.nodes.push({
+                row,
+                column,
+                homeX: x,
+                homeY: y,
+                x,
+                y,
+                vx: 0,
+                vy: 0
+              });
+            }
+          }
+
+          this.draw(false);
+          if (window.innerWidth >= 768) this.start();
+          else this.stop();
+        }
+
+        onPointer(event) {
+          const rect = this.host.getBoundingClientRect();
+          this.pointer.x = event.clientX - rect.left;
+          this.pointer.y = event.clientY - rect.top;
+        }
+
+        onLeave() {
+          this.pointer.x = Number.NaN;
+          this.pointer.y = Number.NaN;
+        }
+
+        animate(timestamp) {
+          if (!this.running) return;
+          if (reduceMotion.matches || !this.active || window.innerWidth < 768) {
+            this.stop();
+            return;
+          }
+
+          if (timestamp - this.lastFrame < 1000 / 30) {
+            this.rafId = requestAnimationFrame(this.animate);
+            return;
+          }
+
+          this.lastFrame = timestamp;
+
+          this.nodes.forEach((node) => {
+            if (Number.isFinite(this.pointer.x)) {
+              const dx = node.x - this.pointer.x;
+              const dy = node.y - this.pointer.y;
+              const distance = Math.hypot(dx, dy);
+              if (distance > 0.1 && distance < 140) {
+                const force = (1 - distance / 140) * 3;
+                node.vx += dx / distance * force;
+                node.vy += dy / distance * force;
+              }
+            }
+
+            node.vx += (node.homeX - node.x) * 0.05;
+            node.vy += (node.homeY - node.y) * 0.05;
+            node.vx *= 0.85;
+            node.vy *= 0.85;
+            node.x += node.vx;
+            node.y += node.vy;
+          });
+
+          this.draw(true);
+          this.rafId = requestAnimationFrame(this.animate);
+        }
+
+        draw(interactive) {
+          const context = this.context;
+          context.clearRect(0, 0, this.width, this.height);
+          context.lineWidth = 0.5;
+          context.strokeStyle = "rgba(60,100,160,0.10)";
+
+          const connect = (a, b) => {
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < 20) return;
+            const ux = dx / distance;
+            const uy = dy / distance;
+            context.beginPath();
+            context.moveTo(a.x + ux * 10, a.y + uy * 10);
+            context.lineTo(b.x - ux * 10, b.y - uy * 10);
+            context.stroke();
+          };
+
+          for (let row = 0; row < this.rows; row += 1) {
+            for (let column = 0; column < this.columns; column += 1) {
+              const index = row * this.columns + column;
+              if (column < this.columns - 1) connect(this.nodes[index], this.nodes[index + 1]);
+              if (row < this.rows - 1) connect(this.nodes[index], this.nodes[index + this.columns]);
+            }
+          }
+
+          this.nodes.forEach((node) => {
+            let influence = 0;
+            if (interactive && Number.isFinite(this.pointer.x)) {
+              influence = Math.max(0, 1 - Math.hypot(node.x - this.pointer.x, node.y - this.pointer.y) / 140);
+            }
+            context.globalAlpha = 0.2 + influence * 0.4;
+            context.fillStyle = "rgb(60,100,160)";
+            context.beginPath();
+            context.arc(node.x, node.y, 1.8 + influence * 2, 0, Math.PI * 2);
+            context.fill();
+          });
+
+          context.globalAlpha = 1;
+        }
+      }
+
+      const ambientCanvas = document.querySelector("[data-ambient-canvas]");
+      if (ambientCanvas) {
+        new AmbientField(ambientCanvas, {
+          base: null,
+          a: [138, 163, 214, 0.46],
+          b: [255, 255, 255, 0.88],
+          c: [255, 255, 255, 0.82],
+          pointer: [160, 190, 226, 0.2]
+        }, { speed: 0.00013, dprCap: 1.5 });
+      }
+
+      const mediaCanvas = document.querySelector("[data-media-canvas]");
+      if (mediaCanvas) {
+        new AmbientField(mediaCanvas, {
+          base: "#0a1a3a",
+          a: [74, 138, 196, 0.84],
+          b: [13, 31, 74, 0.88],
+          c: [45, 95, 158, 0.76],
+          pointer: [138, 185, 224, 0.38]
+        }, { speed: 0.0003, dprCap: 1.5 });
+      }
+
+      const gridCanvas = document.querySelector("[data-grid-canvas]");
+      if (gridCanvas) new ReactiveGrid(gridCanvas);
+    })();
+  </script>
+</body>
+</html>

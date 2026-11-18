@@ -1,0 +1,141 @@
+/* Shared announcement-sparkle for page and section introductions. */
+.announcement-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.announcement-note > span { min-width: 0; }
+.announcement-note > .announcement-sparkle {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  margin-top: .35em;
+  fill: var(--brand, #4d6bfe);
+  animation: announcement-pulse 2.4s ease-in-out infinite;
+}
+.announcement-note .sparkle-small {
+  transform-origin: center;
+  animation: announcement-twinkle 2.4s 400ms ease-in-out infinite;
+}
+@keyframes announcement-pulse {
+  50% { opacity: 1; transform: scale(1.15); }
+}
+@keyframes announcement-twinkle {
+  50% { opacity: .4; transform: scale(.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .announcement-note :is(.announcement-sparkle, .sparkle-small) { animation: none; }
+}
+
+/* Autonomous Agent entry: scoped to preserve the existing architecture matrix. */
+.report-glass--architecture .mode-card.mode-card--link {
+  position: relative;
+  overflow: visible;
+  grid-template-columns: 43px minmax(0, 1fr) 24px;
+  gap: 16px;
+  padding: 22px 24px;
+  border: 2px solid rgba(58, 101, 194, .24);
+  border-radius: 24px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: none;
+  text-decoration: none;
+  transition: background-color 200ms, border-color 200ms;
+  scroll-margin-top: 100px;
+}
+
+.mode-card-copy { min-width: 0; }
+
+.report-glass--architecture .mode-card--link h4 {
+  color: var(--brand-deep);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 27px;
+  letter-spacing: -.01em;
+}
+
+.report-glass--architecture .mode-card--link p {
+  margin: 6px 0 0;
+  color: var(--description);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.mode-card-arrow {
+  width: 24px;
+  height: 24px;
+  color: var(--brand-deep);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 200ms;
+}
+
+.report-glass--architecture .mode-card--link:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+  border-color: transparent;
+  background: var(--glass-hover);
+}
+
+.report-glass--architecture .mode-card--link:active {
+  background: rgba(255, 255, 255, .7);
+  border-color: var(--brand-deep);
+}
+
+/* Shared Agent page shell. The viewport background is in lumi-page-background.css. */
+.agent-page { min-height: 100vh; }
+.agent-main { position: relative; isolation: isolate; min-height: 100vh; padding: 120px 0 64px; }
+.agent-page h1 { margin-bottom: 32px; font-family: var(--font-display); }
+.agent-content { min-height: 50vh; border-top: 1px solid var(--divider); }
+.agent-back {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 100px;
+  color: var(--link-blue);
+  font-size: 14px;
+  line-height: 20px;
+  transition: background-color 200ms;
+}
+.agent-back svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (hover: hover) and (pointer: fine) {
+  .report-glass--architecture .mode-card--link:hover { background: var(--glass-hover); border-color: transparent; }
+  .mode-card--link:hover .mode-card-arrow { transform: translateX(3px); }
+  .agent-back:hover { background: var(--glass-hover); }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .report-glass--architecture .mode-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .report-glass--architecture .mode-card.mode-card--link { grid-template-columns: minmax(0, 1fr) 24px; gap: 12px; padding: 20px; }
+  .mode-card--link .mode-icon { display: none; }
+  .agent-main { padding-top: 100px; }
+  .agent-page .header-bar { gap: 8px; padding-inline: 8px; }
+  .agent-back { padding-inline: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-glass--architecture .mode-card--link:is(:hover, :focus-visible) { border-color: rgba(58, 101, 194, .45); }
+  .mode-card.mode-card--link, .mode-card-arrow, .agent-back { transition: none !important; }
+  .mode-card--link:hover .mode-card-arrow { transform: none; }
+  .agent-page *, .agent-page *::before, .agent-page *::after { scroll-behavior: auto !important; transition: none !important; }
+}
+
+@media print {
+  .agent-page .site-header { display: none; }
+  .agent-main { padding-top: 0; }
+  .report-glass--architecture .mode-card.mode-card--link { padding: 16px; border: 1px solid #ccc; border-radius: 12px; background: transparent; }
+}

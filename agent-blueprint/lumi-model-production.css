@@ -1,0 +1,86 @@
+/* Production flow: 优才知路产教融合平台垂类大模型微调项目立项申请书0602-V3.pdf, pp. 6–10. */
+#architecture .model-production { width: 100%; min-width: 0; }
+#architecture .model-production-toggle {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+#architecture .model-production-toggle::-webkit-details-marker { display: none; }
+#architecture .model-production-toggle::marker { content: ""; }
+#architecture .model-production-toggle span {
+  margin: 0;
+  font-family: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+}
+#architecture .model-production-heading { grid-column: 2; text-align: center; }
+#architecture .model-production-toggle .model-name { display: block; color: #fff; font-size: 17px; }
+#architecture .model-production-toggle .model-alias { font-size: inherit; }
+#architecture .model-production-toggle .model-production-hint { display: block; margin-top: 6px; color: #d6e5ff; font-size: 13px; line-height: 1.6; }
+#architecture .model-production-hint > span { color: inherit; font-size: inherit; }
+#architecture .model-production-hide { display: none; }
+#architecture .model-production[open] .model-production-hide { display: inline; }
+#architecture .model-production[open] .model-production-show { display: none; }
+#architecture .model-production-chevron { width: 24px; height: 24px; fill: none; stroke: #d6e5ff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#architecture .model-production[open] .model-production-chevron { transform: rotate(180deg); }
+#architecture .model-production-toggle:focus-visible { outline: 3px solid #4d6bfe; outline-offset: 4px; }
+#architecture .model-production-toggle:hover { filter: brightness(1.1); }
+#architecture .model-production-body { margin-top: 12px; padding: 24px; border: 1px solid #ccd9ee; border-radius: 16px; background: rgba(249, 252, 255, .94); color: #233c62; }
+#architecture .model-production-intro { margin: 0 0 22px; font-size: 15px; line-height: 1.7; }
+#architecture .model-production-flow { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 32px 24px; margin: 0; padding: 0; list-style: none; }
+#architecture .model-production-flow > li { position: relative; min-width: 0; }
+#architecture .model-production-step { padding: 16px; border: 1px solid #cedcf0; border-radius: 12px; background: #fff; }
+#architecture .model-production-data, #architecture .model-production-samples { grid-column: span 3; }
+#architecture .model-production-integration, #architecture .model-production-evaluation, #architecture .model-production-release { grid-column: span 2; }
+#architecture .model-production-flow h4 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; line-height: 1.6; text-align: left; }
+#architecture .model-production-flow h4 > span { color: #5477b1; font: 600 12px/1.5 var(--font-display); }
+#architecture .model-production-step p { margin: 8px 0 0; font-size: 14px; line-height: 1.7; }
+#architecture .model-production-step small { display: block; margin-top: 10px; color: #647590; font-size: 12px; line-height: 1.7; }
+#architecture .model-production-data::after, #architecture .model-production-integration::after, #architecture .model-production-evaluation::after { content: "→"; position: absolute; top: 50%; right: -24px; width: 24px; color: #6587bd; font-size: 20px; text-align: center; transform: translateY(-50%); }
+#architecture .model-production-training { grid-column: 1 / -1; padding: 18px; border: 1px solid #9bb7e4; border-radius: 14px; background: #eaf1ff; }
+#architecture .model-production-training::before, #architecture .model-production-training::after { content: "↓"; position: absolute; left: 50%; color: #6587bd; font-size: 20px; line-height: 32px; transform: translateX(-50%); }
+#architecture .model-production-training::before { top: -33px; }
+#architecture .model-production-training::after { bottom: -33px; }
+#architecture .model-production-training > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+#architecture .model-production-training > header p { margin: 0; color: #546d95; font-size: 13px; line-height: 1.6; }
+#architecture .model-training-stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0; padding: 0; list-style: none; }
+#architecture .model-training-stages > li { position: relative; padding: 14px; border: 1px solid #d4e0f3; border-radius: 10px; background: #fff; }
+#architecture .model-training-stages > li:not(:last-child)::after { content: "→"; position: absolute; top: 50%; right: -24px; width: 24px; color: #6587bd; text-align: center; transform: translateY(-50%); }
+#architecture .model-training-code { color: #3765b1; font: 600 12px/1.5 var(--font-display); }
+#architecture .model-training-stages h5 { margin: 5px 0; font-size: 15px; line-height: 1.6; }
+#architecture .model-training-stages p { margin: 0; color: #526985; font-size: 13px; line-height: 1.7; }
+#architecture .model-training-output { margin: 14px 0 0; color: #466490; font-size: 13px; line-height: 1.7; text-align: center; }
+#architecture .model-training-output strong { margin-left: 8px; color: #234f91; font-size: 14px; }
+#architecture .model-production-feedback { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 18px 0 0; padding: 12px; border: 1px dashed #a9bfde; border-radius: 10px; color: #3c6197; font-size: 13px; line-height: 1.8; text-align: center; }
+#architecture .model-production-feedback > span { font-size: 22px; }
+#architecture .model-production-source { margin: 14px 0 0; color: #697b94; font-size: 12px; line-height: 1.7; }
+@media (max-width: 1023px) {
+  #architecture .model-production-body { padding: 18px; }
+  #architecture .model-production-training > header { align-items: flex-start; flex-direction: column; gap: 4px; }
+  #architecture .model-production-flow, #architecture .model-training-stages { grid-template-columns: 1fr; gap: 28px; }
+  #architecture .model-production-flow > li { grid-column: 1; }
+  #architecture .model-production-data::after, #architecture .model-production-integration::after, #architecture .model-production-evaluation::after,
+  #architecture .model-training-stages > li:not(:last-child)::after { content: "↓"; top: auto; right: auto; bottom: -28px; left: 50%; width: 24px; line-height: 28px; transform: translateX(-50%); }
+  #architecture .model-production-training::before { top: -29px; line-height: 28px; }
+  #architecture .model-production-training::after { bottom: -29px; line-height: 28px; }
+}
+@media (max-width: 767px) {
+  #architecture .model-production-toggle { grid-template-columns: minmax(0, 1fr) 20px; gap: 8px; padding: 16px 12px; }
+  #architecture .model-production-heading { grid-column: 1; }
+  #architecture .model-production-toggle .model-name { font-size: 16px; }
+  #architecture .model-production-chevron { width: 20px; height: 20px; }
+  #architecture .model-production-body { padding: 14px; }
+  #architecture .model-production-step, #architecture .model-production-training { padding: 12px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  #architecture .model-production-chevron { transition: transform .2s ease; }
+}
+@media print {
+  #architecture .model-production-toggle .model-name, #architecture .model-production-toggle .model-name strong { color: #152443; }
+  #architecture .model-production-hint, #architecture .model-production-chevron { display: none !important; }
+  #architecture .model-production-body { background: #fff; }
+  #architecture .model-production-flow > li { break-inside: avoid; }
+}

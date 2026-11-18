@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#d7e5f4" />
+  <title>自主 Agent | 优才知路 · Lumi LLM</title>
+  <meta name="description" content="从 LLM 的生产挑战到 Agent 的能力、核心子系统与运行循环，展示优才知路的智能体设计思路。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Montserrat:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="lumi-market-pages.css" />
+  <link rel="stylesheet" href="lumi-agent.css" />
+  <link rel="stylesheet" href="lumi-agent-content.css" />
+  <link rel="stylesheet" href="lumi-aistudio-flow-border.css" />
+  <link rel="stylesheet" href="lumi-runtime-flow.css" />
+  <link rel="stylesheet" href="lumi-page-background.css" />
+  <script src="lumi-page-background.js" defer></script>
+  <script src="lumi-market-pages.js" defer></script>
+  <script src="lumi-agent.js" defer></script>
+</head>
+<body class="agent-page lumi-fixed-background">
+  <div class="page-background" aria-hidden="true"></div>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <header class="site-header" data-header>
+    <div class="header-bar">
+      <a class="brand" href="lumi-llm-agent-platform-blueprint-market.html#top" aria-label="优才知路统一蓝图首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M5 17.5 12 4l7 13.5" /><path d="M8.5 12.5h7M7 17.5h10" /></svg>
+        </span>
+        <span class="brand-copy"><strong>优才知路</strong><small>Lumi LLM</small></span>
+      </a>
+      <nav class="desktop-nav agent-nav" aria-label="本页导航">
+        <a href="#challenges">生产挑战</a>
+        <a href="#capabilities">核心能力</a>
+        <a href="#subsystems">系统架构</a>
+        <a href="#runtime">运行循环</a>
+      </nav>
+      <a class="agent-back" href="lumi-llm-agent-platform-blueprint-market.html#autonomous-agent">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+        返回蓝图
+      </a>
+    </div>
+  </header>
+  <main class="agent-main" id="main" tabindex="-1">
+    <div class="page-shell">
+      <nav class="breadcrumb" aria-label="面包屑">
+        <a href="lumi-llm-agent-platform-blueprint-market.html#architecture">技术架构</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">自主 Agent</span>
+      </nav>
+      <header class="agent-intro">
+        <h1>从 LLM 到 <span>Agent</span></h1>
+        <p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>让模型的推理能力，进入可执行、可反馈的任务系统。</span></p>
+        <nav class="agent-chapters" aria-label="内容目录">
+          <a href="#challenges"><span>01</span>生产挑战</a>
+          <a href="#definition"><span>02</span>智能体定义</a>
+          <a href="#capabilities"><span>03</span>核心能力</a>
+          <a href="#subsystems"><span>04</span>系统架构</a>
+          <a href="#runtime"><span>05</span>运行循环</a>
+        </nav>
+      </header>
+
+      <div class="agent-content" id="agent-content">
+        <section class="agent-section challenges-section" id="challenges" aria-labelledby="challenges-title">
+          <header class="agent-section-head">
+            <span class="agent-section-index">01</span>
+            <div><h2 id="challenges-title" tabindex="-1">LLM 走向生产环境的挑战</h2><p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>生成一个回答之后，还有四个工程问题需要解决。</span></p></div>
+          </header>
+          <div class="challenge-grid">
+            <article class="challenge">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 22V10m7 16V6m8 18V8m7 14V10M3 16h26"/><circle cx="12" cy="12" r="3"/><circle cx="20" cy="20" r="3"/></svg>
+              <h3>可靠性</h3><span class="challenge-caption">概率模型的输出不确定</span>
+              <p>模型可能产生错误或遗漏。生产任务需要校验结果，并在失败时恢复。</p>
+              <div class="challenge-response">校验 · 重试 · 状态管理</div>
+            </article>
+            <article class="challenge">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="8" width="10" height="16" rx="3"/><rect x="21" y="8" width="8" height="16" rx="3"/><path d="M10 16h14m-7-4 4 4-4 4"/></svg>
+              <h3>外部交互</h3><span class="challenge-caption">从给出建议到实际操作</span>
+              <p>单独的模型调用不能直接操作业务系统，查询、修改和执行仍需人或程序承接。</p>
+              <div class="challenge-response">工具接口 · 环境反馈</div>
+            </article>
+            <article class="challenge">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="12"/><path d="m11 9 5 7 5-7m-5 7v8m-6-8h12m-12 4h12"/></svg>
+              <h3>成本</h3><span class="challenge-caption">多轮调用持续消耗资源</span>
+              <p>推理、上下文和工具调用叠加时间与费用。任务需要明确的预算和停止条件。</p>
+              <div class="challenge-response">调用预算 · 上下文管理</div>
+            </article>
+            <article class="challenge">
+              <svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 3 11 5v8c0 6-5 10-11 13C10 26 5 22 5 16V8Z"/><path d="m11 16 3 3 7-7"/></svg>
+              <h3>安全性</h3><span class="challenge-caption">行动必须有权限边界</span>
+              <p>外部内容可能携带恶意指令，工具也可能执行越权操作。访问与执行需要受控。</p>
+              <div class="challenge-response">最小权限 · 沙箱 · 审批</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="agent-section definition-section" id="definition" aria-labelledby="definition-title">
+          <header class="agent-section-head"><span class="agent-section-index">02</span><h2 id="definition-title" tabindex="-1">什么是智能体</h2></header>
+          <div class="definition-body">
+            <p class="agent-definition">一个能够<span>感知环境</span>、<span>规划行动</span>、<span>执行任务</span>、<span>学习反馈</span>的自主系统。</p>
+            <p class="definition-note announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>围绕目标持续运行，根据环境返回的结果调整下一步行动。</span></p>
+            <div class="perception-chain" aria-label="感知、规划、执行、反馈形成闭环"><span>感知</span><i aria-hidden="true">→</i><span>规划</span><i aria-hidden="true">→</i><span>执行</span><i aria-hidden="true">→</i><span>反馈</span><i aria-hidden="true">↻</i></div>
+          </div>
+        </section>
+
+        <section class="agent-section" id="capabilities" aria-labelledby="capabilities-title">
+          <header class="agent-section-head"><span class="agent-section-index">03</span><div><h2 id="capabilities-title" tabindex="-1">智能体的三项核心能力</h2><p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>模型负责推理，系统承接行动，反馈沉淀为经验。</span></p></div></header>
+          <div class="capability-layout">
+            <figure class="capability-figure" aria-label="能力三角：顶端是思维能力，底部左侧是行动能力，右侧是学习能力。">
+              <svg class="capability-geometry" viewBox="0 0 640 360" aria-hidden="true">
+                <defs><linearGradient id="triangle-fill" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#4d6bfe" stop-opacity=".12"/><stop offset="1" stop-color="#4d6bfe" stop-opacity=".02"/></linearGradient></defs>
+                <path d="M320 60 90 300h460Z" fill="url(#triangle-fill)" stroke="#8ba9dd" stroke-width="1.5"/>
+                <path d="M320 60v160M90 300l230-80 230 80" fill="none" stroke="#a8bbdb" stroke-width="1" stroke-dasharray="4 6"/>
+                <circle cx="320" cy="60" r="7"/><circle cx="90" cy="300" r="7"/><circle cx="550" cy="300" r="7"/>
+              </svg>
+              <div class="capability-label capability-think"><h3>思维能力</h3><p>LLM</p></div>
+              <div class="capability-center" aria-hidden="true">Agent</div>
+              <div class="capability-label capability-act"><h3>行动能力</h3><p>操作外部系统的框架</p></div>
+              <div class="capability-label capability-learn"><h3>学习能力</h3><p>获得反馈、积累经验</p></div>
+            </figure>
+            <aside class="harness-note">
+              <span class="note-label">Harness 的作用</span>
+              <h3>让推理成为行动</h3>
+              <p>Harness 是承载模型运行的系统框架，组织上下文、调用工具、保存状态，并管理任务的执行边界。</p>
+              <dl><div><dt>思考什么</dt><dd>由 LLM 理解目标、规划行动。</dd></div><div><dt>如何落地</dt><dd>由 Harness 调度执行、验证反馈。</dd></div></dl>
+            </aside>
+          </div>
+          <div class="agent-equation" aria-label="Agent 等于 LLM 加 Harness"><span>Agent</span><i>=</i><span>LLM</span><i>+</i><strong>Harness</strong></div>
+          <p class="figure-note">这里的“学习”指反馈与经验积累，不默认改变模型参数。</p>
+          <div class="agent-cases" aria-labelledby="agent-cases-title">
+            <h3 id="agent-cases-title">企业、行业 Agent 案例</h3>
+            <div class="agent-case-grid">
+              <a href="https://www.dabi.cn/" target="_blank" rel="noopener noreferrer"><span class="agent-case-logo"><img src="assets/agent-cases/dabi.webp" alt="达比 AI Logo" loading="lazy"></span><span>达比 AI <i aria-hidden="true">↗</i></span></a>
+              <a href="https://skillhub.cn/" target="_blank" rel="noopener noreferrer"><span class="agent-case-logo"><img src="assets/agent-cases/skillhub.png" alt="SkillHub Logo" loading="lazy"></span><span>腾讯 SkillHub 社区 <i aria-hidden="true">↗</i></span></a>
+              <a href="https://wukong.dingtalk.com/" target="_blank" rel="noopener noreferrer"><span class="agent-case-logo"><img src="assets/agent-cases/wukong.png" alt="悟空 Logo" loading="lazy"></span><span>钉钉悟空 AI <i aria-hidden="true">↗</i></span></a>
+              <a href="https://neu.ai.neuseer.cn/" target="_blank" rel="noopener noreferrer"><span class="agent-case-logo"><img src="assets/agent-cases/neuseer.png" alt="Neu.ai Logo" loading="lazy"></span><span>寄云工业智能体 <i aria-hidden="true">↗</i></span></a>
+              <a href="https://skill.tybigdata.com/" target="_blank" rel="noopener noreferrer"><span class="agent-case-logo"><img src="assets/agent-cases/yingshou.png" alt="应手 Logo" loading="lazy"></span><span>应手行业 Agent 定制 <i aria-hidden="true">↗</i></span></a>
+              <a href="https://agent.qcc.com/skills" target="_blank" rel="noopener noreferrer"><span class="agent-case-logo"><img src="assets/agent-cases/qcc.png" alt="企查查 Logo" loading="lazy"></span><span>企查查 Skill <i aria-hidden="true">↗</i></span></a>
+            </div>
+          </div>
+        </section>
+
+        <section class="agent-section" id="subsystems" aria-labelledby="subsystems-title">
+          <header class="agent-section-head"><span class="agent-section-index">04</span><div><h2 id="subsystems-title" tabindex="-1">核心子系统总览</h2><p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>以运行时引擎连接模型、能力与外部环境，安全和观测贯穿全程。</span></p></div></header>
+          <figure class="system-figure">
+            <div class="system-legend"><span><i class="legend-line"></i>调用与反馈</span><span><i class="legend-line legend-line--dashed"></i>贯穿所有层级</span></div>
+            <div class="system-map">
+              <div class="system-core">
+                <div class="system-model"><strong>优才知路产教融合大模型</strong><span>理解目标 · 推理与决策</span></div>
+                <div class="system-connector" aria-hidden="true">↕</div>
+                <div class="system-runtime"><div class="system-runtime-heading"><h3>运行时引擎</h3><span>Runtime</span></div><div class="runtime-parts"><span><strong>Loop</strong>推进循环</span><span><strong>State</strong>维护状态</span><span><strong>Flow</strong>控制流转</span></div></div>
+                <div class="system-fanout" aria-hidden="true"><svg viewBox="0 0 800 44" preserveAspectRatio="none"><path d="M400 0v20M100 44V20h600v24M300 20v24M500 20v24"/></svg></div>
+                <div class="system-modules" aria-label="以下四个模块均与运行时引擎直接相连">
+                  <article><h3>工具层</h3><p>能力注册、参数校验<br>与工具执行</p><small>Tools / MCP</small></article>
+                  <article><h3>记忆子系统</h3><p>上下文检索<br>与经验沉淀</p><small>Memory</small></article>
+                  <article><h3>输出治理</h3><p>格式、内容校验<br>与交付控制</p><small>Output</small></article>
+                  <article><h3>编排系统</h3><p>任务分解、路由<br>与多智能体协作</p><small>Orchestration</small></article>
+                </div>
+                <div class="environment-connector"><span aria-hidden="true">↕</span>通过工具与适配器交互</div>
+                <div class="system-environment"><h3>外部环境</h3><ul><li>API</li><li>数据库</li><li>文件系统</li><li>Shell</li><li>网络</li><li>…</li></ul></div>
+              </div>
+              <aside class="system-rail safety-rail"><span class="rail-scope">贯穿全程</span><h3>安全层</h3><ul><li>身份</li><li>权限</li><li>沙箱</li><li>审批</li></ul><span class="rail-end">执行边界</span></aside>
+              <aside class="system-rail observability-rail"><span class="rail-scope">贯穿全程</span><h3>观测层</h3><ul><li>Trace</li><li>日志</li><li>指标</li><li>评测</li></ul><span class="rail-end">全程留痕</span></aside>
+            </div>
+            <figcaption>本页采用的概念架构。运行时管理单次任务的循环与状态，编排系统负责更高层的任务与协作组织。</figcaption>
+          </figure>
+        </section>
+
+        <section class="agent-section runtime-section" id="runtime" aria-labelledby="runtime-title">
+          <header class="agent-section-head"><span class="agent-section-index">05</span><div><h2 id="runtime-title" tabindex="-1">智能体运行时的交互循环</h2><p class="announcement-note"><svg class="sparkle announcement-sparkle" viewBox="0 0 14 14" aria-hidden="true"><path d="M5.1 3.1c.35 2.1 1.42 3.18 3.52 3.52-2.1.35-3.17 1.42-3.52 3.52-.35-2.1-1.42-3.17-3.52-3.52 2.1-.34 3.17-1.42 3.52-3.52Z" /><path class="sparkle-small" d="M10.9.8c.16.92.62 1.38 1.54 1.54-.92.15-1.38.62-1.54 1.54-.15-.92-.62-1.39-1.54-1.54.92-.16 1.39-.62 1.54-1.54Z" /></svg><span>运行时重复“观察、决策、行动、反馈”，直到完成任务或触发停止条件。</span></p></div></header>
+          <div class="runtime-surface">
+            <div class="runtime-toolbar"><span>智能体运行时交互流程</span><span class="runtime-hint">点击步骤，查看子系统协作</span></div>
+            <div class="runtime-cycle">
+              <svg class="cycle-lines" viewBox="0 0 1000 360" preserveAspectRatio="none" aria-hidden="true">
+                <defs><marker id="cycle-arrow" markerUnits="userSpaceOnUse" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="m1 1 5 3-5 3" fill="none" stroke="currentColor" stroke-width="1.3"/></marker></defs>
+                <g fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#cycle-arrow)"><path data-flow-step="1" class="is-active" d="M284 62H355"/><path data-flow-step="2" d="M640 62H710"/><path data-flow-step="3" d="M857 125V232"/><path data-flow-step="4" d="M713 296H646"/><path data-flow-step="5" d="M357 296H290"/><path data-flow-step="6" class="cycle-feedback-line" d="M143 235v-55H500v-50"/></g>
+                <g class="cycle-flow-trails" fill="none" stroke="#73a7f5" stroke-width="2" stroke-linecap="round"><path data-flow-step="1" class="is-active" pathLength="100" d="M284 62H355"/><path data-flow-step="2" pathLength="100" d="M640 62H710"/><path data-flow-step="3" pathLength="100" d="M857 125V232"/><path data-flow-step="4" pathLength="100" d="M713 296H646"/><path data-flow-step="5" pathLength="100" d="M357 296H290"/><path data-flow-step="6" pathLength="100" d="M143 235v-55H500v-50"/></g>
+              </svg>
+              <ol class="cycle-steps">
+                <li class="cycle-node aistudio-flow-border is-active"><button class="aistudio-flow-surface cycle-step is-active" type="button" data-step="1" aria-pressed="true" aria-controls="runtime-detail"><span class="step-number">01</span><span><strong>接收任务</strong><small>明确目标与执行边界</small></span></button></li>
+                <li class="cycle-node aistudio-flow-border"><button class="aistudio-flow-surface cycle-step" type="button" data-step="2" aria-pressed="false" aria-controls="runtime-detail"><span class="step-number">02</span><span><strong>组装上下文</strong><small>读取状态与相关记忆</small></span></button></li>
+                <li class="cycle-node aistudio-flow-border"><button class="aistudio-flow-surface cycle-step" type="button" data-step="3" aria-pressed="false" aria-controls="runtime-detail"><span class="step-number">03</span><span><strong>LLM 规划</strong><small>生成下一步行动或答案</small></span></button></li>
+                <li class="cycle-node aistudio-flow-border"><button class="aistudio-flow-surface cycle-step" type="button" data-step="4" aria-pressed="false" aria-controls="runtime-detail"><span class="step-number">04</span><span><strong>受控执行</strong><small>校验权限，调用外部能力</small></span></button></li>
+                <li class="cycle-node aistudio-flow-border"><button class="aistudio-flow-surface cycle-step" type="button" data-step="5" aria-pressed="false" aria-controls="runtime-detail"><span class="step-number">05</span><span><strong>回写反馈</strong><small>记录结果、更新任务状态</small></span></button></li>
+                <li class="cycle-node aistudio-flow-border"><button class="aistudio-flow-surface cycle-step" type="button" data-step="6" aria-pressed="false" aria-controls="runtime-detail"><span class="step-number">06</span><span><strong>判断与交付</strong><small>完成、继续或受控停止</small></span></button></li>
+              </ol>
+              <span class="cycle-return">未完成 · 携带新反馈进入下一轮</span>
+              <span class="cycle-mobile-return" aria-hidden="true">继续迭代 → 02</span>
+            </div>
+            <div class="runtime-detail" id="runtime-detail" aria-live="polite" aria-atomic="true">
+              <div class="runtime-detail-heading"><span id="runtime-detail-index">01 / 06</span><h3 id="runtime-detail-title">接收任务</h3></div>
+              <p id="runtime-detail-copy">运行时接收用户目标和输入，建立任务状态。编排系统按需拆分子任务，并设置权限、调用预算与最大轮次。</p>
+              <div class="runtime-detail-bottom"><span id="runtime-detail-systems">协作子系统：运行时引擎 · 编排系统 · 安全层</span><button type="button" class="runtime-next" hidden>下一步 <span aria-hidden="true">→</span></button></div>
+            </div>
+            <div class="runtime-outcomes"><p><span class="outcome-dot"></span><strong>目标完成</strong>输出校验通过后交付</p><p><span class="outcome-dot outcome-dot--continue"></span><strong>仍需行动</strong>更新上下文，继续循环</p><p><span class="outcome-dot outcome-dot--stop"></span><strong>触发边界</strong>受控停止或交由人工处理</p></div>
+          </div>
+          <p class="figure-note runtime-note">安全层检查输入、工具权限与输出；观测层持续记录调用、耗时、成本和结果。无须工具的回答可跳过外部执行，直接进入校验。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+  <footer class="agent-footer"><div class="page-shell"><span>优才知路 · Lumi LLM</span><div><span>延伸阅读</span><a href="https://gist.github.com/wulincong/c81effb9e74aede46b19c708687693f1" target="_blank" rel="noopener noreferrer">Zero-Agent Wiki ↗</a><a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener noreferrer">Agent 设计原则 ↗</a><a href="https://openai.github.io/openai-agents-python/running_agents/" target="_blank" rel="noopener noreferrer">运行循环参考 ↗</a></div><a href="#main">回到顶部 ↑</a></div></footer>
+</body>
+</html>
