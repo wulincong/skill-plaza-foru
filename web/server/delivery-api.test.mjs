@@ -38,6 +38,8 @@ for await(const line of createInterface({input:process.stdin})) {
    send({type:'response',id:c.id,command:c.type,success:true,data});
    continue;
   }
+  if(c.message.includes('learning-fixture') && process.env.WEKNORA_API_KEY)throw Error('upstream key inherited by Pi');
+  if(c.message.includes('learning-fixture') && (!process.argv.some(a=>a.endsWith('/weknora-retrieval/scripts/pi-tools.mjs')) || !process.argv.includes('--skill') || !existsSync('.weknora-runtime.json')))throw Error('knowledge dependency missing');
   const emptyBuild=messages.some(m=>m.role==='user' && m.content[0].text.includes('empty-industry-fixture'));
   if(!c.message.includes('follow-up') && !emptyBuild) {
    mkdirSync('output/public/site',{recursive:true});
@@ -98,7 +100,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
   t.after(stop)
   const start = async () => {
     child = spawn(process.execPath, [join(serverDir, 'index.ts')], {
-      cwd: dirname(serverDir), env: { ...process.env, ADMIN_STATE_DIR:stateDir, PORT: String(port), PI_MODEL: 'deepseek/deepseek-v4-pro', PI_CLI: cli, PI_SANDBOX_USER: '', PI_IDLE_MS: '1000', DELIVERY_PUBLIC_BASE_URL: base, DELIVERIES_DIR: store, TRACES_DIR: join(temp, 'traces') },
+      cwd: dirname(serverDir), env: { ...process.env, ADMIN_STATE_DIR:stateDir, WEKNORA_API_KEY:'fixture-do-not-inherit', PORT: String(port), PI_MODEL: 'deepseek/deepseek-v4-pro', PI_CLI: cli, PI_SANDBOX_USER: '', PI_IDLE_MS: '1000', DELIVERY_PUBLIC_BASE_URL: base, DELIVERIES_DIR: store, TRACES_DIR: join(temp, 'traces') },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     child.stdout.on('data', d => { logs += d }); child.stderr.on('data', d => { logs += d })
@@ -114,6 +116,19 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     body:JSON.stringify({username:'admin', password})})
   assert.equal(login.status,200)
   cookie = login.headers.get('set-cookie').split(';')[0]
+  await t.test('learning skill mounts scoped retrieval and publishes through the existing delivery protocol',async t=>{
+    const sessionId='learning-'+randomBytes(10).toString('hex')
+    t.after(()=>rmSync(join(serverDir,'workspace',sessionId),{recursive:true,force:true}))
+    const response=await fetch(base+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({skill:'student-learning',sessionId,messages:[{role:'user',content:'目标岗位：模型训练助理 learning-fixture'}]})})
+    assert.equal(response.status,200)
+    const frames=(await response.text()).split('\n').filter(x=>x.startsWith('data: ')).map(x=>JSON.parse(x.slice(6)))
+    const done=frames.find(x=>x.type==='done')
+    assert.ok(done && !done.error)
+    assert.ok(done.webLinks?.length)
+    const runtime=JSON.parse(readFileSync(join(serverDir,'workspace',sessionId,'.weknora-runtime.json'),'utf8'))
+    assert.deepEqual(runtime.kbIds,['b627daef-d505-4f16-9ee9-76474a6e5bde'])
+    assert.equal(JSON.stringify(runtime).includes('WEKNORA_API_KEY'),false)
+  })
   await t.test('wechat scope answers retain the report workflow and original request',async t=>{
     const sessionId='wechat-scope-'+randomBytes(10).toString('hex')
     t.after(()=>rmSync(join(serverDir,'workspace',sessionId),{recursive:true,force:true}))
@@ -285,7 +300,7 @@ test('HTTP delivery, SSE, follow-up history, browser isolation and restart', { t
     assert.match(denied.content, /产物交付失败.*无法读取 delivery.json/)
     assert.equal(denied.downloads, undefined)
   }
-  assert.equal(readdirSync(store).filter(s => !s.startsWith('.')).length, 3)
+  assert.equal(readdirSync(store).filter(s => !s.startsWith('.')).length, 4)
   rmSync(join(serverDir, 'workspace', sessionId), { recursive: true, force: true })
   await stop(); await start()
   assert.equal((await fetch(url)).status, 200)

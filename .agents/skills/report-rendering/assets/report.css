@@ -38,7 +38,7 @@ blockquote { margin: 20px 0; padding: 8px 20px; border-left: 3px solid var(--rep
 .report-action-grid { display: grid; grid-template-columns: repeat(var(--report-columns), minmax(0, 1fr)); gap: 20px; padding: 0; list-style: none; counter-reset: action; }
 .report-action-grid > li { padding: 24px; background: var(--report-surface); border: 1px solid var(--report-line); border-radius: var(--report-radius); min-width: 0; counter-increment: action; }
 .report-action-grid > li::before { content: counter(action, decimal-leading-zero); color: var(--report-accent); font-size: 13px; }
-.report-action-grid h3 { margin-top: 8px; font-size: 20px; }
+.report-action-grid :is(h3, h4, h5, h6) { margin-top: 8px; font-size: 20px; }
 dl { font-size: 13px; margin: 16px 0 0; }
 dl > div { display: grid; grid-template-columns: 5em minmax(0, 1fr); gap: 8px; margin: 6px 0; }
 dt { color: var(--report-muted); } dd { margin: 0; overflow-wrap: anywhere; }

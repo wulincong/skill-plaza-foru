@@ -62,3 +62,7 @@
 - **端到端探针（2026-10-20，运行 `20261020-160642-h6ai` / 会话 `sess-20261020-160642-yqdq`）**：`/api/health` 正常（pi 0.87.1）；general 探针 SSE 完整走通（started→text→done，回答正常）；进程表实证 `wlc → sudo -n -u plaza-sandbox /opt/plaza-runtime/bin/pi-sandbox --mode rpc …`，pi 进程属主 `plaza-sandbox`；会话目录 `wlc:plaza-run 2775`（服务器建），`.pi-sessions/` 与会话 jsonl 属主 `plaza-sandbox`（pi 写、服务器可读）。075 参数链（--no-context-files、--append-system-prompt）原样保留。
 - 部署过程中修复的脚本三坑（持久事实）：① root 下 `sudo -u wlc bash -lc` 找不到 pi——nvm 只在 wlc 交互 shell 加载，改为提权前捕获 `command -v pi` + nvm 目录兜底；② nvm `bin/pi` 是指向 `lib/node_modules/.../cli.js` 的相对符号链接，`readlink -f` 解引用后取上两级得到的是包目录而非 node 版本根，必须按路径模式推导且复制整个版本目录（相对链接才成立）；③ `set -euo pipefail` 下 `find | head -1` 会因 SIGPIPE+pipefail 静默杀掉脚本（同 016 的并行输出截断坑家族），取首条匹配用 `-print -quit`，检查项失败要显式报出。
 - 待观察（不阻塞使用）：空闲回收时 `JsonlChannel.kill()` 的 SIGTERM 经 sudo 转发是否正常终结 pi 子进程（30 分钟 sweeper 自然触发时核对进程表）；带 MySQL 查询的技能（career-guidance/tech-forecast 实时查库）在沙箱用户下读 web/.env 与 mysql 客户端的完整链路。
+
+## 2026-11-18 当前副本zjf运行授权
+
+当前副本服务由zjf运行，不能沿用只给wlc配置的NOPASSWD规则。经用户授权新增独立sudoers片段plaza-pi-zjf，仅放行同一个root持有的包装脚本；没有给通用sudo或任意其他程序授权。当前副本workspace保持zjf属主，通过用户ACL授予plaza-sandbox rwX和未来目录默认ACL，避免要求zjf加入共享组或赋予全仓库权限。知识库凭据文件保持600，沙箱不可读。真实LAN会话20261118-164355-72tw在plaza-sandbox下成功完成知识库分类查询。对应服务和验证见105的最新补注。该授权与ACL仅作用于本副本，wlc原服务规则未修改。

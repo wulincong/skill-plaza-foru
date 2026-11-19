@@ -14,7 +14,7 @@ interface WebInput { name: string; directory: string; entry: string }
 interface FileInput { name: string; path: string; sha256?: string }
 export interface DeliveryManifest { web?: WebInput[]; files?: FileInput[] }
 interface Metadata {
-  web: Array<{ name: string; entry: string; paths: string[] }>
+  web: Array<{ name: string; entry: string; paths: string[]; materialDownloads?: boolean }>
   files: Array<{ name: string; stored: string; filename: string }>
 }
 const MAX_BYTES = 256 * 1024 * 1024
@@ -111,7 +111,8 @@ export function publishDelivery(workspace: string, manifest: DeliveryManifest, s
     }
     walk(directory)
     if (!paths.includes(item.entry)) throw new Error('网页入口不存在')
-    metadata.web.push({ name, entry: item.entry, paths })
+    const materialDownloads = /\/api\/learning-materials\/[a-f0-9]{48}\/(?:preview|download)/.test(readFileSync(checkedPath(directory, item.entry), 'utf8'))
+    metadata.web.push({ name, entry: item.entry, paths, ...(materialDownloads ? {materialDownloads:true} : {}) })
   })
   files.forEach((item, i) => {
     const name = label(item.name)
@@ -226,7 +227,7 @@ export function handleDelivery(req: IncomingMessage, res: ServerResponse, store:
       // No same-origin permission, popups, forms, workers, or app API connections.
       const base = deliveryBaseUrl(req)
       headers = { ...headers,
-        'Content-Security-Policy': `sandbox allow-scripts; default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self'; connect-src ${base}/p/; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'`,
+        'Content-Security-Policy': `sandbox allow-scripts${item.materialDownloads ? ' allow-downloads' : ''}; default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self'; connect-src ${base}/p/; base-uri 'none'; form-action 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'`,
         'Access-Control-Allow-Origin': '*', // Static assets only, supports fetch/fonts from opaque origin.
       }
     } else {
