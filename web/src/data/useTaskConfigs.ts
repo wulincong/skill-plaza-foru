@@ -74,9 +74,10 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
         { id: 'goal', label: '学习目标', type: 'select', options: ['求职', '实习', '课程补基础', '项目实践'] },
         { id: 'foundation', label: '当前基础', type: 'textarea', span: 'full', placeholder: '专业、年级、已掌握的知识或做过的项目' },
         { id: 'availability', label: '可投入时间', type: 'text', span: 'full', placeholder: '例如：每周5天，每天1小时，希望8周完成' },
+        { id: 'notes', label: '补充说明', type: 'textarea', span: 'full', placeholder: '例如：希望重点学习的内容、已有设备条件，或其他学习要求' },
       ],
     }],
-    example: { role: '人工智能模型训练助理', goal: '实习', foundation: '计算机专业二年级，掌握 Python 基础，尚未训练过模型。', availability: '每周5天，每天1小时，希望8周完成' },
+    example: { role: '人工智能模型训练助理', goal: '实习', foundation: '计算机专业二年级，掌握 Python 基础，尚未训练过模型。', availability: '每周5天，每天1小时，希望8周完成', notes: '' },
     knowledge: [],
   },
   {

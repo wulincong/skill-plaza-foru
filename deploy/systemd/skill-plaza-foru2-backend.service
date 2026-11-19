@@ -1,0 +1,14 @@
+[Unit]
+Description=Skill Plaza foru2 backend (Node API and Pi runner)
+
+[Service]
+Environment=PORT=8768
+Type=exec
+WorkingDirectory=/home/wmq/skill-plaza-foru2/web
+Environment=PATH=/opt/plaza-runtime/bin:%h/.local/bin:%h/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+ExecStart=/opt/plaza-runtime/bin/node server/index.ts
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=default.target
