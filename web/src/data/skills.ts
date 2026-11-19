@@ -58,6 +58,11 @@ export const AUDIENCES: Audience[] = [
 ]
 
 export const SKILLS: Skill[] = [
+  {slug:'job-matching',name:'岗位智能匹配',identifier:'job-matching',categoryId:'career',audiences:['student','teacher'],
+   summary:'按求职条件检索100个候选，对照JD和简历推荐最多20个岗位。',tags:['岗位推荐','人岗匹配','求职报告'],
+   preconditions:'目标岗位与城市；建议提供真实简历',outputs:['岗位匹配报告网页','最多20个推荐岗位及真实详情入口','匹配依据、能力差距和求职建议'],
+   dependencies:['优才招聘公开岗位接口','真实简历或匿名经历摘要'],limitations:['岗位有效性以企业说明为准。','没有简历时不输出完整匹配分；不足20个不凑数。'],
+   minimalInput:'使用 $job-matching，查询广州市前端开发实习岗位，结合我的简历推荐最多20个岗位。'},
   {
     slug: 'student-learning',
     name: '学生个性化学习规划',

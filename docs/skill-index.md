@@ -13,6 +13,7 @@
 - [课堂助教](../.agents/skills/classroom-assistant/docs/index.md) （`classroom-assistant`）
 - [文档翻译](../.agents/skills/doc-translate/docs/index.md) · [怎样核对一份双栏译文](../.agents/skills/doc-translate/docs/review.md) （`doc-translate`）
 - [产教决策报告](../.agents/skills/industry-education-report/docs/index.md) （`industry-education-report`）
+- [岗位智能匹配](../.agents/skills/job-matching/docs/index.md) （`job-matching`）
 - [简历优化警察](../.agents/skills/resume-police/docs/index.md) （`resume-police`）
 - [学生个性化学习规划](../.agents/skills/student-learning/docs/index.md) （`student-learning`）
 - [新岗位与新技术预判](../.agents/skills/tech-forecast/docs/index.md) （`tech-forecast`）

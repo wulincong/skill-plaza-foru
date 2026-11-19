@@ -1903,6 +1903,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           caller:skill,messages:[...earlierIndustryMessages,originalUserText]}), {flag:'wx',mode:0o640})
         renameSync(queryScratch, join(entry.workspaceDir, 'talent-query-turn.json'))
       }
+      if (skill === 'job-matching' && entry) {
+        const uploads = [...new Set([...priorRuns.flatMap(r => r.attachmentFiles ?? []), ...attachmentFiles].map(f => f.path))]
+        const messages = params.messages.filter(m=>m.role==='user').map(m=>m.content)
+        writeFileSync(join(entry.workspaceDir,'.job-request.json'),JSON.stringify({runId,message:originalUserText,messages:[...messages,originalUserText],uploads}),{mode:0o640})
+      }
       if (skill === 'student-learning' && entry) {
         const file = join(entry.workspaceDir, '.learning-request.json')
         const messages = params.messages.filter(m => m.role === 'user').map(m => m.content)
