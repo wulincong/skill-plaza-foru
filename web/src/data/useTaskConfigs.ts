@@ -1,3 +1,4 @@
+import { JOB_DICTIONARIES } from './jobDictionaries.ts'
 /* ============================================================
    「在线运行」工作台 · 任务配置
    ------------------------------------------------------------
@@ -17,6 +18,7 @@ export interface TaskField {
   placeholder?: string
   help?: string
   options?: string[]
+  optionKeys?: Record<string, string>
 }
 
 export interface TaskSection {
@@ -60,7 +62,33 @@ export interface UseTaskConfig {
   requiredUpload?: { accept: string; label: string }
 }
 
+const jobSelect = (id: string, label: string, dictionary: string): TaskField => ({
+  id, label, type: 'select', options: ['不限', ...Object.values(JOB_DICTIONARIES[dictionary]!).filter(x => x !== '不限')],
+  optionKeys: { ...Object.fromEntries(Object.entries(JOB_DICTIONARIES[dictionary]!).map(([key, value]) => [value, key])), '不限': '' },
+})
+
 export const USE_TASK_CONFIGS: UseTaskConfig[] = [
+  {
+    slug: 'job-matching', eyebrow: '岗位智能匹配',
+    lead: '填写求职条件，结合简历和岗位要求找到适合优先投递的岗位。',
+    output: '最多20个推荐岗位、JD匹配依据、能力差距与求职建议',
+    promptInstruction: '按岗位接口筛选JSON原样查询最多100个候选，对照我的真实简历和全部候选JD，按规则推荐最多20个并交付岗位匹配报告。不足时如实说明，不自动放宽条件。',
+    sections: [{number:'01',title:'填写求职需求',description:'目标岗位必填，城市留空表示不限城市。',fields:[
+      {id:'role',label:'目标岗位',type:'text',required:true,placeholder:'例如：前端开发'},
+      {id:'city',label:'期望城市',type:'text',placeholder:'选填，留空不限城市，例如：广州市'},
+      jobSelect('salary','期望薪资（K/月）','SALARY'),
+      jobSelect('positionType','工作性质','POSITION_TYPE'),
+      jobSelect('industry','行业偏好','INDUSTRY'),
+      {...jobSelect('education','学历','EDUCATION'),help:'按岗位要求筛选；不选时在JD匹配中结合简历判断。'},
+      {id:'graduation',label:'毕业状态',type:'select',options:['不限','在校生','应届毕业生','已毕业'],help:'未选择工作经验时，在校或应届映射对应经验Key。'},
+      jobSelect('experience','工作／实习经验','EXPERIENCE'),
+      {id:'resume',label:'简历摘要',type:'textarea',span:'full',placeholder:'可粘贴技能、项目和实习经历，或上传简历。请删除电话、邮箱等联系方式。'},
+      {id:'notes',label:'补充说明',type:'textarea',span:'full',placeholder:'例如：排除外包、优先某类项目、通勤或其他要求'},
+    ]}],
+    example:{role:'前端开发',city:'广州市',positionType:'实习',graduation:'在校生',industry:'不限',salary:'不限',education:'不限',experience:'不限',resume:'计算机专业大三，掌握JavaScript、HTML、CSS和Vue，做过校园二手交易网站，负责页面组件和接口联调。',notes:''},
+    uploads:[{id:'resumeFile',label:'上传简历',accept:'.pdf,.docx,.txt,.md',help:'支持文字PDF、DOCX、TXT、Markdown；最多6MB。没有简历时仅做条件推荐。'}],
+    knowledge:[],
+  },
   {
     slug: 'student-learning',
     eyebrow: '个性化学习规划',
@@ -375,3 +403,23 @@ export const USE_TASK_CONFIGS: UseTaskConfig[] = [
 
 export const configOf = (slug: string): UseTaskConfig | undefined =>
   USE_TASK_CONFIGS.find(item => item.slug === slug)
+
+/** Keep the displayed label separate from the API key. Omitted choices impose no filter. */
+export function jobFilters(values: Record<string, string | string[]>): Record<string, string> {
+  const config = configOf('job-matching')!
+  const result: Record<string,string> = {keyword:String(values.role ?? '').trim()}
+  const city=String(values.city ?? '').trim()
+  if(city)result.city=city
+  for (const field of config.sections.flatMap(s=>s.fields)) {
+    if (!field.optionKeys) continue
+    const choice=String(values[field.id] ?? '')
+    const key=field.optionKeys[choice]
+    if (choice && key === undefined) throw new Error('无效的岗位筛选选项')
+    if(key)result[field.id]=key
+  }
+  if(!result.experience) {
+    if(values.graduation==='在校生')result.experience='ON_CAMPUS'
+    if(values.graduation==='应届毕业生')result.experience='GRADUATING'
+  }
+  return result
+}

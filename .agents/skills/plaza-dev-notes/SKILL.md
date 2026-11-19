@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 126；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 127；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -58,6 +58,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 083 | wechat-report：公众号报告技能安装、Linux 工具链与无表单对话入口 | 安装已实现（11-02 审查复现数据范围/质检/渲染/交付缺陷，待修） | [083-wechat-report-skill.md](references/083-wechat-report-skill.md) |
 | 106 | 简历优化警察：原文摘编、面试笔录和对话入口 | 已实现 | [106-resume-police-skill.md](references/106-resume-police-skill.md) |
 | 107 | WeKnora 知识检索基础 Skill | 整库检索、课程分类与教材入口已验；学生技能已接入当前工作区，生产待部署 | [107-weknora-knowledge-retrieval.md](references/107-weknora-knowledge-retrieval.md) |
+| 126 | 岗位智能匹配、真实字典与100候选20推荐 | 已实现，真实低权报告与浏览器已验；全量模型质量待验 | [126-job-matching-and-verified-recruitment-api.md](references/126-job-matching-and-verified-recruitment-api.md) |
 | 125 | 学生个性化学习规划、课程包匹配与教材授权入口 | 当前工作区实现与真实模型/浏览器已验，生产低权待部署 | [125-student-learning-and-course-material-links.md](references/125-student-learning-and-course-material-links.md) |
 | 108 | AI 面试练习：岗位命题、逐题追问、原话复盘与同题重练 | 已实现（广场与兼容 API 多轮验证） | [108-ai-interview-practice.md](references/108-ai-interview-practice.md) |
 
