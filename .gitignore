@@ -10,3 +10,5 @@ node_modules/
 web/server/workspace/.talent-query-state/
 
 /web/server/report-library/
+
+/data/
