@@ -145,6 +145,26 @@ def bind_observation(result, observation):
     return value
 
 
+def text_len(value):
+    """有效字数：去空白后的字符数（中文方案的信息密度口径）。"""
+    return len(re.sub(r'\s', '', str(value or '')))
+
+
+# 内容深度下限（对照本地语料同类方案校准；不足即阻断构建）
+DEPTH = {
+    'courseDescription': 20,     # 每门课程简介
+    'coreDescription': 40,       # 专业核心课简介
+    'courseContent': 30,         # 每门课典型教学内容/工作任务
+    'coreContent': 80,           # 专业核心课典型内容
+    'specItems': 5,              # 培养规格每维度条数
+    'specItemChars': 12,         # 规格条目字数
+    'pedagogy': 150,             # 教学实施 / 考核评价
+    'graduationItems': 4,        # 毕业要求条数
+    'graduationChars': 80,       # 毕业要求总字数
+    'corpusRefs': 3,             # 对标语料份数下限
+}
+
+
 def compute_hours(d):
     courses = d['curriculum']['courses']
     total = sum(c['theoryHours'] + c['practiceHours'] for c in courses)
@@ -202,7 +222,7 @@ def validate(d):
 
     fields(d, ['schema', 'title', 'status', 'as_of', 'meta', 'sources', 'metrics', 'jobGroups',
                'capabilityDomains', 'standards', 'curriculum', 'schedule', 'assurance',
-               'graduation', 'cultivation'], 'program')
+               'graduation', 'cultivation', 'pedagogy'], 'program')
     check(isinstance(d.get('decisions'), list), 'decisions must be array')
     check(d.get('schema') == 'training-program/1', 'invalid schema')
     check(d.get('status') in ('draft', 'final'), 'invalid status')
@@ -333,11 +353,17 @@ def validate(d):
             fields(cap, ['id', 'name', 'evidence'], 'capability')
             check(cap.get('id') not in caps, f'capability duplicate {cap.get("id")}')
             caps[cap.get('id')] = cap
-    for group in d.get('jobGroups') if isinstance(d.get('jobGroups'), list) else []:
+    job_groups = d.get('jobGroups') if isinstance(d.get('jobGroups'), list) else []
+    check(len(job_groups) >= 2, f'职业面向岗位群仅 {len(job_groups)} 个，至少 2 个（区分初始岗与发展岗）')
+    stages_seen = set()
+    for group in job_groups:
         fields(group, ['id', 'name', 'summary', 'positions', 'workTasks'], 'jobGroups')
+        check(len(group.get('positions', [])) >= 2,
+              f'{group.get("id")}: 岗位群至少 2 个代表岗位')
         for pos in group.get('positions', []):
             fields(pos, ['name', 'stage'], 'position')
             check(pos.get('stage') in ('entry', 'development'), f'position stage invalid: {pos.get("name")}')
+            stages_seen.add(pos.get('stage'))
             refs = (pos.get('metricIds') or []) + (pos.get('sourceIds') or [])
             check(bool(refs), f'{group.get("id")}/{pos.get("name")}: 岗位须绑定指标或来源')
             resolvable(pos.get('metricIds') or [], 'metrics', index)
@@ -347,6 +373,7 @@ def validate(d):
             check(bool(task.get('capabilityIds')), f'{task.get("id")}: 工作任务须连接能力项')
             for cap_id in task.get('capabilityIds') or []:
                 check(cap_id in caps, f'{task.get("id")}: unresolved capability {cap_id}')
+    check(stages_seen >= {'entry', 'development'}, '职业面向须同时覆盖初始岗（entry）与发展岗（development）')
     for cap_id, cap in caps.items():
         evidence = cap.get('evidence') or {}
         status = evidence.get('status')
@@ -397,8 +424,13 @@ def validate(d):
     dims = {item.get('dimension') for item in cult.get('spec', [])}
     check(dims <= {'素质', '知识', '能力'} and len(dims) == 3, 'cultivation.spec 须覆盖素质/知识/能力三维')
     for item in cult.get('spec', []):
+        check(len(item.get('items', [])) >= DEPTH['specItems'],
+              f'培养规格「{item.get("dimension")}」仅 {len(item.get("items", []))} 条，'
+              f"至少 {DEPTH['specItems']} 条（对标同类公开方案分维度展开）")
         for entry in item.get('items', []):
             fields(entry, ['text'], 'spec item')
+            check(text_len(entry.get('text')) >= DEPTH['specItemChars'],
+                  f'培养规格条目过短（不足 {DEPTH["specItemChars"]} 字）：{str(entry.get("text"))[:20]}')
             if entry.get('capabilityId'):
                 check(entry['capabilityId'] in caps, f'spec item: unresolved capability {entry["capabilityId"]}')
             if entry.get('sourceIds'):
@@ -433,8 +465,32 @@ def validate(d):
         check(bool(refs), f'{c.get("id")}: rationale 须绑定指标或来源')
         resolvable(rationale.get('metricIds') or [], 'metrics', index)
         resolvable(rationale.get('sourceIds') or [], 'sources', index)
+        # 内容深度：每门课有简介与典型内容，核心课加严
+        core = c.get('category') == 'professional-core'
+        desc_floor = DEPTH['coreDescription'] if core else DEPTH['courseDescription']
+        content_floor = DEPTH['coreContent'] if core else DEPTH['courseContent']
+        check(text_len(c.get('description')) >= desc_floor,
+              f'{c.get("id")} {c.get("name")}: 课程简介不足 {desc_floor} 字（现为 {text_len(c.get("description"))} 字）')
+        check(text_len(c.get('typicalContent')) >= content_floor,
+              f'{c.get("id")} {c.get("name")}: 典型教学内容/工作任务不足 {content_floor} 字（现为 {text_len(c.get("typicalContent"))} 字）')
         ratio = (c['theoryHours'] + c['practiceHours']) / c['credits']
         warn(14 <= ratio <= 30, f'{c.get("id")}: 学时学分比 {ratio:.0f}:1 超出常见区间 14–30')
+    # 课程类别齐全（附录学时结构表完整的前提）
+    present_categories = {c.get('category') for c in courses if isinstance(courses, list)}
+    for category in CATEGORIES:
+        check(category in present_categories, f'课程体系缺少「{CATEGORY_NAMES[category]}」类别课程')
+    # 对标语料门槛：不足不得起草/构建
+    corpus_count = sum(1 for s in index['sources'].values()
+                       if str(s.get('url', '')).startswith('corpus:'))
+    check(corpus_count >= DEPTH['corpusRefs'],
+          f'对标语料仅 {corpus_count} 份，不足 {DEPTH["corpusRefs"]} 份：先按索引选样精读同类方案再起草')
+
+    # pedagogy：教学实施与考核评价
+    pedagogy = d.get('pedagogy') or {}
+    for key, label in (('teachingImplementation', '教学实施'), ('assessment', '考核评价')):
+        check(text_len(pedagogy.get(key)) >= DEPTH['pedagogy'],
+              f'pedagogy.{key}（{label}）不足 {DEPTH["pedagogy"]} 字（现为 {text_len(pedagogy.get(key))} 字），'
+              '须写教学模式、方法手段、组织形式 / 课程考核、实践考核与多元评价的实质内容')
 
     # schedule
     schedule = d.get('schedule') or {}
@@ -455,7 +511,7 @@ def validate(d):
     internship_courses = [c for c in courses if c.get('category') == 'internship']
     check(bool(internship_courses), '课程表须包含岗位实习（internship）课程')
 
-    # assurance：supported 须引用用户材料
+    # assurance：supported 须引用用户材料且说明有实质内容
     assurance = d.get('assurance') or {}
     for key, item in assurance.items():
         if isinstance(item, dict):
@@ -463,14 +519,23 @@ def validate(d):
             if item.get('status') == 'supported':
                 check(bool(item.get('text')) and bool(item.get('sourceIds')),
                       f'assurance.{key}: supported 须有说明与来源')
+                check(text_len(item.get('text')) >= 30,
+                      f'assurance.{key}: 实施保障说明不足 30 字')
                 resolvable(item.get('sourceIds') or [], 'sources', index)
             else:
                 warnings.append(f'实施保障「{key}」待补：未获得用户材料')
 
-    # graduation
+    # graduation：毕业要求条数与实质内容
     graduation = d.get('graduation') or {}
-    check(isinstance(graduation.get('requirements'), list) and bool(graduation['requirements']),
-          'graduation.requirements required')
+    requirements = graduation.get('requirements')
+    check(isinstance(requirements, list) and len(requirements) >= DEPTH['graduationItems'],
+          f'毕业要求仅 {len(requirements) if isinstance(requirements, list) else 0} 条，'
+          f"至少 {DEPTH['graduationItems']} 条（思想品德、学分、实习、证书等）")
+    if isinstance(requirements, list):
+        check(text_len(''.join(str(r) for r in requirements)) >= DEPTH['graduationChars'],
+              f'毕业要求总字数不足 {DEPTH["graduationChars"]} 字，逐条写明达标口径')
+        for item in requirements:
+            check(text_len(item) >= 8, f'毕业要求条目过短：{item}')
 
     # diff（可选）
     diff = d.get('diff')
@@ -724,6 +789,10 @@ def compose_blocks(d):
              '、'.join([*[f"指标 {m}" for m in c['rationale'].get('metricIds', [])],
                         *[f"来源 {s}" for s in c['rationale'].get('sourceIds', [])]])]
             for c in d['curriculum']['courses'] if c['category'] == 'professional-core']),
+        ('h3', '6.4 课程简介与典型教学内容'),
+        ('table', [['课程', '课程简介', '典型教学内容/工作任务']] + [
+            [c['name'], c.get('description', ''), c.get('typicalContent', '')]
+            for c in sorted(d['curriculum']['courses'], key=lambda c: (c['category'], c['semesters']))]),
         ('h2', '七、学时安排'),
         ('h3', '7.1 学分学时结构'),
         ('table', [['课程类别', '门数', '学时', '学分']] + [
@@ -742,21 +811,26 @@ def compose_blocks(d):
         ('table', [['学期', '课程']] + [
             [f'第{no}', '、'.join(c['name'] for c in d['curriculum']['courses'] if no in c['semesters'])]
             for no in range(1, meta['duration']['years'] * 2 + 1)]),
-        ('h2', '九、实施保障'),
+        ('h2', '九、教学实施与考核评价'),
+        ('h3', '9.1 教学实施'),
+        ('p', d['pedagogy'].get('teachingImplementation', '')),
+        ('h3', '9.2 考核评价'),
+        ('p', d['pedagogy'].get('assessment', '')),
+        ('h2', '十、实施保障'),
     ]
     labels = {'faculty': '师资队伍', 'facilities': '教学设施与实训条件', 'cooperation': '校企合作'}
     for key, label in labels.items():
         item = d['assurance'].get(key) or {}
         status = '已依据用户提供材料' if item.get('status') == 'supported' else '待补（未获得用户材料）'
-        blocks.append(('h3', f"9.{list(labels).index(key) + 1} {label}"))
+        blocks.append(('h3', f"10.{list(labels).index(key) + 1} {label}"))
         blocks.append(('p', f"{item.get('text') or '待补'}（{status}"
                            + (f"；来源 {'、'.join(item.get('sourceIds', []))}" if item.get('sourceIds') else '') + '）'))
     blocks += [
-        ('h2', '十、毕业要求'),
+        ('h2', '十一、毕业要求'),
         ('p', '；'.join(d['graduation']['requirements'])
               + (f"。毕业最低学分 {d['graduation'].get('minCredits', computed['totalCredits'])}"
                  f"（课程总学分 {computed['totalCredits']}）")),
-        ('h2', '十一、编制说明与决策记录'),
+        ('h2', '十二、编制说明与决策记录'),
         ('p', '本方案建立动态调整机制，随区域产业与岗位证据变化及时优化调整。关键取舍与用户决策记录如下。'),
         ('table', [['决策', '问题', '用户选择']] + [
             [item['id'], item['question'], item['userReply']] for item in d.get('decisions', [])] or
@@ -854,6 +928,7 @@ def build_t05(d):
             'courseId': c['id'], 'courseName': c['name'], 'category': c['category'],
             'credits': c['credits'], 'theoryHours': c['theoryHours'], 'practiceHours': c['practiceHours'],
             'semesters': c['semesters'], 'assessment': c['assessment'],
+            'description': c.get('description', ''), 'typicalContent': c.get('typicalContent', ''),
             'capabilityRefs': c.get('domains', []),
             'evidenceRefs': {'metricIds': c['rationale'].get('metricIds', []),
                              'sourceIds': c['rationale'].get('sourceIds', [])},

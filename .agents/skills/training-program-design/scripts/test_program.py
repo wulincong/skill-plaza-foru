@@ -1,5 +1,6 @@
 """Offline regression tests for program contracts, redlines and build outputs."""
 import json
+import re
 import shutil
 import sys
 import tempfile
@@ -11,21 +12,34 @@ from xml.dom import minidom
 
 import program
 
-CORPUS_TEXT = '人工智能技术应用专业人才培养方案\n一、培养目标\n本专业培养德智体美劳全面发展的高素质技术技能人才。\n'
+REAL_CORPUS_DIR = program.CORPUS_DIR
+CORPUS_TEXT = ('人工智能技术应用专业人才培养方案\n一、培养目标\n'
+               '本专业培养德智体美劳全面发展，掌握人工智能基础理论与技术应用的高素质技术技能人才。\n'
+               '七、学时安排\n总学时 2600，其中实践学时 1560，占总学时 60%，公共基础课 700 学时。\n')
 
 
 def make_corpus(tmp):
-    """构造临时语料库：索引.csv + 一份样例 TXT。"""
+    """构造临时语料库：索引.csv + 三份样例 TXT（满足语料≥3 门槛）。"""
     root = Path(tmp) / 'corpus'
     (root / '人工智能').mkdir(parents=True)
-    body = CORPUS_TEXT.encode('utf-8')
-    (root / '人工智能' / 'sample.txt').write_bytes(body)
     import hashlib as _h
-    index = ('方向分类,文件名,相对路径,字节数,sha256,标题,定位方式,来源批次,来源txt路径\r\n'
-             f'人工智能,sample.txt,人才培养方案/人工智能/sample.txt,{len(body)},'
-             f'{_h.sha256(body).hexdigest()},人工智能技术应用专业人才培养方案,同名txt,第三批,源路径\r\n')
-    (root / '索引.csv').write_bytes(b'\xef\xbb\xbf' + index.encode('utf-8'))
+    rows = ['方向分类,文件名,相对路径,字节数,sha256,标题,定位方式,来源批次,来源txt路径\r\n']
+    for i in (1, 2, 3):
+        body = (CORPUS_TEXT + f'样本 {i} 附注内容。\n').encode('utf-8')
+        (root / '人工智能' / f'sample{i}.txt').write_bytes(body)
+        rows.append(f'人工智能,sample{i}.txt,人才培养方案/人工智能/sample{i}.txt,{len(body)},'
+                    f'{_h.sha256(body).hexdigest()},同类方案样例{i},同名txt,第三批,源路径\r\n')
+    (root / '索引.csv').write_bytes(b'\xef\xbb\xbf' + ''.join(rows).encode('utf-8'))
     return root
+
+
+def corpus_sources():
+    """三份语料来源（excerpt 逐字取语料原文句）。"""
+    excerpt = '本专业培养德智体美劳全面发展，掌握人工智能基础理论与技术应用的高素质技术技能人才'
+    return [{'id': f'S_CP{i}', 'title': '', 'publisher': '',
+             'url': f'corpus:人工智能/sample{i}.txt', 'published': '', 'accessed': '',
+             'locator': '一、培养目标', 'scope': f'对标样例{i}', 'excerpt': excerpt}
+            for i in (1, 2, 3)]
 
 
 def with_corpus(test):
@@ -72,6 +86,11 @@ def course(cid, name, category, theory, practice, credits, semesters, caps, extr
         'id': cid, 'name': name, 'category': category,
         'theoryHours': theory, 'practiceHours': practice, 'credits': credits,
         'semesters': semesters, 'assessment': '考试',
+        'description': f'{name}：本课程系统讲授核心概念、主流工具与工程方法，结合企业真实案例'
+                       f'开展任务式训练，培养学生独立完成相关典型工作任务的综合职业能力。',
+        'typicalContent': f'围绕岗位典型任务组织模块化教学：任务需求分析与方案设计、环境搭建与配置、'
+                          f'核心功能实现、测试验证与性能调优、文档编制与成果汇报，'
+                          f'按企业工作过程完成全流程训练并形成可交付的实践成果。',
         'domains': [{'capabilityId': cap, 'level': level} for cap, level in caps],
         'rationale': {'text': f'{name} 依据岗位证据设置',
                       'metricIds': ['M_POS'], 'sourceIds': list(extra_sources)},
@@ -125,24 +144,34 @@ def fixture():
     comp_practice = [
         {'id': 'Z1', 'name': '程序设计综合实训', 'category': 'comprehensive-practice',
          'theoryHours': 0, 'practiceHours': 56, 'credits': 2.5, 'semesters': [2], 'assessment': '考查',
+         'description': '以完整项目为载体综合运用程序设计知识，训练工程规范与协作能力。',
+         'typicalContent': '领取项目任务书，完成需求分析、模块划分、编码实现、联调测试与答辩汇报。',
          'domains': [{'capabilityId': 'C-DEV-1', 'level': 'H'}],
          'rationale': {'text': '衔接程序设计岗位任务', 'metricIds': ['M_POS'], 'sourceIds': []}},
         {'id': 'Z2', 'name': '数据平台运维综合实训', 'category': 'comprehensive-practice',
          'theoryHours': 0, 'practiceHours': 56, 'credits': 2.5, 'semesters': [4], 'assessment': '考查',
+         'description': '在真实集群环境完成平台部署、监控与故障处置的综合演练。',
+         'typicalContent': '分组完成集群规划、安装部署、监控告警配置、故障注入与排查、运维报告编写。',
          'domains': [{'capabilityId': 'C-OPS-1', 'level': 'H'}],
          'rationale': {'text': '运维岗位任务综合演练', 'metricIds': ['M_POS'], 'sourceIds': []}},
         {'id': 'Z3', 'name': '数据处理综合项目实训', 'category': 'comprehensive-practice',
          'theoryHours': 0, 'practiceHours': 84, 'credits': 3.5, 'semesters': [5], 'assessment': '考查',
+         'description': '围绕企业真实数据完成从采集到可视化的端到端数据处理项目。',
+         'typicalContent': '数据采集与清洗、存储建模、批处理作业开发、可视化看板搭建与项目答辩。',
          'domains': [{'capabilityId': 'C-ANA-1', 'level': 'H'}, {'capabilityId': 'C-DEV-2', 'level': 'M'}],
          'rationale': {'text': '数据开发岗位综合项目', 'metricIds': ['M_POS'], 'sourceIds': []}},
         {'id': 'Z4', 'name': '毕业设计', 'category': 'comprehensive-practice',
          'theoryHours': 0, 'practiceHours': 168, 'credits': 7, 'semesters': [6], 'assessment': '答辩',
+         'description': '综合运用所学知识完成企业真题或仿真课题的设计与实现。',
+         'typicalContent': '选题开题、方案设计、系统实现、论文撰写与公开答辩，全程按工程规范执行。',
          'domains': [{'capabilityId': 'C-DEV-2', 'level': 'H'}],
          'rationale': {'text': '综合运用能力毕业考核', 'metricIds': [], 'sourceIds': ['S_STD']}},
     ]
     internship = [{'id': 'I1', 'name': '岗位实习', 'category': 'internship',
                    'theoryHours': 0, 'practiceHours': 624, 'credits': 28, 'semesters': [5, 6],
                    'assessment': '企业考核',
+                   'description': '在校企共建实习基地顶岗实践，在师傅指导下承担真实岗位工作。',
+                   'typicalContent': '按企业岗位规程完成日常工作任务，撰写实习周记与总结，参加企业考核。',
                    'domains': [{'capabilityId': 'C-OPS-2', 'level': 'H'}],
                    'rationale': {'text': '顶岗实习对接真实岗位', 'metricIds': [], 'sourceIds': ['S_STD']}}]
     semesters = [{'no': no, 'weeks': 20, 'activities': [{'name': '教学', 'weeks': 18}, {'name': '考试与机动', 'weeks': 2}]}
@@ -172,6 +201,7 @@ def fixture():
             {'id': 'S_USER', 'title': '办学条件说明', 'publisher': '用户提供',
              'url': 'user:办学条件说明', 'published': '未标注', 'accessed': '2026-11-17',
              'locator': '师资节', 'scope': '本校师资', 'excerpt': '现有专任教师 12 人，其中双师型 6 人'},
+            *corpus_sources(),
         ],
         'metrics': [
             {'id': 'M_POS', 'label': '区域在招岗位数', 'unit': '个', 'period': '查询时点', 'region': '广东省',
@@ -193,6 +223,15 @@ def fixture():
             'workTasks': [
                 {'id': 'WT1', 'name': '集群部署与监控', 'capabilityIds': ['C-OPS-1', 'C-OPS-2']},
                 {'id': 'WT2', 'name': '数据管道开发', 'capabilityIds': ['C-DEV-1', 'C-DEV-2']},
+            ],
+        }, {
+            'id': 'JG2', 'name': '数据分析与应用', 'summary': '数据价值化岗位群',
+            'positions': [
+                {'name': '数据分析师', 'stage': 'entry', 'metricIds': ['M_POS'], 'sourceIds': []},
+                {'name': '数据运营主管', 'stage': 'development', 'metricIds': [], 'sourceIds': ['S_STD']},
+            ],
+            'workTasks': [
+                {'id': 'WT3', 'name': '数据分析与可视化', 'capabilityIds': ['C-ANA-1']},
             ],
         }],
         'capabilityDomains': [
@@ -226,23 +265,57 @@ def fixture():
             'goalBasis': {'standardSourceId': 'S_STD', 'metricIds': ['M_POS'],
                           'note': '标准目标结合区域岗位证据'},
             'spec': [
-                {'dimension': '素质', 'items': [{'text': '坚定理想信念，践行社会主义核心价值观',
-                                                'sourceIds': ['S_STD']}]},
-                {'dimension': '知识', 'items': [{'text': '掌握分布式存储基本知识', 'capabilityId': 'C-OPS-1'}]},
-                {'dimension': '能力', 'items': [{'text': '能完成集群部署与调优', 'capabilityId': 'C-OPS-1'}]},
+                {'dimension': '素质', 'items': [
+                    {'text': '坚定理想信念，践行社会主义核心价值观，具有社会责任感', 'sourceIds': ['S_STD']},
+                    {'text': '遵守职业道德与行业规范，具备爱岗敬业和精益求精的工匠精神', 'sourceIds': ['S_STD']},
+                    {'text': '具备良好的身体素质与心理调适能力，养成终身学习习惯', 'sourceIds': ['S_STD']},
+                    {'text': '具有团队协作与沟通表达能力，尊重劳动、尊重创造', 'sourceIds': ['S_STD']},
+                    {'text': '树立安全与保密意识，遵守数据安全法律法规要求', 'sourceIds': ['S_STD']},
+                ]},
+                {'dimension': '知识', 'items': [
+                    {'text': '掌握程序设计、数据库与网络等信息技术基础知识', 'capabilityId': 'C-DEV-1'},
+                    {'text': '掌握分布式存储与计算平台的基本原理和体系结构', 'capabilityId': 'C-OPS-1'},
+                    {'text': '掌握数据仓库、ETL 与数据治理的基本方法', 'capabilityId': 'C-DEV-2'},
+                    {'text': '熟悉数据分析与可视化的常用算法和工具', 'capabilityId': 'C-ANA-1'},
+                    {'text': '了解相关国家标准、行业规范与信息安全要求', 'capabilityId': 'C-OPS-2'},
+                ]},
+                {'dimension': '能力', 'items': [
+                    {'text': '能完成大数据平台的部署、配置与基础调优', 'capabilityId': 'C-OPS-1'},
+                    {'text': '能编写数据处理程序并完成批处理作业开发', 'capabilityId': 'C-DEV-1'},
+                    {'text': '能构建数据仓库并实施 ETL 数据集成流程', 'capabilityId': 'C-DEV-2'},
+                    {'text': '能完成数据清洗、统计分析与可视化呈现', 'capabilityId': 'C-ANA-1'},
+                    {'text': '能执行平台监控、告警处置与常规故障排查', 'capabilityId': 'C-OPS-2'},
+                ]},
             ],
+        },
+        'pedagogy': {
+            'teachingImplementation': '推行"岗位导向、项目载体"的教学模式，按典型工作任务重构教学内容，'
+                                      '采用项目教学法、任务驱动法与案例教学法组织课堂教学；理论实践一体化，'
+                                      '专业核心课程全部在实训室以真实或仿真环境开展；推行线上线下混合式教学，'
+                                      '依托校内实训基地与企业实习基地分段实施教学，企业导师全程参与'
+                                      '实践教学环节并共同制定项目任务书，实现教、学、做有机融合。',
+            'assessment': '构建过程性考核与结果性考核相结合的多元评价体系：课程考核由平时表现、'
+                          '阶段任务与期末考核按比例构成，实践类课程以作品与项目成果为主要评价依据；'
+                          '岗位实习由企业指导教师与校内导师按实习周记、任务完成与出勤共同评定；'
+                          '积极推行以证代考与技能竞赛成绩认定学分，所有考核结果记入学业档案，'
+                          '并作为教学诊断与持续改进的依据。',
         },
         'curriculum': {'courses': public_required + public_elective + prof_base + prof_core
                        + prof_ext + comp_practice + internship},
         'schedule': {'semesters': semesters,
                      'internship': {'seminars': [5, 6], 'weeks': 26, 'note': '第5-6学期集中安排'}},
         'assurance': {
-            'faculty': {'status': 'supported', 'text': '现有专任教师 12 人，其中双师型 6 人',
+            'faculty': {'status': 'supported',
+                        'text': '现有专任教师 12 人，其中双师型 6 人，另有企业兼职教师 4 人，'
+                                '生师比与高级职称占比符合办学要求',
                         'sourceIds': ['S_USER']},
             'facilities': {'status': 'pending', 'text': '', 'sourceIds': []},
             'cooperation': {'status': 'pending', 'text': '', 'sourceIds': []},
         },
-        'graduation': {'requirements': ['思想品德考核合格', '修满毕业要求学分', '完成岗位实习'],
+        'graduation': {'requirements': ['在校期间思想品德考核合格，无违纪处分记录',
+                                        '修满本方案规定的毕业要求学分且各课程考核合格',
+                                        '完成岗位实习并取得企业考核合格及以上成绩',
+                                        '获得至少 1 项职业技能等级证书或同等行业认证'],
                        'minCredits': 149.5},
         'decisions': [],
     }
@@ -255,6 +328,14 @@ class ProgramTests(unittest.TestCase):
 
     def setUp(self):
         self.d = fixture()
+        # 夹具含 3 份 corpus: 来源，全部用例统一挂临时语料库
+        self._corpus_tmp = tempfile.mkdtemp()
+        self._corpus_prev = (program.CORPUS_DIR, program._corpus_rows)
+        program.CORPUS_DIR, program._corpus_rows = make_corpus(self._corpus_tmp), None
+
+    def tearDown(self):
+        program.CORPUS_DIR, program._corpus_rows = self._corpus_prev
+        shutil.rmtree(self._corpus_tmp, ignore_errors=True)
 
     def test_fixture_passes_all_redlines(self):
         result = self.validate(self.d)
@@ -395,7 +476,12 @@ class ProgramTests(unittest.TestCase):
         self.d['meta']['basedOnStandard'] = {'status': 'pending'}
         self.d['standards'] = [{'element': '职业面向', 'status': 'pending', 'note': '未取得原文'}]
         self.d['sources'] = [s for s in self.d['sources'] if s['id'] != 'S_STD']
-        # 移除对标准来源的引用：能力项、课程 rationale、规格条目改绑查询/岗位证据
+        # 移除对标准来源的引用：岗位、能力项、课程 rationale、规格条目改绑查询/岗位证据
+        for group in self.d['jobGroups']:
+            for pos in group['positions']:
+                pos['sourceIds'] = [s for s in pos.get('sourceIds', []) if s != 'S_STD']
+                if not pos.get('metricIds') and not pos['sourceIds']:
+                    pos['metricIds'] = ['M_POS']
         for cap in [c for dom in self.d['capabilityDomains'] for c in dom['capabilities']]:
             if 'S_STD' in (cap['evidence'].get('sourceIds') or []):
                 cap['evidence']['sourceIds'] = []
@@ -417,63 +503,114 @@ class ProgramTests(unittest.TestCase):
         result = self.validate(self.d)
         self.assertTrue(any('final 方案不得有待核对标准' in e for e in result['errors']))
 
-    @with_corpus
-    def test_corpus_source_passes_with_sha_and_excerpt(self):
-        self.d['sources'].append({'id': 'S_CP', 'title': '', 'publisher': '', 'url': 'corpus:人工智能/sample.txt',
-                                  'published': '', 'accessed': '', 'locator': '一、培养目标', 'scope': '对标课程体系',
-                                  'excerpt': '本专业培养德智体美劳全面发展的高素质技术技能人才'})
-        core = next(c for c in self.d['curriculum']['courses'] if c['id'] == 'C1')
-        core['rationale']['sourceIds'] = ['S_CP']
+    def test_corpus_sources_backfilled_from_index(self):
         result = self.validate(self.d)
         self.assertEqual(result['errors'], [])
-        src = next(s for s in self.d['sources'] if s['id'] == 'S_CP')
-        self.assertEqual(src['title'], '人工智能技术应用专业人才培养方案')
+        src = next(s for s in self.d['sources'] if s['id'] == 'S_CP1')
+        self.assertEqual(src['title'], '同类方案样例1')
         self.assertEqual(src['accessed'], program.CORPUS_SNAPSHOT)
+        self.assertEqual(src['publisher'], '本地培养方案语料库（对标参考）')
 
-    @with_corpus
     def test_corpus_source_rejects_missing_entry_and_bad_excerpt(self):
-        self.d['sources'].append({'id': 'S_CP', 'title': 'x', 'publisher': 'x', 'url': 'corpus:人工智能/无此文件.txt',
+        self.d['sources'].append({'id': 'S_CPX', 'title': 'x', 'publisher': 'x', 'url': 'corpus:人工智能/无此文件.txt',
                                   'published': '未标注', 'accessed': '2026-11-20', 'locator': '', 'scope': '',
                                   'excerpt': '任意'})
         result = self.validate(self.d)
         self.assertTrue(any('corpus 索引中无此条目' in e for e in result['errors']))
-        self.d['sources'][-1].update({'id': 'S_CP2', 'url': 'corpus:人工智能/sample.txt',
+        self.d['sources'][-1].update({'id': 'S_CPY', 'url': 'corpus:人工智能/sample1.txt',
                                       'excerpt': '这句话不在语料原文中'})
         result = self.validate(self.d)
         self.assertTrue(any('excerpt 须摘录语料原文' in e for e in result['errors']))
 
-    @with_corpus
     def test_corpus_source_detects_tampered_file(self):
-        import hashlib
-        root = program.CORPUS_DIR
-        body = (CORPUS_TEXT + '被篡改的正文\n').encode('utf-8')
-        (root / '人工智能' / 'sample.txt').write_bytes(body)
-        (root / '索引.csv').write_bytes((root / '索引.csv').read_bytes())  # 索引保持旧 sha
-        self.d['sources'].append({'id': 'S_CP', 'title': 'x', 'publisher': 'x',
-                                  'url': 'corpus:人工智能/sample.txt', 'published': '未标注',
-                                  'accessed': '2026-11-20', 'locator': '', 'scope': '',
-                                  'excerpt': '本专业培养德智体美劳全面发展的高素质技术技能人才'})
+        body = (CORPUS_TEXT + '样本 1 附注内容。\n被篡改的正文\n').encode('utf-8')
+        (program.CORPUS_DIR / '人工智能' / 'sample1.txt').write_bytes(body)  # 索引保持旧 sha
         result = self.validate(self.d)
         self.assertTrue(any('sha256 与索引不符' in e for e in result['errors']))
 
-    def test_real_corpus_index_integrity(self):
-        """仓库内置语料库在位时：索引可读、抽首条文件 sha 一致、corpus 来源可通过校验。"""
-        if not (program.CORPUS_DIR / '索引.csv').is_file():
-            self.skipTest('本地语料库未安装（data/人才培养方案 不存在）')
-        rows = program.corpus_index()
-        self.assertGreaterEqual(len(rows), 600)
-        rel, row = next(iter(rows.items()))
-        file = program.CORPUS_DIR / rel[len('人才培养方案/'):]
-        self.assertTrue(file.is_file(), rel)
-        import hashlib
-        self.assertEqual(hashlib.sha256(file.read_bytes()).hexdigest(), row['sha256'])
-        text = program.excerpt_text(file.read_text(encoding='utf-8', errors='replace'))
-        excerpt = text[100:200].strip()
-        self.d['sources'].append({'id': 'S_CP', 'title': '', 'publisher': '', 'url': 'corpus:' + rel[len('人才培养方案/'):],
-                                  'published': '', 'accessed': '', 'locator': row.get('标题', ''), 'scope': '对标结构',
-                                  'excerpt': excerpt})
+    def test_corpus_minimum_three_blocks(self):
+        self.d['sources'] = [s for s in self.d['sources']
+                             if not (s.get('url', '').startswith('corpus:') and s['id'] != 'S_CP1')]
         result = self.validate(self.d)
-        self.assertEqual(result['errors'], [])
+        self.assertTrue(any('对标语料仅 1 份' in e for e in result['errors']))
+
+    def test_course_description_floor_blocks(self):
+        core = next(c for c in self.d['curriculum']['courses'] if c['id'] == 'C1')
+        core['description'] = '太短'
+        result = self.validate(self.d)
+        self.assertTrue(any('课程简介不足' in e for e in result['errors']))
+        pub = next(c for c in self.d['curriculum']['courses'] if c['id'] == 'P1')
+        pub['description'] = ''
+        result = self.validate(self.d)
+        self.assertTrue(any(f'P1' in e and '课程简介不足' in e for e in result['errors']))
+
+    def test_core_typical_content_floor_blocks(self):
+        core = next(c for c in self.d['curriculum']['courses'] if c['id'] == 'C1')
+        core['typicalContent'] = '内容太少不足以支撑核心课要求'
+        result = self.validate(self.d)
+        self.assertTrue(any('典型教学内容/工作任务不足 80' in e for e in result['errors']))
+
+    def test_spec_dimension_floor_blocks(self):
+        self.d['cultivation']['spec'][0]['items'] = self.d['cultivation']['spec'][0]['items'][:2]
+        result = self.validate(self.d)
+        self.assertTrue(any('培养规格「素质」仅 2 条' in e for e in result['errors']))
+
+    def test_pedagogy_floor_blocks(self):
+        self.d['pedagogy']['teachingImplementation'] = '按项目教学。'
+        result = self.validate(self.d)
+        self.assertTrue(any('教学实施' in e and '不足 150 字' in e for e in result['errors']))
+
+    def test_graduation_floor_blocks(self):
+        self.d['graduation']['requirements'] = ['合格', '修满学分']
+        result = self.validate(self.d)
+        self.assertTrue(any('毕业要求仅 2 条' in e for e in result['errors']))
+
+    def test_jobgroup_stage_coverage_blocks(self):
+        for group in self.d['jobGroups']:
+            for pos in group['positions']:
+                pos['stage'] = 'entry'
+        result = self.validate(self.d)
+        self.assertTrue(any('须同时覆盖初始岗' in e for e in result['errors']))
+
+    def test_category_coverage_blocks(self):
+        self.d['curriculum']['courses'] = [c for c in self.d['curriculum']['courses']
+                                           if c['category'] != 'public-elective']
+        result = self.validate(self.d)
+        self.assertTrue(any('缺少「公共选修」' in e for e in result['errors']))
+
+    def test_real_corpus_index_integrity(self):
+        """仓库内置语料库在位时：索引可读、抽三份文件 sha 一致、真实 corpus 来源可通过校验。"""
+        if not (REAL_CORPUS_DIR / '索引.csv').is_file():
+            self.skipTest('本地语料库未安装（data/人才培养方案 不存在）')
+        prev = (program.CORPUS_DIR, program._corpus_rows)
+        program.CORPUS_DIR, program._corpus_rows = REAL_CORPUS_DIR, None
+        try:
+            rows = program.corpus_index()
+            self.assertGreaterEqual(len(rows), 600)
+            import hashlib
+            picked = []
+            for rel, row in rows.items():
+                file = REAL_CORPUS_DIR / rel[len('人才培养方案/'):]
+                if not file.is_file():
+                    continue
+                self.assertEqual(hashlib.sha256(file.read_bytes()).hexdigest(), row['sha256'])
+                text = program.excerpt_text(file.read_text(encoding='utf-8', errors='replace'))
+                m = re.search(r'[^\s。]{16,60}。', text)
+                if m:
+                    picked.append((rel, row, m.group(0)))
+                if len(picked) == 3:
+                    break
+            self.assertEqual(len(picked), 3)
+            self.d['sources'] = [s for s in self.d['sources'] if not s.get('url', '').startswith('corpus:')]
+            for i, (rel, row, excerpt) in enumerate(picked, 1):
+                self.d['sources'].append({'id': f'S_CP{i}', 'title': '', 'publisher': '',
+                                          'url': 'corpus:' + rel[len('人才培养方案/'):],
+                                          'published': '', 'accessed': '', 'locator': row.get('标题', ''),
+                                          'scope': '对标结构', 'excerpt': excerpt})
+            result = self.validate(self.d)
+            self.assertEqual(result['errors'], [])
+        finally:
+            program.CORPUS_DIR, program._corpus_rows = prev
 
     def test_user_source_excerpt_verified(self):
         earlier = ['面向数据工程技术人员等职业群', '现有专任教师 12 人，其中双师型 6 人']
@@ -501,9 +638,12 @@ class BuildTests(unittest.TestCase):
         os.chdir(self.cwd)
         self.d = fixture()
         (self.cwd / 'program.json').write_text(json.dumps(self.d, ensure_ascii=False), encoding='utf-8')
+        self._corpus_prev = (program.CORPUS_DIR, program._corpus_rows)
+        program.CORPUS_DIR, program._corpus_rows = make_corpus(tempfile.mkdtemp()), None
 
     def tearDown(self):
         import os
+        program.CORPUS_DIR, program._corpus_rows = self._corpus_prev
         os.chdir(self.prev)
         self.tmp.cleanup()
 

@@ -150,7 +150,31 @@
 }
 ```
 
-category 取值：public-required（公共基础必修）、public-elective（公共选修）、professional-base（专业基础）、professional-core（专业核心，须 6–8 门）、professional-extension（专业拓展）、internship（岗位实习，全实践）、comprehensive-practice（综合实践，全实践）。`semesters` 为 1–6。每门课 `rationale` 必须给出可解析的 metricIds/sourceIds，说明设置理由回溯到能力域与岗位证据；`domains.level` 用 H/M/L 标支撑强度。
+category 取值：public-required（公共基础必修）、public-elective（公共选修）、professional-base（专业基础）、professional-core（专业核心，须 6–8 门）、professional-extension（专业拓展）、internship（岗位实习，全实践）、comprehensive-practice（综合实践，全实践）。`semesters` 为 1–6。每门课必有 `description`（课程简介 ≥20 字）与 `typicalContent`（典型教学内容/工作任务 ≥30 字），专业核心课分别加严到 ≥40 字、≥80 字（去空白计字）。每门课 `rationale` 必须给出可解析的 metricIds/sourceIds，说明设置理由回溯到能力域与岗位证据；`domains.level` 用 H/M/L 标支撑强度。七个类别在课程表中均须出现（附录学时结构表完整的前提）。
+
+## pedagogy（教学实施与考核评价，硬下限）
+
+```json
+{
+  "teachingImplementation": "……教学模式、教学方法与手段、教学组织形式……（≥150 字）",
+  "assessment": "……课程考核、实践考核、多元评价与以证代考……（≥150 字）"
+}
+```
+
+对应正文第九章两节；写法对标精读语料同类章节，不得以一两句原则话凑数。
+
+## 内容深度下限汇总（校验阻断）
+
+| 项 | 下限 |
+|---|---|
+| 每门课程简介 | ≥20 字（核心课 ≥40 字） |
+| 每门课典型内容/工作任务 | ≥30 字（核心课 ≥80 字） |
+| 培养规格 | 素质/知识/能力每维 ≥5 条，每条 ≥12 字 |
+| 职业面向 | ≥2 个岗位群，每群 ≥2 个岗位，覆盖初始岗与发展岗 |
+| 教学实施 / 考核评价 | 各 ≥150 字 |
+| 毕业要求 | ≥4 条，总字数 ≥80 字，每条 ≥8 字 |
+| 课程类别 | 七类齐全 |
+| 对标语料 | corpus: 来源 ≥3 份 |
 
 ## schedule（教学进程）
 
