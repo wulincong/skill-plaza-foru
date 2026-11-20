@@ -1,5 +1,5 @@
 ---
-name: course-scheduling
+name: 排课智能体
 description: 排课智能体：面向职业院校的教务前置沙盘，硬约束零冲突求解多套课表方案，建模企业轮岗、1+X 考试窗口、混编班、双师同堂等产教约束，交付指标对比网页、冲突归因、Excel 课表与 ics 日历，支持学期中增量重排；不替换教务系统。
 metadata:
   short-description: 零冲突多方案排课与产教约束求解
