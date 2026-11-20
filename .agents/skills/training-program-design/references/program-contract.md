@@ -49,7 +49,13 @@
 
 ## sources 与 metrics（与产教报告同构）
 
-`sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。共享统计的 url 填工作区 `data/tq-…/result.json`，构建脚本回填 **contentHash** 与 **dataReadAt**；用户附件用 `uploads/` 相对路径，粘贴材料用 `user:` 加名称，excerpt 逐字摘录原句。`metrics` 含 id、label、value、unit、period、region、population、definition、source_ids；直接引用查询结果的指标加 `binding`（如 `{"metricId":"all/positions.count","field":"value"}`、薪酬中位数 `value.median`、分布 `rows`），写稿时可省略 value，脚本从已校验工件填入，手填数值与指纹不符会验收失败。规则与产教报告 [数据契约](../../industry-education-report/references/data-contract.md) 一致，本技能不另设口径。
+`sources` 含 id、title、publisher、url、published、accessed、locator、scope、excerpt。url 按来源类型：
+
+- **`corpus:` 本地同类方案语料**（主用）：`corpus:方向/文件名.txt`，指向仓库 `data/人才培养方案/` 的清洗 TXT，脚本按 `索引.csv` 核对条目、sha256 与 excerpt 原句，用法与选样规则见 [本地语料库](local-corpus.md)；用于课程设置理由、培养目标依据、版本差异的对标引用，不作岗位需求证据、不用于实施保障。
+- 共享统计：工作区 `data/tq-…/result.json`，构建脚本回填 **contentHash** 与 **dataReadAt**。
+- 用户附件 `uploads/` 相对路径；粘贴材料 `user:` 加名称；官方网页 `https://`。excerpt 均逐字摘录原句。
+
+`metrics` 含 id、label、value、unit、period、region、population、definition、source_ids；直接引用查询结果的指标加 `binding`（如 `{"metricId":"all/positions.count","field":"value"}`、薪酬中位数 `value.median`、分布 `rows`），写稿时可省略 value，脚本从已校验工件填入，手填数值与指纹不符会验收失败。规则与产教报告 [数据契约](../../industry-education-report/references/data-contract.md) 一致，本技能不另设口径。
 
 ## jobGroups（岗位群与典型工作任务）
 

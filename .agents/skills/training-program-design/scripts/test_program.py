@@ -1,6 +1,8 @@
 """Offline regression tests for program contracts, redlines and build outputs."""
 import json
+import shutil
 import sys
+import tempfile
 import unittest
 import zipfile
 from pathlib import Path
@@ -8,6 +10,37 @@ from unittest.mock import patch
 from xml.dom import minidom
 
 import program
+
+CORPUS_TEXT = '人工智能技术应用专业人才培养方案\n一、培养目标\n本专业培养德智体美劳全面发展的高素质技术技能人才。\n'
+
+
+def make_corpus(tmp):
+    """构造临时语料库：索引.csv + 一份样例 TXT。"""
+    root = Path(tmp) / 'corpus'
+    (root / '人工智能').mkdir(parents=True)
+    body = CORPUS_TEXT.encode('utf-8')
+    (root / '人工智能' / 'sample.txt').write_bytes(body)
+    import hashlib as _h
+    index = ('方向分类,文件名,相对路径,字节数,sha256,标题,定位方式,来源批次,来源txt路径\r\n'
+             f'人工智能,sample.txt,人才培养方案/人工智能/sample.txt,{len(body)},'
+             f'{_h.sha256(body).hexdigest()},人工智能技术应用专业人才培养方案,同名txt,第三批,源路径\r\n')
+    (root / '索引.csv').write_bytes(b'\xef\xbb\xbf' + index.encode('utf-8'))
+    return root
+
+
+def with_corpus(test):
+    """把语料根切到临时目录并清空索引缓存。"""
+    def wrapper(self):
+        tmp = tempfile.mkdtemp()
+        root = make_corpus(tmp)
+        original_dir, original_rows = program.CORPUS_DIR, program._corpus_rows
+        program.CORPUS_DIR, program._corpus_rows = root, None
+        try:
+            return test(self)
+        finally:
+            program.CORPUS_DIR, program._corpus_rows = original_dir, original_rows
+            shutil.rmtree(tmp, ignore_errors=True)
+    return wrapper
 
 SYNTHETIC_RESULT = {
     'requestId': 'tq-test0001', 'contentHash': 'a' * 64,
@@ -117,7 +150,7 @@ def fixture():
     return {
         'schema': 'training-program/1',
         'title': '大数据技术专业人才培养方案（2026 级·测试）',
-        'status': 'draft', 'as_of': '2026-11-18',
+        'status': 'draft', 'as_of': '2026-11-20',
         'meta': {
             'majorName': '大数据技术', 'majorCode': '510205', 'level': '高职专科',
             'duration': {'years': 3, 'maxYears': 5},
@@ -383,6 +416,64 @@ class ProgramTests(unittest.TestCase):
         self.d['status'] = 'final'
         result = self.validate(self.d)
         self.assertTrue(any('final 方案不得有待核对标准' in e for e in result['errors']))
+
+    @with_corpus
+    def test_corpus_source_passes_with_sha_and_excerpt(self):
+        self.d['sources'].append({'id': 'S_CP', 'title': '', 'publisher': '', 'url': 'corpus:人工智能/sample.txt',
+                                  'published': '', 'accessed': '', 'locator': '一、培养目标', 'scope': '对标课程体系',
+                                  'excerpt': '本专业培养德智体美劳全面发展的高素质技术技能人才'})
+        core = next(c for c in self.d['curriculum']['courses'] if c['id'] == 'C1')
+        core['rationale']['sourceIds'] = ['S_CP']
+        result = self.validate(self.d)
+        self.assertEqual(result['errors'], [])
+        src = next(s for s in self.d['sources'] if s['id'] == 'S_CP')
+        self.assertEqual(src['title'], '人工智能技术应用专业人才培养方案')
+        self.assertEqual(src['accessed'], program.CORPUS_SNAPSHOT)
+
+    @with_corpus
+    def test_corpus_source_rejects_missing_entry_and_bad_excerpt(self):
+        self.d['sources'].append({'id': 'S_CP', 'title': 'x', 'publisher': 'x', 'url': 'corpus:人工智能/无此文件.txt',
+                                  'published': '未标注', 'accessed': '2026-11-20', 'locator': '', 'scope': '',
+                                  'excerpt': '任意'})
+        result = self.validate(self.d)
+        self.assertTrue(any('corpus 索引中无此条目' in e for e in result['errors']))
+        self.d['sources'][-1].update({'id': 'S_CP2', 'url': 'corpus:人工智能/sample.txt',
+                                      'excerpt': '这句话不在语料原文中'})
+        result = self.validate(self.d)
+        self.assertTrue(any('excerpt 须摘录语料原文' in e for e in result['errors']))
+
+    @with_corpus
+    def test_corpus_source_detects_tampered_file(self):
+        import hashlib
+        root = program.CORPUS_DIR
+        body = (CORPUS_TEXT + '被篡改的正文\n').encode('utf-8')
+        (root / '人工智能' / 'sample.txt').write_bytes(body)
+        (root / '索引.csv').write_bytes((root / '索引.csv').read_bytes())  # 索引保持旧 sha
+        self.d['sources'].append({'id': 'S_CP', 'title': 'x', 'publisher': 'x',
+                                  'url': 'corpus:人工智能/sample.txt', 'published': '未标注',
+                                  'accessed': '2026-11-20', 'locator': '', 'scope': '',
+                                  'excerpt': '本专业培养德智体美劳全面发展的高素质技术技能人才'})
+        result = self.validate(self.d)
+        self.assertTrue(any('sha256 与索引不符' in e for e in result['errors']))
+
+    def test_real_corpus_index_integrity(self):
+        """仓库内置语料库在位时：索引可读、抽首条文件 sha 一致、corpus 来源可通过校验。"""
+        if not (program.CORPUS_DIR / '索引.csv').is_file():
+            self.skipTest('本地语料库未安装（data/人才培养方案 不存在）')
+        rows = program.corpus_index()
+        self.assertGreaterEqual(len(rows), 600)
+        rel, row = next(iter(rows.items()))
+        file = program.CORPUS_DIR / rel[len('人才培养方案/'):]
+        self.assertTrue(file.is_file(), rel)
+        import hashlib
+        self.assertEqual(hashlib.sha256(file.read_bytes()).hexdigest(), row['sha256'])
+        text = program.excerpt_text(file.read_text(encoding='utf-8', errors='replace'))
+        excerpt = text[100:200].strip()
+        self.d['sources'].append({'id': 'S_CP', 'title': '', 'publisher': '', 'url': 'corpus:' + rel[len('人才培养方案/'):],
+                                  'published': '', 'accessed': '', 'locator': row.get('标题', ''), 'scope': '对标结构',
+                                  'excerpt': excerpt})
+        result = self.validate(self.d)
+        self.assertEqual(result['errors'], [])
 
     def test_user_source_excerpt_verified(self):
         earlier = ['面向数据工程技术人员等职业群', '现有专任教师 12 人，其中双师型 6 人']

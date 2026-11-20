@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate training-program contracts, check hour/credit redlines, build deliverables."""
 import argparse
+import csv
 import datetime
 import hashlib
 import json
@@ -16,6 +17,23 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 QUERY = ROOT.parent / 'talent-data-query/scripts/query.mjs'
 RESULT_PATH = re.compile(r'data/(tq-[a-f0-9-]+)/result\.json')
+# 本地培养方案语料库（仓库 data/，不进 git；见 references/local-corpus.md）
+CORPUS_DIR = ROOT.parents[2] / 'data' / '人才培养方案'
+CORPUS_SNAPSHOT = '2026-11-20'
+_corpus_rows = None
+
+
+def corpus_index():
+    global _corpus_rows
+    if _corpus_rows is None:
+        _corpus_rows = {}
+        path = CORPUS_DIR / '索引.csv'
+        if path.is_file():
+            with open(path, encoding='utf-8-sig') as fh:
+                for row in csv.DictReader(fh):
+                    if row.get('相对路径'):
+                        _corpus_rows[row['相对路径']] = row
+    return _corpus_rows
 
 CATEGORIES = ('public-required', 'public-elective', 'professional-base', 'professional-core',
               'professional-extension', 'internship', 'comprehensive-practice')
@@ -217,7 +235,30 @@ def validate(d):
     shared = {}
     for s in index['sources'].values():
         url = s.get('url', '')
-        if isinstance(url, str) and url.startswith('data/'):
+        if isinstance(url, str) and url.startswith('corpus:'):
+            # 本地培养方案语料：索引登记 + sha256 复核 + excerpt 摘录原文核对
+            rel = url[len('corpus:'):]
+            entry = corpus_index().get('人才培养方案/' + rel)
+            file = CORPUS_DIR / rel
+            if not s.get('publisher'):
+                s['publisher'] = '本地培养方案语料库（对标参考）'
+            if not s.get('published'):
+                s['published'] = '未标注'
+            if not s.get('accessed'):
+                s['accessed'] = CORPUS_SNAPSHOT
+            if entry is None:
+                errors.append(f'{s["id"]}: corpus 索引中无此条目，请按 索引.csv 的相对路径（去目录前缀）填写：{rel}')
+            elif not file.is_file():
+                errors.append(f'{s["id"]}: corpus 文件缺失 {rel}')
+            else:
+                if hashlib.sha256(file.read_bytes()).hexdigest() != entry.get('sha256'):
+                    errors.append(f'{s["id"]}: corpus 文件 sha256 与索引不符')
+                excerpt = excerpt_text(s.get('excerpt', ''))
+                if not (excerpt and excerpt in excerpt_text(file.read_text(encoding='utf-8', errors='replace'))):
+                    errors.append(f'{s["id"]}: excerpt 须摘录语料原文')
+                if not s.get('title'):
+                    s['title'] = entry.get('标题') or entry.get('文件名', '')
+        elif isinstance(url, str) and url.startswith('data/'):
             try:
                 result = inspect_source(s)
                 shared[s['id']] = result
