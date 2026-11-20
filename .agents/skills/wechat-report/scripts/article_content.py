@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 import re
 
-POLICY='wechat-article-lead/2'
+POLICY='wechat-article-lead/3'
 GUIDE=Path(__file__).resolve().parent.parent/'references/article-styles.md'
 
 def style_guide():
@@ -36,18 +36,18 @@ def build_lead(data,analysis,style=None):
     cities=ordered_cities(data);tracks=ordered_tracks(data);signals=[]
     if len(cities)>=2:
         cities_text='、'.join(row['name'] for row in cities[:2])
-        signals.append({'title':'机会集中，选择仍需细分','text':cities_text+'合计占本次岗位样本'+percent(sum(row['count'] for row in cities[:2]),total['positions'])+'%。城市排名帮助定位机会，方向与申请条件则帮助缩小清单，地域规模与个人选择需要分开判断。'})
+        signals.append({'title':cities[0]['name']+'与'+cities[1]['name']+'构成主要招聘节点','text':cities_text+'合计占本次岗位样本'+percent(sum(row['count'] for row in cities[:2]),total['positions'])+'%。头部城市的招聘集聚构成主要机会带；城市内岗位方向和入门覆盖率呈现各地不同的工作结构。'})
     else:
-        signals.append({'title':'从产业名称走向具体岗位','text':values['region']+'的'+values['positions']+'条岗位记录，连接着不同职责与申请条件。先明确希望从事的工作，再阅读条件和能力要求，产业观察才更容易落到具体选择。'})
+        signals.append({'title':values['region']+'的本地招聘基础','text':values['region']+'的'+values['positions']+'条岗位记录，呈现本地企业发布的真实招聘需求。报告将岗位方向、学历经验和薪酬分布放在同一地域范围内比较，展示产业内部的机会结构。'})
     salary=data.get('salary') or {};entry=(data.get('voc_pool') or {}).get('salary') or {}
     if salary.get('median') is not None:
         text='总体有效报价的中位数为'+number(salary['median'])+'K/月'
         if entry.get('valid',0)>=30 and entry.get('median') is not None:text+='，入门条件样本为'+number(entry['median'])+'K/月'
-        signals.append({'title':'谈薪酬，先找相近的岗位','text':text+'。同一产业里的报价还受岗位组合影响，阅读薪酬时应把职责与申请条件放在一起，不用统一的行业印象代替具体参照。'})
+        signals.append({'title':'总体与入门报价呈现不同薪酬位置','text':text+'。两组样本各自的中间区间进一步呈现报价分散程度，使产业总体薪酬与入门岗位的典型报价清楚区分。'})
     else:signals.append({'title':'把条件与职责放在一起看','text':'岗位入口由学历、经验和职责共同界定。报告保留原定范围，帮助读者在有依据的岗位组之间比较，不以其他人群的数据替代当前对象。'})
     if len(tracks)>=2:
-        text=tracks[0]['name']+'与'+tracks[1]['name']+'位于本次已识别方向前列。'
-        text+='把工作任务、工具和进入条件连起来看，更容易发现共同基础与方向差别，为求职准备、课程设计或企业合作提供具体切入点。'
+        text=tracks[0]['name']+'与'+tracks[1]['name']+'合计占全部岗位'+percent(sum(r['count'] for r in tracks[:2]),total['positions'])+'%，位于本次已识别方向前列。'
+        text+='方向规模与能力词组合展示主要工作内容，方向内的入门条件覆盖则呈现不同人群的申请入口。'
     else:text='岗位条件与能力要求需要对应到工作任务。报告从可以观察的岗位组出发，把产业概念拆成更具体的工作路径，帮助读者选择接下来要深入研究的问题。'
     signals.append({'title':'同一产业，不止一条工作路径','text':text})
     return {'policy':POLICY,'style':selected,'styleLabel':settings['label'],'reference':'references/article-styles.md',

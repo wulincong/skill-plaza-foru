@@ -8,7 +8,7 @@
    ============================================================ */
 
 import { createHash } from 'node:crypto'
-import { localReportReply, registerReport, saveQuestion } from './lib/reportLibrary.ts'
+import { catalog, localReportReply, registerReport, reviewDelivery } from './lib/reportLibrary.ts'
 import { needsReportFollowThrough,reportTurnIntent,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
 import { readWechatDelivery } from './lib/wechatDelivery.ts'
 import { AdminStore, models, skillEnabled } from './lib/adminStore.ts'
@@ -1219,6 +1219,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   /* 附件说明在 digest 之后注入 prompt：路径必须落在本会话沙箱内（防穿越）；
      .md/.txt 直接内联内容（截断 16000 字保底），其余格式指示引擎读工作目录文件 */
   const originalUserText = params.resumeSource?.userMessage ?? String(latest.content)
+  let reportRestoreError: string | undefined
+  if (skill==='wechat-report' && reportRevisionRequested(originalUserText) && !existsSync(join(workspaceDirFor(clientSessionId),'wechat-report/report_data.json'))) {
+    try { await catalog('restore',{sessionId:clientSessionId,workspace:workspaceDirFor(clientSessionId,skill)}) }
+    catch(error) { reportRestoreError=error instanceof Error ? error.message : '报告修订输入暂不可用' }
+  }
   const reportIntent = skill === 'wechat-report'
     ? reportTurnIntent(originalUserText, existsSync(join(workspaceDirFor(clientSessionId),'wechat-report/report_data.json')), priorRuns, params.answerTo)
     : {enabled:false}
@@ -1646,6 +1651,11 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
   if (params.requestId) browserTurns.set(clientSessionId, { requestId: params.requestId, interrupt })
 
   activeTurns.add(clientSessionId)
+  if (reportRestoreError) {
+    recorder.note({reportRestoreError})
+    wire.error('原报告的数据暂时无法恢复，尚未修改。请稍后在当前对话重试。',elapsed())
+    finalizeRun('error');cleanup();finish();return
+  }
   // Library hits and explicit draft confirmations do not need a model process.
   if (skillEnabled(config, 'wechat-report') && ['wechat-report', 'general'].includes(skill) && !params.resumeSource) {
     try {
@@ -1813,9 +1823,8 @@ async function runChatTurn(req: any, res: any, params: TurnParams) {
           try {
             const saved = await registerReport({workspace:entry.workspaceDir,sessionId:clientSessionId,runId,...delivery})
             if (saved) {
-              finalText = '报告图片已生成，请审核成品。'
-              question = saveQuestion()
-              if (params.protocol === 'openai') finalText += '\n是否需要存入公众号草稿箱？回复“保存草稿”或“暂不保存”。'
+              finalText = reviewDelivery(saved).content
+              question = undefined
               recorder.note({reportLibrary:{kind:'registered',reportId:saved.id}})
             }
           } catch (error) {

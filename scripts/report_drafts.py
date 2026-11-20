@@ -10,6 +10,7 @@ import re
 import time
 from pathlib import Path
 import sys
+from urllib.parse import urlsplit
 
 import requests
 
@@ -33,14 +34,15 @@ def whitelist_message(detail):
     return message
 
 
-def _post(path, token, payload=None, image=None):
+def _post(path, token, payload=None, image=None, transport=None):
     url='https://api.weixin.qq.com/cgi-bin/'+path
+    client=transport or requests
     try:
         if image:
             with Path(image).open('rb') as f:
-                response=requests.post(url,params={'access_token':token},files={'media':(Path(image).name,f,'image/png')},timeout=(8,90))
+                response=client.post(url,params={'access_token':token},files={'media':(Path(image).name,f,'image/png')},timeout=(8,90))
         else:
-            response=requests.post(url,params={'access_token':token},data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Content-Type':'application/json; charset=utf-8'},timeout=(8,45))
+            response=client.post(url,params={'access_token':token},data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Content-Type':'application/json; charset=utf-8'},timeout=(8,45))
         response.raise_for_status(); result=response.json()
     except requests.Timeout:
         raise DraftError('请求超时，保存状态需核对，不能自动重复创建',uncertain=True) from None
@@ -59,6 +61,24 @@ def text_before_images(report):
     sys.path.insert(0,str(Path(__file__).resolve().parent.parent/'.agents/skills/wechat-report/scripts'))
     from article_content import html_prose
     return html_prose(report)
+
+
+def draft_fields(report):
+    """Validate news fields before any uploads, per the official draft/add contract."""
+    title=report.get('title')
+    if not isinstance(title,str) or not title.strip():raise DraftError('草稿标题不能为空')
+    title=title.strip()[:32]
+    description=(report.get('reportCard') or {}).get('description') or '招聘格局、岗位门槛与薪酬，读懂本地人才需求。'
+    if not isinstance(description,str):raise DraftError('草稿摘要格式无效')
+    source=(report.get('webLinks') or [{}])[0].get('url','')
+    if not isinstance(source,str) or len(source.encode('utf-8'))>1024:
+        raise DraftError('草稿原文链接超过1KB或格式无效')
+    parsed=urlsplit(source)
+    if (parsed.scheme not in ('http','https') or not parsed.hostname or parsed.username or parsed.password
+        or re.search(r'[\x00-\x20\x7f]',source)):
+        raise DraftError('草稿原文链接格式无效')
+    return {'article_type':'news','title':title,'author':'','digest':description.strip()[:120],
+            'content_source_url':source,'need_open_comment':0,'only_fans_can_comment':0}
 
 
 def upload_image_parts(images,folder,limit=960000):
@@ -100,7 +120,7 @@ def upload_image_parts(images,folder,limit=960000):
     return output
 
 
-def save_report(session_id,report_id,account,token_provider):
+def save_report(session_id,report_id,account,token_provider,http_transport=None):
     session_id=checked_session(session_id)
     if not report_id or any(ch not in '0123456789abcdef' for ch in report_id) or len(report_id)!=32:
         raise DraftError('报告标识无效')
@@ -109,6 +129,8 @@ def save_report(session_id,report_id,account,token_provider):
         db.execute('BEGIN IMMEDIATE')
         session=db.execute('SELECT * FROM sessions WHERE id=? AND report_id=?',(session_id,report_id)).fetchone()
         previous=db.execute('SELECT * FROM drafts WHERE report_id=? AND account_hash=?',(report_id,account_hash)).fetchone()
+        review=db.execute('SELECT 1 FROM report_reviews WHERE session_id=? AND report_id=? AND approved_at>?',(session_id,report_id,time.time()-86400)).fetchone()
+        if not session or not review:raise DraftError('请先确认这份报告的质量合格')
         if previous and previous['state']=='saved':
             db.execute('UPDATE sessions SET pending=0,updated_at=? WHERE id=? AND report_id=?',(time.time(),session_id,report_id))
             return {'state':'saved','message':'这份报告已在公众号草稿箱中，已保留原草稿，没有重复创建。'}
@@ -126,6 +148,7 @@ def save_report(session_id,report_id,account,token_provider):
         if len(images)!=report['pageCount']: raise DraftError('归档图片不完整')
         if [hashlib.sha256(p.read_bytes()).hexdigest() for p in images]!=report.get('imageHashes'):
             raise DraftError('归档图片与已确认版本不一致，拒绝保存草稿')
+        fields=draft_fields(report)
         prose=text_before_images(report)
         if len(prose)>=20000 or len(prose.encode())>=1000000:raise DraftError('完整文字超过当前草稿预算，已停止保存，原成品保留')
         upload_images=upload_image_parts(images,folder)
@@ -140,7 +163,10 @@ def save_report(session_id,report_id,account,token_provider):
         def post(path,payload=None,image=None):
             nonlocal token
             for attempt in range(2):
-                try: return _post(path,token,payload=payload,image=image)
+                try:
+                    if http_transport is not None:
+                        return _post(path,token,payload=payload,image=image,transport=http_transport)
+                    return _post(path,token,payload=payload,image=image)
                 except DraftError as exc:
                     # An explicit rejected credential is safe to refresh once.
                     # A timeout, unknown create result or any other API error is not.
@@ -164,10 +190,8 @@ def save_report(session_id,report_id,account,token_provider):
         if not media: raise DraftError('微信未返回封面素材标识')
         content=prose+''.join('<p style="margin:0;line-height:0"><img style="width:100%;display:block" src="'+html.escape(url,quote=True)+'"></p>' for url in urls)
         if len(content)>=20000 or len(content.encode())>=1000000:raise DraftError('图片链接与完整文字超过当前草稿预算，已停止创建，原成品保留')
-        title=report['title']
-        while len(title.encode())>64:title=title[:-1]
         phase='draft'
-        result=post('draft/add',{'articles':[{'title':title,'author':'','digest':report.get('reportCard',{}).get('description','招聘格局、岗位门槛与薪酬，读懂本地人才需求。'),'content':content,'thumb_media_id':media,'content_source_url':report['webLinks'][0]['url']}]})
+        result=post('draft/add',{'articles':[{**fields,'content':content,'thumb_media_id':media}]})
         if not result.get('media_id'):raise DraftError('微信未返回草稿标识，保存状态需核对',uncertain=True)
         with database() as db:
             db.execute("UPDATE drafts SET state='saved',media_id=?,error_code=NULL,updated_at=? WHERE report_id=? AND account_hash=?",(result['media_id'],time.time(),report_id,account_hash))

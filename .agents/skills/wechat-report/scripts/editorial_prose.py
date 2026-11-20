@@ -5,7 +5,7 @@ non-numeric interpretation/application text, which is checked independently.
 """
 import re
 
-POLICY='wechat-editorial-prose/3'
+POLICY='wechat-editorial-prose/4'
 NUMBERS=('一','二','三')
 
 
@@ -67,7 +67,13 @@ def summary(data,item):
     text=f"摘要｜{qualifier}基于优才知路平台的{number(total['positions'])}条在招岗位记录和{number(total.get('companies',0))}家招聘企业，本报告观察{meta['region']}{meta['industry']}的人才需求。"
     if len(cities)>=2:
         text+='岗位主要集中于'+'、'.join(row['name'] for row in cities[:2])+'，合计占样本'+percent(sum(row['count'] for row in cities[:2]),total['positions'])+'%。'
-    text+='进一步联立岗位方向、学历经验与薪酬，才能辨认规模排名之外的入口差别。'
+    tracks=ordered_tracks(data)
+    if tracks:
+        lead=tracks[0]
+        text+=f"已识别岗位方向中，{lead['name']}规模最大，占全部岗位{percent(lead['count'],total['positions'])}%。"
+    salary=data.get('salary') or {}
+    if salary.get('median') is not None:text+=f"有效招聘报价中位数为{number(salary['median'])}K/月。"
+    text+='以下从招聘格局、岗位结构、申请门槛与薪酬差异展开分析。'
     return text
 
 
@@ -79,6 +85,12 @@ def core_measurements(data,item,index,facts):
         return (f"{head['name']}有{number(head['count'])}条岗位，占本次样本{percent(head['count'],total)}%；"
             f"其中{number(entry)}条满足本报告入门条件，覆盖率{percent(entry,head['count'])}%，"
             f"本次范围同口径为{percent(pool['count'],total)}%。")
+    if index==0 and len(cities)<=1 and data.get('edu'):
+        education=sorted(data['edu'],key=lambda r:-r['count']);experience=sorted(data.get('exp',[]),key=lambda r:-r['count'])
+        text='；'.join(f"{r['name']}要求{number(r['count'])}条，占全部岗位{percent(r['count'],total)}%" for r in education[:2])+'。'
+        if experience:
+            r=experience[0];text+=f"经验条件中，{r['name']}{number(r['count'])}条，占{percent(r['count'],total)}%。"
+        return text
     sal=data.get('salary') or {};entry_sal=pool.get('salary') or {}
     if index==1 and sal.get('median') is not None and entry_sal.get('valid',0)>=30 and entry_sal.get('median') is not None:
         bounds=''
@@ -97,9 +109,29 @@ def core_measurements(data,item,index,facts):
     return ''.join(compact_fact(facts[fid]['text']) for fid in item['claims'][index]['findingIds'])
 
 
+def core_heading(data,index,fallback):
+    cities=ordered_cities(data);tracks=ordered_tracks(data);total=data['total']['positions']
+    if index==0:
+        if len(cities)>1:
+            return cities[0]['name']+'居首，占全部岗位'+percent(cities[0]['count'],total)+'%'
+        if data.get('edu'):
+            head=max(data['edu'],key=lambda r:r['count'])
+            return head['name']+'要求占全部岗位'+percent(head['count'],total)+'%，为最多学历组'
+        if tracks:return tracks[0]['name']+'是本地最大已识别岗位方向'
+    if index==1:
+        salary=data.get('salary') or {};entry=(data.get('voc_pool') or {}).get('salary') or {}
+        if salary.get('median') is not None and entry.get('valid',0)>=30 and entry.get('median') is not None:
+            relation='低于' if entry['median']<salary['median'] else '高于' if entry['median']>salary['median'] else '持平于'
+            return '入门报价中位数'+number(entry['median'])+'K/月，'+relation+'总体'
+        if salary.get('median') is not None:return '招聘报价中位数为'+number(salary['median'])+'K/月'
+    if index==2 and len(tracks)>1:
+        return tracks[0]['name']+'与'+tracks[1]['name']+'合计占全部岗位'+percent(sum(r['count'] for r in tracks[:2]),total)+'%'
+    return fallback
+
+
 def core(data,item,index,facts):
     claim=item['claims'][index]
-    text=NUMBERS[index]+'、'+claim['title']+'。'+core_measurements(data,item,index,facts)
+    text=NUMBERS[index]+'、'+core_heading(data,index,claim['title'])+'。'+core_measurements(data,item,index,facts)
     interpretation=claim['interpretation']
     if index==0:interpretation=re.sub(r'宜按匹配条件后的候选量确定项目覆盖，再分配城市对接与课程资源。$','',interpretation)
     if index==1:interpretation=re.sub(r'宜以入门样本的中位数及四分位区间组织就业沟通，再按具体方向和岗位条件说明差别。$','',interpretation)
@@ -126,8 +158,10 @@ def paths(data,item,kind,index=None):
     if kind=='section-distinct':
         return list(dict.fromkeys(paths(data,item,'section')+paths(data,index,'section')))
     if kind=='summary':
-        return ['/total/positions','/total/companies']+(['/city_profiles'] if data.get('city_profiles') else [])
+        return ['/total/positions','/total/companies']+(['/city_profiles'] if data.get('city_profiles') else [])+(['/subtrack'] if data.get('subtrack') else [])+(['/salary'] if data.get('salary') else [])
     if kind=='core':
+        if index==0 and len(ordered_cities(data))<=1 and data.get('edu'):
+            return ['/total/positions','/edu']+(['/exp'] if data.get('exp') else [])
         if index==0 and len(ordered_cities(data))>1 and 'city' in (data.get('voc_pool') or {}) and 'count' in (data.get('voc_pool') or {}):
             return ['/total/positions','/city_profiles','/voc_pool/count','/voc_pool/city']
         if index==1 and (data.get('salary') or {}).get('median') is not None and (data.get('voc_pool') or {}).get('salary',{}).get('valid',0)>=30 and (data.get('voc_pool') or {}).get('salary',{}).get('median') is not None:
@@ -136,7 +170,7 @@ def paths(data,item,kind,index=None):
     from report_analysis import derive_findings
     facts={row['id']:row for row in derive_findings(data)}
     ids=item['claims'][index]['findingIds'] if kind=='core' else item['findingIds']
-    return list(dict.fromkeys(path for fid in ids for path in facts[fid]['paths']))
+    return list(dict.fromkeys([path for fid in ids for path in facts[fid]['paths']]+(['/subtrack','/total/positions'] if kind=='core' and index==0 and ordered_tracks(data) else [])))
 
 
 def spec(data,item,kind,binding,index=None):
@@ -162,7 +196,7 @@ def project(data,specification):
     raise ValueError('未知融合段落类型')
 
 
-PROCESS_WORDS=re.compile(r'待核验|待审核|待核实|待验证|待确认|尚待|审核通过后|核验后再|初稿|草案|占位|待填写|本批次|本轮写作|受信规则|findingIds|evidenceHash|写作规则')
+PROCESS_WORDS=re.compile(r'进一步联立|才能辨认|当前样本用于识别|地域规模只回答|还要继续结合|仍需继续对照|待核验|待审核|待核实|待验证|待确认|尚待|审核通过后|核验后再|初稿|草案|占位|待填写|本批次|本轮写作|受信规则|findingIds|evidenceHash|写作规则')
 
 
 def content_audit(outline):

@@ -70,6 +70,10 @@ critical_gap_ids 只填阻断当前决定的 gaps ID。与当前任务无关的�
 
 [历史样板](../assets/examples/observation/report.json) 用于复现旧统计口径，不是新范围的数据源。
 
+## 呈现计划
+
+取数前先按[呈现计划约定](presentation-plan.md)在工作区起草 `presentation-plan.md`，为每个预期图表确定所需数据形式；数据的保留须满足计划所需字段，不只保留总量。build 后把 `presentation-plan.md` 随正文和 report.json 一起交给 report-rendering。计划是工作区工件，不改变本文件的 schema。
+
 ## 业务构建之后
 
 本轮 build 成功后必须交接 report-rendering 继续到最终成品及平台发布；四份原件只是业务交接结果。旧 decision/observation 稿可 validate、preview、verify，不能作为新的完整报告 build；迁移时补齐论证与必要决策，不机械复制章节。

@@ -11,6 +11,7 @@ import { OUTCOME_LABEL, type RunListItem } from '../data/runs'
 import type { ReportChart as ReportChartData } from '../data/runs'
 import Icon from '../components/Icon.vue'
 import ReportOutput from '../components/ReportOutput.vue'
+import WechatReportPreview from '../components/WechatReportPreview.vue'
 import type { ExecutionStep } from '../../shared/execution'
 import type { ChatQuestion } from '../../shared/chatQuestion'
 import ChatQuestionCard from '../components/ChatQuestionCard.vue'
@@ -46,6 +47,12 @@ interface Msg {
 }
 
 interface Demo { slug: string; question: string; reply: string }
+const latestWechatReport=computed(()=>messages.value.filter(message=>message.role==='ai' && message.skill?.slug==='wechat-report' && message.webLinks?.length).slice(-1)[0])
+function confirmReportQuality(message:Msg,url:string) {
+  if(message!==latestWechatReport.value || sending.value || loadingConversation.value || !message.done)return
+  activeSkill.value=message.skill
+  void send('我确认这份报告质量合格：'+url)
+}
 const DEMOS: Demo[] = [
   {
     slug: 'industry-education-report',
@@ -1077,6 +1084,9 @@ onBeforeUnmount(() => {
                   :steps="msg.execution ?? []" :duration-ms="msg.done ? msg.durationMs : elapsedMs" :running="!msg.done" />
                 <ReportOutput v-if="msg.text || !msg.question" :text="msg.text" :charts="msg.charts" :has-resources="resourceCount(msg) > 0"
                   :html-mode="!msg.question && msg.skill?.slug === 'career-guidance'" :streaming="!msg.done" />
+                <WechatReportPreview v-if="msg.skill?.slug === 'wechat-report' && msg.webLinks?.length" :links="msg.webLinks"
+                  :can-confirm="msg === latestWechatReport && msg.done && !msg.question && !sending && !loadingConversation"
+                  @confirm="confirmReportQuality(msg,$event)" />
                 <ChatQuestionCard v-if="msg.question" :request="msg.question" :run-id="msg.runId"
                   :pending="msg === pendingQuestion" :answer="replyText(mi)" :disabled="sending || loadingConversation || attachUploading"
                   @answer="answerQuestion(msg, $event)" />

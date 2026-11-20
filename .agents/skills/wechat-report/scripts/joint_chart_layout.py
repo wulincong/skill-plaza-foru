@@ -127,7 +127,14 @@ def chart_js(cfg,el,theme):
         maximum=max([row[3] for row in data] or [1]);numbers='①②③④⑤⑥⑦⑧'
         labeled=set(range(min(3,len(data))))
         if data:labeled.add(max(range(len(data)),key=lambda i:data[i][1]))
-        label_positions={i:('bottom','top','left','right')[j] for j,i in enumerate(sorted(labeled))}
+        # Nearby or coincident bubbles share space; keep their colors/legend,
+        # but only annotate spatially separated centers.
+        x_extent=max([row[1] for row in data] or [1])*1.25 or 1
+        separated=[]
+        for i in sorted(labeled):
+            if all(abs(data[i][1]-data[j][1])/x_extent*600>=42 or abs(data[i][2]-data[j][2])*4>=42 for j in separated):
+                separated.append(i)
+        labeled=set(separated)
         opt.update(grid={'left':85,'right':65,'top':60,'bottom':400},
             xAxis=dict(axis,type='value',name='入门池薪酬中位数（K/月）',nameLocation='middle',nameGap=50,nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
             yAxis=dict(axis,type='value',min=0,max=100,name='方向内入门池份额（%）',nameLocation='middle',nameGap=55,nameTextStyle={'fontSize':24},splitLine={'lineStyle':{'color':'#E5E7EB'}}),
@@ -137,7 +144,7 @@ def chart_js(cfg,el,theme):
             series=[{'type':'scatter','data':[{'name':row[0],'value':[row[1],row[2],row[3],row[4],row[5]],
                      'symbolSize':22+52*math.sqrt(row[3]/maximum),'itemStyle':{'color':colors[i%len(colors)],'opacity':.82},
                      'label':{'show':i in labeled,'formatter':numbers[i],
-                              'position':label_positions.get(i,'right'),'distance':12}} for i,row in enumerate(data)],
+                              'position':'inside','distance':0}} for i,row in enumerate(data)],
                      'label':{'show':True,'position':'right','fontSize':23,'color':text,
                               'textBorderColor':'#FFFFFF','textBorderWidth':3},
                      'labelLine':{'show':True,'lineStyle':{'color':sub}},'labelLayout':{'moveOverlap':'shiftY','hideOverlap':True}}])

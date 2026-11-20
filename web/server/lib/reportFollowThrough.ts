@@ -3,7 +3,7 @@ import {isReportRequest} from '../../../scripts/report-request.mjs'
 import type { UsageSummary } from './traceExport.ts'
 
 export function reportRevisionRequested(text:string):boolean {
-  return /修改|优化|重写|调整|加强|改进|重新生成/.test(text) && !/^(?:请)?(?:不要|别|不用|不需要)|^(?:请问)?(?:如何|怎么|为什么)/.test(text.trim())
+  return /修改|优化|重写|调整|加强|改进|重新生成|改成|改为|改一下|精简|补充|删去|删掉|删除/.test(text) && !/^(?:请)?(?:不要|别|不用|不需要)|^(?:请问)?(?:如何|怎么|为什么)/.test(text.trim())
 }
 
 export function reportRequested(text: string,hasData=false): boolean {

@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 129；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 126；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -47,7 +47,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 036 | OpenAI 兼容端点 /v1/chat/completions：外部项目统一接入入口 | 接口与在线运行/API 公开指南已验证；微信机器人两阶段报告接入待实现 | [036-openai-compat-chat-endpoint.md](references/036-openai-compat-chat-endpoint.md) |
 | 075 | 沙箱 pi 上下文隔离：--no-context-files 断链 + 沙箱说明显式注入 + 工程边界节 | 已实现（重启后探针会话验证） | [075-sandbox-context-isolation.md](references/075-sandbox-context-isolation.md) |
 | 077 | 运行详情页统一时间线（Pi trace 单列；原 012 迁号） | 已实现 | [077-run-detail-timeline.md](references/077-run-detail-timeline.md) |
-| 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现（探针会话验证；kill 链与技能全链路待观察） | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
+| 078 | pi 沙箱第一层：低权系统用户运行（写权限限 workspace；PI_SANDBOX_USER + setup-pi-sandbox.sh） | 已实现；11-13 属组漂移已恢复，新/旧会话启动通过；技能全链路待观察 | [078-pi-sandbox-user-isolation.md](references/078-pi-sandbox-user-isolation.md) |
 | 119 | 多用户工作区、环境模板与 gVisor 执行边界 | 设计建议，待范围确认与实现；仅本机基础安装已验 | [119-multi-user-gvisor-workspaces.md](references/119-multi-user-gvisor-workspaces.md) |
 | 120 | 沙箱执行的持久状态、收尾提交与稳定网页发布 | 设计中，未实现；用户已明确持久执行与长期链接需求 | [120-persistent-execution-and-stable-publications.md](references/120-persistent-execution-and-stable-publications.md) |
 | 121 | 多用户沙箱架构审查：故障语义、调试、版本与服务目标 | 审查完成，修订未实现；故障注入/容量验收待做 | [121-sandbox-architecture-reliability-review.md](references/121-sandbox-architecture-reliability-review.md) |
@@ -82,9 +82,14 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 113 | 共享报告渲染的自由输入、UI 元素、表格、主题与多图选型 | 已实现 | [113-report-rendering-ui-skill.md](references/113-report-rendering-ui-skill.md) |
 | 115 | 产教业务稿与共享渲染彻底分离 | 已实现；后续交接修复见 116 | [115-industry-content-rendering-separation.md](references/115-industry-content-rendering-separation.md) |
 | 116 | 完整产教报告、人类决策与端到端网页交付 | 已实现（真实模型交付与浏览器验收通过） | [116-industry-full-web-delivery.md](references/116-industry-full-web-delivery.md) |
+| 123 | 产教报告编号流程、取数前置呈现计划与验收硬约束 | 已实现（文档约定层；真实端到端待验证） | [123-industry-explicit-process-acceptance-and-presentation-plan.md](references/123-industry-explicit-process-acceptance-and-presentation-plan.md) |
+| 124 | 报告正文段落化渲染：结构化字段不作可见标签 | 已实现（本次交付重渲染验证；真实会话复验待验证） | [124-prose-paragraph-rendering-no-field-labels.md](references/124-prose-paragraph-rendering-no-field-labels.md) |
 
-| 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现（真实草稿与回读已验证） | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
-| 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现（官方API白名单待恢复） | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
+| 125 | 报告正文预览、质量确认后存稿与公众号公众卡片 | 已实现（真实Vue/Pi修订/草稿回读/UTF-8与缓存验证） | [125-report-review-before-draft.md](references/125-report-review-before-draft.md) |
+| 117 | 公众号易读报告、独立导语、专属卡片与缓存 | 已实现；11-13按官方文档真实创建、回读及重复保存验证通过 | [117-wechat-readable-report-and-card-pipeline.md](references/117-wechat-readable-report-and-card-pipeline.md) |
+| 118 | 公众号自然语言意图、精确市级范围与关注核验 | 已实现；11-13出口变化故障已归因、提示修复与官方关注查询恢复 | [118-wechat-natural-intake-and-exact-scope.md](references/118-wechat-natural-intake-and-exact-scope.md) |
+| 122 | 微信接口专用固定公网出口、SSH隧道与独立传输 | 11-16已启用115.231.218.150出口，token/关注/草稿回读与自动重连通过 | [122-wechat-dedicated-fixed-egress.md](references/122-wechat-dedicated-fixed-egress.md) |
+
 
 ### 报告输出协议（就业指导）
 

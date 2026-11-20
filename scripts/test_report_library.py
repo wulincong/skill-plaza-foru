@@ -49,9 +49,12 @@ class CatalogTests(unittest.TestCase):
  def test_confirmation_bound_to_last_report(self):
   self.assertEqual(lib.consent({'sessionId':'fresh','text':'确定'})['status'],'unhandled')
   lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'确定'})['status'],'review-required')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告质量合格'})['status'],'reviewed')
   self.assertEqual(lib.consent({'sessionId':'s1','text':'确定'})['reportId'],'r1')
   self.assertEqual(lib.consent({'sessionId':'s1','text':'现在几点'})['status'],'unhandled')
   self.assertEqual(lib.consent({'sessionId':'s1','text':'确定'})['status'],'unhandled')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告质量合格'})['status'],'reviewed')
   self.assertEqual(lib.consent({'sessionId':'s1','text':'保存到公众号草稿箱'})['status'],'confirmed')
   for text in ['可以保存草稿吗','请问怎么保存到草稿箱','如果合适就保存草稿','把上一份报告保存到草稿箱']:
    self.assertEqual(lib.consent({'sessionId':'s1','text':text})['status'],'unhandled',text)
@@ -63,12 +66,39 @@ class CatalogTests(unittest.TestCase):
  def test_natural_affirmatives_are_bound_to_a_pending_report_and_questions_are_not(self):
   for text in ['可以啊','可以的','好呀','保存吧','存一下','好的，保存吧']:
    lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
+   self.assertEqual(lib.consent({'sessionId':'s1','text':'报告质量合格'})['status'],'reviewed')
    self.assertEqual(lib.consent({'sessionId':'s1','text':text})['status'],'confirmed',text)
   self.assertEqual(lib.consent({'sessionId':'s1','text':'可以啊？'})['status'],'unhandled')
   self.assertEqual(lib.consent({'sessionId':'s1','text':'可以啊'})['status'],'unhandled')
+ def test_review_is_bound_to_version_and_reset_by_revision(self):
+  lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'保存草稿'})['status'],'review-required')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'我确认这份报告质量合格：https://example.test/old'})['status'],'review-stale')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告不合格'})['status'],'unhandled')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'我确认这份报告质量合格：https://example.test/report'})['status'],'reviewed')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'保存草稿'})['status'],'confirmed')
+  lib.consent({'sessionId':'s1','text':'把报告摘要精简一下'})
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'保存草稿'})['status'],'review-required')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告质量合格，保存草稿'})['status'],'confirmed')
+
  def test_expiry_uses_data_date_not_registration_date(self):
   with lib.database() as db:db.execute("UPDATE reports SET data_at='2020-01-01T00:00:00Z'")
   self.assertEqual(lib.lookup({'text':'广东人工智能报告'})['status'],'miss')
+
+ def test_quality_verdict_with_edits_revises_before_acceptance(self):
+  lib.lookup({'sessionId':'s1','text':'广东人工智能报告','maxAgeSeconds':30*86400})
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告整体满意，但是摘要再精简一下'})['status'],'unhandled')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'保存草稿'})['status'],'review-required')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告质量合格，不用修改'})['status'],'reviewed')
+  self.assertEqual(lib.consent({'sessionId':'s1','text':'报告质量合格，暂不保存'})['status'],'declined')
+
+ def test_snapshot_cache_retains_original_date_and_respects_stricter_freshness(self):
+  from datetime import timedelta
+  old=(datetime.now(timezone.utc)-timedelta(days=12)).isoformat().replace('+00:00','Z')
+  with lib.database() as db:db.execute('UPDATE reports SET data_at=?',(old,))
+  self.assertEqual(lib.lookup({'text':'广东人工智能报告'})['status'],'hit')
+  self.assertEqual(lib.lookup({'text':'广东人工智能报告','maxAgeSeconds':7*86400})['status'],'miss')
+  self.assertEqual(lib.lookup({'text':'广东人工智能最新报告'})['status'],'miss')
  def test_paths_and_non_default_briefs_are_rejected(self):
   for value in ['../other','a/b','',None]:
    with self.assertRaises(ValueError):lib.checked_session(value)
@@ -119,7 +149,7 @@ class CatalogTests(unittest.TestCase):
    'stages':[{'script':name,'exitCode':0,'durationMs':1} for name in stages],
    'pipelineFiles':{name:digest((scripts/name).read_bytes()) for name in PIPELINE_FILES},
    'reportDataSha256':digest(b'{}'),'analysisSha256':digest(b'{}'),'outlineSha256':'outline','manifestSha256':'manifest'}
-  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/2'},'editorialPolicy':'wechat-editorial-prose/3','readableLayout':'wechat-readable-layout/1','chart_selection':{'policy':'wechat-chart-selection/2'}}
+  outline={'analysis':{'schema':'wechat-analysis/2','reasoningPolicy':'wechat-analytic-reasoning/2'},'editorialPolicy':'wechat-editorial-prose/4','readableLayout':'wechat-readable-layout/1','chart_selection':{'policy':'wechat-chart-selection/2'}}
   quality={'outline_sha256':'outline','manifest_sha256':'manifest'}
   cover=base/'output/public/site/assets/share-cover.png';cover.parent.mkdir(parents=True);cover.write_bytes(b'cover')
   receipt['shareCoverSha256']=digest(b'cover')

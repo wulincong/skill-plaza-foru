@@ -14,13 +14,13 @@ def examples(data,key):
       'experience':'初次求职可先观察应届与低经验岗位，再逐条对照职责和项目经历要求。明确的经验年限与实际工作任务一起阅读，比只比较经验分布更有助于准备申请材料。',
       'access':'交叉表能够把分散的学历和经验条件还原为具体入口，优先选择条件同时匹配的组合，再比较方向与报价，比单看某项条件的占比更接近实际岗位筛选。',
       'salary':'薪酬预期先对应可申请的岗位组，再参考中位数与中间区间。总体报价与入门报价分别展示，能够减少用高薪方向或总体均值替代个人起点的误读。',
-      'tracks':f'{direction}与{next_direction}分别保留岗位观察清单，方向排序用于理解任务构成；读者还需结合分类覆盖和具体职责，辨认产业内部有哪些不同的工作路径。',
-      'track_salary':'把方向岗位量和有效报价放在一起读，高薪但规模较小的方向与规模较大的方向承担不同的就业观察价值；进一步选择应落到相近条件的岗位组。',
-      'city_tracks':f'{places}按城市内部方向份额比较，既看共同的大方向，也保留各自的局部特点；城市总量与方向份额共同用于定位可继续研究的岗位清单。',
+      'tracks':f'{direction}与{next_direction}分别保留岗位观察清单，方向排序用于理解任务构成；分类覆盖率呈现这些方向在全部岗位中的解释范围，主要类别展示本地机会的工作构成。',
+      'track_salary':'把方向岗位量和有效报价放在一起读，高薪但规模较小的方向与规模较大的方向承担不同的就业观察价值；方向规模与报价共同呈现机会覆盖和薪酬位置。',
+      'city_tracks':f'{places}按城市内部方向份额比较，既看共同的大方向，也保留各自的局部特点；城市总量与方向份额共同用于呈现本地岗位的主要方向和结构差别。',
       'lq':'相对集中程度用来寻找规模排名之外的地方专长，绝对岗位量用来判断观察基础；同时满足结构突出与样本充分的单元，更适合作为深入调研对象。',
       'skills':'先辨认高频技术词与通用能力分别对应什么工作环节，再回到岗位描述看工具怎样组合使用。能力准备围绕完整任务展开，避免把词频直接变成学习顺序。',
-      'track_skills':'共同出现的能力可作为跨方向基础，不同方向的专属工具仍需分别准备；对照同一方向中的岗位原文，能够把能力词转化为具体的任务与成果要求。',
-      'vocational':'入门条件交集提供了更聚焦的岗位观察范围，但仍需继续对照具体职责与实际工作地点；先明确可申请的入口，再准备能够说明相关任务经历的作品与材料。'}[key]
+      'track_skills':'共同出现的能力构成跨方向的描述基础，不同方向的专属工具呈现任务组合的差别；对照同一方向中的岗位原文，能够把能力词转化为具体的任务与成果要求。',
+      'vocational':'入门条件交集提供了更聚焦的岗位观察范围，同时保留总体岗位作为对照；交集内部的方向规模与薪酬分布，呈现面向初次就业人群的主要机会结构。'}[key]
     if key=='track_salary':
         rows=[row for row in data.get('salary_by_track',[]) if row.get('key')!='__other__' and row.get('valid',0)>=30 and row.get('median') is not None]
         if len(rows)>=2:text=max(rows,key=lambda r:r['median'])['name']+'与'+min(rows,key=lambda r:r['median'])['name']+'分别建立岗位比较清单。方向报价与岗位规模一起阅读，再以学历、经验和职责相近的岗位校准求职预期。'
@@ -29,7 +29,7 @@ def examples(data,key):
         for city in cities[:2]:
             rows=[row for row in data.get('city_track_rows',[]) if row['city']==city['name'] and row.get('track')!='__other__' and row.get('count',0)>0]
             if rows:parts.append(city['name']+'关注'+max(rows,key=lambda r:r['count'])['label'])
-        if parts:text='；'.join(parts)+'。这些是城市内部结构的观察重点，进一步比较还应同时看绝对岗位量和具体申请条件。'
+        if parts:text='；'.join(parts)+'。这些方向构成各自城市的主要招聘内容，绝对岗位量与城市内份额共同呈现机会规模与结构重心。'
     if key=='lq':
         from joint_report_charts import specialization
         rows=(specialization(data) or {}).get('data',[])[:2]
