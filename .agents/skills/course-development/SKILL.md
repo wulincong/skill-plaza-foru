@@ -1,5 +1,5 @@
 ---
-name: course-development
+name: 产教课程开发
 description: 为课程组与骨干教师把培养方案课程卡片开发为完整课程：JD 原文抽样驱动典型工作任务、知识点上挂能力项下接考核点、标准合规逐条核对，交付课程包网页与结构化课程包。岗位统计与 JD 抽样由 talent-data-query 提供，呈现交给 report-rendering。
 ---
 
