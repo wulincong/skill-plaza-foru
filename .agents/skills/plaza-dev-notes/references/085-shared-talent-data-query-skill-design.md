@@ -20,6 +20,8 @@
 
 **同日节点总量与学历边界补注**：`c_industry_chain_position` 的 6,158 行包含已删除记录和四种节点类型，未删除共 5,903 行；其中具体岗位为 3,590 个节点、2,713 个去空格去重名称，关联 49 个产业 ID（全部能连接，不默认过滤产业开放状态）。全表 `school_type` 6,158 行均为空，具体岗位连接到的未删除业务流程也未给出学校类型，不能作为目录适用学历筛选；具体岗位及岗位群的 `profession_library_id` 无正值，不猜专业映射。真实招聘学历读取 `c_company_position.education`，通过目录映射按招聘主键去重；画像条件中的学历文字不等于招聘实测或适用学校层次。SQL 与实测分布见上述指南第 6 节，示例均真库执行通过。尚未建立目录适用学校层次的数据来源或公共筛选能力。
 
+**2026-11-23 测试库探查**：测试库默认业务库与旧快照同名，目录语义已有差异。未删除 `POSITION`（17,444 个）和 `SUB_POSITION`（57,210 个）按 `school_type` 标注适用学校类型，使用 `pid` 连父级，759 个细分岗位的父 ID 在目录中缺失。典型任务表按 `industry_chain_position_id` 实测覆盖两类节点，每节点一条未删除记录，部分 JSON 数组为空。未删除招聘映射 878,006 条中 809,466 条未命中目录节点；保留有效映射并按招聘 ID 去重时，有 18,841 条映射到在招且未删除招聘记录。测试库另有 `jd_agent_position_cluster → jd_agent_portrait_report/jd_agent_typical_work_task` 的声明外键，以及 `jd_std_position → jd_std_clean_jd` 的实测关联。三套对象的 ID 各自维护，聚类产出与目录任务之间的生成关系仍待核验。现有 `scripts/talent-data/refresh-position-catalog.mjs:11` 快照口径仅覆盖 `POSITION`，接入测试库的细分岗位和学校类型前需要明确新筛选口径。测试库结果单独保存，已有快照继续保留原来源。逐项证据见 [测试库探查](../../../../reports/database-inventory/2026-11-23-test/数据库探查.md)（`reports/database-inventory/2026-11-23-test/数据库探查.md:1`）。
+
 ### 实际接入点
 
 | 接入点 | 已实现行为 |
