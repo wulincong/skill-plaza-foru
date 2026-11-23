@@ -318,6 +318,21 @@ def fixture():
                                         '获得至少 1 项职业技能等级证书或同等行业认证'],
                        'minCredits': 149.5},
         'decisions': [],
+        'chartPlan': [
+            {'id': 'F_SPEC', 'question': '各能力项由哪些课程支撑、强度如何？', 'kind': 'matrix',
+             'reason': '课程与能力是多对多交叉关系，用矩阵呈现支撑强度',
+             'section': '附录B 能力—课程支撑矩阵', 'dataOrigin': 'program',
+             'dataRefs': {'fromProgram': ['curriculum.domains', 'capabilityDomains']}},
+            {'id': 'F_HOURS', 'question': '各类课程的理论与实践学时相差多少？', 'kind': 'bar',
+             'reason': '课程类别间的同口径学时比较', 'section': '七、学时安排',
+             'dataOrigin': 'program', 'dataRefs': {'fromProgram': ['curriculum.courses']}},
+            {'id': 'F_EDU', 'question': '区域岗位的学历要求如何分布？', 'kind': 'barh',
+             'reason': '学历类别为长标签，横向排名便于阅读', 'section': '四、职业面向',
+             'dataOrigin': 'query', 'dataRefs': {'metricIds': ['M_EDU']}},
+            {'id': 'F_SAL', 'question': '岗位薪酬分位区间多宽？', 'kind': 'interval',
+             'reason': 'P25–P75 分位区间展示薪酬分布的不确定性', 'section': '四、职业面向',
+             'dataOrigin': 'query', 'dataRefs': {'metricIds': ['M_SAL']}},
+        ],
     }
 
 
@@ -612,6 +627,115 @@ class ProgramTests(unittest.TestCase):
         finally:
             program.CORPUS_DIR, program._corpus_rows = prev
 
+    # ---- 图表规划（先定图再取数）与链接式依据 ----
+
+    def composed(self):
+        result = self.validate(self.d)
+        self.assertEqual(result['errors'], [])
+        self.d['computed'] = result['computed']
+        return program.compose_blocks(self.d)
+
+    def test_chart_plan_required(self):
+        self.d.pop('chartPlan')
+        result = self.validate(self.d)
+        self.assertTrue(any('chartPlan' in e for e in result['errors']))
+
+    def test_chart_plan_family_gate(self):
+        self.d['chartPlan'] = [dict(e, kind='bar') for e in fixture()['chartPlan']]
+        result = self.validate(self.d)
+        joined = '\n'.join(result['errors'])
+        self.assertIn('图型家族', joined)
+        self.assertIn('一半', joined)
+
+    def test_chart_plan_two_families_blocks(self):
+        self.d['chartPlan'] = [e for e in fixture()['chartPlan'] if e['kind'] != 'interval']
+        result = self.validate(self.d)
+        self.assertTrue(any('至少 3 种完全不同的图型' in e for e in result['errors']))
+
+    def test_chart_plan_kind_refs_and_section(self):
+        plan = fixture()['chartPlan']
+        plan[0]['kind'] = 'pie'
+        plan[2]['dataRefs'] = {}
+        plan[3]['section'] = '十三、不存在的章节'
+        self.d['chartPlan'] = plan
+        result = self.validate(self.d)
+        joined = '\n'.join(result['errors'])
+        self.assertIn('不在 figure/1 可执行集', joined)
+        self.assertIn('须绑定 metricIds', joined)
+        self.assertIn('不在正文章节中', joined)
+
+    def test_body_uses_readable_links_not_ids(self):
+        blocks = self.composed()
+        body = []
+        at_appendix = False
+        for kind, payload in blocks:
+            if kind == 'h2' and payload.startswith('附录'):
+                at_appendix = True
+            if not at_appendix:
+                body.append(str(payload))
+        text = '\n'.join(body)
+        self.assertEqual(re.findall(r'(?:指标|来源|能力)[ \t]*[MSC][-_]', text), [])
+        folded = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text)
+        self.assertEqual(re.findall(r'(?<![A-Za-z0-9_-])[MSC][-_][A-Za-z0-9_-]+', folded), [])
+        self.assertIn('](#M_POS)', text)
+        self.assertIn('](#S_STD)', text)
+        self.assertIn('](#C-OPS-1)', text)
+
+    def test_page_blocks_anchors_cover_all_links(self):
+        result = self.validate(self.d)
+        self.d['computed'] = result['computed']
+        blocks = program.page_blocks(self.d)
+
+        def collect(items):
+            texts, ids = [], []
+            for b in items:
+                if not isinstance(b, dict):
+                    continue
+                if b.get('id'):
+                    ids.append(b['id'])
+                for key in ('text', 'label'):
+                    if b.get(key):
+                        texts.append(str(b[key]))
+                for it in b.get('items', []) if isinstance(b.get('items'), list) else []:
+                    if it.get('id'):
+                        ids.append(it['id'])
+                    for key in ('label', 'text'):
+                        if it.get(key):
+                            texts.append(str(it[key]))
+                if isinstance(b.get('blocks'), list):
+                    sub_texts, sub_ids = collect(b['blocks'])
+                    texts += sub_texts
+                    ids += sub_ids
+            return texts, ids
+
+        texts, ids = collect(blocks)
+        self.assertEqual(len(ids), len(set(ids)), '锚点 id 须全页唯一')
+        for anchor in ids:
+            self.assertTrue(program.ANCHOR_ID.fullmatch(anchor), f'锚点 id 不合规：{anchor}')
+        targets = {m.group(1) for t in texts for m in re.finditer(r'\]\(#([^)]+)\)', t)}
+        self.assertEqual(sorted(targets - set(ids)), [], '存在没有锚点落点的链接目标')
+        for anchor in ('M_POS', 'M_SAL', 'C-OPS-1', 'S_STD'):
+            self.assertIn(anchor, ids)
+
+    def test_page_blocks_place_figures_per_plan(self):
+        result = self.validate(self.d)
+        self.d['computed'] = result['computed']
+        blocks = program.page_blocks(self.d)
+
+        def figure_specs(section):
+            out = []
+            for b in section.get('blocks', []):
+                if b.get('type') == 'figure':
+                    out.append(b['spec'])
+                if isinstance(b.get('blocks'), list):
+                    out += figure_specs(b)
+            return out
+
+        by_title = {b.get('title'): b for b in blocks if b.get('type') == 'section'}
+        self.assertEqual(figure_specs(by_title['附录B 能力—课程支撑矩阵']), ['F_SPEC.json'])
+        self.assertEqual(sorted(figure_specs(by_title['四、职业面向'])), ['F_EDU.json', 'F_SAL.json'])
+        self.assertEqual(figure_specs(by_title['七、学时安排']), ['F_HOURS.json'])
+
     def test_user_source_excerpt_verified(self):
         earlier = ['面向数据工程技术人员等职业群', '现有专任教师 12 人，其中双师型 6 人']
         context = {'message': '', 'earlierMessages': earlier, 'uploads': []}
@@ -690,6 +814,37 @@ class BuildTests(unittest.TestCase):
         self.assertIn('Hadoop 大数据平台运维', document)
         self.assertIn('附录A 证据与口径', document)
 
+    def test_docx_links_readable_without_ids_or_markdown(self):
+        with patch.object(program, 'inspect_source', fake_inspect):
+            self.assertEqual(program.build(self.cwd / 'program.json'), 0)
+        out = next((self.cwd / 'output').iterdir())
+        with zipfile.ZipFile(out / 'program.docx') as archive:
+            document = archive.read('word/document.xml').decode()
+            rels = archive.read('word/_rels/document.xml.rels').decode()
+        # 锚点链接显示可读文字：不带 markdown 语法、不带编号目标、不做内部假超链接
+        self.assertNotIn('](', document)
+        self.assertNotIn('#M_POS', document)
+        self.assertIn('区域在招岗位数 123 个（广东省，查询时点）', document)
+        self.assertIn('能完成集群部署与基础调优', document)
+        self.assertNotIn('<w:hyperlink', document)
+        self.assertNotIn('TargetMode', rels)
+
+    def test_docx_external_hyperlink(self):
+        path = self.cwd / 'links.docx'
+        blocks = [('p', '外部 [教育部文件](https://www.moe.gov.cn/example) 与内部 [指标甲](#M_X) 引用')]
+        program.write_docx(path, blocks)
+        with zipfile.ZipFile(path) as archive:
+            document = archive.read('word/document.xml').decode()
+            rels = archive.read('word/_rels/document.xml.rels').decode()
+            minidom.parseString(document)
+            minidom.parseString(rels)
+        self.assertIn('<w:hyperlink r:id="rId10">', document)
+        self.assertIn('https://www.moe.gov.cn/example', rels)
+        self.assertIn('TargetMode="External"', rels)
+        self.assertIn('教育部文件', document)
+        self.assertIn('指标甲', document)
+        self.assertNotIn('](', document)
+
     def test_build_without_docx_flags_fallback(self):
         with patch.object(program, 'inspect_source', fake_inspect):
             self.assertEqual(program.build(self.cwd / 'program.json', skip_docx=True), 0)
@@ -707,6 +862,134 @@ class BuildTests(unittest.TestCase):
             code = program.build(self.cwd / 'program.json')
         self.assertEqual(code, 1)
         self.assertFalse((self.cwd / 'output').exists())
+
+
+class CheckPageTests(unittest.TestCase):
+    """成品页面校验：图型家族门槛、编号清零、死链与规划一致性。"""
+
+    def make_workspace(self, tmp, kinds=('matrix', 'bar', 'interval'), body_text=None,
+                       dead=False, unplanned=False, drop_plan_entry=False):
+        import check_page
+        root = Path(tmp)
+        specs = []
+        for i, kind in enumerate(kinds):
+            fid = f'F{i}{kind.replace("-", "")}'
+            spec = {'schema': 'figure/1', 'id': fid, 'lang': 'zh', 'title': f'图{i}',
+                    'datasets': {'d': [{'c': '甲', 'v': 1}]},
+                    'panels': [{'kind': kind, 'title': f'图{i}', 'data': 'd',
+                                'fields': {'category': 'c', 'value': 'v'},
+                                'x_label': 'x', 'y_label': 'y'}]}
+            (root / 'work').mkdir(parents=True, exist_ok=True)
+            (root / 'work' / f'{fid}.json').write_text(json.dumps(spec), encoding='utf-8')
+            bundle = root / 'work' / 'figures' / fid
+            bundle.mkdir(parents=True, exist_ok=True)
+            (bundle / 'values.json').write_text(
+                json.dumps([{'kind': kind, 'title': f'图{i}', 'rows': []}]), encoding='utf-8')
+            specs.append((fid, kind))
+        plan = [{'id': fid, 'question': 'q', 'kind': kind, 'reason': 'r', 'section': '四、职业面向',
+                 'dataOrigin': 'query', 'dataRefs': {'metricIds': ['M_X']}} for fid, kind in specs]
+        figures = [{'type': 'figure', 'spec': f'{fid}.json', 'bundle': f'figures/{fid}'}
+                   for fid, _ in specs]
+        if unplanned:
+            spec = {'schema': 'figure/1', 'id': 'F_EXTRA', 'lang': 'zh', 'title': '额外',
+                    'datasets': {'d': [{'c': '甲', 'v': 1}]},
+                    'panels': [{'kind': 'bar', 'title': '额外', 'data': 'd',
+                                'fields': {'category': 'c', 'value': 'v'},
+                                'x_label': 'x', 'y_label': 'y'}]}
+            (root / 'work' / 'F_EXTRA.json').write_text(json.dumps(spec), encoding='utf-8')
+            extra = root / 'work' / 'figures' / 'F_EXTRA'
+            extra.mkdir(parents=True, exist_ok=True)
+            (extra / 'values.json').write_text(json.dumps([{'kind': 'bar', 'title': '额外'}]),
+                                               encoding='utf-8')
+            figures.append({'type': 'figure', 'spec': 'F_EXTRA.json', 'bundle': 'figures/F_EXTRA'})
+        if drop_plan_entry:
+            plan = plan[:-1]
+        blocks = [
+            {'type': 'text', 'text': body_text
+             or '岗位判断见 [区域在招岗位数 12,280 个（广东省，2026-11-01）](#M_X)，'
+                '对标 [同类方案样例1 · 一、培养目标](#S_X)。'},
+            {'type': 'section', 'title': '四、职业面向', 'blocks': figures},
+            {'type': 'section', 'title': '附录A 证据与口径', 'blocks': [
+                {'type': 'text', 'id': 'M_X', 'text': '**M_X · 区域在招岗位数**：12,280 个｜广东省｜口径见条目'},
+                {'type': 'text', 'id': 'S_X', 'text': '**S_X · 同类方案样例1**：本地语料对标来源'},
+            ]},
+        ]
+        (root / 'work' / 'page.json').write_text(
+            json.dumps({'title': '测试方案', 'blocks': blocks}, ensure_ascii=False), encoding='utf-8')
+        (root / 'program.json').write_text(
+            json.dumps({'schema': 'training-program/1', 'chartPlan': plan}), encoding='utf-8')
+        html = ('<html><body><div id="M_X"></div><div id="S_X"></div>'
+                '<h2>四、职业面向</h2>'
+                '<a href="#M_X">区域在招岗位数 12,280 个（广东省，2026-11-01）</a>'
+                '<a href="#S_X">同类方案样例1 · 一、培养目标</a>'
+                '<h2>附录A 证据与口径</h2><p>M_X · 区域在招岗位数</p></body></html>')
+        if dead:
+            html = html.replace('<a href="#S_X">', '<a href="#S_MISSING">', 1)
+        site = root / 'output' / 'public' / 'site'
+        site.mkdir(parents=True, exist_ok=True)
+        (site / 'index.html').write_text(html, encoding='utf-8')
+        return root
+
+    def run_check(self, **kwargs):
+        import check_page
+        tmp = tempfile.mkdtemp()
+        try:
+            root = self.make_workspace(tmp, **kwargs)
+            return check_page.check(root, Path('work/page.json'),
+                                    Path('output/public/site'), Path('program.json'))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_passes_with_three_families_and_live_links(self):
+        summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'))
+        self.assertEqual(errors, [])
+        self.assertEqual(summary['familyCount'], 3)
+        self.assertEqual(summary['barPanels'], 1)
+        self.assertEqual(summary['deadLinks'], 0)
+        self.assertGreaterEqual(summary['internalLinks'], 2)
+
+    def test_all_bar_families_fail(self):
+        summary, errors = self.run_check(kinds=('bar', 'barh', 'bar'))
+        self.assertTrue(any('图型家族' in e for e in errors))
+
+    def test_bar_over_half_fails(self):
+        summary, errors = self.run_check(kinds=('bar', 'bar', 'bar', 'matrix', 'interval'))
+        self.assertTrue(any('超过全部图的一半' in e for e in errors))
+
+    def test_dead_anchor_fails(self):
+        summary, errors = self.run_check(dead=True)
+        self.assertTrue(any('死链' in e for e in errors))
+
+    def test_combo_pattern_fails(self):
+        summary, errors = self.run_check(
+            body_text='依据 指标 M_X 与 能力 C-A-1 支撑该判断，详见附录。')
+        self.assertTrue(any('编号引用写法' in e for e in errors))
+
+    def test_bare_id_in_body_fails(self):
+        summary, errors = self.run_check(body_text='依据 M_X 支撑该判断。')
+        self.assertTrue(any('裸编号' in e for e in errors))
+
+    def test_unplanned_figure_fails(self):
+        summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'), unplanned=True)
+        self.assertTrue(any('不在 chartPlan' in e for e in errors))
+
+    def test_planned_figure_missing_from_page_fails(self):
+        summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'),
+                                         drop_plan_entry=False)
+        # 对照：删掉页面上的最后一图但保留规划 → 规划图未上页
+        import check_page
+        tmp = tempfile.mkdtemp()
+        try:
+            root = self.make_workspace(tmp, kinds=('matrix', 'bar', 'interval'))
+            page = json.loads((root / 'work' / 'page.json').read_text())
+            section = next(b for b in page['blocks'] if b.get('title') == '四、职业面向')
+            section['blocks'] = section['blocks'][:-1]
+            (root / 'work' / 'page.json').write_text(json.dumps(page, ensure_ascii=False))
+            summary, errors = check_page.check(root, Path('work/page.json'),
+                                               Path('output/public/site'), Path('program.json'))
+            self.assertTrue(any('规划图未上页' in e for e in errors))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == '__main__':

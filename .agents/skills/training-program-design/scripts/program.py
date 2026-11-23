@@ -150,6 +150,34 @@ def text_len(value):
     return len(re.sub(r'\s', '', str(value or '')))
 
 
+def fmt_num(value):
+    """数值显示口径：整数加千分位，浮点去尾零；缺失显示 —。"""
+    if isinstance(value, bool) or value is None:
+        return '—'
+    if isinstance(value, int):
+        return f'{value:,}'
+    if isinstance(value, float):
+        return f'{value:g}'
+
+
+def metric_link_text(m):
+    """指标链接文字：名称 数值 单位（地域，时期）——人能读懂，不带编号。"""
+    when = re.search(r'\d{4}-\d{2}-\d{2}', str(m.get('period') or ''))
+    head = f"{m['label']} {fmt_num(m.get('value'))}"
+    if m.get('unit'):
+        head += f" {m['unit']}"
+    return f"{head}（{m.get('region') or '—'}，{when.group(0) if when else (m.get('period') or '—')}）"
+
+
+def source_ref_text(s):
+    """来源链接文字：标题 · 定位（locator 缺省时仅标题）。"""
+    return f"{s['title']} · {s['locator']}" if s.get('locator') else s['title']
+
+
+def md_link(text, anchor):
+    return f'[{text}](#{anchor})'
+
+
 # 内容深度下限（对照本地语料同类方案校准；不足即阻断构建）
 DEPTH = {
     'courseDescription': 20,     # 每门课程简介
@@ -163,6 +191,35 @@ DEPTH = {
     'graduationChars': 80,       # 毕业要求总字数
     'corpusRefs': 3,             # 对标语料份数下限
 }
+
+# 图表规划（chartPlan）：先定图、再取数。kind 取 chart-visualization figure/1 可执行集
+# （figure_data.ROLES）；专题图（雷达/桑基/堆叠柱等）尚不可执行出图，不入选型。
+FIGURE_KINDS = {'bar', 'barh', 'line', 'grouped-line', 'faceted-line', 'province-map', 'scatter',
+                'distribution', 'histogram', 'ecdf', 'paired', 'change-distribution',
+                'median-change', 'interval', 'matrix'}
+# 图型家族判定口径：条形家族（竖柱、横条、分组/多面板柱条）算一种；其余按分析关系各算一种。
+CHART_FAMILY = {
+    'bar': '条形', 'barh': '条形',
+    'line': '折线', 'grouped-line': '折线', 'faceted-line': '折线',
+    'province-map': '地图', 'scatter': '散点',
+    'distribution': '分布', 'histogram': '分布', 'ecdf': '分布',
+    'paired': '配对', 'change-distribution': '配对', 'median-change': '配对',
+    'interval': '区间', 'matrix': '矩阵',
+}
+CHART_MIN_FAMILIES = 3   # 全页至少 3 种不同图型家族（规划与成品两处分别校验）
+# 页面锚点/图稿 id 通用格式（report-rendering claim_id 口径）
+ANCHOR_ID = re.compile(r'[A-Za-z][A-Za-z0-9_-]*')
+
+
+def chart_summary(d):
+    """图表规划审计摘要：家族清单、家族数、条形占比（写入 validation.json）。"""
+    plan = [e for e in (d.get('chartPlan') or []) if isinstance(e, dict) and e.get('kind') in CHART_FAMILY]
+    families = [CHART_FAMILY[e['kind']] for e in plan]
+    bar = sum(1 for f in families if f == '条形')
+    return {'planned': [{'id': e.get('id'), 'kind': e.get('kind'), 'family': CHART_FAMILY[e['kind']],
+                         'section': e.get('section'), 'dataOrigin': e.get('dataOrigin')} for e in plan],
+            'families': sorted(set(families)), 'familyCount': len(set(families)),
+            'barShare': f'{bar}/{len(plan)}'}
 
 
 def compute_hours(d):
@@ -222,7 +279,7 @@ def validate(d):
 
     fields(d, ['schema', 'title', 'status', 'as_of', 'meta', 'sources', 'metrics', 'jobGroups',
                'capabilityDomains', 'standards', 'curriculum', 'schedule', 'assurance',
-               'graduation', 'cultivation', 'pedagogy'], 'program')
+               'graduation', 'cultivation', 'pedagogy', 'chartPlan'], 'program')
     check(isinstance(d.get('decisions'), list), 'decisions must be array')
     check(d.get('schema') == 'training-program/1', 'invalid schema')
     check(d.get('status') in ('draft', 'final'), 'invalid status')
@@ -249,6 +306,8 @@ def validate(d):
         for obj in items if isinstance(items, list) else []:
             check(isinstance(obj, dict) and isinstance(obj.get('id'), str) and bool(obj.get('id')),
                   f'{group}: invalid id')
+            check(isinstance(obj.get('id'), str) and bool(ANCHOR_ID.fullmatch(obj.get('id') or '')),
+                  f'{group}: id 须字母开头、仅含字母数字-_（正文依据要链接到附录锚点）：{obj.get("id")}')
             check(obj.get('id') not in index[group], f'{group}: duplicate {obj.get("id")}')
             if isinstance(obj, dict) and isinstance(obj.get('id'), str):
                 index[group][obj['id']] = obj
@@ -351,6 +410,8 @@ def validate(d):
         fields(domain, ['id', 'name', 'capabilities'], 'capabilityDomains')
         for cap in domain.get('capabilities', []):
             fields(cap, ['id', 'name', 'evidence'], 'capability')
+            check(bool(ANCHOR_ID.fullmatch(str(cap.get('id') or ''))),
+                  f'capability id 须字母开头、仅含字母数字-_（正文依据要链接到附录锚点）：{cap.get("id")}')
             check(cap.get('id') not in caps, f'capability duplicate {cap.get("id")}')
             caps[cap.get('id')] = cap
     job_groups = d.get('jobGroups') if isinstance(d.get('jobGroups'), list) else []
@@ -484,6 +545,52 @@ def validate(d):
                        if str(s.get('url', '')).startswith('corpus:'))
     check(corpus_count >= DEPTH['corpusRefs'],
           f'对标语料仅 {corpus_count} 份，不足 {DEPTH["corpusRefs"]} 份：先按索引选样精读同类方案再起草')
+
+    # chartPlan：先规划图表再取数；图型家族硬门槛（成品页面由 scripts/check_page.py 二次校验）
+    titles = section_titles(d)
+    plan_ids = set()
+    plan_kinds = []
+    for e in d.get('chartPlan') if isinstance(d.get('chartPlan'), list) else []:
+        check(isinstance(e, dict), 'chartPlan: 条目须为对象')
+        if not isinstance(e, dict):
+            continue
+        fields(e, ['id', 'question', 'kind', 'reason', 'section', 'dataOrigin', 'dataRefs'], 'chartPlan')
+        check(isinstance(e.get('id'), str) and bool(ANCHOR_ID.fullmatch(e.get('id') or '')),
+              f'chartPlan: id 须字母开头、仅含字母数字-_：{e.get("id")}')
+        check(e.get('id') not in plan_ids, f'chartPlan: duplicate id {e.get("id")}')
+        plan_ids.add(e.get('id'))
+        check(e.get('kind') in FIGURE_KINDS,
+              f'{e.get("id")}: 图型 {e.get("kind")} 不在 figure/1 可执行集（{ "、".join(sorted(FIGURE_KINDS)) }）')
+        if e.get('kind') in CHART_FAMILY:
+            plan_kinds.append(e['kind'])
+        check(e.get('dataOrigin') in ('program', 'query', 'corpus', 'user'),
+              f'{e.get("id")}: dataOrigin 须为 program/query/corpus/user')
+        check(e.get('section') in titles,
+              f'{e.get("id")}: 插图章节「{e.get("section")}」不在正文章节中，可选：{"、".join(titles)}')
+        refs = e.get('dataRefs')
+        check(isinstance(refs, dict), f'{e.get("id")}: dataRefs must be object')
+        if isinstance(refs, dict):
+            if e.get('dataOrigin') == 'query':
+                check(bool(refs.get('metricIds')), f'{e.get("id")}: 岗位数据图表须绑定 metricIds（按规划一次取齐）')
+                resolvable(refs.get('metricIds') or [], 'metrics', index)
+            elif e.get('dataOrigin') == 'corpus':
+                sids = refs.get('sourceIds') or []
+                resolvable(sids, 'sources', index)
+                check(bool(sids) and all(str((index['sources'].get(s) or {}).get('url', '')).startswith('corpus:')
+                                          for s in sids),
+                      f'{e.get("id")}: 语料对标图表须绑定 corpus: 来源')
+            elif e.get('dataOrigin') == 'user':
+                check(bool(refs.get('sourceIds')), f'{e.get("id")}: 用户材料图表须绑定 sourceIds')
+                resolvable(refs.get('sourceIds') or [], 'sources', index)
+            else:
+                check(bool(refs.get('fromProgram')), f'{e.get("id")}: 方案自带数据图表须在 fromProgram 写明取数字段')
+    families = [CHART_FAMILY[k] for k in plan_kinds]
+    check(len(set(families)) >= CHART_MIN_FAMILIES,
+          f'图表规划仅 {len(set(families))} 种图型家族（{ "、".join(sorted(set(families))) or "无" }），'
+          f'至少 {CHART_MIN_FAMILIES} 种完全不同的图型（条形家族算一种；构成/趋势/交叉关系选对应图型）')
+    bar_count = sum(1 for f in families if f == '条形')
+    check(bar_count * 2 <= len(plan_kinds),
+          f'条形家族图表 {bar_count}/{len(plan_kinds)} 超过全部图的一半，改用与数据关系匹配的图型')
 
     # pedagogy：教学实施与考核评价
     pedagogy = d.get('pedagogy') or {}
@@ -649,13 +756,61 @@ def esc(text):
             .replace('"', '&quot;'))
 
 
-def docx_paragraph(text, style=None, bold=False):
-    rpr = '<w:rPr><w:b/></w:rPr>' if bold else ''
+# 正文里的依据是 [可读名称](#锚点) 链接；Word 里内部锚点显示为可读文字，http(s) 做成真超链接
+MD_LINK = re.compile(r'\[([^\]]+)\]\(([^)]+)\)')
+
+
+def docx_runs(text, hyperlinks, bold=False):
+    """把文本转成 run/hyperlink XML 片段；外链登记关系到 hyperlinks 列表。"""
+    parts = []
+    pos = 0
+    for match in MD_LINK.finditer(str(text)):
+        if match.start() > pos:
+            parts.append(('t', str(text)[pos:match.start()]))
+        label, target = match.group(1), match.group(2)
+        if re.match(r'https?://', target):
+            rid = f'rId{len(hyperlinks) + 10}'
+            hyperlinks.append((rid, target))
+            parts.append(('a', rid, label))
+        else:
+            parts.append(('t', label))
+        pos = match.end()
+    if pos < len(str(text)):
+        parts.append(('t', str(text)[pos:]))
+    xml = []
+    for part in parts:
+        if part[0] == 't':
+            rpr = '<w:rPr><w:b/></w:rPr>' if bold else ''
+            xml.append(f'<w:r>{rpr}<w:t xml:space="preserve">{esc(part[1])}</w:t></w:r>')
+        else:
+            xml.append(f'<w:hyperlink r:id="{part[1]}"><w:r><w:rPr><w:color w:val="0563C1"/>'
+                       f'<w:u w:val="single"/></w:rPr>'
+                       f'<w:t xml:space="preserve">{esc(part[2])}</w:t></w:r></w:hyperlink>')
+    return ''.join(xml)
+
+
+def docx_paragraph(text, style=None, hyperlinks=None):
+    hyperlinks = hyperlinks if hyperlinks is not None else []
     ppr = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ''
-    return f'<w:p>{ppr}<w:r>{rpr}<w:t xml:space="preserve">{esc(text)}</w:t></w:r></w:p>'
+    return f'<w:p>{ppr}{docx_runs(text, hyperlinks)}</w:p>'
 
 
-def docx_table(rows):
+def parse_md_table(markdown_text):
+    """mdtable 载荷（markdown 表文本）回解为行，供 Word 表格渲染。"""
+    rows = []
+    for line in str(markdown_text).splitlines():
+        line = line.strip()
+        if not line.startswith('|'):
+            continue
+        cells = [c.strip().replace('\\|', '|') for c in line.strip('|').split('|')]
+        if all(re.fullmatch(r':?-{3,}:?', c) for c in cells):
+            continue
+        rows.append(cells)
+    return rows
+
+
+def docx_table(rows, hyperlinks=None):
+    hyperlinks = hyperlinks if hyperlinks is not None else []
     width = max(1, int(9360 / max(1, len(rows[0]))))
     xml = ['<w:tbl><w:tblPr><w:tblBorders>',
            *['<w:{side} w:val="single" w:sz="4" w:color="999999"/>'.format(side=side)
@@ -664,25 +819,36 @@ def docx_table(rows):
     for i, row in enumerate(rows):
         xml.append('<w:tr>')
         for cell in row:
-            bold = '<w:rPr><w:b/></w:rPr>' if i == 0 else ''
             xml.append(f'<w:tc><w:tcPr><w:tcW w:w="{width}" w:type="dxa"/></w:tcPr>'
-                       f'<w:p><w:r>{bold}<w:t xml:space="preserve">{esc(cell)}</w:t></w:r></w:p></w:tc>')
+                       f'<w:p>{docx_runs(cell, hyperlinks, bold=(i == 0))}</w:p></w:tc>')
         xml.append('</w:tr>')
     xml.append('</w:tbl>')
     return ''.join(xml)
 
 
+def doc_rels(hyperlinks):
+    extra = ''.join(
+        f'<Relationship Id="{rid}" '
+        'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" '
+        f'Target="{esc(target)}" TargetMode="External"/>' for rid, target in hyperlinks)
+    return DOC_RELS.replace('</Relationships>', extra + '</Relationships>')
+
+
 def write_docx(path, blocks):
+    hyperlinks = []
     body = []
     for block in blocks:
         if block[0] in ('h1', 'h2', 'h3'):
-            body.append(docx_paragraph(block[1], style='Heading' + block[0][1]))
+            body.append(docx_paragraph(block[1], style='Heading' + block[0][1], hyperlinks=hyperlinks))
         elif block[0] == 'p':
-            body.append(docx_paragraph(block[1]))
+            body.append(docx_paragraph(block[1], hyperlinks=hyperlinks))
         elif block[0] == 'table':
-            body.append(docx_table(block[1]))
+            body.append(docx_table(block[1], hyperlinks))
+        elif block[0] == 'mdtable':
+            body.append(docx_table(parse_md_table(block[1]), hyperlinks))
     document = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
                 f'<w:body>{"".join(body)}'
                 '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
                 '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/></w:sectPr>'
@@ -694,14 +860,14 @@ def write_docx(path, blocks):
             f'<dc:title>人才培养方案</dc:title><dcterms:created xmlns:dcterms="http://purl.org/dc/terms/">'
             f'{now}</dcterms:created></cp:coreProperties>')
     app = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-           '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties">'
+           '<Properties xmlns="http://schemas.openxmlformats.org/package/2006/extended-properties">'
            '<Application>training-program-design</Application></Properties>')
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as archive:
         archive.writestr('[Content_Types].xml', CONTENT_TYPES)
         archive.writestr('_rels/.rels', RELS)
         archive.writestr('docProps/core.xml', core)
         archive.writestr('docProps/app.xml', app)
-        archive.writestr('word/_rels/document.xml.rels', DOC_RELS)
+        archive.writestr('word/_rels/document.xml.rels', doc_rels(hyperlinks))
         archive.writestr('word/styles.xml', STYLES)
         archive.writestr('word/document.xml', document)
 
@@ -722,22 +888,60 @@ def pct(value):
     return f'{value:.1%}'
 
 
-def compose_blocks(d):
-    """Shared content model: list of (kind, payload); payload is rows for tables."""
-    meta = d['meta']
-    computed = d['computed']
+def section_titles(d):
+    """正文章节标题（chartPlan 插图定位与页组稿共用）。"""
+    titles = ['一、专业名称及代码', '二、入学要求', '三、修业年限', '四、职业面向',
+              '五、培养目标与培养规格', '六、课程设置及要求', '七、学时安排', '八、教学进程总体安排',
+              '九、教学实施与考核评价', '十、实施保障', '十一、毕业要求', '十二、编制说明与决策记录',
+              '附录A 证据与口径', '附录B 能力—课程支撑矩阵', '附录C 待核对与未决清单']
+    if d.get('diff'):
+        titles.append('附录D 新旧版差异')
+    return titles
+
+
+def capability_index(d):
     caps = {}
     for domain in d['capabilityDomains']:
         for cap in domain['capabilities']:
             caps[cap['id']] = {'cap': cap, 'domain': domain['name']}
-    source_index = {s['id']: s for s in d['sources']}
-    metric_index = {m['id']: m for m in d['metrics']}
+    return caps
+
+
+def support_map(d):
     support = {}
     for c in d['curriculum']['courses']:
         for ref in c.get('domains', []) or []:
             support.setdefault(ref['capabilityId'], []).append((c['name'], ref['level']))
+    return support
+
+
+def compose_blocks(d):
+    """Shared content model: list of (kind, payload).
+
+    依据一律「可读名称 + 页内锚点链接」（[名称](#锚点)），编号只留在附录条目标识与
+    结构化产物；含链接的表用 mdtable（markdown 表文本），网页经 text 块渲染、Word 由
+    write_docx 解析。锚点由 page_blocks 在附录 A/B 落地。
+    """
+    meta = d['meta']
+    computed = d['computed']
+    caps = capability_index(d)
+    source_index = {s['id']: s for s in d['sources']}
+    metric_index = {m['id']: m for m in d['metrics']}
+    support = support_map(d)
     redlines = validation_rows(d)
 
+    def m_links(ids):
+        return '、'.join(md_link(metric_link_text(metric_index[m]), m)
+                         for m in ids if m in metric_index) or '—'
+
+    def s_links(ids):
+        return '、'.join(md_link(source_ref_text(source_index[s]), s)
+                         for s in ids if s in source_index) or '—'
+
+    def c_links(ids):
+        return '、'.join(md_link(caps[c]['cap']['name'], c) for c in ids if c in caps) or '—'
+
+    basis = d['cultivation']['goalBasis']
     blocks = [
         ('h1', d['title']),
         ('p', f"版本 {meta['version']} · {d['status']} · 证据截止 {d['as_of']} · {meta['level']}"
@@ -750,45 +954,47 @@ def compose_blocks(d):
         ('p', f"基本修业年限 {meta['duration']['years']} 年"
               + (f"，最长 {meta['duration'].get('maxYears')} 年" if meta['duration'].get('maxYears') else '')),
         ('h2', '四、职业面向'),
-        ('table', [['岗位群', '代表岗位', '阶段', '依据']] + [
+        ('mdtable', md_table([['岗位群', '代表岗位', '阶段', '依据']] + [
             [group['name'], pos['name'],
              '初始岗' if pos['stage'] == 'entry' else '发展岗',
-             '、'.join([*[f"指标 {m}" for m in pos.get('metricIds', [])],
-                        *[f"来源 {s}" for s in pos.get('sourceIds', [])]]) or '—']
-            for group in d['jobGroups'] for pos in group.get('positions', [])]),
+             '、'.join(x for x in [m_links(pos.get('metricIds', [])), s_links(pos.get('sourceIds', []))]
+                       if x != '—') or '—']
+            for group in d['jobGroups'] for pos in group.get('positions', [])])),
         ('h2', '五、培养目标与培养规格'),
         ('p', d['cultivation']['goal']),
         ('p', '目标依据：'
-              + (f"标准来源 {d['cultivation']['goalBasis'].get('standardSourceId')}"
-                 if d['cultivation']['goalBasis'].get('standardSourceId')
+              + (md_link(source_ref_text(source_index[basis['standardSourceId']]), basis['standardSourceId'])
+                 if basis.get('standardSourceId') and basis['standardSourceId'] in source_index
                  else '标准原文待核对（已获用户决策按待核对继续），目标在区域岗位证据基础上拟定，待标准原文核对后回填')
-              + (f"、区域证据 {'、'.join(d['cultivation']['goalBasis'].get('metricIds', []))}"
-                 if d['cultivation']['goalBasis'].get('metricIds') else '')),
+              + ''.join(f"、{part}" for part in [
+                  f"区域证据 {m_links(basis.get('metricIds', []))}" if basis.get('metricIds') else '',
+                  f"校本材料 {s_links(basis.get('sourceIds', []))}" if basis.get('sourceIds') else '',
+              ] if part)),
     ]
     for item in d['cultivation']['spec']:
         blocks.append(('h3', f"培养规格 · {item['dimension']}"))
-        blocks.append(('table', [['条目', '关联能力/来源']] + [
+        blocks.append(('mdtable', md_table([['条目', '关联能力/来源']] + [
             [entry['text'],
-             f"能力 {entry['capabilityId']}" if entry.get('capabilityId')
-             else '、'.join(f"来源 {s}" for s in entry.get('sourceIds', [])) or '—']
-            for entry in item.get('items', [])]))
+             c_links([entry['capabilityId']]) if entry.get('capabilityId')
+             else s_links(entry.get('sourceIds', []))]
+            for entry in item.get('items', [])])))
     blocks += [
         ('h2', '六、课程设置及要求'),
         ('h3', '6.1 工作任务与职业能力分析'),
-        ('table', [['岗位群', '典型工作任务', '支撑能力项']] + [
-            [group['name'], task['name'], '、'.join(task['capabilityIds'])]
-            for group in d['jobGroups'] for task in group.get('workTasks', [])]),
+        ('mdtable', md_table([['岗位群', '典型工作任务', '支撑能力项']] + [
+            [group['name'], task['name'], c_links(task['capabilityIds'])]
+            for group in d['jobGroups'] for task in group.get('workTasks', [])])),
         ('h3', '6.2 课程体系'),
         ('table', [['课程', '类别', '理论学时', '实践学时', '学分', '开设学期', '考核']] + [
             [c['name'], CATEGORY_NAMES[c['category']], c['theoryHours'], c['practiceHours'],
              c['credits'], '、'.join(f'第{s}学期' for s in c['semesters']), c['assessment']]
             for c in sorted(d['curriculum']['courses'], key=lambda c: (c['category'], c['semesters']))]),
         ('h3', '6.3 专业核心课程设置理由与证据链'),
-        ('table', [['核心课程', '设置理由', '证据']] + [
+        ('mdtable', md_table([['核心课程', '设置理由', '证据']] + [
             [c['name'], c['rationale']['text'],
-             '、'.join([*[f"指标 {m}" for m in c['rationale'].get('metricIds', [])],
-                        *[f"来源 {s}" for s in c['rationale'].get('sourceIds', [])]])]
-            for c in d['curriculum']['courses'] if c['category'] == 'professional-core']),
+             '、'.join(x for x in [m_links(c['rationale'].get('metricIds', [])),
+                                   s_links(c['rationale'].get('sourceIds', []))] if x != '—') or '—']
+            for c in d['curriculum']['courses'] if c['category'] == 'professional-core'])),
         ('h3', '6.4 课程简介与典型教学内容'),
         ('table', [['课程', '课程简介', '典型教学内容/工作任务']] + [
             [c['name'], c.get('description', ''), c.get('typicalContent', '')]
@@ -824,7 +1030,7 @@ def compose_blocks(d):
         status = '已依据用户提供材料' if item.get('status') == 'supported' else '待补（未获得用户材料）'
         blocks.append(('h3', f"10.{list(labels).index(key) + 1} {label}"))
         blocks.append(('p', f"{item.get('text') or '待补'}（{status}"
-                           + (f"；来源 {'、'.join(item.get('sourceIds', []))}" if item.get('sourceIds') else '') + '）'))
+                           + (f"；来源 {s_links(item.get('sourceIds', []))}" if item.get('sourceIds') else '') + '）'))
     blocks += [
         ('h2', '十一、毕业要求'),
         ('p', '；'.join(d['graduation']['requirements'])
@@ -842,7 +1048,7 @@ def compose_blocks(d):
              s.get('dataReadAt', '')[:10] or s['accessed']] for s in d['sources']]),
         ('h3', 'A.2 指标'),
         ('table', [['编号', '指标', '数值', '单位', '地域', '总体', '口径', '来源']] + [
-            [m['id'], m['label'], m['value'], m['unit'], m['region'], m['population'],
+            [m['id'], m['label'], fmt_num(m['value']), m['unit'], m['region'], m['population'],
              m['definition'], '、'.join(m['source_ids'])] for m in d['metrics']]),
         ('h2', '附录B 能力—课程支撑矩阵'),
         ('table', [['能力域', '能力项', '支撑课程（强度）']] + [
@@ -866,7 +1072,7 @@ def compose_blocks(d):
     if diff:
         blocks += [
             ('h2', '附录D 新旧版差异'),
-            ('p', f"对比基准：{source_index[diff['basis']]['title']}"),
+            ('p', f"对比基准：{md_link(source_ref_text(source_index[diff['basis']]), diff['basis'])}"),
             ('table', [['章节', '旧版', '新版', '理由']] + [
                 [item['section'], item['old'], item['new'], item.get('reason', '')]
                 for item in diff['items']]),
@@ -917,6 +1123,8 @@ def blocks_markdown(blocks):
             out.append(payload)
         elif kind == 'table':
             out.append(md_table(payload))
+        elif kind == 'mdtable':
+            out.append(payload)
         out.append('')
     return '\n'.join(out).rstrip() + '\n'
 
@@ -958,6 +1166,182 @@ def build_t05(d):
     return package, '\n'.join(lines) + '\n'
 
 
+# ---------------------------------------------------------------- 网页组稿（锚点与插图）
+
+NUMERIC_CELL = re.compile(r'-?[\d,]+(\.\d+)?%?')
+
+
+def table_block(rows, title='数据表'):
+    """compose 的行表 → report-rendering 结构化 table 块（无链接的表用）。"""
+    header = [str(c) for c in rows[0]]
+    columns = []
+    for i, label in enumerate(header):
+        cells = [str(r[i]).strip() for r in rows[1:] if i < len(r) and str(r[i]).strip() not in ('', '—', '未提供')]
+        numeric = i > 0 and bool(cells) and all(NUMERIC_CELL.fullmatch(c) for c in cells)
+        columns.append({'label': label, 'numeric': numeric})
+    return {'type': 'table', 'title': title, 'pattern': 'detail', 'columns': columns,
+            'rows': [['' if c is None else c for c in row] for row in rows]}
+
+
+def source_item(s):
+    item = {
+        'id': s['id'],
+        'label': f"{s['id']} · {s['title']}",
+        'text': f"出处 {s['publisher']}｜{s['scope']}｜读取 {s.get('dataReadAt', '')[:10] or s['accessed']}"
+                + (f"｜定位 {s['locator']}" if s.get('locator') else ''),
+    }
+    if str(s.get('url', '')).startswith(('http://', 'https://')):
+        item['url'] = s['url']
+    return item
+
+
+def metric_block(m, source_index):
+    src = '、'.join(md_link(source_ref_text(source_index[s]), s) for s in m.get('source_ids', [])
+                   if s in source_index) or '—'
+    text = (f"**{m['id']} · {m['label']}**：{fmt_num(m.get('value'))}{m.get('unit') or ''}"
+            f"｜{m['region']}｜{m['population']}｜时期 {m['period']}｜口径 {m['definition']}｜来源 {src}")
+    return {'type': 'text', 'id': m['id'], 'text': text}
+
+
+def capability_block(cap_id, item, support, metric_index, source_index):
+    cap = item['cap']
+    evidence = cap.get('evidence') or {}
+    status_names = {'verified': '已核验口径', 'user-material': '用户材料支撑', 'insufficient': '证据不足（按现有证据继续，待验证）'}
+    refs = '、'.join(x for x in [
+        '、'.join(md_link(metric_link_text(metric_index[m]), m) for m in evidence.get('metricIds', [])
+                  if m in metric_index),
+        '、'.join(md_link(source_ref_text(source_index[s]), s) for s in evidence.get('sourceIds', [])
+                  if s in source_index),
+    ] if x) or '无绑定'
+    sup = '、'.join(f'{name}（{level}）' for name, level in support.get(cap_id, [])) or '无课程支撑'
+    text = f"**{cap_id} · {cap['name']}**（{item['domain']}）｜证据 {refs}｜支撑课程 {sup}"
+    return {'type': 'text', 'id': cap_id, 'text': text}
+
+
+def page_blocks(d):
+    """网页正文块：正文各章沿用 compose_blocks（依据为锚点链接），附录 A/B 换成带 id 的
+    锚点条目（正文链接的落点），chartPlan 各图按规划章节插入 figure 块。"""
+    caps = capability_index(d)
+    source_index = {s['id']: s for s in d['sources']}
+    metric_index = {m['id']: m for m in d['metrics']}
+    support = support_map(d)
+    top = []
+    section = None
+    sub = None
+
+    def open_section(title):
+        nonlocal section, sub
+        section = {'type': 'section', 'title': title, 'blocks': []}
+        top.append(section)
+        sub = None
+
+    def open_sub(title):
+        nonlocal sub
+        sub = {'type': 'section', 'title': title, 'blocks': []}
+        if section is not None:
+            section['blocks'].append(sub)
+
+    def place(block):
+        if sub is not None:
+            sub['blocks'].append(block)
+        elif section is not None:
+            section['blocks'].append(block)
+        else:
+            top.append(block)
+
+    skip_until_h2 = False
+    for kind, payload in compose_blocks(d):
+        if skip_until_h2 and kind != 'h2':
+            continue
+        skip_until_h2 = False
+        if kind == 'h1':
+            continue
+        if kind == 'h2':
+            open_section(payload)
+            if payload == '附录A 证据与口径':
+                open_sub('A.1 来源')
+                place({'type': 'sources', 'items': [source_item(s) for s in d['sources']]})
+                open_sub('A.2 指标')
+                for m in d['metrics']:
+                    place(metric_block(m, source_index))
+                skip_until_h2 = True
+            elif payload == '附录B 能力—课程支撑矩阵':
+                for cap_id, item in caps.items():
+                    place(capability_block(cap_id, item, support, metric_index, source_index))
+                skip_until_h2 = True
+        elif kind == 'h3':
+            open_sub(payload)
+        elif kind == 'p':
+            place({'type': 'text', 'text': payload})
+        elif kind == 'table':
+            place(table_block(payload))
+        elif kind == 'mdtable':
+            place({'type': 'text', 'text': payload})
+    for entry in d.get('chartPlan') or []:
+        if not isinstance(entry, dict):
+            continue
+        figure = {'type': 'figure', 'spec': f"{entry['id']}.json", 'bundle': f"figures/{entry['id']}"}
+        target = next((s for s in top if s.get('type') == 'section' and s['title'] == entry.get('section')), None)
+        if target is not None:
+            target['blocks'].append(figure)
+        else:
+            top.append(figure)
+    return top
+
+
+def page(program_path, work=Path('work')):
+    d = json.loads(Path(program_path).read_text(encoding='utf-8'))
+    result = validate(d)
+    if result['errors']:
+        print('校验未通过，先修复再组页：')
+        for item in result['errors']:
+            print(f'  - {item}')
+        return 1
+    d['computed'] = result['computed']
+    work = Path(work)
+    missing = [e['id'] for e in d['chartPlan']
+               if not (work / f"{e['id']}.json").is_file()
+               or not (work / 'figures' / e['id'] / 'values.json').is_file()]
+    if missing:
+        print(f'图稿未就绪，先按 chartPlan 用 chart-visualization 出图（render+verify）再组页：{"、".join(missing)}')
+        return 1
+    mismatched = []
+    for e in d['chartPlan']:
+        spec = json.loads((work / f"{e['id']}.json").read_text(encoding='utf-8'))
+        if spec.get('id') != e['id']:
+            mismatched.append(f'{e["id"]}: 图稿规格 id 应为 {e["id"]}，现为 {spec.get("id")}')
+        families = {CHART_FAMILY.get(p.get('kind')) for p in spec.get('panels', [])}
+        if families - {CHART_FAMILY.get(e['kind'])}:
+            mismatched.append(f'{e["id"]}: 图稿面板家族 {sorted(families)} 与规划 {e["kind"]}（{CHART_FAMILY.get(e["kind"])}）不一致')
+    if mismatched:
+        print('图稿与规划不一致：')
+        for item in mismatched:
+            print(f'  - {item}')
+        return 1
+    blocks = page_blocks(d)
+    out = work / 'page-body.json'
+    out.write_text(json.dumps({'blocks': blocks}, ensure_ascii=False, indent=2), encoding='utf-8')
+
+    def deep_count(items):
+        figures, ids = 0, 0
+        for b in items:
+            if b.get('type') == 'figure':
+                figures += 1
+            if b.get('id'):
+                ids += 1
+            ids += sum(1 for it in b.get('items', []) if isinstance(it, dict) and it.get('id'))
+            if isinstance(b.get('blocks'), list):
+                f, i = deep_count(b['blocks'])
+                figures += f
+                ids += i
+        return figures, ids
+
+    figures, ids = deep_count(blocks)
+    print(out)
+    print(f"章节块 {sum(1 for b in blocks if b.get('type') == 'section')}，图 {figures}，锚点条目 {ids}")
+    return 0
+
+
 def build(program_path, skip_docx=False):
     d = json.loads(Path(program_path).read_text(encoding='utf-8'))
     result = validate(d)
@@ -990,7 +1374,8 @@ def build(program_path, skip_docx=False):
     (out / 'program.json').write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8')
     validation = {'program': d['meta']['majorName'], 'version': d['meta']['version'], 'as_of': d['as_of'],
                   'status': d['status'], 'computed': computed,
-                  'redlines': validation_rows(d)[1:], 'errors': result['errors'],
+                  'redlines': validation_rows(d)[1:], 'charts': chart_summary(d),
+                  'errors': result['errors'],
                   'warnings': result['warnings']}
     (out / 'validation.json').write_text(json.dumps(validation, ensure_ascii=False, indent=2), encoding='utf-8')
     package, overview = build_t05(d)
@@ -1017,11 +1402,13 @@ def build(program_path, skip_docx=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    for name in ('validate', 'build'):
+    for name in ('validate', 'build', 'page'):
         p = sub.add_parser(name)
         p.add_argument('program', type=Path)
         if name == 'build':
             p.add_argument('--no-docx', action='store_true')
+        if name == 'page':
+            p.add_argument('--work', type=Path, default=Path('work'))
     args = parser.parse_args()
     d = json.loads(args.program.read_text(encoding='utf-8'))
     if args.command == 'validate':
@@ -1029,6 +1416,8 @@ def main():
         print(json.dumps({'errors': result['errors'], 'warnings': result['warnings'],
                           'computed': result['computed']}, ensure_ascii=False, indent=2))
         return 1 if result['errors'] else 0
+    if args.command == 'page':
+        return page(args.program, work=args.work)
     return build(args.program, skip_docx=args.no_docx)
 
 

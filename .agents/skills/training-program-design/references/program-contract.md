@@ -175,6 +175,39 @@ category 取值：public-required（公共基础必修）、public-elective（�
 | 毕业要求 | ≥4 条，总字数 ≥80 字，每条 ≥8 字 |
 | 课程类别 | 七类齐全 |
 | 对标语料 | corpus: 来源 ≥3 份 |
+| 图表规划 | ≥3 种图型家族，条形家族 ≤ 全部图一半（见下） |
+
+## chartPlan（图表规划，先定图再取数）
+
+取数之前先写图表规划：每张图回答什么判断、选什么图型及理由、需要哪些数据、数据来自哪里。规划落进契约后由脚本校验，成品页面再按同一口径二次校验（`scripts/check_page.py`）。
+
+```json
+{
+  "id": "F_EDU",
+  "question": "区域岗位的学历要求如何分布？",
+  "kind": "barh",
+  "reason": "学历类别为长标签，横向排名便于阅读",
+  "section": "四、职业面向",
+  "dataOrigin": "query",
+  "dataRefs": {"metricIds": ["M_EDU"]}
+}
+```
+
+- `kind` 取 chart-visualization [figure/1](../../chart-visualization/references/figure-spec.md) 可执行集：bar、barh、line、grouped-line、faceted-line、province-map、scatter、distribution、histogram、ecdf、paired、change-distribution、median-change、interval、matrix。雷达/桑基/堆叠柱等专题图当前不可执行出图，不进规划。
+- `section` 是插图落点，必须精确等于正文章节标题（一～十二、附录A–D）。
+- `dataOrigin` 与 `dataRefs`：`query` 须绑定可解析 metricIds（按规划一次性把各图岗位数据取齐）；`corpus` 须绑定 corpus: 来源；`user` 须绑定用户材料来源；`program`（方案自带：课程表、进程表、能力课程支撑、学时结构）在 fromProgram 写明取数字段，不需要外部取数。
+
+**图型家族判定口径（构建期与成品期同一口径）**：条形家族——竖柱（bar）、横条（barh）及分组/堆叠/多面板柱条——算**一种**；其余按分析关系各算一种：折线（line/grouped-line/faceted-line）、地图（province-map）、散点、分布（distribution/histogram/ecdf）、配对（paired/change-distribution/median-change）、区间（interval）、矩阵（matrix）。硬门槛：**全页 ≥3 种不同家族，条形家族 ≤ 全部面板的一半**；一张图稿的多面板须同家族，跨家族拆成两张图。report-rendering [图表选型](../../report-rendering/references/chart-selection.md)「各图确实都在做同类比较时统一图型、记录理由即可」的弹性**对本技能不适用**。诚实边界不变：趋势要真实多期数据、分布要原始观测，取不到就换有数据支撑的图型，不造数据凑图型。
+
+## 依据引用（可读名称 + 锚点链接）
+
+正文所有引用证据的位置——职业面向「依据」列、培养目标依据、培养规格「关联能力/来源」列、6.1「支撑能力项」列、6.3「证据」列、实施保障来源、附录交叉引用——由构建脚本统一写成 `[可读名称](#锚点)`：
+
+- 指标：`岗位学历要求为大专的记录数 3,014 条（全国，2026-11-23）`——名称、数值、单位、地域、时期（数值由构建回填）。
+- 来源：`2026 级人工智能技术应用专业人才培养方案 · 教学进程安排表合计行`——标题加定位，corpus 标题按索引回填。
+- 能力项：写能力项名称。
+
+链接落点是网页附录 A/B 的条目锚点（`program.py page` 生成带 id 的块：A.1 来源、A.2 指标、附录B 能力项定义），完整口径、时期、分母与摘录都在落点；有真实 http(s) 地址的来源同时给外链。**正文（含 Word）不出现「指标 M_」「来源 S_」「能力 C-」写法**；编号只保留在结构化产物（program.json、t05-package.json）与附录条目标识上。sources/metrics/capability 的 id 须满足锚点格式（字母开头，仅字母数字-_）。
 
 ## schedule（教学进程）
 
@@ -219,11 +252,15 @@ category 取值：public-required（公共基础必修）、public-elective（�
 
 | 文件 | 内容 |
 |---|---|
-| program.md | 方案正文全文（十一章 + 附录 A–D） |
+| program.md | 方案正文全文（十二章 + 附录 A–D，依据为可读名称链接） |
 | program.json | 补齐计算字段与绑定数值后的结构化方案 |
-| validation.json | 红线对照表、证据核验结果、警告与待核对清单 |
+| validation.json | 红线对照表、图表规划审计、证据核验结果、警告与待核对清单 |
 | t05-package.json / t05-overview.md | 课程开发任务包（[T05 契约](t05-package.md)） |
 | program.docx | 可编辑 Word 版（环境缺少依赖时跳过并在 validation.json 说明） |
 | program-files.json | 交付登记清单（name/path/sha256），供 register_delivery.py --files-from 使用 |
 
+`python3 <技能目录>/scripts/program.py page program.json --work work` 在图稿就绪后（按 chartPlan 用 chart-visualization render+verify 出完图）生成 `work/page-body.json`：正文各章块（依据链接内嵌）、附录 A/B 锚点条目、按规划章节插入的 figure 块。组装 page.json 时正文与附录直接用这组块，不要手工改写正文文字或锚点。
+
 校验失败时 build 阻断并列出全部不达标项与原因；修数后重跑。正文、Word 与结构化三份内容同源，修订一律改 program.json 再重建，不手改产物。
+
+**成品校验（登记交付前必过）**：`python3 <技能目录>/scripts/check_page.py <工作区根> --page work/page.json --web output/public/<站点目录>`。校验实际嵌入图型（≥3 家族、条形 ≤ 一半、与 chartPlan 一致）、编号写法为零（「指标/来源/能力 + 编号」全页、裸编号正文）、依据链接无死链且链接文字可读。任一项不达标**不得 register_delivery**，修复后重渲染重校验。

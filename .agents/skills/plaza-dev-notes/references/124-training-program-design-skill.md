@@ -1,6 +1,6 @@
 # 124 · training-program-design：产教培养方案技能、红线校验与 T05 任务包
 
-**状态**：已实现并经真实 Pi 端到端样例验收（2026-11-18，见「端到端实测」节）；2026-11-20 起工作流改为「本地语料为底 + 轻量取数」，同日新增内容深度硬校验与禁编造校名规则（见对应节）。
+**状态**：已实现并经真实 Pi 端到端样例验收（2026-11-18，见「端到端实测」节）；2026-11-20 起工作流改为「本地语料为底 + 轻量取数」，同日新增内容深度硬校验与禁编造校名规则；2026-11-23 新增图表规划硬门槛与链接式依据（见对应节）。
 
 ## 动机
 
@@ -62,8 +62,21 @@
 - **验证**：34 项单测全绿（新增 8 项下限用例）；同输入真实构建（sess-tpd-depth-e2e，人工智能技术应用 510209）program.md 总字数 5,925→11,763、课程章 1,938→6,474、实施章 86→484+203、课程 34 门简介/典型内容 100% 达标、语料 3 份真实三年制方案（sha 过验）、校名零残留、Word 正常生成、全文网页 30.6KB。
 - **过程发现**：① 模型首轮修复耗时超回合上限被 timeout 杀（corpus 文件名自拼、手填指标值不符、空 diff 是三大坑——已由 SKILL 指令与校验错误信息覆盖）；② 超时轮的 build 半成品（Word 失败警告）会被后续轮沿用，需显式指令重跑 build；③ 网页渲染倾向摘要化，交付指令需点名「全文、含具体表名」。
 
+## 图表规划硬门槛与链接式依据（2026-11-23）
+
+用户审查当日交付（校内微专业运行，web-8ed99882…-sess-961cfa24…）：3 张图全条形家族（学历分布、双面板学时、技能词频），学历/学时构成关系被画成并列柱形；正文「指标 M_xxx」「来源 S_xxx」60 处、「能力 C-xxx」41 处（成品页实测 80+41，含附录编号列），页内锚点 0。两项都改机器校验。
+
+- **chartPlan 契约**（`program.py` validate）：先定图再取数。每图 `{id, question, kind, reason, section, dataOrigin, dataRefs}`；kind 限 figure/1 可执行集（雷达/桑基/堆叠柱不可执行出图，不进规划）；section 须精确匹配正文章节；query 图须绑定 metricIds、corpus 图须绑定 corpus: 来源、program 图写 fromProgram。**图型家族判定**：条形家族（bar/barh 及多面板柱条）算一种，折线/地图/散点/分布/配对/区间/矩阵各算一种；≥3 种家族且条形 ≤ 全部图一半，两处（validate 与 check_page）同口径阻断。report-rendering chart-selection「统一图型记录理由」弹性对本技能明示不适用。
+- **链接式依据**（compose_blocks）：职业面向依据列、目标依据、规格关联列、6.1 支撑能力项、6.3 证据列、实施保障来源、附录D基准一律 `[可读名称](#锚点)`——指标写「名称 数值 单位（地域，时期）」（fmt_num 千分位）、来源写「标题 · 定位」、能力写名称。含链接的表从结构化 table 改为 `mdtable`（markdown 表文本）：网页经 text 块渲染成带链接的表（render.py 表格单元格 plain() 转义放不了链接，markdown 表才行）；Word 由 write_docx 解析 mdtable 并按链接分段渲染——内部锚点只显示可读文字，http(s) 外链做真超链接（w:hyperlink + rels TargetMode=External + xmlns:r）。编号保留在结构化产物与附录条目标识；sources/metrics/capability 的 id 增加锚点格式校验（`[A-Za-z][A-Za-z0-9_-]*`）。
+- **page 子命令**：`program.py page program.json` 在图稿就绪后产 `work/page-body.json`——正文各章（链接内嵌）+ 附录A/B 锚点条目（A.1 sources 块条目带 id、A.2 逐指标 text 块带 id、附录B 逐能力项 text 块带 id，替代原附录表格）+ 按 chartPlan 章节插入 figure 块；组页时正文/附录不手改。锚点因此与正文链接同源，不会漂移。
+- **check_page.py 成品校验**（渲染后、register_delivery 前，不过不得登记）：读 page.json figure 块→spec 面板 kind 与 values.json 一致→实际家族门槛（≥3、条形 ≤ 半、图与 chartPlan 集合一致且面板家族须与规划同家族）；编号扫描按**文本片段（HTMLParser run）**判定——跨元素边界不拼接，避免「A.2 指标」标题紧邻条目 id 被误判，page.json 侧先折叠 markdown 链接再扫；`href="#x"` 目标须全部存在（死链=0），链接文字非空且非编号。附录条目 id 允许（标识），正文裸编号为 0。
+- **验证**：51 项单测全绿（新增 chartPlan 门/链接正文/锚点覆盖/docx 链接/check_page 8 例）；真实工作区整份拷贝到 /tmp 重建：validate/build→按规划出 5 图（矩阵双面板、grouped-line 学时占比走势、interval 薪酬分位 + 复用 barh/bar）→page→render→check_page 通过。前后对比：图 3 张全条形 → 5 图 6 面板 4 家族（条形 2/6）；编号写法 80+41 → 0；依据链接 0 → 159（死链 0）；Word 无原始链接语法。
+- **过程发现**：① 旧图稿 spec 的 source/caption 里也写着「指标 M_xxx」，图内数值表会把编号带进正文——图稿说明文字同样要可读表述（check_page 能拦住）；② 14 课程×12 能力矩阵单面板放不下（列标签水平排布会重叠），纵向双面板 + panel_height_mm 175 通过，矩阵标签需从全称截短、全称留在附录锚点条目；③ 微专业这类小体量方案 chartPlan 用「program 数据图（矩阵/走势）+ 查询数据图（区间/条形）」组合即可达 3 家族，不必硬凑。
+- **共享技能零改动**：render.py/register_delivery.py/chart-visualization 均未动；锚点用 sources 块条目 id 与任意块 id 的既有能力。
+
 ## 后续路线
 
 - 沙箱凭据注入后启用 weknora 原生检索路径；T05 课程开发技能消费任务包的对接约定。
 - 证书-学分折算表、第二课堂学分等真实方案常见要素未入 v1 契约，按院校需求扩展。
 - 网页全文渲染的稳定性可考虑在 register 侧加「正文表格完整性」检查（当前靠 SKILL 指令约束）。
+- figure/1 若实现堆叠柱/雷达等专题图，chartPlan 可执行集与家族表同步扩入（CHART_FAMILY 维护点在 program.py）。
