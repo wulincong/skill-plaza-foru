@@ -17,6 +17,17 @@ from program import CHART_FAMILY, CHART_MIN_FAMILIES, FIGURE_KINDS
 COMBO = re.compile(r'(?:指标|来源|能力|证据|依据)[ \t]*[MSC][-_][A-Za-z0-9_-]+')
 # 裸编号（M_XXX / S_XXX / C-XXX）：正文禁止，附录条目标识允许
 BARE = re.compile(r'(?<![A-Za-z0-9_-])[MSC][-_][A-Za-z0-9_-]+')
+# 链接文字上限（按显示宽度计：中文/全角 1、半角 0.5）：指标写「名称 数值 单位」、
+# 来源只写标题、能力项写名称；地域/时期在表内说明一次，不塞进每条链接。
+# M* ≤26 挡住地域+日期后缀式回退；S*/C* ≤32 容纳真实的语料标题与能力项全称。
+LINK_TEXT_MAX = 26
+LINK_TEXT_LONG = 32
+# 链接文字末尾带「（…2026-11-23…）」日期后缀 = 时期没在表内说明一次的直接回退信号
+DATE_SUFFIX = re.compile(r'（[^）]*\d{4}-\d{2}-\d{2}[^）]*）\s*$')
+
+
+def weighted_len(text):
+    return sum(1.0 if ord(ch) > 0x2E7F else 0.5 for ch in text)
 ANCHOR_HREF = re.compile(r'href="#([^"]+)"')
 HTML_ID = re.compile(r' id="([^"]+)"')
 HTML_LINK = re.compile(r'<a href="#([^"]+)">(.*?)</a>', re.S)
@@ -140,6 +151,15 @@ def check(root, page_rel, web_rel, program_rel):
                 if off_family:
                     errors.append(f'{spec.get("id")}: 实际图型家族 {sorted(str(f) for f in off_family)} '
                                   f'与规划 {entry.get("kind")}（{CHART_FAMILY.get(entry.get("kind"))}）不符')
+        # 区间图要有真实的多组比较：单组区间只重复一个中位数，信息量撑不起一张图
+        for panel in spec.get('panels', []):
+            if panel.get('kind') == 'interval':
+                dataset = (spec.get('datasets') or {}).get(panel.get('data')) or []
+                group_field = (panel.get('fields') or {}).get('group')
+                groups = {str(row.get(group_field)) for row in dataset if isinstance(row, dict)}
+                if len(groups) < 2:
+                    errors.append(f'{spec.get("id")}: 区间图仅 {len(groups)} 组，信息量不足——'
+                                  '按学历/经验/岗位群等分组取数后再画，或撤下该图（规划期把分组分位列入取数清单）')
         panels += [CHART_FAMILY[k] for k in kinds if k in CHART_FAMILY]
     if plan and set(plan) - set(figure_ids):
         errors.append(f'规划图未上页：{sorted(set(plan) - set(figure_ids))}')
@@ -177,12 +197,25 @@ def check(root, page_rel, web_rel, program_rel):
     if dead:
         errors.append(f'死链（页面内不存在锚点）：{dead[:8]}')
     bad_text = []
+    link_lengths = []
+    over_limit = 0
     for anchor, label in HTML_LINK.findall(html):
         clean = TAG.sub('', label).strip()
+        limit = LINK_TEXT_LONG if anchor[:1] in ('S', 'C') else LINK_TEXT_MAX
+        width = weighted_len(clean)
         if not clean:
             bad_text.append(f'#{anchor} 链接文字为空')
         elif BARE.fullmatch(clean) or COMBO.search(clean):
             bad_text.append(f'#{anchor} 链接文字是编号「{clean}」')
+        elif DATE_SUFFIX.search(clean):
+            over_limit += 1
+            bad_text.append(f'#{anchor} 链接文字带日期后缀「{clean}」：时期/地域在表内说明一次，不进链接')
+        else:
+            link_lengths.append(width)
+            if width > limit:
+                over_limit += 1
+                bad_text.append(f'#{anchor} 链接文字宽度 {width:g} 超过 {limit} 上限：「{clean}」'
+                                '（指标写 名称 数值 单位，来源只写标题）')
     if bad_text:
         errors.extend(bad_text[:8])
 
@@ -201,6 +234,10 @@ def check(root, page_rel, web_rel, program_rel):
         'panels': len(panels), 'barPanels': bar_count,
         'internalLinks': len(hrefs), 'deadLinks': len(dead),
         'comboPatterns': len(combo_html), 'bareInBody': len(bare_html) + len(bare_body),
+        'linkTextAvg': round(sum(link_lengths) / len(link_lengths), 1) if link_lengths else 0,
+        'linkTextMax': max(link_lengths, default=0),
+        'linkTextOverLimit': over_limit,
+        'linkTextCount': len(link_lengths),
     }
     return summary, errors
 

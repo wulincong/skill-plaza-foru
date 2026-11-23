@@ -319,18 +319,18 @@ def fixture():
                        'minCredits': 149.5},
         'decisions': [],
         'chartPlan': [
-            {'id': 'F_SPEC', 'question': '各能力项由哪些课程支撑、强度如何？', 'kind': 'matrix',
-             'reason': '课程与能力是多对多交叉关系，用矩阵呈现支撑强度',
+            {'id': 'F_SPEC', 'question': '各门课程支撑哪些能力域、强度如何？', 'kind': 'matrix',
+             'reason': '课程×能力域交叉支撑关系，矩阵呈现最高支撑强度（0=无支撑）',
              'section': '附录B 能力—课程支撑矩阵', 'dataOrigin': 'program',
              'dataRefs': {'fromProgram': ['curriculum.domains', 'capabilityDomains']}},
-            {'id': 'F_HOURS', 'question': '各类课程的理论与实践学时相差多少？', 'kind': 'bar',
-             'reason': '课程类别间的同口径学时比较', 'section': '七、学时安排',
-             'dataOrigin': 'program', 'dataRefs': {'fromProgram': ['curriculum.courses']}},
+            {'id': 'F_HOURS', 'question': '逐学期理论与实践学时占比如何递进？', 'kind': 'grouped-line',
+             'reason': '学期是有序坐标，两条线看实践占比的递进节奏', 'section': '七、学时安排',
+             'dataOrigin': 'program', 'dataRefs': {'fromProgram': ['curriculum.courses', 'schedule']}},
             {'id': 'F_EDU', 'question': '区域岗位的学历要求如何分布？', 'kind': 'barh',
              'reason': '学历类别为长标签，横向排名便于阅读', 'section': '四、职业面向',
              'dataOrigin': 'query', 'dataRefs': {'metricIds': ['M_EDU']}},
-            {'id': 'F_SAL', 'question': '岗位薪酬分位区间多宽？', 'kind': 'interval',
-             'reason': 'P25–P75 分位区间展示薪酬分布的不确定性', 'section': '四、职业面向',
+            {'id': 'F_SAL', 'question': '不同学历要求岗位的薪酬分位区间相差多少？', 'kind': 'interval',
+             'reason': '按学历分组的 P25–P75 分位区间比较', 'section': '四、职业面向',
              'dataOrigin': 'query', 'dataRefs': {'metricIds': ['M_SAL']}},
         ],
     }
@@ -648,7 +648,7 @@ class ProgramTests(unittest.TestCase):
         self.assertIn('一半', joined)
 
     def test_chart_plan_two_families_blocks(self):
-        self.d['chartPlan'] = [e for e in fixture()['chartPlan'] if e['kind'] != 'interval']
+        self.d['chartPlan'] = [e for e in fixture()['chartPlan'] if e['id'] not in ('F_SAL', 'F_HOURS')]
         result = self.validate(self.d)
         self.assertTrue(any('至少 3 种完全不同的图型' in e for e in result['errors']))
 
@@ -735,6 +735,91 @@ class ProgramTests(unittest.TestCase):
         self.assertEqual(figure_specs(by_title['附录B 能力—课程支撑矩阵']), ['F_SPEC.json'])
         self.assertEqual(sorted(figure_specs(by_title['四、职业面向'])), ['F_EDU.json', 'F_SAL.json'])
         self.assertEqual(figure_specs(by_title['七、学时安排']), ['F_HOURS.json'])
+
+    def test_program_chart_kinds_restricted(self):
+        plan = fixture()['chartPlan']
+        plan[1]['kind'] = 'bar'
+        self.d['chartPlan'] = plan
+        result = self.validate(self.d)
+        self.assertTrue(any('program.py charts 生成规格' in e for e in result['errors']))
+
+    def test_display_title_cleans_ordinals_and_extensions(self):
+        self.assertEqual(program.display_title('5-2025级人工智能技术应用专业人才培养方案.pdf.'),
+                         '2025级人工智能技术应用专业人才培养方案')
+        self.assertEqual(program.display_title('3-2023级软件技术专业培养方案.txt'),
+                         '2023级软件技术专业培养方案')
+        self.assertEqual(program.display_title('2026级软件技术专业三年制人才培养方案'),
+                         '2026级软件技术专业三年制人才培养方案')
+
+    def test_support_matrix_spec_zero_means_no_support(self):
+        result = self.validate(self.d)
+        self.d['computed'] = result['computed']
+        entry = next(e for e in self.d['chartPlan'] if e['id'] == 'F_SPEC')
+        spec = program.support_matrix_spec(self.d, entry)
+        bound = [c for c in self.d['curriculum']['courses'] if c.get('domains')]
+        domains = [dom['name'].replace('能力域', '') for dom in self.d['capabilityDomains']]
+        all_rows = [r for rows in spec['datasets'].values() for r in rows]
+        # 每个课程×能力域组合都有已知取值：无支撑是 0，不是缺失
+        self.assertEqual(len(all_rows), len(bound) * len(domains))
+        self.assertTrue(all(r['强度'] in (0, 1, 2, 3) for r in all_rows))
+        self.assertTrue(any(r['强度'] == 0 for r in all_rows))
+        # 行标签用课程全称（不截断），列标签为能力域名去「能力域」后缀
+        names = {c['name'] for c in bound}
+        self.assertTrue({r['课程'] for r in all_rows} == names)
+        for panel in spec['panels']:
+            self.assertEqual(panel['fields'], {'row': '课程', 'column': '能力域', 'value': '强度'})
+        self.assertIn('0=无支撑', spec['caption'])
+        self.assertIn('未列入', spec['caption'])  # 未绑定能力域的公共课在图注说明
+        # 面板每幅至多 7 行，避免高图占屏
+        for key, rows in spec['datasets'].items():
+            self.assertLessEqual(len({r['课程'] for r in rows}), 7)
+
+    def test_semester_trend_spec_pairs(self):
+        result = self.validate(self.d)
+        self.d['computed'] = result['computed']
+        entry = next(e for e in self.d['chartPlan'] if e['id'] == 'F_HOURS')
+        spec = program.semester_trend_spec(self.d, entry)
+        rows = spec['datasets']['学时占比']
+        by_semester = {}
+        for r in rows:
+            by_semester.setdefault(r['学期'], {})[r['类型']] = r['占比']
+        self.assertEqual(sorted(by_semester), [1, 2, 3, 4, 5, 6])
+        for sem, pair in by_semester.items():
+            self.assertEqual(sorted(pair), ['实践学时占比', '理论学时占比'])
+            self.assertAlmostEqual(sum(pair.values()), 100.0, delta=0.2)
+
+    def test_charts_command_writes_program_specs_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'program.json'
+            path.write_text(json.dumps(self.d, ensure_ascii=False), encoding='utf-8')
+            with patch.object(program, 'inspect_source', fake_inspect):
+                self.assertEqual(program.charts(path, work=Path(tmp) / 'work'), 0)
+            self.assertTrue((Path(tmp) / 'work' / 'F_SPEC.json').is_file())
+            self.assertTrue((Path(tmp) / 'work' / 'F_HOURS.json').is_file())
+            for query_id in ('F_EDU', 'F_SAL'):
+                self.assertFalse((Path(tmp) / 'work' / f'{query_id}.json').is_file())
+
+    def test_link_text_short_and_scope_stated_once(self):
+        blocks = self.composed()
+        body = []
+        at_appendix = False
+        for kind, payload in blocks:
+            if kind == 'h2' and payload.startswith('附录'):
+                at_appendix = True
+            if not at_appendix and kind in ('p', 'mdtable'):
+                body.append(str(payload))
+        text = '\n'.join(body)
+        links = re.findall(r'\[([^\]]+)\]\(', text)
+        self.assertTrue(links)
+        date_suffix = re.compile(r'（[^）]*\d{4}-\d{2}-\d{2}[^）]*）\s*$')
+        for label in links:
+            weighted = sum(1.0 if ord(ch) > 0x2E7F else 0.5 for ch in label)
+            self.assertLessEqual(weighted, 26, f'链接文字过宽（{weighted:g}）：{label}')
+            self.assertFalse(date_suffix.search(label), f'链接文字带日期后缀：{label}')
+            self.assertNotIn('（广东省', label)  # 地域/时期在表内说明一次，不进每条链接
+        self.assertIn('依据口径（广东省口径）', text)  # 表头一次说明
+        md = program.blocks_markdown(blocks)
+        self.assertNotIn('](', md)  # 下载件 md 与 Word 一致：只显示可读文字，无死链
 
     def test_user_source_excerpt_verified(self):
         earlier = ['面向数据工程技术人员等职业群', '现有专任教师 12 人，其中双师型 6 人']
@@ -824,10 +909,20 @@ class BuildTests(unittest.TestCase):
         # 锚点链接显示可读文字：不带 markdown 语法、不带编号目标、不做内部假超链接
         self.assertNotIn('](', document)
         self.assertNotIn('#M_POS', document)
-        self.assertIn('区域在招岗位数 123 个（广东省，查询时点）', document)
+        self.assertIn('区域在招岗位数 123 个', document)
         self.assertIn('能完成集群部署与基础调优', document)
         self.assertNotIn('<w:hyperlink', document)
         self.assertNotIn('TargetMode', rels)
+
+    def test_program_md_has_no_link_syntax(self):
+        with patch.object(program, 'inspect_source', fake_inspect):
+            self.assertEqual(program.build(self.cwd / 'program.json'), 0)
+        out = next((self.cwd / 'output').iterdir())
+        md = (out / 'program.md').read_text(encoding='utf-8')
+        # 下载件与 Word 一致：只显示可读文字，文件内没有点击不到的锚点链接
+        self.assertNotIn('](', md)
+        self.assertIn('区域在招岗位数 123 个', md)
+        self.assertIn('依据口径（广东省口径）', md)
 
     def test_docx_external_hyperlink(self):
         path = self.cwd / 'links.docx'
@@ -868,17 +963,24 @@ class CheckPageTests(unittest.TestCase):
     """成品页面校验：图型家族门槛、编号清零、死链与规划一致性。"""
 
     def make_workspace(self, tmp, kinds=('matrix', 'bar', 'interval'), body_text=None,
-                       dead=False, unplanned=False, drop_plan_entry=False):
-        import check_page
+                       dead=False, unplanned=False, drop_plan_entry=False, long_link=False,
+                       date_suffix_link=False, single_group_interval=False):
         root = Path(tmp)
         specs = []
         for i, kind in enumerate(kinds):
             fid = f'F{i}{kind.replace("-", "")}'
+            if kind == 'interval':
+                dataset = {'d': ([{'g': '单组', 'v': 9, 'lo': 6, 'hi': 14}] if single_group_interval
+                                 else [{'g': '大专', 'v': 9, 'lo': 6, 'hi': 14},
+                                       {'g': '本科', 'v': 13, 'lo': 8, 'hi': 20}])}
+                fields = {'group': 'g', 'value': 'v', 'lower': 'lo', 'upper': 'hi'}
+            else:
+                dataset = {'d': [{'c': '甲', 'v': 1}]}
+                fields = {'category': 'c', 'value': 'v'}
             spec = {'schema': 'figure/1', 'id': fid, 'lang': 'zh', 'title': f'图{i}',
-                    'datasets': {'d': [{'c': '甲', 'v': 1}]},
+                    'datasets': dataset,
                     'panels': [{'kind': kind, 'title': f'图{i}', 'data': 'd',
-                                'fields': {'category': 'c', 'value': 'v'},
-                                'x_label': 'x', 'y_label': 'y'}]}
+                                'fields': fields, 'x_label': 'x', 'y_label': 'y'}]}
             (root / 'work').mkdir(parents=True, exist_ok=True)
             (root / 'work' / f'{fid}.json').write_text(json.dumps(spec), encoding='utf-8')
             bundle = root / 'work' / 'figures' / fid
@@ -906,8 +1008,7 @@ class CheckPageTests(unittest.TestCase):
             plan = plan[:-1]
         blocks = [
             {'type': 'text', 'text': body_text
-             or '岗位判断见 [区域在招岗位数 12,280 个（广东省，2026-11-01）](#M_X)，'
-                '对标 [同类方案样例1 · 一、培养目标](#S_X)。'},
+             or '岗位判断见 [区域在招岗位数 12,280 个](#M_X)，对标 [同类方案样例1](#S_X)。'},
             {'type': 'section', 'title': '四、职业面向', 'blocks': figures},
             {'type': 'section', 'title': '附录A 证据与口径', 'blocks': [
                 {'type': 'text', 'id': 'M_X', 'text': '**M_X · 区域在招岗位数**：12,280 个｜广东省｜口径见条目'},
@@ -918,10 +1019,15 @@ class CheckPageTests(unittest.TestCase):
             json.dumps({'title': '测试方案', 'blocks': blocks}, ensure_ascii=False), encoding='utf-8')
         (root / 'program.json').write_text(
             json.dumps({'schema': 'training-program/1', 'chartPlan': plan}), encoding='utf-8')
+        metric_label = ('区域在招岗位数 12,280 个（全国人才数据库受管查询，去重岗位主键口径，'
+                        '样本分母与读取时间说明见附录条目，这里是超长回退示例）' if long_link
+                       else '区域在招岗位数 12,280 个')
+        if date_suffix_link:
+            metric_label = '区域在招岗位数 12,280 个（广东省，2026-11-01）'
         html = ('<html><body><div id="M_X"></div><div id="S_X"></div>'
                 '<h2>四、职业面向</h2>'
-                '<a href="#M_X">区域在招岗位数 12,280 个（广东省，2026-11-01）</a>'
-                '<a href="#S_X">同类方案样例1 · 一、培养目标</a>'
+                f'<a href="#M_X">{metric_label}</a>'
+                '<a href="#S_X">同类方案样例1</a>'
                 '<h2>附录A 证据与口径</h2><p>M_X · 区域在招岗位数</p></body></html>')
         if dead:
             html = html.replace('<a href="#S_X">', '<a href="#S_MISSING">', 1)
@@ -968,6 +1074,21 @@ class CheckPageTests(unittest.TestCase):
     def test_bare_id_in_body_fails(self):
         summary, errors = self.run_check(body_text='依据 M_X 支撑该判断。')
         self.assertTrue(any('裸编号' in e for e in errors))
+
+    def test_link_text_too_long_fails(self):
+        summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'), long_link=True)
+        self.assertTrue(any('超过' in e and '上限' in e for e in errors))
+        self.assertTrue(summary['linkTextOverLimit'] >= 1)
+
+    def test_link_text_date_suffix_fails(self):
+        summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'), date_suffix_link=True)
+        self.assertTrue(any('带日期后缀' in e for e in errors))
+        self.assertTrue(summary['linkTextOverLimit'] >= 1)
+
+    def test_interval_single_group_fails(self):
+        summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'),
+                                         single_group_interval=True)
+        self.assertTrue(any('区间图仅 1 组' in e for e in errors))
 
     def test_unplanned_figure_fails(self):
         summary, errors = self.run_check(kinds=('matrix', 'bar', 'interval'), unplanned=True)

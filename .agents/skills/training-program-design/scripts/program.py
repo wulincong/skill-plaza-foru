@@ -160,18 +160,43 @@ def fmt_num(value):
         return f'{value:g}'
 
 
+def display_title(title):
+    """标题显示口径：去掉文件名残留的扩展名、开头的批次序号与收尾标点。
+    如「5-2025级…方案.pdf.」→「2025级…方案」。"""
+    text = str(title or '').strip()
+    text = re.sub(r'\.(pdf|docx?|txt)$', '', text.rstrip('.。．、 '), flags=re.I).rstrip('.。．、 ')
+    text = re.sub(r'^\d{1,3}-', '', text).strip()
+    return text or str(title or '').strip()
+
+
 def metric_link_text(m):
-    """指标链接文字：名称 数值 单位（地域，时期）——人能读懂，不带编号。"""
-    when = re.search(r'\d{4}-\d{2}-\d{2}', str(m.get('period') or ''))
+    """指标链接文字（短名称）：名称 数值 单位。地域与时期在所在表格/段落说明一次，
+    完整口径在附录 A.2 落点条目——不把长后缀塞进每条链接。"""
     head = f"{m['label']} {fmt_num(m.get('value'))}"
     if m.get('unit'):
         head += f" {m['unit']}"
-    return f"{head}（{m.get('region') or '—'}，{when.group(0) if when else (m.get('period') or '—')}）"
+    return head
 
 
 def source_ref_text(s):
-    """来源链接文字：标题 · 定位（locator 缺省时仅标题）。"""
-    return f"{s['title']} · {s['locator']}" if s.get('locator') else s['title']
+    """来源链接文字（短名称）：只写标题；定位与出处留在附录条目。"""
+    return display_title(s['title'])
+
+
+def scope_note(index, ids):
+    """依据口径说明：引用的指标地域/时期一致时生成一句括注（表内/段内说明一次）。"""
+    metrics = [index[i] for i in ids if i in index]
+    if not metrics:
+        return ''
+    regions = {str(m.get('region') or '').strip() for m in metrics} - {''}
+    dates = {m.group(0) for m in (re.search(r'\d{4}-\d{2}-\d{2}', str(x.get('period') or ''))
+                                  for x in metrics) if m}
+    parts = []
+    if len(regions) == 1:
+        parts.append(next(iter(regions)) + '口径')
+    if len(dates) == 1:
+        parts.append('查询时点 ' + next(iter(dates)))
+    return f"（{'，'.join(parts)}）" if parts else ''
 
 
 def md_link(text, anchor):
@@ -306,8 +331,12 @@ def validate(d):
         for obj in items if isinstance(items, list) else []:
             check(isinstance(obj, dict) and isinstance(obj.get('id'), str) and bool(obj.get('id')),
                   f'{group}: invalid id')
+            # id 前缀约定：来源 S*、指标 M*——成品校验按前缀区分链接文字上限
+            prefix = 'S' if group == 'sources' else 'M'
             check(isinstance(obj.get('id'), str) and bool(ANCHOR_ID.fullmatch(obj.get('id') or '')),
                   f'{group}: id 须字母开头、仅含字母数字-_（正文依据要链接到附录锚点）：{obj.get("id")}')
+            check(isinstance(obj.get('id'), str) and obj['id'].startswith(prefix),
+                  f'{group}: id 须以 {prefix} 开头（S*/M*，能力项 C*）：{obj.get("id")}')
             check(obj.get('id') not in index[group], f'{group}: duplicate {obj.get("id")}')
             if isinstance(obj, dict) and isinstance(obj.get('id'), str):
                 index[group][obj['id']] = obj
@@ -336,7 +365,7 @@ def validate(d):
                 if not (excerpt and excerpt in excerpt_text(file.read_text(encoding='utf-8', errors='replace'))):
                     errors.append(f'{s["id"]}: excerpt 须摘录语料原文')
                 if not s.get('title'):
-                    s['title'] = entry.get('标题') or entry.get('文件名', '')
+                    s['title'] = display_title(entry.get('标题') or entry.get('文件名', ''))
         elif isinstance(url, str) and url.startswith('data/'):
             try:
                 result = inspect_source(s)
@@ -583,6 +612,11 @@ def validate(d):
                 check(bool(refs.get('sourceIds')), f'{e.get("id")}: 用户材料图表须绑定 sourceIds')
                 resolvable(refs.get('sourceIds') or [], 'sources', index)
             else:
+                # 方案自带数据的图由脚本确定性生成图稿规格（charts 子命令），标签/无支撑格/
+                # 面板组织等规则才能落到代码与单测；可执行 kind 只开放已实现生成器的两种
+                check(e.get('kind') in ('matrix', 'grouped-line'),
+                      f'{e.get("id")}: 方案自带数据图表由 program.py charts 生成规格，'
+                      'kind 支持 matrix（课程×能力域支撑矩阵）/ grouped-line（逐学期学时占比）')
                 check(bool(refs.get('fromProgram')), f'{e.get("id")}: 方案自带数据图表须在 fromProgram 写明取数字段')
     families = [CHART_FAMILY[k] for k in plan_kinds]
     check(len(set(families)) >= CHART_MIN_FAMILIES,
@@ -941,7 +975,16 @@ def compose_blocks(d):
     def c_links(ids):
         return '、'.join(md_link(caps[c]['cap']['name'], c) for c in ids if c in caps) or '—'
 
+    def scoped_table(header, rows, metric_ids):
+        """带指标依据的表：口径在表头说明一次，链接文字用短名称。"""
+        note = scope_note(metric_index, metric_ids)
+        lead = f"依据口径{note}；各指标的完整口径、总体与分母见附录 A.2。" if note \
+            else '各指标的口径、总体与分母见附录 A.2。'
+        return lead + '\n\n' + md_table([header] + rows)
+
     basis = d['cultivation']['goalBasis']
+    facing_metrics = [m for pos in [p for g in d['jobGroups'] for p in g.get('positions', [])]
+                      for m in pos.get('metricIds', [])]
     blocks = [
         ('h1', d['title']),
         ('p', f"版本 {meta['version']} · {d['status']} · 证据截止 {d['as_of']} · {meta['level']}"
@@ -954,12 +997,13 @@ def compose_blocks(d):
         ('p', f"基本修业年限 {meta['duration']['years']} 年"
               + (f"，最长 {meta['duration'].get('maxYears')} 年" if meta['duration'].get('maxYears') else '')),
         ('h2', '四、职业面向'),
-        ('mdtable', md_table([['岗位群', '代表岗位', '阶段', '依据']] + [
-            [group['name'], pos['name'],
-             '初始岗' if pos['stage'] == 'entry' else '发展岗',
-             '、'.join(x for x in [m_links(pos.get('metricIds', [])), s_links(pos.get('sourceIds', []))]
-                       if x != '—') or '—']
-            for group in d['jobGroups'] for pos in group.get('positions', [])])),
+        ('mdtable', scoped_table(
+            ['岗位群', '代表岗位', '阶段', '依据'],
+            [[group['name'], pos['name'],
+              '初始岗' if pos['stage'] == 'entry' else '发展岗',
+              '、'.join(x for x in [m_links(pos.get('metricIds', [])), s_links(pos.get('sourceIds', []))]
+                        if x != '—') or '—']
+             for group in d['jobGroups'] for pos in group.get('positions', [])], facing_metrics)),
         ('h2', '五、培养目标与培养规格'),
         ('p', d['cultivation']['goal']),
         ('p', '目标依据：'
@@ -969,7 +1013,8 @@ def compose_blocks(d):
               + ''.join(f"、{part}" for part in [
                   f"区域证据 {m_links(basis.get('metricIds', []))}" if basis.get('metricIds') else '',
                   f"校本材料 {s_links(basis.get('sourceIds', []))}" if basis.get('sourceIds') else '',
-              ] if part)),
+              ] if part)
+              + scope_note(metric_index, basis.get('metricIds', []))),
     ]
     for item in d['cultivation']['spec']:
         blocks.append(('h3', f"培养规格 · {item['dimension']}"))
@@ -990,11 +1035,14 @@ def compose_blocks(d):
              c['credits'], '、'.join(f'第{s}学期' for s in c['semesters']), c['assessment']]
             for c in sorted(d['curriculum']['courses'], key=lambda c: (c['category'], c['semesters']))]),
         ('h3', '6.3 专业核心课程设置理由与证据链'),
-        ('mdtable', md_table([['核心课程', '设置理由', '证据']] + [
-            [c['name'], c['rationale']['text'],
-             '、'.join(x for x in [m_links(c['rationale'].get('metricIds', [])),
-                                   s_links(c['rationale'].get('sourceIds', []))] if x != '—') or '—']
-            for c in d['curriculum']['courses'] if c['category'] == 'professional-core'])),
+        ('mdtable', scoped_table(
+            ['核心课程', '设置理由', '证据'],
+            [[c['name'], c['rationale']['text'],
+              '、'.join(x for x in [m_links(c['rationale'].get('metricIds', [])),
+                                    s_links(c['rationale'].get('sourceIds', []))] if x != '—') or '—']
+             for c in d['curriculum']['courses'] if c['category'] == 'professional-core'],
+            [m for c in d['curriculum']['courses'] if c['category'] == 'professional-core'
+             for m in c['rationale'].get('metricIds', [])])),
         ('h3', '6.4 课程简介与典型教学内容'),
         ('table', [['课程', '课程简介', '典型教学内容/工作任务']] + [
             [c['name'], c.get('description', ''), c.get('typicalContent', '')]
@@ -1111,6 +1159,8 @@ def validation_rows(d):
 
 
 def blocks_markdown(blocks):
+    """program.md 与 Word 一致只显示可读文字：锚点链接折叠为链接文字，
+    文件内不保留 [#锚点] 链接语法（md 无处落地这些锚点，点了是死链）。"""
     out = []
     for kind, payload in blocks:
         if kind == 'h1':
@@ -1120,11 +1170,11 @@ def blocks_markdown(blocks):
         elif kind == 'h3':
             out.append(f'### {payload}')
         elif kind == 'p':
-            out.append(payload)
+            out.append(MD_LINK.sub(r'\1', payload))
         elif kind == 'table':
             out.append(md_table(payload))
         elif kind == 'mdtable':
-            out.append(payload)
+            out.append(MD_LINK.sub(r'\1', payload))
         out.append('')
     return '\n'.join(out).rstrip() + '\n'
 
@@ -1164,6 +1214,117 @@ def build_t05(d):
         lines.append(f"| {t['courseName']} | {CATEGORY_NAMES[t['category']]} | {t['credits']} | "
                      f"{t['theoryHours']}/{t['practiceHours']} | {'、'.join(map(str, t['semesters']))} | {caps} |")
     return package, '\n'.join(lines) + '\n'
+
+
+# ---------------------------------------------------------------- 方案自带数据的图稿规格（确定性生成）
+
+LEVEL_VALUE = {'H': 3, 'M': 2, 'L': 1}
+CATEGORY_ORDER = {name: i for i, name in enumerate(CATEGORIES)}
+
+
+def support_matrix_spec(d, entry):
+    """课程×能力域支撑矩阵（按能力域聚合，只呈现专业课程）。
+    无支撑是已知取值（0，最浅色），不写 null——「缺失」只留给真正未知的数据；
+    行标签用课程全称，列标签为能力域名去掉「能力域」后缀，不截断。"""
+    domain_pairs = []
+    for domain in d['capabilityDomains']:
+        label = str(domain['name']).replace('能力域', '').strip()
+        if not label or len(label) > 12:
+            raise ValueError(f'能力域名「{domain["name"]}」去后缀后不适合做图签（须 1–12 字），请改短域名')
+        domain_pairs.append((domain, label))
+    cap_label = {cap['id']: label for domain, label in domain_pairs for cap in domain['capabilities']}
+    bound = [c for c in d['curriculum']['courses'] if c.get('domains')]
+    unbound = [c['name'] for c in d['curriculum']['courses'] if not c.get('domains')]
+    bound.sort(key=lambda c: (CATEGORY_ORDER[c['category']], c['semesters'], c['name']))
+    rows = [{'课程': c['name'], '能力域': label, '强度': max(
+        (LEVEL_VALUE[r['level']] for r in c['domains'] if cap_label.get(r['capabilityId']) == label), default=0)}
+        for c in bound for _, label in domain_pairs]
+    chunk = 7
+    panels, datasets = [], {}
+    for pi in range(0, len(bound), chunk):
+        group = bound[pi:pi + chunk]
+        key = f'支撑{len(datasets) + 1}'
+        keep = {c['name'] for c in group}
+        datasets[key] = [r for r in rows if r['课程'] in keep]
+        first, last = group[0]['name'], group[-1]['name']
+        scope = f'{first}…{last}' if len(group) > 1 else first
+        panels.append({'kind': 'matrix', 'title': f'课程：{scope}（{len(group)} 门）', 'data': key,
+                       'fields': {'row': '课程', 'column': '能力域', 'value': '强度'},
+                       'scale': 'sequential', 'x_label': '能力域', 'y_label': '课程'})
+    unbound_note = ('按国家规定设置的公共基础课与未绑定能力域的课程未列入：' + '、'.join(unbound) + '。'
+                    if unbound else '')
+    caption = ('每格为该课程对该能力域内能力项的最高支撑强度：H=3、M=2、L=1，0=无支撑（最浅色，属正常取值）。'
+               '逐能力项的支撑课程与证据见附录B。' + unbound_note + '数据来自本方案课程表。')
+    height = 56 + chunk * 10
+    return {'schema': 'figure/1', 'id': entry['id'], 'lang': 'zh', 'width_mm': 200,
+            'panel_height_mm': height, 'columns': 1,
+            'title': '专业课程对能力域的支撑强度', 'caption': caption,
+            'source': '本方案课程体系（curriculum.domains 按能力域聚合）',
+            'datasets': datasets, 'panels': panels}
+
+
+def semester_trend_spec(d, entry):
+    """逐学期理论/实践学时占比（grouped-line）：学期是有序坐标，看实践占比递进。"""
+    total_by_semester = {}
+    for c in d['curriculum']['courses']:
+        for s in c['semesters']:
+            theory, practice = total_by_semester.get(s, (0, 0))
+            hours = c['theoryHours'] + c['practiceHours']
+            practice_hours = hours if c['category'] in ALL_PRACTICE_CATEGORIES else c['practiceHours']
+            theory_hours = 0 if c['category'] in ALL_PRACTICE_CATEGORIES else c['theoryHours']
+            total_by_semester[s] = (theory + theory_hours, practice + practice_hours)
+    rows = []
+    for s in sorted(total_by_semester):
+        theory, practice = total_by_semester[s]
+        total = theory + practice
+        if not total:
+            continue
+        rows.append({'类型': '理论学时占比', '学期': s, '占比': round(100 * theory / total, 1)})
+        rows.append({'类型': '实践学时占比', '学期': s, '占比': round(100 * practice / total, 1)})
+    return {'schema': 'figure/1', 'id': entry['id'], 'lang': 'zh', 'width_mm': 183,
+            'title': '逐学期理论与实践学时占比',
+            'caption': '横轴为学期（有序坐标），纵轴为该学期总学时中的理论/实践占比（%）；'
+                       '岗位实习与综合实践学期全部计实践学时。数据来自本方案课程表与教学进程。',
+            'source': '本方案课程体系（curriculum.courses + schedule 按学期汇总）',
+            'datasets': {'学时占比': rows},
+            'panels': [{'kind': 'grouped-line', 'title': '理论与实践学时占比走势', 'data': '学时占比',
+                        'fields': {'group': '类型', 'x': '学期', 'y': '占比'},
+                        'x_label': '学期', 'y_label': '占比 (%)', 'y_ticks': [0, 25, 50, 75, 100]}]}
+
+
+PROGRAM_CHART_BUILDERS = {'matrix': support_matrix_spec, 'grouped-line': semester_trend_spec}
+
+
+def charts(program_path, work=Path('work')):
+    """为 dataOrigin=program 的规划图确定性生成图稿规格（模型随后用 chart-visualization 渲染）；
+    岗位查询数据的图仍由模型按规划出图。"""
+    d = json.loads(Path(program_path).read_text(encoding='utf-8'))
+    result = validate(d)
+    if result['errors']:
+        print('校验未通过，先修复再生成图稿规格：')
+        for item in result['errors']:
+            print(f'  - {item}')
+        return 1
+    work = Path(work)
+    work.mkdir(parents=True, exist_ok=True)
+    written = []
+    for entry in d.get('chartPlan') or []:
+        if not isinstance(entry, dict) or entry.get('dataOrigin') != 'program':
+            continue
+        builder = PROGRAM_CHART_BUILDERS.get(entry.get('kind'))
+        if builder is None:
+            continue
+        spec = builder(d, entry)
+        path = work / f"{entry['id']}.json"
+        path.write_text(json.dumps(spec, ensure_ascii=False, indent=2), encoding='utf-8')
+        written.append(path)
+    if not written:
+        print('chartPlan 中没有 dataOrigin=program 的图，无需生成')
+        return 0
+    for path in written:
+        print(f'已生成 {path}')
+    print('再用 chart-visualization 逐张 render + verify 后组页')
+    return 0
 
 
 # ---------------------------------------------------------------- 网页组稿（锚点与插图）
@@ -1370,7 +1531,11 @@ def build(program_path, skip_docx=False):
         result['warnings'].append('Word 版未生成（环境限制），可编辑版请使用 program.md')
 
     blocks = compose_blocks(d)
-    (out / 'program.md').write_text(blocks_markdown(blocks), encoding='utf-8')
+    markdown_text = blocks_markdown(blocks)
+    if MD_LINK.search(markdown_text):
+        print('program.md 仍含链接语法（md 与 Word 一致只显示可读文字），阻断构建')
+        return 1
+    (out / 'program.md').write_text(markdown_text, encoding='utf-8')
     (out / 'program.json').write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8')
     validation = {'program': d['meta']['majorName'], 'version': d['meta']['version'], 'as_of': d['as_of'],
                   'status': d['status'], 'computed': computed,
@@ -1402,12 +1567,12 @@ def build(program_path, skip_docx=False):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    for name in ('validate', 'build', 'page'):
+    for name in ('validate', 'build', 'charts', 'page'):
         p = sub.add_parser(name)
         p.add_argument('program', type=Path)
         if name == 'build':
             p.add_argument('--no-docx', action='store_true')
-        if name == 'page':
+        if name in ('charts', 'page'):
             p.add_argument('--work', type=Path, default=Path('work'))
     args = parser.parse_args()
     d = json.loads(args.program.read_text(encoding='utf-8'))
@@ -1416,6 +1581,8 @@ def main():
         print(json.dumps({'errors': result['errors'], 'warnings': result['warnings'],
                           'computed': result['computed']}, ensure_ascii=False, indent=2))
         return 1 if result['errors'] else 0
+    if args.command == 'charts':
+        return charts(args.program, work=args.work)
     if args.command == 'page':
         return page(args.program, work=args.work)
     return build(args.program, skip_docx=args.no_docx)
