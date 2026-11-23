@@ -2,7 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { bySlug, catOf } from '../data/skills'
-import { configOf, jobFilters, type TaskField } from '../data/useTaskConfigs'
+import { configOf, jobFilters, competencyContext, type TaskField } from '../data/useTaskConfigs'
 import { checkHealth, type ApiState } from '../composables/useChatApi'
 import { formatSize, uploadDemoFile, uploadFile, validateUploadFile } from '../composables/useUpload'
 import { stashPendingFormTask } from '../composables/pendingTask'
@@ -130,6 +130,7 @@ function toggleOption(fieldId: string, option: string) {
 }
 
 function buildTaskTitle(): string {
+  if (skill.value.slug === 'competency-assessment') return `${String(form.role ?? '').trim()} · 胜任力测评`
   if (skill.value.slug === 'job-matching') return `${String(form.role ?? '').trim()} · 岗位匹配`
   if (skill.value.slug === 'student-learning') return `${String(form.role ?? '').trim()} · 学习计划`
   if (skill.value.slug === 'doc-translate') {
@@ -155,6 +156,7 @@ function buildPrompt(): string {
   return [
     `使用 $${skill.value.identifier} 完成以下任务：`,
     ...lines,
+    ...(skill.value.slug === 'competency-assessment' ? competencyContext(form) : []),
     ...(skill.value.slug === 'job-matching' ? ['【岗位接口筛选】', JSON.stringify(jobFilters(form))] : []),
     ...(fileList ? [`- 已上传附件（随任务提供）：${fileList}`] : []),
     ...(config.value.knowledge.length ? [`- 参考知识库（前端 Mock 演示，本次运行未实际接入）：${picked.length ? picked.join('、') : '未选择'}`] : []),

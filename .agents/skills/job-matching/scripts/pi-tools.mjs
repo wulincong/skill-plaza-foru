@@ -22,7 +22,7 @@ export function blockedJobCall(event,cwd) {
 export default function registerJobMatching(pi) {
  pi.on('tool_call',(event,ctx)=>{const reason=blockedJobCall(event,ctx.cwd);if(reason)return {block:true,reason}})
  pi.registerTool({name:'job_candidates',label:'检索求职候选岗位',
-  description:'按明确筛选条件查询优才招聘公开接口，最多100个去重岗位，返回完整JD、原始字段与真实详情链接。筛选Key以字典为准，不自动放宽条件。简历仅本地解析，绝不发送招聘接口。resumePath须为用户已上传的uploads附件；resumeText须逐字来自用户消息。不含简历时只做条件推荐，完整匹配分记null。返回snapshot/sha256必须原样写入评估文件。',
+  description:'按明确筛选条件查询优才招聘公开接口，最多100个去重岗位，返回完整JD、原始字段与真实详情链接。筛选Key以字典为准，不自动放宽条件。简历仅本地解析，绝不发送招聘接口。resumePath须为用户已上传的uploads附件；resumeText须逐字来自用户消息。岗位匹配无简历时只做条件推荐，完整匹配分记null；胜任力测评还返回表单studentMaterials和hasAbilityMaterials，能力须有实质个人材料。返回snapshot/sha256必须原样写入评估文件。',
   parameters:{type:'object',properties:{filters:{type:'object',properties:{keyword:{type:'string'},city:{type:'string'},district:{type:'string'},...Object.fromEntries(Object.entries(types).map(([k,v])=>[k,{type:'string',enum:Object.keys(dictionaries[v])}]))},required:['keyword'],additionalProperties:false},resumePath:{type:'string'},resumeText:{type:'string'}},required:['filters'],additionalProperties:false},
   async execute(_id,params,signal,_update,ctx) {
    const state=join(ctx.cwd,'.job-query-state.json')

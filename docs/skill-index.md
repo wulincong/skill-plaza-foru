@@ -11,6 +11,7 @@
 - [AI 面试练习](../.agents/skills/ai-interview/docs/index.md) （`ai-interview`）
 - [就业指导](../.agents/skills/career-guidance/docs/index.md) （`career-guidance`）
 - [课堂助教](../.agents/skills/classroom-assistant/docs/index.md) （`classroom-assistant`）
+- [岗位胜任力测评](../.agents/skills/competency-assessment/docs/index.md) （`competency-assessment`）
 - [文档翻译](../.agents/skills/doc-translate/docs/index.md) · [怎样核对一份双栏译文](../.agents/skills/doc-translate/docs/review.md) （`doc-translate`）
 - [产教决策报告](../.agents/skills/industry-education-report/docs/index.md) （`industry-education-report`）
 - [岗位智能匹配](../.agents/skills/job-matching/docs/index.md) （`job-matching`）
