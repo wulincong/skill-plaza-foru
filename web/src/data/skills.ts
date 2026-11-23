@@ -406,6 +406,33 @@ export const SKILLS: Skill[] = [
     ],
     minimalInput: '使用 $course-scheduling，上传教学任务、班级、教室、作息与校历模板，生成三套方案并推荐。',
   },
+  {
+    slug: 'teaching-diagnosis',
+    name: '学勤与教学诊断',
+    identifier: 'teaching-diagnosis',
+    categoryId: 'teaching',
+    audiences: ['manager', 'teacher'],
+    summary: '基于周期内考勤、成绩与评教数据完成专业、教师/课程、班级三层诊断与证据链归因，交付诊断报告网页；改进措施经决策卡逐项确认留档，下一周期同口径复诊。',
+    tags: ['学勤诊断', '教学诊断', '考勤与成绩'],
+    preconditions: '诊断周期与覆盖范围 + 考勤记录与成绩数据',
+    outputs: [
+      '三层诊断报告网页（专业、教师/课程、班级）',
+      '数据质量检查结果与每条结论的范围、样本量',
+      '决策卡确认后的改进措施留档',
+      '授权后的风险预警名单（独立文件）',
+      '同口径复诊对比与成长档案趋势',
+    ],
+    dependencies: [
+      '必需：考勤记录与成绩数据；评教、课堂行为、教学进度至少一项用于归因',
+      '跨周期复诊需要上一周期的指标或报告文件',
+    ],
+    limitations: [
+      '口径不一致的数据不并列比较；分组样本量不足时只描述现状，不下归因结论。',
+      '报告只呈现聚合结果，不出现姓名、学号，不输出教师排名。',
+      '风险预警名单默认不生成，需用户授权并确认阈值。',
+    ],
+    minimalInput: '使用 $teaching-diagnosis，上传本学期考勤与成绩表，诊断大数据技术专业 2401-2403 班的教学运行，读者是专业负责人。',
+  },
 ]
 
 /* 智能体矩阵（T01–T24 规划清单）已移除：广场卡片改为跟随后端可运行技能清单
@@ -448,6 +475,18 @@ export const FEATURES: Feature[] = [  {
 ]
 
 export const bySlug = new Map(SKILLS.map(s => [s.slug, s] as const))
+
+/* $ 选择器的类别筛选：取技能在静态表里的业务分类，前三类各自成组，其余归入「其他」 */
+const FILTER_CATEGORIES = ['industry', 'teaching', 'career']
+export const SKILL_FILTERS: { id: string; name: string }[] = [
+  { id: 'all', name: '全部' },
+  ...CATEGORIES.filter(c => FILTER_CATEGORIES.includes(c.id)).map(c => ({ id: c.id, name: '#' + c.name })),
+  { id: 'other', name: '#其他' },
+]
+export const skillFilterOf = (slug: string) => {
+  const category = bySlug.get(slug)?.categoryId
+  return category && FILTER_CATEGORIES.includes(category) ? category : 'other'
+}
 
 /** 在线对话默认通用智能体：后端 skill 字段值与运行记录显示名（不进 SKILLS 卡片清单） */
 export const GENERAL_SKILL_ID = 'general'

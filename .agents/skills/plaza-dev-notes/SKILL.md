@@ -153,7 +153,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 080 | 原始用户输入快照、历史提示词剥离、每轮最终回答与默认折叠执行过程 | 已实现（28 项回归/构建/真实 Pi 与 OpenAI/浏览器通过） | [080-conversation-source-and-process.md](references/080-conversation-source-and-process.md) |
 | 022 | 就业指导开发侧测试模板切换 | 已实现（构建与浏览器交互已验证） | [022-career-test-template-switcher.md](references/022-career-test-template-switcher.md) |
 | 066 | 在线对话/在线运行前端按 SkillHub 设计系统重构（--sk-* 令牌、文档流对话、ToolCallGroup） | 已实现（双页双主题、真实 SSE、4K 至窄屏输入区贴底已验证） | [066-skillhub-ui-redesign.md](references/066-skillhub-ui-redesign.md) |
-| 067 | 在线对话默认通用智能体与 $ 技能选择器 | 已实现（构建/后端 e2e/浏览器断言通过） | [067-experience-general-agent-dollar-picker.md](references/067-experience-general-agent-dollar-picker.md) |
+| 067 | 在线对话默认通用智能体与 $ 技能选择器（11-23 起不限条数、限高滚动、按类别筛选） | 已实现（构建/后端 e2e/浏览器断言通过；11-23 无头浏览器真实键鼠断言通过） | [067-experience-general-agent-dollar-picker.md](references/067-experience-general-agent-dollar-picker.md) |
 | 068 | /use 收敛为任务配置表单，历史统一到在线对话侧栏 | 已实现（历史形态被 069 修订，其余约定生效） | [068-form-only-usepage-and-experience-surface.md](references/068-form-only-usepage-and-experience-surface.md) |
 | 069 | 历史按对话展示整段记录 + 运行进度只显真实工具调用 | 已实现（构建/curl/浏览器断言与截图通过） | [069-conversation-history-and-toolsonly-progress.md](references/069-conversation-history-and-toolsonly-progress.md) |
 | 070 | 历史续聊、运行中刷新恢复原任务与手动继续 | 已实现（Chrome 实模中断续跑、首次提交及重复点击回归通过） | [070-history-as-normal-chat.md](references/070-history-as-normal-chat.md) |
