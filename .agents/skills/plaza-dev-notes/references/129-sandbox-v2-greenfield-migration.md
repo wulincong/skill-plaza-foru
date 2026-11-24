@@ -1,6 +1,6 @@
 # 129 · 沙箱二期重建架构与迁移计划
 
-**状态**　2026-11-24 已验证本机 Docker 能用 runsc 运行 Alpine。下列五步均待实现。本次核对时 Docker 已注册 `runsc`，默认仍为 `runc`，广场 Pi 仍由宿主机启动。
+**状态**　2026-11-24 第一步已实现并在本机实测，见 [131](131-sandbox-v2-offline-pi-sandbox.md)；第二至五步待实现。Docker 已注册 `runsc`，默认仍为 `runc`，广场 Pi 仍由宿主机启动。
 
 ## 首期单机实施顺序
 
@@ -11,6 +11,8 @@
 第一批代码交付固定版本的 Pi 镜像、Worker 的启动与回收入口、一条可重复的验收命令。复用 `web/server/lib/piRunner.ts:537` 的 JSONL RPC，把 Pi 及它启动的工具全部放进容器。Worker 固定镜像摘要和 `--runtime=runsc`，使用非 root、只读根文件系统、去除 capabilities、禁止提权、限额 `/tmp` 和 `--network=none`。挂载清单由 Worker 生成，业务文件只开放本次执行的可写 `/work` 和按需只读的输入。Pi 会话写入 `/work`，临时缓存写入 `/tmp`。宿主的系统目录、开发者家目录、仓库、`.env` 与 Docker socket 均排除。工作盘单独落实字节及文件数硬配额，并设置 CPU、内存、进程和运行时长上限。
 
 **验收**　Worker 从 Docker 核对 `HostConfig.Runtime` 为 `runsc` 以及挂载清单和读写权限。Pi 通过 `get_state` 回报就绪。用测试文件验证 `/work` 可写、只读输入可读且写入被拒、挂载范围外的宿主标记和另一任务的标记不可见。指定运行时不可用时，Worker 报错并停止启动。完成后确认容器退出，宿主标记完整。
+
+**实现回填（2026-11-24）**　代码在 `sandbox-v2/`，验收命令 `npm --prefix sandbox-v2 run acceptance`，本机 37 项通过；接入点、实测事实与未验证项见 [131](131-sandbox-v2-offline-pi-sandbox.md)。与本节计划有三处不同：工作盘是 Docker 创建的 tmpfs 卷，字节与 inode 上限由内核强制，但容器停止后读不到内容，第二步“先停止容器再收集”的顺序需要调整；Docker 侧核对分创建后与启动后两次，因为创建态容器还没有网络接入信息；回收分成只释放本次资源的 `release` 与按运行标签的显式 `reclaim`，同一 `runId` 的并发启动靠工作卷名与尝试标签只成功一个。
 
 ### 2. 让一个真实 T03 任务交付结果
 

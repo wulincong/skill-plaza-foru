@@ -1,0 +1,17 @@
+{
+  "CreatedAt": "2026-11-24T17:53:29+08:00",
+  "Driver": "local",
+  "Labels": {
+    "plaza.sandbox.attempt": "5bc1e50f8c807b2cdae390ed",
+    "plaza.sandbox.managed": "v2",
+    "plaza.sandbox.run": "fixture-a"
+  },
+  "Mountpoint": "/var/lib/docker/volumes/plaza-sb-fixture-a-work/_data",
+  "Name": "plaza-sb-fixture-a-work",
+  "Options": {
+    "device": "tmpfs",
+    "o": "size=256m,nr_inodes=2048,mode=0700,uid=65532,gid=65532",
+    "type": "tmpfs"
+  },
+  "Scope": "local"
+}

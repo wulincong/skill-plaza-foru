@@ -1,0 +1,31 @@
+{
+  "name": "plaza-sandbox-pi",
+  "tag": "plaza-sandbox-pi:0.87.1",
+  "id": "sha256:6cc9a9f248a8ffd0077a112a1ca6eba83a2faad58fb4649d3193ca254ae48d7e",
+  "repoDigest": null,
+  "piVersion": "0.87.1",
+  "piIntegrity": "sha512-m8ArJUtVcQMSe1lLE/Ei7vX/JV7O39sWmWBsXV2NOU70F0qCp8GubA24pT3LnwTmM6LL2xV80/h6sQg85n69ew==",
+  "nodeVersion": "22.23.5",
+  "baseReference": "public.ecr.aws/docker/library/node:22-bookworm-slim",
+  "baseDigest": "sha256:170fab707454b1350981adcdc2f536ec21f24d06d7f008e8d40064afeacb8a94",
+  "user": "65532:65532",
+  "entrypoint": [
+    "/usr/bin/tini",
+    "-g",
+    "--",
+    "/usr/local/sbin/plaza-sandbox-pi"
+  ],
+  "layers": [
+    "sha256:606229031e76a82c486df00d2565c45a89bb848a4df0fb315d9c4c47b3682530",
+    "sha256:8f1ffe0922351af296205bb913d3c7e7a5026e3ef1544a86c3dfead5a2c718bf",
+    "sha256:f9d033038087595b1135e991f321c5e3df568e8d564de9b919d24d8dc1a1551d",
+    "sha256:7188c0df13412cf7f417235d4f1d9451997e32c56dc06c11e49eccb423757160",
+    "sha256:816aa737dfe5a742f211b6ebb4feb55b4718e1bb878f27f4ffd82c1d6e4aabc9",
+    "sha256:b4bb69e9e474123393e497e0aaa9761b13b6508c529e9d45b7e79970c13630c6",
+    "sha256:cd34395cc551921beaabebc4bb33de53dd1265d20ca4f7db5d2b401517bc8e4d",
+    "sha256:28678ec1bab68febfefd6d13f414ffdef9a7aa89af6b9c2ce83aab6caf023a49",
+    "sha256:79c7dea7e2b6d2bba1f58d69eb0c8e430129fe2e5d38b47dde56e94acedd0af6",
+    "sha256:b1929c2ac115b98490f2e724649a2e602da05ec2b24b04781af8b2bc8d90cd0e",
+    "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+  ]
+}

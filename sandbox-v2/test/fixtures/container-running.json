@@ -1,0 +1,298 @@
+{
+  "Id": "91b9b9c2126720236f5ad879652a2e21dd46340a655bd96e496480d951794429",
+  "Created": "2026-11-24T09:53:29.639043431Z",
+  "Path": "/usr/bin/tini",
+  "Args": [
+    "-g",
+    "--",
+    "/usr/local/sbin/plaza-sandbox-pi"
+  ],
+  "State": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 3192356,
+    "ExitCode": 0,
+    "Error": "",
+    "StartedAt": "2026-11-24T09:53:29.753613268Z",
+    "FinishedAt": "0001-01-01T00:00:00Z"
+  },
+  "Image": "sha256:6cc9a9f248a8ffd0077a112a1ca6eba83a2faad58fb4649d3193ca254ae48d7e",
+  "ResolvConfPath": "/var/lib/docker/containers/91b9b9c2126720236f5ad879652a2e21dd46340a655bd96e496480d951794429/resolv.conf",
+  "HostnamePath": "/var/lib/docker/containers/91b9b9c2126720236f5ad879652a2e21dd46340a655bd96e496480d951794429/hostname",
+  "HostsPath": "/var/lib/docker/containers/91b9b9c2126720236f5ad879652a2e21dd46340a655bd96e496480d951794429/hosts",
+  "LogPath": "",
+  "Name": "/recursing_black",
+  "RestartCount": 0,
+  "Driver": "overlay2",
+  "Platform": "linux",
+  "MountLabel": "",
+  "ProcessLabel": "",
+  "AppArmorProfile": "docker-default",
+  "ExecIDs": null,
+  "HostConfig": {
+    "Binds": null,
+    "ContainerIDFile": "",
+    "LogConfig": {
+      "Type": "none",
+      "Config": {}
+    },
+    "NetworkMode": "none",
+    "PortBindings": null,
+    "RestartPolicy": {
+      "Name": "no",
+      "MaximumRetryCount": 0
+    },
+    "AutoRemove": false,
+    "VolumeDriver": "",
+    "VolumesFrom": null,
+    "ConsoleSize": [
+      0,
+      0
+    ],
+    "CapAdd": [],
+    "CapDrop": [
+      "ALL"
+    ],
+    "CgroupnsMode": "private",
+    "Dns": null,
+    "DnsOptions": null,
+    "DnsSearch": null,
+    "ExtraHosts": null,
+    "GroupAdd": null,
+    "IpcMode": "private",
+    "Cgroup": "",
+    "Links": null,
+    "OomScoreAdj": 0,
+    "PidMode": "",
+    "Privileged": false,
+    "PublishAllPorts": false,
+    "ReadonlyRootfs": true,
+    "SecurityOpt": [
+      "no-new-privileges:true"
+    ],
+    "Tmpfs": {
+      "/tmp": "rw,nosuid,nodev,noexec,size=16m,mode=1777"
+    },
+    "UTSMode": "",
+    "UsernsMode": "",
+    "ShmSize": 67108864,
+    "Runtime": "runsc",
+    "Isolation": "",
+    "CpuShares": 0,
+    "Memory": 536870912,
+    "NanoCpus": 1000000000,
+    "CgroupParent": "",
+    "BlkioWeight": 0,
+    "BlkioWeightDevice": null,
+    "BlkioDeviceReadBps": null,
+    "BlkioDeviceWriteBps": null,
+    "BlkioDeviceReadIOps": null,
+    "BlkioDeviceWriteIOps": null,
+    "CpuPeriod": 0,
+    "CpuQuota": 0,
+    "CpuRealtimePeriod": 0,
+    "CpuRealtimeRuntime": 0,
+    "CpusetCpus": "",
+    "CpusetMems": "",
+    "Devices": [],
+    "DeviceCgroupRules": null,
+    "DeviceRequests": [],
+    "MemoryReservation": 0,
+    "MemorySwap": 536870912,
+    "MemorySwappiness": null,
+    "OomKillDisable": null,
+    "PidsLimit": 256,
+    "Ulimits": [
+      {
+        "Name": "nofile",
+        "Hard": 8192,
+        "Soft": 4096
+      },
+      {
+        "Name": "nproc",
+        "Hard": 96,
+        "Soft": 96
+      }
+    ],
+    "CpuCount": 0,
+    "CpuPercent": 0,
+    "IOMaximumIOps": 0,
+    "IOMaximumBandwidth": 0,
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Source": "plaza-sb-fixture-a-work",
+        "Target": "/work"
+      },
+      {
+        "Type": "bind",
+        "Source": "/srv/plaza/inputs/task",
+        "Target": "/input/task",
+        "ReadOnly": true,
+        "BindOptions": {
+          "Propagation": "rprivate"
+        }
+      }
+    ],
+    "MaskedPaths": [
+      "/proc/asound",
+      "/proc/acpi",
+      "/proc/interrupts",
+      "/proc/kcore",
+      "/proc/keys",
+      "/proc/latency_stats",
+      "/proc/timer_list",
+      "/proc/timer_stats",
+      "/proc/sched_debug",
+      "/proc/scsi",
+      "/sys/firmware",
+      "/sys/devices/virtual/powercap",
+      "/sys/devices/system/cpu/cpu0/thermal_throttle",
+      "/sys/devices/system/cpu/cpu1/thermal_throttle",
+      "/sys/devices/system/cpu/cpu2/thermal_throttle",
+      "/sys/devices/system/cpu/cpu3/thermal_throttle",
+      "/sys/devices/system/cpu/cpu4/thermal_throttle",
+      "/sys/devices/system/cpu/cpu5/thermal_throttle",
+      "/sys/devices/system/cpu/cpu6/thermal_throttle",
+      "/sys/devices/system/cpu/cpu7/thermal_throttle",
+      "/sys/devices/system/cpu/cpu8/thermal_throttle",
+      "/sys/devices/system/cpu/cpu9/thermal_throttle",
+      "/sys/devices/system/cpu/cpu10/thermal_throttle",
+      "/sys/devices/system/cpu/cpu11/thermal_throttle",
+      "/sys/devices/system/cpu/cpu12/thermal_throttle",
+      "/sys/devices/system/cpu/cpu13/thermal_throttle",
+      "/sys/devices/system/cpu/cpu14/thermal_throttle",
+      "/sys/devices/system/cpu/cpu15/thermal_throttle",
+      "/sys/devices/system/cpu/cpu16/thermal_throttle",
+      "/sys/devices/system/cpu/cpu17/thermal_throttle",
+      "/sys/devices/system/cpu/cpu18/thermal_throttle",
+      "/sys/devices/system/cpu/cpu19/thermal_throttle"
+    ],
+    "ReadonlyPaths": [
+      "/proc/bus",
+      "/proc/fs",
+      "/proc/irq",
+      "/proc/sys",
+      "/proc/sysrq-trigger"
+    ],
+    "Init": false
+  },
+  "GraphDriver": {
+    "Data": {
+      "ID": "91b9b9c2126720236f5ad879652a2e21dd46340a655bd96e496480d951794429",
+      "LowerDir": "/var/lib/docker/overlay2/3522657f28042148b629bb5769a72d53ccf1f6278a7cf47fd53949c2232ce5b6-init/diff:/var/lib/docker/overlay2/njrfqtogi5ual8spqnxfk59dk/diff:/var/lib/docker/overlay2/krx1l7z361xssmyn4imsk1kiw/diff:/var/lib/docker/overlay2/wgpn4nmqym424tedas1qu6nnx/diff:/var/lib/docker/overlay2/q1v5frspxtcsjzx6urylna8gv/diff:/var/lib/docker/overlay2/rf8q7pmerp0w6vt2ozlpq3aab/diff:/var/lib/docker/overlay2/q4arfwvlcy8dkraoirbktjtar/diff:/var/lib/docker/overlay2/18140e28871afa340bd78f191b6a84d52636c343dcad6a5992a7e0ce3953d131/diff:/var/lib/docker/overlay2/75ad3b7a8f8b1def895c2956b560a706becdee72a95fb8e62513e0bc171becd8/diff:/var/lib/docker/overlay2/ca2d8f1843e72ef61d501e8fc80caf1b9a927863a0a7c629ee7fdb2a36ee0c24/diff:/var/lib/docker/overlay2/7b804b39cb208f8c9b897c79dd6d745efdb52d1c05efcc4f1f8a82b09ed57db9/diff:/var/lib/docker/overlay2/659ce07efbb909e5584fa299204c872d9d416eae9d48387a2cdce517be6097a4/diff",
+      "MergedDir": "/var/lib/docker/overlay2/3522657f28042148b629bb5769a72d53ccf1f6278a7cf47fd53949c2232ce5b6/merged",
+      "UpperDir": "/var/lib/docker/overlay2/3522657f28042148b629bb5769a72d53ccf1f6278a7cf47fd53949c2232ce5b6/diff",
+      "WorkDir": "/var/lib/docker/overlay2/3522657f28042148b629bb5769a72d53ccf1f6278a7cf47fd53949c2232ce5b6/work"
+    },
+    "Name": "overlay2"
+  },
+  "Mounts": [
+    {
+      "Type": "volume",
+      "Name": "plaza-sb-fixture-a-work",
+      "Source": "/var/lib/docker/volumes/plaza-sb-fixture-a-work/_data",
+      "Destination": "/work",
+      "Driver": "local",
+      "Mode": "z",
+      "RW": true,
+      "Propagation": ""
+    },
+    {
+      "Type": "bind",
+      "Source": "/srv/plaza/inputs/task",
+      "Destination": "/input/task",
+      "Mode": "",
+      "RW": false,
+      "Propagation": "rprivate"
+    }
+  ],
+  "Config": {
+    "Hostname": "sandbox",
+    "Domainname": "",
+    "User": "65532:65532",
+    "AttachStdin": false,
+    "AttachStdout": false,
+    "AttachStderr": false,
+    "Tty": false,
+    "OpenStdin": true,
+    "StdinOnce": true,
+    "Env": [
+      "PI_SESSION_DIR=/work/.pi-sessions",
+      "PI_SESSION_NAME=fixture-a",
+      "PI_MAX_SECONDS=300",
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "NODE_VERSION=22.23.5",
+      "YARN_VERSION=1.22.22",
+      "NODE_DISABLE_COMPILE_CACHE=1",
+      "HOME=/tmp/home",
+      "PI_CODING_AGENT_DIR=/tmp/pi-agent",
+      "PI_OFFLINE=1",
+      "PI_SKIP_VERSION_CHECK=1",
+      "PI_TELEMETRY=0"
+    ],
+    "Cmd": null,
+    "Image": "sha256:6cc9a9f248a8ffd0077a112a1ca6eba83a2faad58fb4649d3193ca254ae48d7e",
+    "Volumes": null,
+    "WorkingDir": "/work",
+    "Entrypoint": [
+      "/usr/bin/tini",
+      "-g",
+      "--",
+      "/usr/local/sbin/plaza-sandbox-pi"
+    ],
+    "OnBuild": null,
+    "Labels": {
+      "plaza.sandbox.attempt": "5bc1e50f8c807b2cdae390ed",
+      "plaza.sandbox.base.digest": "sha256:170fab707454b1350981adcdc2f536ec21f24d06d7f008e8d40064afeacb8a94",
+      "plaza.sandbox.managed": "v2",
+      "plaza.sandbox.pi.version": "0.87.1",
+      "plaza.sandbox.role": "pi",
+      "plaza.sandbox.run": "fixture-a"
+    },
+    "StopSignal": "SIGTERM",
+    "StopTimeout": 10
+  },
+  "NetworkSettings": {
+    "Bridge": "",
+    "SandboxID": "62b5e70798473e192a30cddcf9f7d9d31f48696b9b62c2e0212bfcd059e12af6",
+    "SandboxKey": "/var/run/docker/netns/62b5e7079847",
+    "Ports": {},
+    "HairpinMode": false,
+    "LinkLocalIPv6Address": "",
+    "LinkLocalIPv6PrefixLen": 0,
+    "SecondaryIPAddresses": null,
+    "SecondaryIPv6Addresses": null,
+    "EndpointID": "",
+    "Gateway": "",
+    "GlobalIPv6Address": "",
+    "GlobalIPv6PrefixLen": 0,
+    "IPAddress": "",
+    "IPPrefixLen": 0,
+    "IPv6Gateway": "",
+    "MacAddress": "",
+    "Networks": {
+      "none": {
+        "IPAMConfig": null,
+        "Links": null,
+        "Aliases": null,
+        "MacAddress": "",
+        "DriverOpts": null,
+        "GwPriority": 0,
+        "NetworkID": "45ce5d880a05b2acf5b63d69099dfb2569a29751596d250de9e3820932899e30",
+        "EndpointID": "c6aa0831069fe219c4dc4865662bb88d4423f9683659dfda9d34e829bcc31a15",
+        "Gateway": "",
+        "IPAddress": "",
+        "IPPrefixLen": 0,
+        "IPv6Gateway": "",
+        "GlobalIPv6Address": "",
+        "GlobalIPv6PrefixLen": 0,
+        "DNSNames": null
+      }
+    }
+  }
+}
