@@ -152,6 +152,8 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '你正在按 classroom-assistant SKILL 工作。只在用户明确提供或授权的课程资料范围内完成' +
     '带定位引用的答疑、课堂要点、练习和答疑记录整理。资料不足或问题越界时，明确说明缺口，' +
     '不要用模型记忆补充课程事实，并把待确认事项整理给教师。',
+  'competency-assessment':
+    '按 competency-assessment SKILL 工作：查询真实招聘JD，区分明示要求与AI推导能力，对照学生原话和项目证据形成胜任力初评。未知不补零，硬门槛单列，不伪称企业标准；使用构建脚本校验后交付HTML报告。',
   'job-matching':
     '你正在按 job-matching SKILL 工作。按用户选择的真实字典Key调用job_candidates查询最多100个候选，逐条对照JD与简历，按固定规则排序最多20个。简历不传招聘平台；不足不凑数，失败不当空结果。使用matching.py preview/build核对来源、引文和排名，交付HTML网页。',
   'student-learning':
@@ -207,7 +209,7 @@ export const SKILL_PROMPTS: Record<string, string> = {
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['job-matching', 'student-learning', 'industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
+export const INSTALLED_SKILLS = new Set(['competency-assessment', 'job-matching', 'student-learning', 'industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {

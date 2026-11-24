@@ -111,6 +111,33 @@ def extract_resume(workspace, request, context):
     return value
 
 
+def assessment_context(context):
+    """Only structured personal fields are treated as student material; never JD text."""
+    if context.get('skill')!='competency-assessment':return {}
+    result={}
+    for message in context.get('messages',[]):
+        if not isinstance(message,str):continue
+        for marker,key in (('【测评材料】','studentMaterials'),('【测评范围】','assessmentScope')):
+            if marker not in message:continue
+            raw=json.loads(message.split(marker)[-1].split('\n')[1])
+            require(isinstance(raw,dict),'测评表单格式无效')
+            if key=='studentMaterials':
+                allowed={'education':'学历专业','work':'工作或实习经历','projects':'项目经历','skills':'技能','resume':'简历摘要','notes':'补充说明'}
+                require(all(isinstance(v,str) for v in raw.values()),'测评材料字段必须为文本')
+                result[key]='\n'.join(allowed[k]+'：'+v for k,v in raw.items() if k in allowed and v.strip())
+                result['hasAbilityMaterials']=any(raw.get(k,'').strip() for k in ('work','projects','skills','resume'))
+                require(len(result[key])<=60000,'测评材料过长')
+            else:
+                require(raw.get('mode') in ('direction','position'),'测评模式无效')
+                result[key]={'mode':raw['mode'],'positionId':str(raw.get('positionId') or '')}
+    # Keep the chosen scope on 'continue'; only an explicit new choice changes it.
+    current=context.get('message','').strip()
+    selected=re.fullmatch(r'(?:我)?(?:选择|选定|改为|改成)(?:另一个|具体)?岗位(?:ID)?[:：\s]*([0-9]{1,32})[。.!！]?',current)
+    if selected:result['assessmentScope']={'mode':'position','positionId':selected.group(1)}
+    if re.fullmatch(r'(?:请)?改为岗位方向[。.!！]?',current):result['assessmentScope']={'mode':'direction','positionId':''}
+    return result
+
+
 def escaped(value):
     return re.sub(r'([\\`*_{}\[\]<>|])',r'\\\1',str(value)).replace('\n',' ')
 
@@ -231,12 +258,15 @@ def main():
             context=json.loads((workspace/'.job-request.json').read_text())
             resume=extract_resume(workspace,data,context)
             source=query_jobs(data['filters']);source['resume']=resume;source['runId']=context['runId']
+            source.update(assessment_context(context))
+            if context.get('skill')=='competency-assessment':source['hasAbilityMaterials']=bool(resume.strip()) or source.get('hasAbilityMaterials',False)
             identifier=uuid.uuid4().hex
             directory=workspace/'.job-matching';directory.mkdir(exist_ok=True)
             path=directory/(identifier+'.json');path.write_text(json.dumps(source,ensure_ascii=False))
             digest=hashlib.sha256(path.read_bytes()).hexdigest()
             result={k:source[k] for k in ('total','candidateCount','filters','warning','retrievedAt')}
             result.update(status='ok' if source['records'] else 'empty',snapshot=str(path.relative_to(workspace)),sha256=digest,resume=resume,candidates=source['records'])
+            result.update({k:source[k] for k in ('studentMaterials','assessmentScope','hasAbilityMaterials') if k in source})
             print(json.dumps(result,ensure_ascii=False))
         else:
             path=(workspace/data['snapshot']).resolve()

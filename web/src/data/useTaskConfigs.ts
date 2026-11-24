@@ -69,6 +69,24 @@ const jobSelect = (id: string, label: string, dictionary: string): TaskField => 
 
 export const USE_TASK_CONFIGS: UseTaskConfig[] = [
   {
+    slug:'competency-assessment',eyebrow:'岗位胜任力测评',
+    lead:'结合真实岗位要求与个人材料，了解已有优势、能力差距和需要补充的证据。',
+    output:'能力画像、任职门槛核验、JD与经历对照、提升及验证任务',
+    promptInstruction:'请使用真实JD反推能力指标，对照我的材料完成胜任力初评并交付网页报告。按岗位方向选择5–10份同层级代表JD进行分析。明示要求与AI推导分开，资格单列，未知不补零。关键缺证先补问。',
+    sections:[{number:'01',title:'确定测评目标',description:'填写目标岗位和工作性质，结合相关岗位JD进行分析。',fields:[
+      {id:'role',label:'目标岗位',type:'text',required:true,placeholder:'例如：前端开发实习生'},
+      jobSelect('positionType','工作性质','POSITION_TYPE'),
+    ]},{number:'02',title:'补充个人材料',description:'至少提供一项技能、经历或简历；未提供的能力记为未知。',fields:[
+      {id:'work',label:'工作／实习经历',type:'textarea',span:'full',placeholder:'单位、时间、职责和实际成果；课程项目不算正式工作年限'},
+      {id:'projects',label:'项目经历',type:'textarea',span:'full',placeholder:'项目背景、本人负责内容、用到的技能及成果'},
+      {id:'skills',label:'已掌握技能',type:'textarea',span:'full',placeholder:'写明能完成什么任务，避免只罗列技术名词'},
+      {id:'resume',label:'简历摘要',type:'textarea',span:'full',placeholder:'可粘贴匿名简历，或上传文字版附件'},
+      {id:'notes',label:'补充说明',type:'textarea',span:'full',placeholder:'希望重点评估的方向、已有成果链接或其他信息'},
+    ]}],
+    example:{role:'前端开发',positionType:'实习',projects:'独立完成Vue校园二手交易网站的列表、详情页面与接口联调。',skills:'掌握HTML、CSS、JavaScript、Vue；尚未使用自动化测试。'},
+    uploads:[{id:'resumeFile',label:'上传简历',accept:'.pdf,.docx,.txt,.md',help:'支持文字PDF、DOCX、TXT、Markdown；只提取与能力有关的材料。'}],knowledge:[],
+  },
+  {
     slug: 'job-matching', eyebrow: '岗位智能匹配',
     lead: '填写求职条件，结合简历和岗位要求找到适合优先投递的岗位。',
     output: '最多20个推荐岗位、JD匹配依据、能力差距与求职建议',
@@ -422,4 +440,20 @@ export function jobFilters(values: Record<string, string | string[]>): Record<st
     if(values.graduation==='应届毕业生')result.experience='GRADUATING'
   }
   return result
+}
+
+/** Assessment personal attributes inform evaluation, not vacancy filters. */
+export function competencyFilters(values: Record<string, string | string[]>): Record<string,string> {
+  const result: Record<string,string>={keyword:String(values.role ?? '').trim()}
+  const choice=String(values.positionType ?? '')
+  const field=configOf('competency-assessment')!.sections[0]!.fields.find(f=>f.id==='positionType')!
+  if(choice && field.optionKeys?.[choice] === undefined)throw new Error('无效的工作性质')
+  const key=field.optionKeys?.[choice]
+  if(key)result.positionType=key
+  return result
+}
+export function competencyContext(values: Record<string,string | string[]>): string[] {
+  return ['【岗位接口筛选】',JSON.stringify(competencyFilters(values)),
+    '【测评范围】',JSON.stringify({mode:'direction',positionId:''}),
+    '【测评材料】',JSON.stringify(Object.fromEntries(['work','projects','skills','resume','notes'].map(k=>[k,String(values[k] ?? '')])))]
 }

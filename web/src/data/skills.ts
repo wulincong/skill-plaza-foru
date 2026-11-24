@@ -58,6 +58,11 @@ export const AUDIENCES: Audience[] = [
 ]
 
 export const SKILLS: Skill[] = [
+  {slug:'competency-assessment',name:'岗位胜任力测评',identifier:'competency-assessment',categoryId:'career',audiences:['student','teacher'],
+   summary:'从真实岗位JD提炼能力要求，对照经历与项目证据，找出优势、差距和提升方向。',tags:['胜任力测评','能力画像','JD分析'],
+   preconditions:'目标岗位；个人技能、经历或简历材料',outputs:['胜任力测评报告网页','能力要求与材料支持等级对比','任职门槛核验、证据缺口与提升任务'],
+   dependencies:['优才招聘公开岗位接口','学生提交的真实经历材料','report-rendering'],limitations:['基于材料的初评，不能替代实操测验。','未知不补零，等级与权重为AI分析量表，并非企业认证。'],
+   minimalInput:'使用 $competency-assessment，评估我的前端开发实习岗位准备情况。我掌握Vue，独立完成过校园网站页面开发，请结合真实JD分析。'},
   {slug:'job-matching',name:'岗位智能匹配',identifier:'job-matching',categoryId:'career',audiences:['student','teacher'],
    summary:'按求职条件检索100个候选，对照JD和简历推荐最多20个岗位。',tags:['岗位推荐','人岗匹配','求职报告'],
    preconditions:'目标岗位与城市；建议提供真实简历',outputs:['岗位匹配报告网页','最多20个推荐岗位及真实详情入口','匹配依据、能力差距和求职建议'],

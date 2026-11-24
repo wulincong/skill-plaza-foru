@@ -564,7 +564,7 @@ export class PiRunner extends AgentRunner {
       args.push('--skill', skillDir('talent-data-query'), '--skill', skillDir('chart-visualization'), '--skill', skillDir('report-rendering'))
       args.push('--extension', join(skillDir('talent-data-query'),'scripts/pi-tools.mjs'))
     }
-    if (opts.skill === 'job-matching') {
+    if (opts.skill === 'job-matching' || opts.skill === 'competency-assessment') {
       args.push('--skill', skillDir('report-rendering'))
       args.push('--extension', join(skillDir('job-matching'), 'scripts/pi-tools.mjs'))
     }
@@ -749,6 +749,9 @@ export class PiRunner extends AgentRunner {
     }
     if (skill === 'job-matching') {
       content += `\n岗位匹配本轮：先读 ${skillDir(skill)}/SKILL.md，使用job_candidates；先评估全部候选并preview排序，再补20岗说明后build。来源由工具维护，不检查或修改隐藏文件。未经构建不声称报告已交付。`
+    }
+    if (skill === 'competency-assessment') {
+      content += `\n胜任力测评本轮：先读 ${skillDir(skill)}/SKILL.md，直接调用job_candidates取得真实JD与个人材料，再按 references/assessment-format.md 写评测JSON并用 scripts/build.py build 交付网页。能力来自JD，资格单列；未知设null；无个人材料或关键缺证时先补问，不编造评分。`
     }
     if (skill === 'student-learning') {
       content += `\n\n学习规划本轮：先读 ${skillDir(skill)}/SKILL.md。知识库只调用 weknora_retrieve。教材入口沿用工具返回的 preview_url/download_url；完整计划必须经过 build.py 来源和时间验收，并交付网页，不在未生成文件时声称完成。`
