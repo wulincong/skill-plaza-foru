@@ -1,6 +1,6 @@
 # 129 · 沙箱二期重建架构与迁移计划
 
-**状态**：建议方案，待实现（2026-11-23）。本轮交付架构及迁移计划。已核对代码、既有手记和本机运行时配置，待做沙箱试验、故障注入、容量验证和切流。业务和部署均未改动。
+**状态**：建议方案，待实现（2026-11-23）。已核对代码、既有手记和本机运行时配置，11-24 复验基础运行时，见下文。待做 Pi 容器化、故障注入、容量验证和切流。业务和部署均未改动。
 
 ## 目标与范围
 
@@ -18,7 +18,14 @@
 | `web/server/lib/delivery.ts:82` 的交付校验及 `web/server/index.ts:287` 的同进程网页读取 | 沿用清单形状和变化检测，把收集、发布和读取移到独立边界 |
 | `web/server/lib/skills.ts:143` 的伴生挂载及 [T03 手记](124-training-program-design-skill.md) 的轮次输入和本地语料 | 镜像和数据按技能版本发放，保持证据核验、决策和 T05 交接可用 |
 
-本机只读检查见 Docker 已注册 `runsc`（`release-20261102.0`），默认 runtime 仍是 `runc`，Docker 使用 cgroup v2/systemd，当前项目盘显示 ext4 `rw,relatime`。前后端用户服务均为 active。Docker 的 cgroup driver 不能单独证明 runsc 的 cgroup 配置或限制效果，项目盘状态也不能证明已启用硬配额。此记录的检查未启动容器、运行技能或修改配置。历史基础探针见 119/121。
+本机只读检查见 Docker 已注册 `runsc`（`release-20261102.0`），默认 runtime 仍是 `runc`，Docker 使用 cgroup v2/systemd，当前项目盘显示 ext4 `rw,relatime`。前后端用户服务均为 active。Docker 的 cgroup driver 不能单独证明 runsc 的 cgroup 配置或限制效果，项目盘状态也不能证明已启用硬配额。历史基础探针见 119/121。
+
+### 2026-11-24 运行时复验
+
+- 本机已有的 `alpine:latest` 使用 `docker run --rm --pull=never --runtime=runsc --network=none alpine:latest uname -r` 返回 `4.19.0-gvisor`。临时宿主目录可由非 root 容器写入，重建后可以读回，改为只读挂载后覆盖被拒。无网络模式下未见 IPv4/IPv6 默认路由。
+- `--read-only` 生效时，本机 runsc 仍给 `/tmp` 单独提供可写 tmpfs。执行器应显式给临时目录设置上限。附加 `--tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m,mode=1777` 后，经限量写入确认文件到 16 MiB 即无法继续增长。bind mount 的宿主机硬配额仍需独立实现和验证。
+- 设置 `--cpus=0.5 --memory=256m --pids-limit=64` 后，Docker 报告的宿主机进程所在 cgroup 实读为 `cpu.max=50000 100000`、`memory.max=268435456`、`pids.max=64`。本机 runsc 沙箱内的 `/sys/fs/cgroup/pids/pids.max` 则报告 `max`。验收应分开检查宿主进程和沙箱内部任务上限，不能用前者代替后者。
+- 上述容器和临时目录均已回收。广场仍由 `web/server/lib/piRunner.ts:580` 的宿主机 Pi 执行路径提供服务。此复验覆盖本机 Docker/runsc，不代表技能端到端、网络网关、跨租户隔离或故障恢复已经验收。
 
 ## 部署拓扑和职责
 
