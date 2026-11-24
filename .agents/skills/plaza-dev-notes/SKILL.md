@@ -54,7 +54,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 121 | 多用户沙箱架构审查：故障语义、调试、版本与服务目标 | 审查完成，修订未实现；故障注入/容量验收待做 | [121-sandbox-architecture-reliability-review.md](references/121-sandbox-architecture-reliability-review.md) |
 | 129 | gVisor 单机五步实施计划、T03 双用户验收与多节点扩展 | 第一步已实现并实测（见 131）；第二步至五步待实现 | [129-sandbox-v2-greenfield-migration.md](references/129-sandbox-v2-greenfield-migration.md) |
 | 130 | ZCode 与 Claude Code 的隔离和多 Agent 调度对照 | 源码调研完成；广场接入建议待实现 | [130-agent-runtime-and-task-control-comparison.md](references/130-agent-runtime-and-task-control-comparison.md) |
-| 131 | 离线 runsc 沙箱：固定版本 Pi 镜像、受信 Worker 的启动与回收 | 已实现（单元 49 项、实机验收 37 项通过；会话文件落盘与故障注入待验） | [131-sandbox-v2-offline-pi-sandbox.md](references/131-sandbox-v2-offline-pi-sandbox.md) |
+| 131 | 离线 runsc 沙箱：固定版本 Pi 镜像、受信 Worker 的启动与回收 | 已独立验收，49 项单测、37 项实机检查、双进程争用及 Worker 异常退出后手动回收通过 | [131-sandbox-v2-offline-pi-sandbox.md](references/131-sandbox-v2-offline-pi-sandbox.md) |
 | 088 | 产物交付：网页分享与资源下载，轻量双通道 | 已实现（双通道/97项回归/公网网页与下载通过） | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
 | 089 | 服务重启后的对话恢复与低权产物交接 | 已实现（公网历史/下载恢复、低权打包与Pi持久恢复验证通过） | [089-conversation-restart-and-delivery-permissions.md](references/089-conversation-restart-and-delivery-permissions.md) |
 | 079 | doc-translate：PDF 翻译/交付、专用表单、附件会话绑定、真实失败呈现与工件更新校验 | 已实现（真实浏览器全链路/低权 XeLaTeX/下载/历史恢复/21 项回归通过；长文档待验证） | [079-doc-translate-skill.md](references/079-doc-translate-skill.md) |
