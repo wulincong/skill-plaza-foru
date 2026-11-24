@@ -263,6 +263,8 @@ test('Docker 实际回报与约定逐项核对：真实夹具通过，任何一�
     [(copy) => (copy.Config.Cmd = ['sh']), /带有命令参数/],
     [(copy) => (copy.Config.WorkingDir = '/'), /工作目录为 \//],
     [(copy) => (copy.Config.Entrypoint = ['sh']), /入口为/],
+    /* 回归：入口 argv 的顺序有语义（tini -g -- 启动器），元素相同但重排必须被拒绝 */
+    [(copy) => (copy.Config.Entrypoint = [...copy.Config.Entrypoint].reverse()), /入口为/],
     [(copy) => (copy.HostConfig.MaskedPaths = []), /屏蔽路径被清空/],
     [(copy) => (copy.HostConfig.ReadonlyPaths = []), /只读路径被清空/],
     [(copy) => delete copy.Config.Labels['plaza.sandbox.run'], /容器标签为/],

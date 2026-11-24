@@ -1,6 +1,6 @@
 # 131 · 离线 runsc 沙箱：固定版本 Pi 镜像与受信 Worker
 
-**状态**　2026-11-24 已实现并在本机实测：单元测试 49 项、实机验收 37 项全部通过，严格类型检查无错误。这是 [129](129-sandbox-v2-greenfield-migration.md) 的第一步。现网仍走宿主机执行链，本记录的入口没有接入任何业务。未验证项见文末。
+**状态**　2026-11-24 已实现并在本机实测：单元测试 49 项、实机验收 37 项全部通过，严格类型检查无错误。这是 [129](129-sandbox-v2-greenfield-migration.md) 的第一步。现网仍走宿主机执行链，本记录的入口没有接入任何业务。未验证项见文末。同日按独立验收意见补正了容器入口的顺序比较，见“独立验收补正”。
 
 ## 动机
 
@@ -17,12 +17,22 @@
 | `sandbox-v2/src/sandbox.ts:433` | `SandboxWorker`：`:442` 构造时只接受 `runsc`；`:454` 启动前预检；`:556` `start`；`:504` `release`；`:541` `reclaim` |
 | `sandbox-v2/src/sandbox.ts:211` | `SandboxHandle`：`:287` 就绪判定；`:322` 退出收尾与分类；`:382` `shutdown`；`:394` `terminate`；`:412` `listWork` |
 | `sandbox-v2/src/sandbox.ts:113`、`:158` | 镜像登记文件的校验、本机镜像与登记的逐项核对 |
-| `sandbox-v2/src/spec.ts:45` | 默认限额；`:81` 合并与校验；`:274` 生成创建请求；`:369`、`:434` 从 Docker 回报逐项核对 |
+| `sandbox-v2/src/spec.ts:45` | 默认限额；`:81` 合并与校验；`:274` 生成创建请求；`:374`、`:439` 从 Docker 回报逐项核对 |
 | `sandbox-v2/src/spec.ts:194`、`:205` | 输入根目录与只读输入的校验 |
 | `sandbox-v2/src/docker.ts:297` | Docker Engine API 客户端，固定 `v1.44`（`:8`）；`:205` attach 流的分帧与背压 |
 | `sandbox-v2/src/pi-rpc.ts:49` | Pi 的 JSONL RPC 通道 |
 | `sandbox-v2/bin/acceptance.ts:45` | 一键验收；`sandbox-v2/bin/sandbox.ts:25` 运维命令 |
 | `sandbox-v2/image/Dockerfile:1`、`:30` | 基础镜像摘要与入口；`image/entrypoint.sh:12` 容器内计时器 |
+
+### 2026-11-24 独立验收补正：容器入口按原顺序比较
+
+**状态**　已修正并加回归，已登记的镜像与现网服务都没有改动。
+
+**原因**　`verifyContainer` 原先用 `sameStringList` 比较 `Config.Entrypoint`，它对两侧排序后再比较。独立验收用 `test/fixtures/container-created.json` 与 `expected.json` 复现：把入口的四个元素逆序后，核对仍返回空问题列表。入口是 argv，`tini -g -- <启动器>` 的元素顺序有语义，逆序后含义完全不同，这样的容器本不该启动。
+
+**约定**　容器入口用 `sameOrderedStringList`（`sandbox-v2/src/spec.ts:361`）按原顺序逐项比较。环境变量、标签、挂载与资源上限是集合语义，继续用无序比较。镜像登记的入口核对本来就是按顺序比较的，这次补上容器这一侧。
+
+**验证**　在 `sandbox-v2/test/spec.test.mjs` 的变异表里加了“相同元素重排应拒绝”，先在未修正的代码上确认它会失败，再修正。修正后逆序、任意两位对调、非数组都被拒，报错同时给出实际值与应有值；单元测试 49 项与实机验收 37 项通过。
 
 ### 镜像
 

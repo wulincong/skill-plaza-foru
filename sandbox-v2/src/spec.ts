@@ -357,6 +357,11 @@ export function sameStringList(actual: unknown, expected: string[]): boolean {
   return Array.isArray(actual) && JSON.stringify([...actual].sort()) === JSON.stringify([...expected].sort())
 }
 
+/* 入口是 argv：元素相同但顺序不同，含义就变了，必须按原顺序逐项比较 */
+export function sameOrderedStringList(actual: unknown, expected: string[]): boolean {
+  return Array.isArray(actual) && JSON.stringify(actual) === JSON.stringify(expected)
+}
+
 export function sortedEntries(value: Record<string, unknown> | null | undefined): [string, unknown][] {
   return Object.entries(value ?? {}).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
 }
@@ -424,7 +429,7 @@ export function verifyContainer(inspect: ContainerInspect, expected: ExpectedCon
   need(config.OpenStdin === true && config.StdinOnce === true && config.Tty === false, 'stdio 配置与约定不符')
   need(config.Cmd === null || sameStringList(config.Cmd, []), `容器带有命令参数：${JSON.stringify(config.Cmd)}`)
   need(config.WorkingDir === WORK_DIR, `工作目录为 ${config.WorkingDir}`)
-  need(sameStringList(config.Entrypoint, expected.entrypoint), `入口为 ${JSON.stringify(config.Entrypoint)}`)
+  need(sameOrderedStringList(config.Entrypoint, expected.entrypoint), `入口为 ${JSON.stringify(config.Entrypoint)}，应为 ${JSON.stringify(expected.entrypoint)}`)
   need(Array.isArray(hc.MaskedPaths) && hc.MaskedPaths.length > 0, 'Docker 默认的 /proc 与 /sys 屏蔽路径被清空')
   need(Array.isArray(hc.ReadonlyPaths) && hc.ReadonlyPaths.length > 0, 'Docker 默认的只读路径被清空')
   return problems
