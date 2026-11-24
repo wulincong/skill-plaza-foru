@@ -30,7 +30,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 130；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 131；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -52,6 +52,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 120 | 沙箱执行的持久状态、收尾提交与稳定网页发布 | 设计中，未实现；用户已明确持久执行与长期链接需求 | [120-persistent-execution-and-stable-publications.md](references/120-persistent-execution-and-stable-publications.md) |
 | 121 | 多用户沙箱架构审查：故障语义、调试、版本与服务目标 | 审查完成，修订未实现；故障注入/容量验收待做 | [121-sandbox-architecture-reliability-review.md](references/121-sandbox-architecture-reliability-review.md) |
 | 129 | 沙箱二期重建：新任务服务、每轮隔离、技能迁移与切流 | 建议方案，待实现；只读盘点完成 | [129-sandbox-v2-greenfield-migration.md](references/129-sandbox-v2-greenfield-migration.md) |
+| 130 | ZCode 与 Claude Code 的隔离和多 Agent 调度对照 | 源码调研完成；广场接入建议待实现 | [130-agent-runtime-and-task-control-comparison.md](references/130-agent-runtime-and-task-control-comparison.md) |
 | 088 | 产物交付：网页分享与资源下载，轻量双通道 | 已实现（双通道/97项回归/公网网页与下载通过） | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
 | 089 | 服务重启后的对话恢复与低权产物交接 | 已实现（公网历史/下载恢复、低权打包与Pi持久恢复验证通过） | [089-conversation-restart-and-delivery-permissions.md](references/089-conversation-restart-and-delivery-permissions.md) |
 | 079 | doc-translate：PDF 翻译/交付、专用表单、附件会话绑定、真实失败呈现与工件更新校验 | 已实现（真实浏览器全链路/低权 XeLaTeX/下载/历史恢复/21 项回归通过；长文档待验证） | [079-doc-translate-skill.md](references/079-doc-translate-skill.md) |
