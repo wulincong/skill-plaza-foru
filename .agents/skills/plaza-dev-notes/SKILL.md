@@ -51,7 +51,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 119 | 多用户工作区、环境模板与 gVisor 执行边界 | 设计建议，待范围确认与实现；仅本机基础安装已验 | [119-multi-user-gvisor-workspaces.md](references/119-multi-user-gvisor-workspaces.md) |
 | 120 | 沙箱执行的持久状态、收尾提交与稳定网页发布 | 设计中，未实现；用户已明确持久执行与长期链接需求 | [120-persistent-execution-and-stable-publications.md](references/120-persistent-execution-and-stable-publications.md) |
 | 121 | 多用户沙箱架构审查：故障语义、调试、版本与服务目标 | 审查完成，修订未实现；故障注入/容量验收待做 | [121-sandbox-architecture-reliability-review.md](references/121-sandbox-architecture-reliability-review.md) |
-| 129 | 沙箱二期重建：新任务服务、每轮隔离、技能迁移与切流 | 建议方案，待实现；只读盘点完成 | [129-sandbox-v2-greenfield-migration.md](references/129-sandbox-v2-greenfield-migration.md) |
+| 129 | gVisor 单机五步实施计划、T03 双用户验收与多节点扩展 | 基础运行时已实测，Pi 容器化及任务服务待实现 | [129-sandbox-v2-greenfield-migration.md](references/129-sandbox-v2-greenfield-migration.md) |
 | 130 | ZCode 与 Claude Code 的隔离和多 Agent 调度对照 | 源码调研完成；广场接入建议待实现 | [130-agent-runtime-and-task-control-comparison.md](references/130-agent-runtime-and-task-control-comparison.md) |
 | 088 | 产物交付：网页分享与资源下载，轻量双通道 | 已实现（双通道/97项回归/公网网页与下载通过） | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
 | 089 | 服务重启后的对话恢复与低权产物交接 | 已实现（公网历史/下载恢复、低权打包与Pi持久恢复验证通过） | [089-conversation-restart-and-delivery-permissions.md](references/089-conversation-restart-and-delivery-permissions.md) |
