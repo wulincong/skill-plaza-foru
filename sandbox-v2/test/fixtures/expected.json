@@ -1,0 +1,47 @@
+{
+  "imageRef": "sha256:6cc9a9f248a8ffd0077a112a1ca6eba83a2faad58fb4649d3193ca254ae48d7e",
+  "imageId": "sha256:6cc9a9f248a8ffd0077a112a1ca6eba83a2faad58fb4649d3193ca254ae48d7e",
+  "imageLabels": {
+    "plaza.sandbox.base.digest": "sha256:170fab707454b1350981adcdc2f536ec21f24d06d7f008e8d40064afeacb8a94",
+    "plaza.sandbox.pi.version": "0.87.1",
+    "plaza.sandbox.role": "pi"
+  },
+  "entrypoint": [
+    "/usr/bin/tini",
+    "-g",
+    "--",
+    "/usr/local/sbin/plaza-sandbox-pi"
+  ],
+  "user": "65532:65532",
+  "runtime": "runsc",
+  "env": [
+    "HOME=/tmp/home",
+    "NODE_DISABLE_COMPILE_CACHE=1",
+    "NODE_VERSION=22.23.5",
+    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "PI_CODING_AGENT_DIR=/tmp/pi-agent",
+    "PI_MAX_SECONDS=300",
+    "PI_OFFLINE=1",
+    "PI_SESSION_DIR=/work/.pi-sessions",
+    "PI_SESSION_NAME=fixture-a",
+    "PI_SKIP_VERSION_CHECK=1",
+    "PI_TELEMETRY=0",
+    "YARN_VERSION=1.22.22"
+  ],
+  "mounts": [
+    "bind:/srv/plaza/inputs/task:/input/task:ro",
+    "volume:plaza-sb-fixture-a-work:/work:rw"
+  ],
+  "tmpfs": {
+    "/tmp": "rw,nosuid,nodev,noexec,size=16m,mode=1777"
+  },
+  "pids": 256,
+  "tasks": 96,
+  "memory": 536870912,
+  "nanoCpus": 1000000000,
+  "labels": {
+    "plaza.sandbox.managed": "v2",
+    "plaza.sandbox.run": "fixture-a",
+    "plaza.sandbox.attempt": "5bc1e50f8c807b2cdae390ed"
+  }
+}

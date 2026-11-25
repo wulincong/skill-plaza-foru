@@ -110,6 +110,61 @@ export const SKILLS: Skill[] = [
       '使用 $industry-education-report，为广州高职院校分析机器人产业的岗位门槛，并建议哪些实训项目应优先调整。',
   },
   {
+    slug: 'training-program-design',
+    name: '产教培养方案设计',
+    identifier: 'training-program-design',
+    categoryId: 'industry',
+    audiences: ['manager', 'teacher'],
+    summary: '基于区域岗位取证与国家专业教学标准原文核对，生成或修订产教融合专业人才培养方案，学时学分红线硬校验。',
+    tags: ['培养方案', '产教融合', '课程体系'],
+    preconditions: '专业名称与代码 + 办学层次学制 + 服务区域 + 目标产业范围',
+    outputs: [
+      '培养方案网页版（十一章 + 证据附录）',
+      '可编辑 Word 版',
+      '学时学分红线校验记录',
+      '课程开发任务包',
+      '新旧版差异报告（提供旧版时）',
+    ],
+    dependencies: [
+      '岗位统计由人才数据库查询技能提供，每项岗位判断可回溯查询口径',
+      '国家专业教学标准需知识库或用户提供原文；取不到的要素标待核对并请用户决策',
+    ],
+    limitations: [
+      '任一红线（总学时、实践占比、公共基础课、选修、核心课门数等）不达标即阻断出稿。',
+      '实施保障只引用用户提供的办学条件材料，未提供则标注待补，不编造师资或合作企业。',
+    ],
+    minimalInput:
+      '使用 $training-program-design，为我校高职三年制大数据技术专业（510205）制订产教融合人才培养方案，服务广东省的数字经济产业。',
+  },
+  {
+    slug: 'course-development',
+    name: '产教课程开发',
+    identifier: 'course-development',
+    categoryId: 'teaching',
+    audiences: ['teacher', 'manager'],
+    summary: '把培养方案课程卡片开发为完整课程：JD 原文抽样驱动典型工作任务，知识点上挂能力项、下接考核点，课证合规逐条核对，成套交付课程包。',
+    tags: ['课程开发', '任务驱动', '课程标准'],
+    preconditions: '课程名称与定位 + 目标岗位或岗位族 + 总课时（或培养方案课程开发任务包）',
+    outputs: [
+      '16–18 周课程大纲（模块·任务·评价三栏对齐）',
+      '知识点与技能点清单（挂接能力项与考核点）',
+      '单元教学设计样例与实训任务书（前两个模块）',
+      '课程评价方案（权重与合格标准）',
+      '资源缺口清单（标注生成或人工准备）',
+      '标准合规核对表与结构化课程包',
+    ],
+    dependencies: [
+      '岗位事实与 JD 原文抽样由人才数据库查询技能提供，任务表述可回溯样本指纹',
+      '课程标准与技能标准原文需知识库或用户提供；取不到的条目标待核对并请用户决策',
+    ],
+    limitations: [
+      '无考核点或无能力项挂接的知识点不得进入大纲，脚本校验不通过即阻断交付。',
+      '目标岗位在库内无样本且无用户材料时，课程定位标证据不足并等待用户决策，不静默降级。',
+    ],
+    minimalInput:
+      '使用 $course-development，基于培养方案任务包开发《Hadoop 大数据平台运维》完整课程（72 课时，面向数据平台运维岗位群）。',
+  },
+  {
     slug: 'tech-forecast',
     name: '新岗位·新技术预判',
     identifier: 'tech-forecast',
@@ -186,6 +241,35 @@ export const SKILLS: Skill[] = [
     ],
     minimalInput:
       '使用 $classroom-assistant，基于我上传的《新能源汽车概论》第 3 章资料，生成 5 道课堂练习并附答案要点。',
+  },
+  {
+    slug: 'courseware-studio',
+    name: '智能课件生成',
+    identifier: 'courseware-studio',
+    categoryId: 'teaching',
+    audiences: ['teacher'],
+    summary: '在允许的教材与实训材料范围内生成课证对齐、逐页出处可查的课件，实训安全内容确认后定稿。',
+    tags: ['课件生成', '课证对齐', '证据可查'],
+    preconditions: '教学单元主题、课时数与允许使用的材料范围',
+    outputs: [
+      '可编辑 PPTX 课件',
+      '课件网页预览版',
+      '逐页出处与课标对齐标注',
+      '版权与授权状态清单',
+      '教师待确认清单（实训安全步骤）',
+      '资源入库清单',
+    ],
+    dependencies: [
+      '教材章节、教案或实训指导书（上传或明确列示）',
+      '可选：课程标准条目、学生程度、自备图片素材',
+    ],
+    limitations: [
+      '课件内容只来自允许的材料，未覆盖要点标注待教师补充，不用通用知识顶替。',
+      '图片只用教师素材与教材原文图，示意图明确标注，不生成图片冒充设备实图。',
+      '涉及实训安全的内容未经教师确认步骤顺序，不定稿导出。',
+    ],
+    minimalInput:
+      '使用 $courseware-studio，为《工业机器人现场编程》单元「工具坐标标定」生成 2 课时课件，材料用我上传的教材第 4 章与实训指导书任务三。',
   },
   {
     slug: 'ai-interview',
@@ -294,6 +378,86 @@ export const SKILLS: Skill[] = [
     limitations: ['未配置数据库时仅可使用明确标注的离线示例。', '直接生成图片成品供审核；存草稿需要明确要求，不自动群发或发布。'],
     minimalInput: '使用 $wechat-report，为广东省人工智能产业生成一份人才需求报告，读者是院校管理者；直接交付报告图片。',
   },
+  {
+    slug: 'class-placement',
+    name: '智能分班',
+    identifier: 'class-placement',
+    categoryId: 'teaching',
+    audiences: ['manager', 'teacher'],
+    summary: '公平可审计的均衡分班与基于能力画像的分层分班：种子与日志全程留痕，公示前一次受控重掷。',
+    tags: ['均衡分班', '分层分班', '审计复现'],
+    preconditions: '学生名单（CSV/XLSX）+ 班级数量、容量与分班模式',
+    outputs: [
+      '每班名册 CSV 与全员名册',
+      '班级画像对比报告网页（分布图与均值差）',
+      '审计包：随机种子、哈希链求解日志、复现命令',
+      '分层模式的志愿满足率与未满足原因',
+    ],
+    dependencies: [
+      '学生名单（编号或姓名必需，性别、成绩、测评、志愿可部分缺失）',
+      '分班参数：班级数量、每班容量上限、均衡或分层模式',
+    ],
+    limitations: [
+      '分班由固定种子脚本求解，随机性可复现；重掷最多一次且留痕。',
+      '特殊约束只采用申报过的条目，未申报的个人背景不采集、不使用。',
+      '分层模式需要测评画像字段，缺失时先说明再由用户决定处理方式。',
+    ],
+    minimalInput: '使用 $class-placement，上传名单后按均衡模式分 6 个班，每班上限 50 人，维度按成绩与性别。',
+  },
+  {
+    slug: 'course-scheduling',
+    name: '排课智能体',
+    identifier: 'course-scheduling',
+    categoryId: 'teaching',
+    audiences: ['manager', 'teacher'],
+    summary: '教务前置沙盘：硬约束零冲突求解多套课表方案，建模企业轮岗、1+X 窗口、混编班与双师同堂，支持学期中增量调课。',
+    tags: ['排课', '产教约束', '零冲突', '增量调课'],
+    preconditions: '教学任务、班级、教室与实训室、作息时间、校历五张模板表（CSV/XLSX）',
+    outputs: [
+      '2-3 套零冲突课表方案与指标对比网页',
+      '未排入课程的冲突归因与放松建议',
+      '选定方案的课表 Excel（班级/教师/教室三视图）',
+      '课程日历 ics（轮岗与考试窗口周次自动剔除）',
+      '增量调课变更清单（最小扰动、留档可回退）',
+    ],
+    dependencies: [
+      '必需：教学任务（课程、班级、教师、周学时、连排）与教室资源（容量、类型、台套数）、作息、校历',
+      '可选：教师偏好、企业轮岗批次、1+X 考试窗口、双师协同、不可用时段、已有课表',
+    ],
+    limitations: [
+      '班级为最小排课单位，混编班表达整班合并，不支持班内分组。',
+      '排不进的课程不进课表而是归因报告，取舍由教务决定后重排。',
+      '不替换教务系统，定位是排课前的前置推演与沙盘。',
+    ],
+    minimalInput: '使用 $course-scheduling，上传教学任务、班级、教室、作息与校历模板，生成三套方案并推荐。',
+  },
+  {
+    slug: 'teaching-diagnosis',
+    name: '学勤与教学诊断',
+    identifier: 'teaching-diagnosis',
+    categoryId: 'teaching',
+    audiences: ['manager', 'teacher'],
+    summary: '基于周期内考勤、成绩与评教数据完成专业、教师/课程、班级三层诊断与证据链归因，交付诊断报告网页；改进措施经决策卡逐项确认留档，下一周期同口径复诊。',
+    tags: ['学勤诊断', '教学诊断', '考勤与成绩'],
+    preconditions: '诊断周期与覆盖范围 + 考勤记录与成绩数据',
+    outputs: [
+      '三层诊断报告网页（专业、教师/课程、班级）',
+      '数据质量检查结果与每条结论的范围、样本量',
+      '决策卡确认后的改进措施留档',
+      '授权后的风险预警名单（独立文件）',
+      '同口径复诊对比与成长档案趋势',
+    ],
+    dependencies: [
+      '必需：考勤记录与成绩数据；评教、课堂行为、教学进度至少一项用于归因',
+      '跨周期复诊需要上一周期的指标或报告文件',
+    ],
+    limitations: [
+      '口径不一致的数据不并列比较；分组样本量不足时只描述现状，不下归因结论。',
+      '报告只呈现聚合结果，不出现姓名、学号，不输出教师排名。',
+      '风险预警名单默认不生成，需用户授权并确认阈值。',
+    ],
+    minimalInput: '使用 $teaching-diagnosis，上传本学期考勤与成绩表，诊断大数据技术专业 2401-2403 班的教学运行，读者是专业负责人。',
+  },
 ]
 
 /* 智能体矩阵（T01–T24 规划清单）已移除：广场卡片改为跟随后端可运行技能清单
@@ -336,6 +500,18 @@ export const FEATURES: Feature[] = [  {
 ]
 
 export const bySlug = new Map(SKILLS.map(s => [s.slug, s] as const))
+
+/* $ 选择器的类别筛选：取技能在静态表里的业务分类，前三类各自成组，其余归入「其他」 */
+const FILTER_CATEGORIES = ['industry', 'teaching', 'career']
+export const SKILL_FILTERS: { id: string; name: string }[] = [
+  { id: 'all', name: '全部' },
+  ...CATEGORIES.filter(c => FILTER_CATEGORIES.includes(c.id)).map(c => ({ id: c.id, name: '#' + c.name })),
+  { id: 'other', name: '#其他' },
+]
+export const skillFilterOf = (slug: string) => {
+  const category = bySlug.get(slug)?.categoryId
+  return category && FILTER_CATEGORIES.includes(category) ? category : 'other'
+}
 
 /** 在线对话默认通用智能体：后端 skill 字段值与运行记录显示名（不进 SKILLS 卡片清单） */
 export const GENERAL_SKILL_ID = 'general'

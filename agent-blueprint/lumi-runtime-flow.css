@@ -1,0 +1,68 @@
+/* Only the selected runtime step and its outgoing connection glow. */
+.cycle-node.aistudio-flow-border {
+  --aistudio-flow-radius: 12px;
+  box-shadow: none;
+  animation-duration: 8s;
+}
+.cycle-node > .cycle-step { background: #fafbfe; }
+.cycle-node > .cycle-step.is-active { background: #eaf1fc; }
+.cycle-node:not(.is-active) {
+  background: var(--agent-line);
+  animation-play-state: paused;
+}
+.cycle-node:not(.is-active)::after { opacity: 0; }
+.cycle-node.is-active::after { opacity: .7; filter: blur(18px); }
+.cycle-lines > g > path.is-active { color: #6b91c9; }
+.cycle-flow-trails > path { opacity: 0; stroke-dasharray: 28 172; }
+.cycle-flow-trails > path.is-active {
+  opacity: .7;
+  filter: drop-shadow(0 0 2px rgba(66, 133, 244, .3));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cycle-flow-trails > path.is-active { animation: cycle-flow-travel 3s linear infinite; }
+  .cycle-flow-trails > path[data-flow-step="6"].is-active { animation-duration: 5s; }
+}
+@keyframes cycle-flow-travel {
+  0% { stroke-dashoffset: 35; opacity: 0; }
+  15% { opacity: .7; }
+  80% { opacity: .7; }
+  100% { stroke-dashoffset: -100; opacity: 0; }
+}
+@media (max-width: 767px) {
+  .cycle-steps .cycle-node:not(:last-child)::after { content: "↓"; }
+  .cycle-steps .cycle-node:not(:last-child).is-active::after {
+    inset: auto;
+    bottom: -24px;
+    left: 50%;
+    z-index: auto;
+    border-radius: 0;
+    background: none;
+    color: #608dce;
+    opacity: 1;
+    filter: drop-shadow(0 0 2px rgba(66, 133, 244, .25));
+  }
+  .cycle-steps .cycle-node:not(:last-child):not(.is-active)::after {
+    inset: auto;
+    bottom: -24px;
+    left: 50%;
+    z-index: auto;
+    background: none;
+    opacity: 1;
+    filter: none;
+  }
+  .cycle-steps .cycle-node:last-child::after { display: none; }
+  .runtime-cycle.is-looping::after { border-color: #608dce; }
+  @media (prefers-reduced-motion: no-preference) {
+    .cycle-steps .cycle-node.is-active::after { animation: cycle-mobile-flow 3s ease-in-out infinite; }
+  }
+}
+@keyframes cycle-mobile-flow { 50% { opacity: .5; } }
+@media (prefers-reduced-motion: reduce) {
+  .cycle-flow-trails > path.is-active { stroke-dasharray: none; }
+}
+@media (forced-colors: active), print {
+  .cycle-node.aistudio-flow-border { animation: none; box-shadow: none; }
+  .cycle-node.is-active { outline: 2px solid currentColor; }
+  .cycle-flow-trails { display: none; }
+  .cycle-node::after { filter: none !important; }
+}

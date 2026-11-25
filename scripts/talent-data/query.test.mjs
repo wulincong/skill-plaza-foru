@@ -10,6 +10,7 @@ import { buildPlan, cohortWhere } from './compile.mjs'
 import { salaryStatistics, buildResult } from './metrics.mjs'
 import { StateStore } from './state.mjs'
 import { query, planQuery, resolveEntity } from './service.mjs'
+import { redactExcerpt } from './redaction.mjs'
 import { readResult, persistExport, preview, exportContent, withinWorkspace } from './artifacts.mjs'
 import { MysqlAdapter } from './db.mjs'
 
@@ -288,4 +289,64 @@ test('geographic aliases merge before TOP N instead of splitting one city code',
   assert.equal(metric.rows.length,1);assert.equal(metric.rows[0].count,4)
   assert.equal(metric.rows[0].province,'广东省');assert.equal(metric.rows[0].city,'广州市')
   assert.equal(metric.rows[0].code,'440100');assert.equal(metric.otherCount,0)
+})
+
+test('description sampling reads bounded rows by primary key only when requested',()=>{
+  const r=validateRequest(request(['description.samples'])),plan=buildPlan(r,resolveCohorts(r))
+  const base=plan.jobs.find(j=>j.kind==='base'),samples=plan.jobs.find(j=>j.kind==='description-samples')
+  assert.deepEqual(base.fields,['count','describedN'])
+  assert.equal(plan.jobs.filter(j=>j.kind==='description-samples').length,1)
+  assert.match(samples.sql,/SUBSTRING\(p\.description,1,1600\)/)
+  assert.match(samples.sql,/ORDER BY p\.id ASC LIMIT 5/)
+  assert.match(samples.sql,/NULLIF\(TRIM\(p\.description\),''\) IS NOT NULL/)
+  const untouched=buildPlan(validateRequest(request()),resolveCohorts(validateRequest(request())))
+  assert(!untouched.jobs.some(j=>j.sql.includes('description')))
+})
+test('sampled descriptions keep denominators, truncation flags and fingerprints honest',()=>{
+  const r=validateRequest(request(['description.samples'])),plan=buildPlan(r,resolveCohorts(r)),e=execution(plan)
+  e.logs.find(j=>j.kind==='base').rows=[{count:10,describedN:6}]
+  e.logs.find(j=>j.kind==='description-samples').rows=[
+    {positionId:'7',title:'机器人运维工程师',education:'GAOZHI',experience:'LESS_THAN_3',excerpt:'负责产线机器人调试与保养。',charCount:2000},
+    {positionId:'9',title:null,education:null,experience:null,excerpt:'负责设备点检。',charCount:120},
+  ]
+  const m=buildResult(r,plan,e).metrics[0]
+  assert.equal(m.status,'complete');assert.equal(m.value,2);assert.equal(m.describedN,6);assert.equal(m.missingN,4)
+  assert.equal(m.rows[0].truncated,true);assert.equal(m.rows[1].truncated,false)
+  assert.equal(m.rows[0].education,'高职');assert.equal(m.rows[1].education,'缺失')
+  assert.match(m.rows[0].hash,/^[a-f0-9]{64}$/);assert.equal(m.rows[0].hash,hash('负责产线机器人调试与保养。'))
+  const none=execution(plan)
+  none.logs.find(j=>j.kind==='base').rows=[{count:5,describedN:0}]
+  none.logs.find(j=>j.kind==='description-samples').rows=[]
+  const empty=buildResult(r,plan,none)
+  assert.equal(empty.metrics[0].status,'unavailable');assert.equal(empty.errors[0].code,'NO_VALID_DESCRIPTION')
+  const over=execution(plan)
+  over.logs.find(j=>j.kind==='base').rows=[{count:10,describedN:1}]
+  over.logs.find(j=>j.kind==='description-samples').rows=[{positionId:'1',title:'A',education:null,experience:null,excerpt:'x',charCount:1},{positionId:'2',title:'B',education:null,experience:null,excerpt:'y',charCount:1}]
+  const inconsistent=buildResult(r,plan,over)
+  assert.equal(inconsistent.metrics[0].status,'failed');assert(!inconsistent.quality.allPass)
+})
+test('excerpt redaction masks contact channels and keeps ordinary numbers',()=>{
+  const redacted=redactExcerpt('薪资5000-8000元/月，2026-11-18 更新；联系13812345678、020-12345678、hr@example.com、www.example.com/jobs.html任职要求、微信 wx_hr001；QQ：12345678。')
+  for(const secret of ['13812345678','hr@example.com','www.example.com','wx_hr001','12345678'])assert(!redacted.includes(secret))
+  assert(redacted.includes('5000-8000')&&redacted.includes('2026-11-18')&&redacted.includes('任职要求')&&redacted.includes('〔已脱敏〕'))
+})
+test('sampled descriptions are masked once for result and evidence',async t=>{
+  const f=await fixture(t)
+  const original=f.adapter.run.bind(f.adapter)
+  f.adapter.run=async(jobs,options)=>{
+    if(jobs[0].id==='capability')return original(jobs,options)
+    const logs=jobs.map(j=>({...j,completed:true,rows:j.kind==='base'?[{count:9,describedN:9}]:j.kind==='description-samples'?[
+      {positionId:'11',title:'机器人运维工程师',education:'GAOZHI',experience:'LESS_THAN_3',excerpt:'负责产线机器人调试，联系 13812345678 或 hr@example.com，官网 www.example.com，微信 wx_hr001。',charCount:64},
+    ]:[]}))
+    return {startedAt:new Date().toISOString(),dataReadAt:new Date().toISOString(),sourceReadTime:'2026-11-18 00:00:00',elapsedMs:2,returnedBytes:100,logs}
+  }
+  const a=await query(request(['description.samples']),f)
+  const row=a.metrics[0].rows[0]
+  assert.equal(a.metrics[0].status,'complete')
+  for(const secret of ['13812345678','hr@example.com','www.example.com','wx_hr001'])assert(!row.excerpt.includes(secret))
+  assert(row.excerpt.includes('〔已脱敏〕')&&row.excerpt.includes('产线机器人调试'))
+  assert.equal(row.hash,hash(row.excerpt))
+  const evidence=JSON.parse(await readFile(join(f.workspace,a.artifacts.evidence),'utf8'))
+  assert.equal(evidence.queries.find(q=>q.id.endsWith(':samples')).redaction,'jd-excerpt-redaction/1')
+  assert(!JSON.stringify(evidence).includes('13812345678')&&!JSON.stringify(evidence).includes('hr@example.com'))
 })

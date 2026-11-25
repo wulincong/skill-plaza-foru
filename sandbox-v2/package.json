@@ -1,0 +1,14 @@
+{
+  "name": "plaza-sandbox-v2",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "广场沙箱二期：离线 runsc 沙箱内的固定版本 Pi 与受信 Worker",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "acceptance": "node bin/acceptance.ts",
+    "sandbox": "node bin/sandbox.ts",
+    "build:image": "node image/build.mjs",
+    "lock:image": "node image/lock.mjs"
+  }
+}

@@ -12,6 +12,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 ## 何时读
 
 - 改动 `web/server/lib/`（runner / piRunner / zcodeRunner / reportParse / skills / traceExport）或 `/api/chat` SSE 协议前
+- 改动 `sandbox-v2/`（离线 runsc 沙箱的镜像、受信 Worker 与验收）前
 - 设计报告输出、结构化协议、图表方案前
 - 接入新技能或新引擎前
 
@@ -30,7 +31,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 - **运行观察不入册**：单次会话的运行过程、产物细节（字节/图表清单/耗时分布）不作为独立记录；观察中发现的持久事实（工具坑、口径结论、schema 影响）以补注并入所属约定记录。运行产物以 traces/events 与报告文件为准（2026-10-19 重组确立，见 076）。
 - 设计定稿但未实现时标"设计定稿，待实现"；实现落地后**回填**实际 file:line 与实测数据，状态改"已实现"。
 - 状态变化优先更新原记录；被推翻的决策标"已废弃"并注明替代者。
-- 编号只增不改且**禁止重号**（下一号为 129；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
+- 编号只增不改且**禁止重号**（下一号为 133；093/094 已被 2026-11-03 回退的两条记录占用过，勿复用）；同主题小记录可并入更早编号的记录并更新 slug，被并文件删除并在 076 的映射表登记。
 
 ## 记录索引
 
@@ -51,6 +52,9 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 119 | 多用户工作区、环境模板与 gVisor 执行边界 | 设计建议，待范围确认与实现；仅本机基础安装已验 | [119-multi-user-gvisor-workspaces.md](references/119-multi-user-gvisor-workspaces.md) |
 | 120 | 沙箱执行的持久状态、收尾提交与稳定网页发布 | 设计中，未实现；用户已明确持久执行与长期链接需求 | [120-persistent-execution-and-stable-publications.md](references/120-persistent-execution-and-stable-publications.md) |
 | 121 | 多用户沙箱架构审查：故障语义、调试、版本与服务目标 | 审查完成，修订未实现；故障注入/容量验收待做 | [121-sandbox-architecture-reliability-review.md](references/121-sandbox-architecture-reliability-review.md) |
+| 129 | gVisor 单机五步实施计划、T03 双用户验收与多节点扩展 | 第一步已实现并实测（见 131）；第二步至五步待实现 | [129-sandbox-v2-greenfield-migration.md](references/129-sandbox-v2-greenfield-migration.md) |
+| 130 | ZCode 与 Claude Code 的隔离和多 Agent 调度对照 | 源码调研完成；广场接入建议待实现 | [130-agent-runtime-and-task-control-comparison.md](references/130-agent-runtime-and-task-control-comparison.md) |
+| 131 | 离线 runsc 沙箱：固定版本 Pi 镜像、受信 Worker 的启动与回收 | 已独立验收，49 项单测、37 项实机检查、双进程争用及 Worker 异常退出后手动回收通过 | [131-sandbox-v2-offline-pi-sandbox.md](references/131-sandbox-v2-offline-pi-sandbox.md) |
 | 088 | 产物交付：网页分享与资源下载，轻量双通道 | 已实现（双通道/97项回归/公网网页与下载通过） | [088-artifact-presentation-and-web-hosting.md](references/088-artifact-presentation-and-web-hosting.md) |
 | 089 | 服务重启后的对话恢复与低权产物交接 | 已实现（公网历史/下载恢复、低权打包与Pi持久恢复验证通过） | [089-conversation-restart-and-delivery-permissions.md](references/089-conversation-restart-and-delivery-permissions.md) |
 | 079 | doc-translate：PDF 翻译/交付、专用表单、附件会话绑定、真实失败呈现与工件更新校验 | 已实现（真实浏览器全链路/低权 XeLaTeX/下载/历史恢复/21 项回归通过；长文档待验证） | [079-doc-translate-skill.md](references/079-doc-translate-skill.md) |
@@ -63,6 +67,13 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 128 | 胜任力测评数据库画像优先（已撤回） | 已废弃，按用户要求恢复127的JD唯一流程 | [128-competency-database-profile-priority.md](references/128-competency-database-profile-priority.md) |
 | 125 | 学生个性化学习规划、课程包匹配与教材授权入口 | 当前工作区实现与真实模型/浏览器已验，生产低权待部署 | [125-student-learning-and-course-material-links.md](references/125-student-learning-and-course-material-links.md) |
 | 108 | AI 面试练习：岗位命题、逐题追问、原话复盘与同题重练 | 已实现（广场与兼容 API 多轮验证） | [108-ai-interview-practice.md](references/108-ai-interview-practice.md) |
+| 122 | teaching-diagnosis：学勤教学诊断技能、csv/xlsx 附件通道与伴生挂载表 | 已实现（单测/构建/接口冒烟通过；Pi 端到端探针见记录） | [122-teaching-diagnosis-skill.md](references/122-teaching-diagnosis-skill.md) |
+| 123 | class-placement：智能分班技能、确定性求解器与审计留痕 | 已实现（脚本回归/全量测试通过；真实 Pi 端到端见记录） | [123-class-placement-skill.md](references/123-class-placement-skill.md) |
+| 124 | training-program-design：产教培养方案技能、红线校验与 T05 任务包 | 已实现（22 项单测/接口/文档收录通过；真实 Pi 端到端样例与两轮修订交付验收完成） | [124-training-program-design-skill.md](references/124-training-program-design-skill.md) |
+| 125 | courseware-studio：智能课件生成技能、stdlib OOXML 写入器与两阶段安全确认 | 已实现（12 项单测/python-pptx 回读/真实 Pi 两轮 E2E 通过；教师机 Office 打开效果待验收） | [125-courseware-studio-skill.md](references/125-courseware-studio-skill.md) |
+| 126 | course-scheduling：排课智能体、零冲突求解器、产教占用块模型与增量重排 | 已实现（14 项单测/服务端 78 项/构建/接口通过；真实 Pi 端到端见记录） | [126-course-scheduling-skill.md](references/126-course-scheduling-skill.md) |
+| 127 | talent-data-query 1.4：受控 JD 原文抽样 description.samples 与单点脱敏 | 已实现（单测/真库 live/inspect/缓存/脱敏扫描通过；城市口径超时为既有现状） | [127-talent-jd-sampling.md](references/127-talent-jd-sampling.md) |
+| 128 | course-development：产教课程开发技能、T05 任务包消费与课程包硬校验 | 已实现（17 项单测/docs/vue-tsc/接口验证通过；真实 Pi 端到端待运行） | [128-course-development-skill.md](references/128-course-development-skill.md) |
 
 | 096 | 公众号报告直接图片交付、统一选图与渲染质检 | 首轮已实现；用户指出分析与图型不足，新规范见099 | [096-wechat-images-direct-delivery.md](references/096-wechat-images-direct-delivery.md) |
 | 097 | 已验证报告成品库、公众号自然消息与草稿确认桥 | 已实现（真实草稿受IP白名单限制） | [097-report-library-and-wechat-drafts.md](references/097-report-library-and-wechat-drafts.md) |
@@ -149,7 +160,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 080 | 原始用户输入快照、历史提示词剥离、每轮最终回答与默认折叠执行过程 | 已实现（28 项回归/构建/真实 Pi 与 OpenAI/浏览器通过） | [080-conversation-source-and-process.md](references/080-conversation-source-and-process.md) |
 | 022 | 就业指导开发侧测试模板切换 | 已实现（构建与浏览器交互已验证） | [022-career-test-template-switcher.md](references/022-career-test-template-switcher.md) |
 | 066 | 在线对话/在线运行前端按 SkillHub 设计系统重构（--sk-* 令牌、文档流对话、ToolCallGroup） | 已实现（双页双主题、真实 SSE、4K 至窄屏输入区贴底已验证） | [066-skillhub-ui-redesign.md](references/066-skillhub-ui-redesign.md) |
-| 067 | 在线对话默认通用智能体与 $ 技能选择器 | 已实现（构建/后端 e2e/浏览器断言通过） | [067-experience-general-agent-dollar-picker.md](references/067-experience-general-agent-dollar-picker.md) |
+| 067 | 在线对话默认通用智能体与 $ 技能选择器（11-23 起不限条数、限高滚动、按类别筛选） | 已实现（构建/后端 e2e/浏览器断言通过；11-23 无头浏览器真实键鼠断言通过） | [067-experience-general-agent-dollar-picker.md](references/067-experience-general-agent-dollar-picker.md) |
 | 068 | /use 收敛为任务配置表单，历史统一到在线对话侧栏 | 已实现（历史形态被 069 修订，其余约定生效） | [068-form-only-usepage-and-experience-surface.md](references/068-form-only-usepage-and-experience-surface.md) |
 | 069 | 历史按对话展示整段记录 + 运行进度只显真实工具调用 | 已实现（构建/curl/浏览器断言与截图通过） | [069-conversation-history-and-toolsonly-progress.md](references/069-conversation-history-and-toolsonly-progress.md) |
 | 070 | 历史续聊、运行中刷新恢复原任务与手动继续 | 已实现（Chrome 实模中断续跑、首次提交及重复点击回归通过） | [070-history-as-normal-chat.md](references/070-history-as-normal-chat.md) |
@@ -166,6 +177,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 092 | 主仓库远程迁移、技能全部内置与普通克隆 | 已实现（GitHub wlc 已发布，三个技能树及普通远端克隆验证通过） | [092-main-repository-remote-migration.md](references/092-main-repository-remote-migration.md) |
 | 105 | 本机前后端的独立 systemd 用户服务与重启约定 | 已实现（端口、独立重启、用户权限与公网热更新验证） | [105-systemd-user-services.md](references/105-systemd-user-services.md) |
 | 104 | 独立管理后台、技能发布、密钥轮换与测试人员共享续聊 | 已实现（浏览器、双协议、真实 Pi 沙箱和现存索引验收） | [104-admin-console.md](references/104-admin-console.md) |
+| 132 | 优才知路与技能广场共用统一认证中心，双向单点登录与任务归属 | 设计建议；认证库和官网入口已核对，广场应用登记、服务端验票与双向登录待联调 | [132-unified-account-cas-sso.md](references/132-unified-account-cas-sso.md) |
 | 048 | 广场技能列表动态化：/api/skills 与幽灵卡移除 | 已实现（API 实测 6 技能；浏览器页面回归待用户） | [048-plaza-skill-list-dynamic.md](references/048-plaza-skill-list-dynamic.md) |
 | 057 | 公网入口 origin 白名单 PLAZA_ALLOWED_ORIGINS | 已实现（curl 四场景验证；公网浏览器回归待确认） | [057-public-origin-allowlist.md](references/057-public-origin-allowlist.md) |
 | 076 | 开发手记重组：清除运行观察、合并同主题、分区索引（删并映射表） | 已实现 | [076-dev-notes-reorg.md](references/076-dev-notes-reorg.md) |

@@ -10,6 +10,7 @@
 
 - [AI 面试练习](../.agents/skills/ai-interview/docs/index.md) （`ai-interview`）
 - [就业指导](../.agents/skills/career-guidance/docs/index.md) （`career-guidance`）
+- [智能分班使用指南](../.agents/skills/class-placement/docs/index.md) （`class-placement`）
 - [课堂助教](../.agents/skills/classroom-assistant/docs/index.md) （`classroom-assistant`）
 - [岗位胜任力测评](../.agents/skills/competency-assessment/docs/index.md) （`competency-assessment`）
 - [文档翻译](../.agents/skills/doc-translate/docs/index.md) · [怎样核对一份双栏译文](../.agents/skills/doc-translate/docs/review.md) （`doc-translate`）
@@ -19,6 +20,7 @@
 - [学生个性化学习规划](../.agents/skills/student-learning/docs/index.md) （`student-learning`）
 - [新岗位与新技术预判](../.agents/skills/tech-forecast/docs/index.md) （`tech-forecast`）
 - [训练数据构造与质检](../.agents/skills/training-data-qa/docs/index.md) （`training-data-qa`）
+- [产教培养方案设计](../.agents/skills/training-program-design/docs/index.md) （`training-program-design`）
 - [微信公众号人才需求报告](../.agents/skills/wechat-report/docs/index.md) （`wechat-report`）
 
 ## 开发与共享技能

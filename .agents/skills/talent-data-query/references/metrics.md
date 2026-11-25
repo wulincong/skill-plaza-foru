@@ -17,6 +17,7 @@
 | city_education.cross | 城市×学历，保留省份上下文与缺失；同样以整组岗位数为分母 |
 | salary.summary | 有效薪资区间中点的均值、P25、median、P75、P90，单位 K_CNY/month |
 | salary.distribution | 同一有效薪资中点的固定分箱；share 分母是有效薪资数 |
+| description.samples | 限量脱敏 JD 原文抽样：按岗位主键升序取非空描述前 N 条；rows 含岗位名、学历/经验标签、截断摘录与指纹，missingN 为无有效描述的岗位数 |
 
 学历“大专/高职”和不限分别保留，不能把满足学历条件直接称为可录用。“职教宽口径”“明确大专”“叠加经验的入门池”是不同筛选，调用方必须明确条件，不使用含糊的可投率。
 
@@ -33,3 +34,5 @@ salary-policy/1 要求两端为严格数值（最多六位小数），0 < min <=
 1.2 扩展五项指标：track.distribution、city_track.cross、track_salary.summary、skills.distribution、track_skills.cross，见 [analysis.md](analysis.md)。分方向薪酬已支持，方向来自显式首个命中规则，不能把它当成官方产业细分。每组最多五条基础/交叉/方向/技能/薪酬聚合即可供完整报告使用；不请求来源/标题排名时避免额外扫描。新模块仍按 cohort 独立执行，不声称一次 CLI 等于一次扫描。
 
 1.3扩展city_salary.summary：企业关联地址城市的完整薪酬摘要，返回省、市、count、validN、excludedN及summary；同salary-policy/1，不是实际收入。复用原完整薪酬频数查询按需增加城市维度，无方向规则也可请求；缺失省市保留。与city_education.cross联合使用时，按省市连接并检查同一城市岗位基数，学历要求比例以该城市全部岗位为分母。不得将城市平均/中位数按城市简单平均来替代总体分位。
+
+1.4扩展description.samples：受控 JD 原文抽样。每个样本组按岗位主键升序取最多 5 条非空描述（上限见 capabilities.limits），SQL 截断到 1600 字符并标记 truncated；电话、邮箱、链接与即时通讯联系方式按 jd-excerpt-redaction/1 在落盘前统一掩蔽，result.json 与 evidence.json 同源脱敏，rows[].hash 是脱敏后摘录的 SHA-256。describedN 为有效描述岗位数，missingN = 样本组岗位数 − describedN。样本是确定性的前 N 条，不是随机抽样，不能用来推断岗位总体的表述分布；引用任务表述时给出 positionId 与 hash。样本有岗位但没有有效描述时该指标返回 unavailable。当前数据规模下与产业筛选组合查询最快；纯地域或名称包含口径可能超出单条查询预算，超时按工具错误如实处理。

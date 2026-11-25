@@ -1,0 +1,76 @@
+/* AI Studio upgrade-card behavior observed 2026-09-11; independent reusable implementation. */
+@property --aistudio-flow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.aistudio-flow-border {
+  --aistudio-flow-radius: 16px;
+  --aistudio-flow-outline: rgba(215, 216, 218, .5);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-width: 0;
+  padding: 1px;
+  border-radius: var(--aistudio-flow-radius);
+  overflow: visible;
+  background: conic-gradient(from var(--aistudio-flow-angle) at 50% 50%,
+    var(--aistudio-flow-outline) 0deg,
+    var(--aistudio-flow-outline) 69deg,
+    rgba(66, 133, 244, .55) 115deg,
+    rgba(26, 166, 74, .5) 193deg,
+    var(--aistudio-flow-outline) 270deg,
+    rgba(252, 189, 0, .5) 291deg,
+    rgba(219, 55, 45, .5) 322deg,
+    var(--aistudio-flow-outline) 360deg);
+  box-shadow: 0 3px 3px -1.5px rgba(10, 13, 18, .04),
+    0 8px 8px -4px rgba(10, 13, 18, .03),
+    0 20px 24px -4px rgba(10, 13, 18, .08);
+}
+.aistudio-flow-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: inherit;
+  filter: blur(14px);
+  opacity: .4;
+  pointer-events: none;
+  transition: filter .6s ease-in-out, opacity .6s ease-in-out;
+}
+.aistudio-flow-border > .aistudio-flow-surface {
+  position: relative;
+  min-width: 0;
+  border: 0;
+  border-radius: calc(var(--aistudio-flow-radius) - 1px);
+  background: var(--aistudio-flow-surface, #fff);
+}
+.aistudio-flow-surface:focus-visible {
+  outline: 2px solid #4285f4;
+  outline-offset: 5px;
+}
+.aistudio-flow-border:focus-within::after { filter: blur(18px); opacity: .7; }
+@media (hover: hover) and (pointer: fine) {
+  .aistudio-flow-border:hover::after { filter: blur(18px); opacity: .7; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .aistudio-flow-border { animation: aistudio-flow-rotate 40s linear infinite; }
+  .aistudio-flow-border:focus-within { animation-duration: 8s; }
+}
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
+  .aistudio-flow-border:hover { animation-duration: 8s; }
+}
+@keyframes aistudio-flow-rotate { to { --aistudio-flow-angle: 360deg; } }
+@media (prefers-reduced-motion: reduce) {
+  .aistudio-flow-border { animation: none; }
+  .aistudio-flow-border::after { transition: none; }
+}
+@media (forced-colors: active) {
+  .aistudio-flow-border { background: CanvasText; box-shadow: none; animation: none; }
+  .aistudio-flow-border::after { display: none; }
+}
+@media print {
+  .aistudio-flow-border { background: #aaa; box-shadow: none; animation: none; }
+  .aistudio-flow-border::after { display: none; }
+}

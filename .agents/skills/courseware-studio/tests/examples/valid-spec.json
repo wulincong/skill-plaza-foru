@@ -1,0 +1,140 @@
+{
+  "version": "courseware-spec/1",
+  "meta": {
+    "title": "工具坐标标定",
+    "course": "工业机器人现场编程",
+    "unit": "第 4 章 工业机器人基础操作",
+    "hours": 2,
+    "audience": "高职二年级",
+    "style": "clean-blue",
+    "teacher": "王老师",
+    "final": false
+  },
+  "standards": [
+    { "id": "S1", "code": "GQT-3.2", "title": "能够完成工具坐标系的建立与标定", "source": "教师提供的课程标准条目" },
+    { "id": "S2", "code": "GQT-3.3", "title": "能够按安全操作规程进行设备上电与运行", "source": "教师提供的课程标准条目" }
+  ],
+  "materials": [
+    { "id": "M1", "name": "《工业机器人现场编程》教材", "kind": "textbook", "pages": "第 4 章 4.1–4.3（p.58–72）", "file": "uploads/textbook-ch4.pdf" },
+    { "id": "M2", "name": "《工业机器人实训指导书》", "kind": "training-guide", "pages": "任务三 工具坐标标定", "file": "uploads/training-guide-task3.md" },
+    { "id": "M3", "name": "课程标准（2025 版）节选", "kind": "standard", "pages": "GQT-3.2 / GQT-3.3" },
+    { "id": "M4", "name": "设备照片（教师自备）", "kind": "image", "file": "uploads/tool-flange.png" }
+  ],
+  "slides": [
+    {
+      "type": "cover",
+      "title": "工具坐标标定",
+      "subtitle": "从 TCP 概念到四点法实操"
+    },
+    {
+      "type": "agenda",
+      "title": "本节课安排",
+      "blocks": [
+        { "kind": "bullets", "items": ["任务导入：末端执行器更换带来的偏差", "知识讲解：工具坐标系与 TCP", "实训演示：四点法标定流程", "课堂测验与小结"] }
+      ],
+      "sources": []
+    },
+    {
+      "type": "objectives",
+      "title": "学习目标",
+      "blocks": [
+        { "kind": "bullets", "items": ["说出工具坐标系与 TCP 的定义及用途", "按四点法完成工具坐标标定并记录结果", "执行设备上电与运行前的安全检查"] }
+      ],
+      "knowledgePoints": [
+        { "name": "工具坐标系建立", "standardId": "S1" },
+        { "name": "安全操作规程", "standardId": "S2" }
+      ],
+      "sources": [ { "materialId": "M3", "pages": "GQT-3.2 / GQT-3.3", "note": "目标条目原文" } ]
+    },
+    {
+      "type": "intro",
+      "title": "任务导入：换枪带来的偏差",
+      "blocks": [
+        { "kind": "paragraph", "text": "产线末端执行器从焊枪更换为夹爪后，机器人仍按旧工具中心点运动，出现 12mm 轨迹偏移。需要重新标定工具坐标。" },
+        { "kind": "callout", "tone": "info", "title": "讨论", "text": "如果不重新标定，除了轨迹偏移还可能出现什么问题？" }
+      ],
+      "knowledgePoints": [ { "name": "TCP 变更影响", "standardId": "S1" } ],
+      "sources": [ { "materialId": "M1", "pages": "p.58–59", "note": "导入案例改编自教材 4.1 节引例" } ]
+    },
+    {
+      "type": "concept",
+      "title": "工具坐标系与 TCP",
+      "blocks": [
+        { "kind": "two-col", "left": { "title": "工具坐标系", "items": ["描述工具相对于法兰的姿态与位置", "原点即 TCP（Tool Center Point）", "常见形状工具默认 TCP 在尖端"] }, "right": { "title": "为什么需要标定", "items": ["保证示教轨迹与实际轨迹一致", "换枪、维修后必须重新标定", "精度直接影响焊接/装配质量"] } },
+        { "kind": "image", "path": "uploads/tool-flange.png", "caption": "法兰与工具安装示意（教师提供设备照片）" }
+      ],
+      "knowledgePoints": [ { "name": "工具坐标系定义", "standardId": "S1" } ],
+      "sources": [ { "materialId": "M1", "pages": "p.60–62", "note": "定义与图 4-2" } ]
+    },
+    {
+      "type": "diagram",
+      "title": "四点法标定原理",
+      "blocks": [
+        { "kind": "paragraph", "text": "以四个不同姿态让工具尖端到达同一固定点，控制器求解法兰到位姿变换，得到工具坐标。" },
+        { "kind": "gap", "text": "教材图 4-5 四点法姿态示意图的电子版尚未提供，待教师补充扫描图或改用手绘板书。" }
+      ],
+      "knowledgePoints": [ { "name": "四点法原理", "standardId": "S1" } ],
+      "sources": [ { "materialId": "M1", "pages": "p.63", "note": "原理文字" } ]
+    },
+    {
+      "type": "safety-warning",
+      "title": "实训安全：设备上电与标定操作",
+      "blocks": [
+        { "kind": "callout", "tone": "warn", "title": "安全警示", "text": "标定操作在围栏内进行，任何人员进入前必须完成挂牌上锁并确认机器人处于手动降速模式。" }
+      ],
+      "safety": { "requiresConfirmation": true, "items": ["确认急停按钮位置与功能正常", "降速模式选择（T1）并确认速度 ≤250mm/s", "进入围栏前完成挂牌上锁（LOTO）", "四点示教顺序：姿态 1→2→3→4，逐点复核"] },
+      "knowledgePoints": [ { "name": "安全操作规程", "standardId": "S2" } ],
+      "sources": [ { "materialId": "M2", "pages": "任务三·安全须知", "note": "安全条目原文" } ]
+    },
+    {
+      "type": "procedure",
+      "title": "实训演示：四点法标定流程",
+      "blocks": [
+        { "kind": "steps", "items": ["手动模式将工具尖端移至参考点（姿态 1），记录位姿", "改变法兰姿态，保持尖端不动，记录姿态 2", "重复得到姿态 3、4（姿态间夹角 ≥30°）", "调用标定指令计算工具坐标并保存", "用测试程序验证轨迹偏差 ≤1mm"] }
+      ],
+      "knowledgePoints": [ { "name": "四点法标定", "standardId": "S1" } ],
+      "sources": [ { "materialId": "M2", "pages": "任务三·步骤 1–5", "note": "操作步骤原文" } ]
+    },
+    {
+      "type": "quiz",
+      "title": "课堂测验",
+      "blocks": [
+        { "kind": "table", "header": ["题目", "参考答案要点", "出处"], "rows": [ ["工具坐标系的原点通常称为什么？", "TCP（工具中心点）", "教材 p.60"], ["四点法对姿态间夹角的要求是什么？", "≥30°", "实训指导书 任务三"], ["更换末端执行器后需要做什么？", "重新标定工具坐标", "教材 p.61"] ] }
+      ],
+      "knowledgePoints": [ { "name": "四点法要点", "standardId": "S1" } ],
+      "sources": [ { "materialId": "M1", "pages": "p.60–63" }, { "materialId": "M2", "pages": "任务三" } ]
+    },
+    {
+      "type": "rubric",
+      "title": "考核评分表",
+      "blocks": [
+        { "kind": "table", "header": ["考核项", "分值", "评分标准"], "rows": [ ["安全操作", "30", "未执行 LTO 或超速一次即计 0 分"], ["标定完成度", "40", "四点齐全且姿态夹角合规得满分"], ["验证与记录", "30", "轨迹偏差 ≤1mm 且表格记录完整"] ] }
+      ],
+      "knowledgePoints": [ { "name": "安全操作规程", "standardId": "S2" } ],
+      "sources": [ { "materialId": "M2", "pages": "任务三·考核表", "note": "评分表原文" } ]
+    },
+    {
+      "type": "summary",
+      "title": "课堂小结",
+      "blocks": [
+        { "kind": "bullets", "items": ["工具坐标系描述工具相对法兰的位姿，原点为 TCP", "四点法：同一参考点、四个姿态、夹角 ≥30°", "换枪/维修后必须重新标定并验证偏差"] }
+      ],
+      "knowledgePoints": [ { "name": "工具坐标系建立", "standardId": "S1" }, { "name": "标定验证经验", "extension": true } ],
+      "sources": [ { "materialId": "M1", "pages": "p.58–63" }, { "materialId": "M2", "pages": "任务三" } ],
+      "notes": "课后作业布置见教案第 4 周安排。"
+    }
+  ],
+  "copyright": [
+    { "materialId": "M1", "content": "教材 4.1–4.3 文字与图 4-2", "license": "课堂合理引用（校内教学）", "status": "confirmed" },
+    { "materialId": "M4", "content": "法兰设备照片", "license": "教师自备并授权使用", "status": "confirmed" }
+  ],
+  "resources": [
+    { "name": "四点法标定流程步骤卡", "kind": "diagram", "source": "依据实训指导书任务三生成" },
+    { "name": "考核评分表", "kind": "table", "source": "实训指导书 任务三·考核表" },
+    { "name": "法兰设备照片", "kind": "image", "source": "教师自备素材" }
+  ],
+  "pendingConfirmations": [
+    { "id": "C1", "aspect": "safety-order", "text": "实训安全步骤顺序：①确认急停有效 → ②T1 降速模式 → ③挂牌上锁 → ④四点示教（1→2→3→4）", "relatedSlides": [6] },
+    { "id": "C2", "aspect": "coverage", "text": "教材图 4-5 电子版缺失，当前以「待教师补充」占位，是否按此交付校订稿？", "relatedSlides": [5] }
+  ]
+}

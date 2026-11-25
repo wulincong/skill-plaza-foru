@@ -194,6 +194,8 @@ const mime: Record<string, string> = {
   '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.gif': 'image/gif',
   '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff': 'font/woff', '.woff2': 'font/woff2',
   '.pdf': 'application/pdf', '.zip': 'application/zip', '.txt': 'text/plain; charset=utf-8',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.md': 'text/markdown; charset=utf-8',
 }
 function notFound(res: ServerResponse) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('交付资源不存在') }
 

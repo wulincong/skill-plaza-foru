@@ -27,6 +27,11 @@ import {
   HTML_REPORT_CONTRACTS,
   INDUSTRY_PRESENTATION_HANDOFF,
   INDUSTRY_DECISION_SUFFIX,
+  SKILL_COMPANION_MOUNTS,
+  TEACHING_DIAGNOSIS_TURN_SUFFIX,
+  CLASS_PLACEMENT_TURN_SUFFIX,
+  TRAINING_PROGRAM_TURN_SUFFIX,
+  COURSE_DEVELOPMENT_TURN_SUFFIX,
   SKILL_PROMPTS,
   INSTALLED_SKILLS,
   SIDECAR_SKILLS,
@@ -560,8 +565,11 @@ export class PiRunner extends AgentRunner {
       '--append-system-prompt', join(workspaceDir, 'AGENTS.md'),
     ]
     if (opts.skill && INSTALLED_SKILLS.has(opts.skill)) args.push('--skill', skillDir(opts.skill))
-    if (opts.skill === 'industry-education-report') {
-      args.push('--skill', skillDir('talent-data-query'), '--skill', skillDir('chart-visualization'), '--skill', skillDir('report-rendering'))
+    /* 伴生技能统一查表挂载（skills.ts SKILL_COMPANION_MOUNTS）；pi-tools 扩展仍限需 talent 原生工具的会话 */
+    for (const companion of SKILL_COMPANION_MOUNTS[opts.skill ?? ''] ?? []) {
+      args.push('--skill', skillDir(companion))
+    }
+    if (opts.skill === 'industry-education-report' || opts.skill === 'training-program-design' || opts.skill === 'course-development') {
       args.push('--extension', join(skillDir('talent-data-query'),'scripts/pi-tools.mjs'))
     }
     if (opts.skill === 'job-matching' || opts.skill === 'competency-assessment') {
@@ -747,14 +755,17 @@ export class PiRunner extends AgentRunner {
     if (skill === 'industry-education-report') {
       content += INDUSTRY_DECISION_SUFFIX + '\n\n' + INDUSTRY_PRESENTATION_HANDOFF
     }
-    if (skill === 'job-matching') {
-      content += `\n岗位匹配本轮：先读 ${skillDir(skill)}/SKILL.md，使用job_candidates；先评估全部候选并preview排序，再补20岗说明后build。来源由工具维护，不检查或修改隐藏文件。未经构建不声称报告已交付。`
+    if (skill === 'teaching-diagnosis') {
+      content += TEACHING_DIAGNOSIS_TURN_SUFFIX
     }
-    if (skill === 'competency-assessment') {
-      content += `\n胜任力测评本轮：先读 ${skillDir(skill)}/SKILL.md，直接调用job_candidates取得真实JD与个人材料，再按 references/assessment-format.md 写评测JSON并用 scripts/build.py build 交付网页。能力来自JD，资格单列；未知设null；无个人材料或关键缺证时先补问，不编造评分。`
+    if (skill === 'class-placement') {
+      content += CLASS_PLACEMENT_TURN_SUFFIX
     }
-    if (skill === 'student-learning') {
-      content += `\n\n学习规划本轮：先读 ${skillDir(skill)}/SKILL.md。知识库只调用 weknora_retrieve。教材入口沿用工具返回的 preview_url/download_url；完整计划必须经过 build.py 来源和时间验收，并交付网页，不在未生成文件时声称完成。`
+    if (skill === 'training-program-design') {
+      content += TRAINING_PROGRAM_TURN_SUFFIX
+    }
+    if (skill === 'course-development') {
+      content += COURSE_DEVELOPMENT_TURN_SUFFIX
     }
     if (skill === 'ai-interview') {
       content += '\n\n（面试官本轮：沿用选定语言。先核对约定题数与上一题。每道题写清“当前题号/总题数”，追问沿用原编号。收到最后一题的完整回答或结束请求就直接复盘，不再开新题。提问只取一个观察点，等我答完再问理由。需要点评时先给一条针对原答的反馈。复盘逐字引用作答，缺少岗位规则时不判操作正确，重练沿用原题题干。）'

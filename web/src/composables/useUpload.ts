@@ -15,7 +15,7 @@ export interface UploadedFile {
   size: number
 }
 
-const ALLOWED_EXTS = ['.pdf', '.docx', '.doc', '.md', '.txt']
+const ALLOWED_EXTS = ['.pdf', '.docx', '.doc', '.md', '.txt', '.csv', '.xlsx', '.png', '.jpg', '.jpeg', '.webp']
 const MAX_FILE_MB = 6
 
 /** 返回错误文案；通过校验返回 null */

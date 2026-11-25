@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-export const VERSION = 'talent-query-engine/1.3.0'
+export const VERSION = 'talent-query-engine/1.4.0'
 export class QueryError extends Error {
   constructor(code, message, details = {}) { super(message); this.code = code; this.details = details }
 }
@@ -50,6 +50,7 @@ export const METRICS = {
   'salary.summary': { kind: 'summary', unit: 'K_CNY/month', description: '区间中点均值与 P25/P50/P75/P90' },
   'salary.distribution': { kind: 'distribution', unit: 'job_records', description: '有效薪资区间中点分箱' },
   'data_quality.summary': { kind: 'summary', unit: 'job_records', description: '按需统计地址/省市/企业/名称/来源缺失量，并读取样本最大平台更新时间' },
+  'description.samples': { kind: 'samples', unit: 'job_records', description: '限量脱敏 JD 原文抽样：按岗位主键升序取非空描述样本，含截断标记与脱敏文本指纹' },
   'track.distribution': {kind:'distribution',unit:'job_records',analysis:true,description:'显式有序规则互斥归类，含未分类'},
   'city_track.cross': {kind:'cross',unit:'job_records',analysis:true,dimensions:['city'],description:'城市×同一互斥方向的完整频数'},
   'track_salary.summary': {kind:'distribution',unit:'K_CNY/month',analysis:true,description:'同一方向及薪酬策略的分组摘要'},
@@ -58,7 +59,7 @@ export const METRICS = {
   'track_skills.cross': {kind:'cross',unit:'job_records',analysis:true,description:'方向×技能提及计数，保留全岗位和有效描述分母'},
 }
 export const DIMENSIONS = { education: 'p.education', experience: 'p.experience', jobType: 'p.type', source: 'p.data_source', city: 'a.city', province: 'a.province', title: 'p.name' }
-export const LIMITS = { cohorts: 4, metrics: 20, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000 }
+export const LIMITS = { cohorts: 4, metrics: 20, dictionaryIds: 1000, resultRows: 40000, bytes: 32 * 1024 * 1024, deadlineMs: 360000, timeoutMs: 180000, samplesPerCohort: 5, sampleExcerptChars: 1600 }
 
 function analysisPolicy(raw,metrics) {
   const a=object(raw??{},['tracks','skills'],'analysis'),out={}

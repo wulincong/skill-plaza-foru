@@ -1,0 +1,93 @@
+# 124 · training-program-design：产教培养方案技能、红线校验与 T05 任务包
+
+**状态**：已实现并经真实 Pi 端到端样例验收（2026-11-18，见「端到端实测」节）；2026-11-20 起工作流改为「本地语料为底 + 轻量取数」，同日新增内容深度硬校验与禁编造校名规则；2026-11-23 新增图表规划硬门槛与链接式依据，同日傍晚按用户成品复验意见二次修订（矩阵图语义、区间图组数、链接短名称、下载件死链，见对应节）。
+
+## 动机
+
+平台产教融合内容生产链需要起点智能体：为高职专业负责人/教务处生成/修订产教融合专业人才培养方案。区别于全国通用模板，核心差异化是把「真实岗位库可追溯口径 + 国家专业教学标准原文核对」做成硬校验——竞品调研（2026-11-18，记录见技能 `references/research-notes.md`）显示官方 VEPPAgent 与职教桥都未同时做实这两点。定稿后自动产出 T05 课程开发任务包。
+
+## 约定细节
+
+### 契约与脚本（技能目录 `.agents/skills/training-program-design/`）
+
+- `program.json` 契约 `training-program/1`（`references/program-contract.md`）：meta/sources/metrics/jobGroups/capabilityDomains/standards/cultivation/curriculum/schedule/assurance/graduation/decisions/diff/redlineOverrides。sources/metrics 与产教报告同构（tq 工件 `data/tq-…/result.json` + contentHash + binding 回填；`user:` 来源 excerpt 逐字核对）。
+- `scripts/program.py`：`validate`（结构 + 证据绑定 + 红线）/`build`（校验通过后产 program.md、program.json、validation.json、t05-package.json、t05-overview.md、program.docx、program-files.json 于 `output/program-<sha10>/`）。任一红线不达标 build 退出非零并逐项说明（阻断交付）。
+- 红线 R1–R12（`references/redlines.md`）：13 号文核实数字为默认（总学时 2500–2800、实践≥50%、公共基础≥25%、选修≥10%、核心课 6–8 门、实习 20–30 周、学年 40 周、学分 120–170 且落在 16–18 学时/学分换算区间 ±2）；校本要求经 `redlineOverrides`（须 providedBy 引用用户原话）覆盖。学时学分总数由脚本从课程表汇总，契约不手填。
+- Word 生成走**标准库手写最小 OOXML**（zipfile+固定模板，`write_docx`）：沙箱 python 3.12 无 python-docx/matplotlib（宿主 conda 3.13 有但沙箱 PATH 固定系统 python），否决 pip 安装（跨沙箱用户不可控）。XML 良构性由单测 minidom 校验；真机 Word 打开待样例验收。
+- T05 任务包 `t05-course-development/1`（`references/t05-package.md`）：每门课的能力绑定、证据索引、学时学分与设置理由，内嵌 evidenceIndex 供下游回查，不重新取数。
+
+### 平台接入点
+
+- `web/server/lib/skills.ts`：`SKILL_PROMPTS['training-program-design']`、`INSTALLED_SKILLS`、`SKILL_DATA_DEPENDENCIES`、`SKILL_COMPANION_MOUNTS`（talent-data-query + chart-visualization + report-rendering）、`TRAINING_PROGRAM_TURN_SUFFIX`（红线阻断/决策卡/原文核对逐轮重申）。
+- `web/server/lib/piRunner.ts`：pi-tools 扩展挂载条件扩展为本技能与 industry（talent_query 原生工具必需）；buildPrompt 追加上述后缀。
+- `web/server/index.ts`：早前用户消息收集（industryUserSources 持久化）扩展到本技能；turnPrompt 写 `program-input.json`（runId/message/earlierMessages/uploads，供 program.py 核对决策 userReply 与 user: excerpt）与 `talent-query-turn.json`（pi-tools.mjs 强制要求的回合上下文）。
+- `web/src/data/skills.ts` 富文案条目（卡名「产教培养方案设计」）；docs/index.md 已入文档中心（docs:check 通过，链接只允许同目录 md 或完整 URL）。
+- 交付走通用 delivery.json 通道：`register_delivery.py <web目录> --files-from output/program-<hash>/program-files.json`，**无服务端专属校验**（否决仿 industryDelivery 四原件收据：本技能无纯呈现修订复用场景，校验全部内聚在 program.py）。
+
+## 成本与取舍
+
+- 决策卡授权靠 decisions.userReply 原话 + program-input.json 回查（有会话上下文时强制）；离线无上下文时跳过原话校验——与 industry continue_quote 同等强度，未做服务端 projectReply 映射。
+- weknora 标准核对：沙箱无 WEKNORA 凭据（web/.env 未配），SKILL 按「凭据可用→检索；否则决策卡（提供原文/授权检索官方公开原文/按待核对继续）」设计，知识库未挂载（省上下文），调用语法写在 `references/standards-check.md`，未来宿主注入凭据即可启用。
+- R12 双课程支撑为警告级（通行「无遗漏、无冗余」校验取建议强度，避免过度阻断）；单课学时学分比 14–30 区间外同样仅警告。
+- 「三年一修订」不写入方案（非 13 号文条款，出自十四五规划教材文件与院校惯例），正文表述为动态调整机制。
+
+## 端到端实测（2026-11-18）
+
+真实广场会话（sess-tpd-e2e1，大数据技术 510205·广东省·云计算与大数据链，youcai 模型）完成全链路并经两轮修订交付：
+
+- **决策卡链路**：4 张卡真实触发（产业口径确认、取数失败处理、旧版材料/标准原文获取、草稿确认），答复经 `answerTo` 续入原会话；decisions 留痕用户原话。
+- **取数与绑定**：talent_query 成功（广东省 22581 岗位、学历分布、薪酬中位 15.5K），工件 `data/tq-14b48381…/`，program.json 以 `sample_1/positions.count` binding 回填核验。
+- **红线阻断真实生效**：初版 validate 报 7 类不达标（总学时 1312、公共基础 17.7%、选修 7.3%、rationale 缺绑定等），模型多轮调整至全过（2608 学时、实践 60.7%、公共 25.8%、选修 11.7%、核心 7 门、145.5 学分、实习 26 周）后 build 才通过。
+- **交付**：`output/program-146b28fd1f/` 六件产物（program.md 161 行表格、42KB program.json、validation.json、t05-package.json、真实 Word 文件 file 命令识别 Microsoft Word 2007+）；经 report-rendering + register_delivery 发布公网网页与 6 份下载（终版 delivery b69dcd4b…，网页 24.8KB 含全部课程表与红线对照）。
+- **降级路径修正**：实测暴露契约缺陷——标准待核对时无来源可指，模型曾用查询来源冒名。已修：`program.py` standards pending 条目 sourceId 可省、cultivation.goalBasis 降级时免 standardSourceId（须 standards 决策），新增回归测试（22 项全绿）。
+- **模型可用性发现**：手写 27 门课 JSON 曾耗尽一轮放弃，需夹具样例引导一次写全（SKILL.md 已写入指引）；网页首两版为摘要级，需明确「全文渲染、禁止详见占位」（SKILL.md 已强化）。
+- **环境干扰（非本技能缺陷）**：并行开发会话（zjf）中途重启后端两次，杀掉两轮在途运行；会话文件曾被外部清空一次。重发即可恢复，`--continue` 会话上下文未丢。
+
+## 本地语料为底（2026-11-20 起）
+
+数据使用方式调整：对标参考以仓库内置培养方案语料库为主路径，取数降为轻量补充。
+
+- 语料库：`data/人才培养方案/`（git 忽略，不进版本库），696 份清洗全文 TXT，按五方向组织（人工智能 389/智能制造 152/数字商科 127/智能网联汽车 27/具身智能 1），`索引.csv` 含 sha256 与标题（来源见库内 README 与 2026-11-20 探查记录）。无专业/学制/院校结构化分类，从文件名与标题解析。
+- `corpus:` 来源类型（`program.py` corpus_index/corpus 分支）：url 为 `corpus:方向/文件名.txt`，校验索引登记、文件 sha256 与 excerpt 原句，title/publisher/published/accessed 空缺按索引与入库日（2026-11-20）回填；用于 rationale/goalBasis/diff 的对标引用。**不可作岗位需求证据（R9 仍要指标或用户材料）、不可作实施保障来源**；accessed=入库日，早于入库日的 as_of 引用语料会被截止日校验拦下（语义正确）。
+- 工作流：查索引→按方向过滤→标题贴近选 3–5 份同类 + 1 份跨层次对照→精读提炼结构/课程体系/学时比例/表述→逐份登记 corpus: 来源。岗位证据一次 talent_query 取齐（同口径复用）或走用户材料；能力项缺口按原 user-material/insufficient 规则，不为凑证据反复取数。SKILL.md「本地语料为底/补充取证（轻量）」两段、skills.ts TRAINING_PROGRAM_TURN_SUFFIX 与 SKILL_PROMPTS 条目同步改写。
+- 取舍：否决「能力项允许 corpus 证据」——同类方案的岗位判断不是本区域岗位需求事实，会架空 R9 的证据规则；否决「按专业名预建结构化映射」——696 份标题解析规则不稳定，先由选样时按需解析，映射质量需求出现后再建。
+- 验证：26 项单测（含临时语料夹具三态 + 真实索引完整性集成）；真实索引选样（人工智能 389→标题过滤→三年制样本）+ corpus 来源 validate 通过；零查询纯语料+用户材料路径 validate 全绿。后端已重启加载新后缀。
+
+## 内容深度硬校验与禁编造校名（2026-11-20 下午）
+
+用户审查实测交付（sess-t03-timing-test-1，program.md 14.5KB）结论「太少太空」：实施保障 86 字、毕业要求 67 字、课程零简介、规格 3/4/4 条、语料仅 1 份、两次禁止后仍写出「广州铁路职业技术学院」（语料标题渗入正文）。
+
+- **契约扩展**（`program.py` DEPTH 表 + program-contract.md 下限汇总）：课程 description（≥20 字，核心 ≥40）与 typicalContent（≥30 字，核心 ≥80）；培养规格每维 ≥5 条、每条 ≥12 字；岗位群 ≥2 个、每群 ≥2 岗、覆盖 entry+development；pedagogy（教学实施/考核评价各 ≥150 字）新增为顶层必填；毕业要求 ≥4 条总 ≥80 字；七课程类别齐全；**corpus: 来源 ≥3 份硬门槛**。字数口径=去空白字符数（text_len）。正文新增 6.4 课程简介与典型内容表、第九章教学实施与考核评价，十二章重排。
+- **禁编造校名**：未提供院校名一律「本校」，写入 SKILL.md、TRAINING_PROGRAM_TURN_SUFFIX 与 SKILL_PROMPTS；未做程序化检测（语料标题含校名，误报难避免，指信层约束）。
+- **验证**：34 项单测全绿（新增 8 项下限用例）；同输入真实构建（sess-tpd-depth-e2e，人工智能技术应用 510209）program.md 总字数 5,925→11,763、课程章 1,938→6,474、实施章 86→484+203、课程 34 门简介/典型内容 100% 达标、语料 3 份真实三年制方案（sha 过验）、校名零残留、Word 正常生成、全文网页 30.6KB。
+- **过程发现**：① 模型首轮修复耗时超回合上限被 timeout 杀（corpus 文件名自拼、手填指标值不符、空 diff 是三大坑——已由 SKILL 指令与校验错误信息覆盖）；② 超时轮的 build 半成品（Word 失败警告）会被后续轮沿用，需显式指令重跑 build；③ 网页渲染倾向摘要化，交付指令需点名「全文、含具体表名」。
+
+## 图表规划硬门槛与链接式依据（2026-11-23）
+
+用户审查当日交付（校内微专业运行，web-8ed99882…-sess-961cfa24…）：3 张图全条形家族（学历分布、双面板学时、技能词频），学历/学时构成关系被画成并列柱形；正文「指标 M_xxx」「来源 S_xxx」60 处、「能力 C-xxx」41 处（成品页实测 80+41，含附录编号列），页内锚点 0。两项都改机器校验。
+
+- **chartPlan 契约**（`program.py` validate）：先定图再取数。每图 `{id, question, kind, reason, section, dataOrigin, dataRefs}`；kind 限 figure/1 可执行集（雷达/桑基/堆叠柱不可执行出图，不进规划）；section 须精确匹配正文章节；query 图须绑定 metricIds、corpus 图须绑定 corpus: 来源、program 图写 fromProgram。**图型家族判定**：条形家族（bar/barh 及多面板柱条）算一种，折线/地图/散点/分布/配对/区间/矩阵各算一种；≥3 种家族且条形 ≤ 全部图一半，两处（validate 与 check_page）同口径阻断。report-rendering chart-selection「统一图型记录理由」弹性对本技能明示不适用。
+- **链接式依据**（compose_blocks）：职业面向依据列、目标依据、规格关联列、6.1 支撑能力项、6.3 证据列、实施保障来源、附录D基准一律 `[可读名称](#锚点)`——指标写「名称 数值 单位（地域，时期）」（fmt_num 千分位）、来源写「标题 · 定位」、能力写名称。含链接的表从结构化 table 改为 `mdtable`（markdown 表文本）：网页经 text 块渲染成带链接的表（render.py 表格单元格 plain() 转义放不了链接，markdown 表才行）；Word 由 write_docx 解析 mdtable 并按链接分段渲染——内部锚点只显示可读文字，http(s) 外链做真超链接（w:hyperlink + rels TargetMode=External + xmlns:r）。编号保留在结构化产物与附录条目标识；sources/metrics/capability 的 id 增加锚点格式校验（`[A-Za-z][A-Za-z0-9_-]*`）。
+- **page 子命令**：`program.py page program.json` 在图稿就绪后产 `work/page-body.json`——正文各章（链接内嵌）+ 附录A/B 锚点条目（A.1 sources 块条目带 id、A.2 逐指标 text 块带 id、附录B 逐能力项 text 块带 id，替代原附录表格）+ 按 chartPlan 章节插入 figure 块；组页时正文/附录不手改。锚点因此与正文链接同源，不会漂移。
+- **check_page.py 成品校验**（渲染后、register_delivery 前，不过不得登记）：读 page.json figure 块→spec 面板 kind 与 values.json 一致→实际家族门槛（≥3、条形 ≤ 半、图与 chartPlan 集合一致且面板家族须与规划同家族）；编号扫描按**文本片段（HTMLParser run）**判定——跨元素边界不拼接，避免「A.2 指标」标题紧邻条目 id 被误判，page.json 侧先折叠 markdown 链接再扫；`href="#x"` 目标须全部存在（死链=0），链接文字非空且非编号。附录条目 id 允许（标识），正文裸编号为 0。
+- **验证**：51 项单测全绿（新增 chartPlan 门/链接正文/锚点覆盖/docx 链接/check_page 8 例）；真实工作区整份拷贝到 /tmp 重建：validate/build→按规划出 5 图（矩阵双面板、grouped-line 学时占比走势、interval 薪酬分位 + 复用 barh/bar）→page→render→check_page 通过。前后对比：图 3 张全条形 → 5 图 6 面板 4 家族（条形 2/6）；编号写法 80+41 → 0；依据链接 0 → 159（死链 0）；Word 无原始链接语法。
+- **过程发现**：① 旧图稿 spec 的 source/caption 里也写着「指标 M_xxx」，图内数值表会把编号带进正文——图稿说明文字同样要可读表述（check_page 能拦住）；② 14 课程×12 能力矩阵单面板放不下（列标签水平排布会重叠），纵向双面板 + panel_height_mm 175 通过，矩阵标签需从全称截短、全称留在附录锚点条目；③ 微专业这类小体量方案 chartPlan 用「program 数据图（矩阵/走势）+ 查询数据图（区间/条形）」组合即可达 3 家族，不必硬凑。
+- **共享技能零改动**：render.py/register_delivery.py/chart-visualization 均未动；锚点用 sources 块条目 id 与任意块 id 的既有能力。
+
+## 成品复验二次修订：矩阵语义、区间组数、链接短名称、下载件死链（2026-11-23 傍晚）
+
+用户在重建成品上独立验收（门槛全过）后指出四点成品质量问题，全部落实为代码规则与单测：
+
+- **支撑矩阵语义**（`program.py charts` 新子命令 + support_matrix_spec）：旧规格把「课程不支撑某能力域」写成 value:null，共享绘图层照规矩渲染成「缺失」灰格（141 灰格 vs 27 数值格）；标签还被硬截断。改为**按能力域聚合的确定性生成器**：行=绑定能力域的课程（全称，不截断），列=能力域名去「能力域」后缀（≤12 字校验），每格=该课程对该域的最高支撑强度 H3/M2/L1/**0=无支撑（最浅色，已知取值）**——全部格子有着落，「缺失」只留给真正未知；>7 门课程自动分面板；未绑定课程（公共基础课、岗位实习）在图注点名。dataOrigin=program 的规划 kind 收紧为 matrix/grouped-line 两种（学期学时占比 grouped-line 同为脚本生成），validate 阻断其他 kind——「标签/无支撑格/面板组织落在代码与单测里」而非提示词自觉。岗位查询数据的图仍由模型按规划出图。
+- **区间图 ≥2 组**（check_page）：单组区间只重复一个中位数（本次 tq 工件只有整体 salary.summary，无分组分位），重建中撤下 F_SALARY（薪酬分位保留在指标卡与附录 A.2）；check_page 读图稿规格 datasets 数分组数，interval 面板 <2 组即阻断，SKILL/契约写明「规划期把分组分位列入一次取数清单」。
+- **链接短名称**：指标链接文字=「名称 数值 单位」（fmt_num 千分位）、来源只写标题（display_title 清洗文件名残留的 `.pdf`/开头批次序号，回填与显示两处生效）；**地域/时期在表内说明一次**（scoped_table 自动生成「依据口径（…口径，查询时点 …）；完整口径见附录 A.2」行，聚合引用指标的地域/时期一致时才生成）；id 前缀约定 S\*/M\*/C\*（validate 校验），check_page 据此限链接文字**显示宽度**（中文全角 1、半角 0.5：M ≤26、S/C ≤32）并禁止链接文字带日期后缀——两道校验防回退。加权宽度的取舍：纯字数上限会误伤「岗位描述提及 Docker 的岗位记录数 490 条」这类自然标签与 30 字能力项全称。
+- **下载件死链**：program.md 正文 98 个 `[#锚点]` 链接在 md 内无处落地（网页锚点是 page 子命令另生成的）。定案：**md 与 Word 一致只显示可读文字**——blocks_markdown 把链接折叠为文字，build 校验 md 内链接语法为 0（61 项单测含此守卫）；附录条目标识与结构化产物保留编号供回查。
+- **验证**：61 项单测全绿；同一拷贝工作区重建（validate→charts→出图→page→render→check_page 通过）并实际打开页面核验：矩阵行标签全称无截断、0 值最浅色无灰格、色标 0…3、图注点名未列入课程；学时走势为双线带图例（旧双柱已无）；四/6.3 表上方各有一次口径说明行，6.3 证据列（3–4 条短链接）不再长于设置理由列；区间图已撤、家族仍 3 种（矩阵/折线/条形）条形 2/5。对比：链接平均宽度 43→21.1、超 30 字 121→0、md 死链 98→0、编号写法保持 0。截图存 /tmp/tpd-shots/（matrix/facing/hours/core-evidence）。
+- 过程发现：旧 F_EDU/F_SKILL 图稿的 source/caption 与旧 F_SALARY 规格里也藏着编号或长口径文字（上一轮已改为可读表述，本轮重建沿用）；重建目录里撤图后残留的 work/F_HOURS/F_SALARY 规格属未引用旧件，须清理以免混淆统计。
+
+## 后续路线
+
+- 沙箱凭据注入后启用 weknora 原生检索路径；T05 课程开发技能消费任务包的对接约定。
+- 证书-学分折算表、第二课堂学分等真实方案常见要素未入 v1 契约，按院校需求扩展。
+- 网页全文渲染的稳定性可考虑在 register 侧加「正文表格完整性」检查（当前靠 SKILL 指令约束）。
+- figure/1 若实现堆叠柱/雷达等专题图，chartPlan 可执行集与家族表同步扩入（CHART_FAMILY 维护点在 program.py）。

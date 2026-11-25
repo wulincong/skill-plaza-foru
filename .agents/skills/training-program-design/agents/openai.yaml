@@ -1,0 +1,4 @@
+interface:
+  display_name: "产教培养方案设计"
+  short_description: "区域岗位取证与国家教学标准原文核对，红线硬校验，交付方案网页、可编辑 Word 与课程开发任务包"
+  default_prompt: "使用 $training-program-design 为我校高职三年制大数据技术专业（510205）制订产教融合人才培养方案，服务广东省的数字经济产业。"

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { bySlug, catOf, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, type Skill } from '../data/skills'
+import { bySlug, catOf, GENERAL_SKILL_ID, GENERAL_SKILL_NAME, SKILL_FILTERS, skillFilterOf, type Skill } from '../data/skills'
 import { checkHealth, streamChat, ChatRequestError, type ChatAttachment, type ChatEvent, type ChatModelId, type ChatModelOption } from '../composables/useChatApi'
 import { interruptSubmission, newRequestId, readSubmission, saveSubmission, type ChatSubmission } from '../composables/interruptedTask'
 import { takePendingFormTask } from '../composables/pendingTask'
@@ -83,6 +83,11 @@ const DEMOS: Demo[] = [
     slug: 'doc-translate',
     question: '把这份英文 PDF 文档全文翻译成中文',
     reply: '请连接运行服务，上传一份带文本层的 PDF，并说明目标语言。翻译完成后会提供译文 PDF 的查看和下载链接。',
+  },
+  {
+    slug: 'courseware-studio',
+    question: '用我上传的教材第 4 章和实训指导书生成 2 课时课件',
+    reply: `【演示输出 · 智能课件生成】\n\n■ 校订稿已生成（共 14 页）\n· 可编辑 PPTX 与网页预览版，每页标注出处页码\n· 知识点挂接课标 GQT-3.2 / GQT-3.3，拓展内容单独标注\n\n■ 教师待确认清单\n· 实训安全步骤顺序：①确认急停有效 → ②T1 降速 → ③挂牌上锁 → ④四点示教\n· 教材图 4-5 电子版缺失，当前以待教师补充占位\n\n■ 说明\n· 确认无误后导出定稿；课件档案含版权与资源入库清单`,
   },
 ]
 
@@ -169,12 +174,19 @@ const EXAMPLES = computed(() => DEMOS.filter(d => publishedSkills.value.some(s =
 const activeSkill = ref<Skill | undefined>()
 const skillMenu = ref(false)
 const skillQuery = ref('')
+const skillFilter = ref('all')
 const skillHighlight = ref(0)
+const skillListEl = ref<HTMLElement>()
 const skillMatches = computed(() => {
   const q = skillQuery.value.trim().toLowerCase()
-  const list = publishedSkills.value.filter(s =>
-    !q || s.slug.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q)))
-  return list.slice(0, 8)
+  const filter = skillFilter.value
+  return publishedSkills.value.filter(s =>
+    (filter === 'all' || skillFilterOf(s.slug) === filter) &&
+    (!q || s.slug.toLowerCase().includes(q) || s.name.toLowerCase().includes(q) || s.tags.some(t => t.toLowerCase().includes(q))))
+})
+const skillEmptyText = computed(() => {
+  const group = SKILL_FILTERS.find(f => f.id === skillFilter.value)
+  return group && group.id !== 'all' ? `「${group.name}」下没有匹配的 SKILL，换个关键词或类别` : '没有匹配的 SKILL，试试其他关键词'
 })
 /* 光标前的未完成 $token（$ 起、空白止）命中时呼出选择器 */
 const MENTION_RE = /(?:^|\s)\$([^\s$]*)$/
@@ -183,7 +195,7 @@ function syncSkillMenu() {
   if (!el) { skillMenu.value = false; return }
   const m = el.value.slice(0, el.selectionStart ?? el.value.length).match(MENTION_RE)
   if (m) {
-    if (!skillMenu.value) skillHighlight.value = 0
+    if (!skillMenu.value) { skillHighlight.value = 0; skillFilter.value = 'all' }
     skillQuery.value = m[1]
     skillMenu.value = true
   } else {
@@ -194,9 +206,27 @@ function syncSkillMenu() {
 function toggleSkillMenu() {
   if (skillMenu.value) { skillMenu.value = false; return }
   skillQuery.value = ''
+  skillFilter.value = 'all'
   skillHighlight.value = 0
   skillMenu.value = true
   textareaEl.value?.focus()
+}
+function pickSkillFilter(id: string) {
+  skillFilter.value = id
+  skillHighlight.value = 0
+  if (skillListEl.value) skillListEl.value.scrollTop = 0
+}
+/* 列表可滚动后，↑↓ 移动到的高亮项要留在可视区内 */
+function revealSkillHighlight() {
+  nextTick(() => {
+    const list = skillListEl.value
+    const item = list?.querySelector<HTMLElement>('.exp-skill-item.is-hot')
+    if (!list || !item) return
+    const top = item.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop
+    const bottom = top + item.offsetHeight
+    if (top < list.scrollTop) list.scrollTop = top
+    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight
+  })
 }
 /* ---------- 附件：上传到会话沙箱，随下一条消息发送 ---------- */
 function triggerAttach() {
@@ -274,6 +304,7 @@ function onTextareaKeydown(event: KeyboardEvent) {
       event.preventDefault()
       const n = skillMatches.value.length
       skillHighlight.value = (skillHighlight.value + (event.key === 'ArrowDown' ? 1 : n - 1)) % n
+      revealSkillHighlight()
       return
     }
     if ((event.key === 'Enter' || event.key === 'Tab') && !event.isComposing) {
@@ -1104,27 +1135,41 @@ onBeforeUnmount(() => {
         </div>
         <div class="exp-input">
           <div class="exp-input-box">
-            <div v-if="skillMenu" class="exp-skill-menu" role="listbox" aria-label="挂载 SKILL">
-              <div
-                v-for="(s, i) in skillMatches"
-                :key="s.slug"
-                class="exp-skill-item"
-                :class="{ 'is-hot': i === skillHighlight }"
-                role="option"
-                :aria-selected="i === skillHighlight"
-                @mousedown.prevent
-                @click="pickSkill(s)"
-              >
-                <span class="exp-skill-ico" :style="{ background: `var(--cat-${s.categoryId}-soft)`, color: `var(--cat-${s.categoryId})` }">
-                  <Icon :name="s.categoryId" :size="14" />
-                </span>
-                <span class="exp-skill-meta">
-                  <b>{{ s.name }}</b>
-                  <small>{{ s.summary }}</small>
-                </span>
-                <span class="exp-skill-slug">{{ s.slug }}</span>
+            <div v-if="skillMenu" class="exp-skill-menu">
+              <div ref="skillListEl" class="exp-skill-list" role="listbox" aria-label="挂载 SKILL">
+                <div
+                  v-for="(s, i) in skillMatches"
+                  :key="s.slug"
+                  class="exp-skill-item"
+                  :class="{ 'is-hot': i === skillHighlight }"
+                  role="option"
+                  :aria-selected="i === skillHighlight"
+                  @mousedown.prevent
+                  @click="pickSkill(s)"
+                >
+                  <span class="exp-skill-ico" :style="{ background: `var(--cat-${s.categoryId}-soft)`, color: `var(--cat-${s.categoryId})` }">
+                    <Icon :name="s.categoryId" :size="14" />
+                  </span>
+                  <span class="exp-skill-meta">
+                    <b>{{ s.name }}</b>
+                    <small>{{ s.summary }}</small>
+                  </span>
+                  <span class="exp-skill-slug">{{ s.slug }}</span>
+                </div>
+                <p v-if="skillMatches.length === 0" class="exp-skill-empty">{{ skillEmptyText }}</p>
               </div>
-              <p v-if="skillMatches.length === 0" class="exp-skill-empty">没有匹配的 SKILL，试试其他关键词</p>
+              <div class="exp-skill-filters" role="group" aria-label="按类别筛选">
+                <button
+                  v-for="f in SKILL_FILTERS"
+                  :key="f.id"
+                  type="button"
+                  class="exp-skill-filter"
+                  :class="{ 'is-on': skillFilter === f.id }"
+                  :aria-pressed="skillFilter === f.id"
+                  @mousedown.prevent
+                  @click="pickSkillFilter(f.id)"
+                >{{ f.name }}</button>
+              </div>
             </div>
             <div v-if="pendingAttachments.length || attachUploading" class="exp-attach-row">
               <span v-for="(a, i) in pendingAttachments" :key="a.path" class="exp-attach-chip">

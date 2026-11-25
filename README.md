@@ -154,6 +154,17 @@ git clone --branch wlc git@github.com:wulincong/skill-plaza-foru.git
 - agent 的文件操作限定在 `web/server/workspace/<会话>/` 下，单次运行有超时。
 - 当前定位是**内网自用**：绑本机 CLI 登录态，额度共享、并发受限。公网部署前需要容器隔离 + 工具白名单 + 真实用户体系。
 
+### 离线 runsc 沙箱
+
+`sandbox-v2/` 是独立的离线执行入口：固定版本的 Pi 在 `runsc`（gVisor）容器内启动，由受信 Worker 核对 Docker 实际回报后使用。现网仍走上面的宿主机执行链，两者并行。
+
+```bash
+npm --prefix sandbox-v2 run acceptance    # 一条可重复的实机验收
+npm --prefix sandbox-v2 test              # 单元测试，不需要 Docker
+```
+
+镜像登记、启动与回收、隔离与限额、已知限制见 [sandbox-v2/README.md](sandbox-v2/README.md)。
+
 ## 构建与部署
 
 ```bash

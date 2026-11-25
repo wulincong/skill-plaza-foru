@@ -7,6 +7,7 @@ import { validateRequest, semanticRequest, hash, VERSION, fail, now } from './co
 import { buildPlan } from './compile.mjs'
 import { buildResult, resultContentHash } from './metrics.mjs'
 import { persistResult } from './artifacts.mjs'
+import { redactSampledDescriptions } from './redaction.mjs'
 
 export async function context(options={}) {
   const cfg=options.cfg??readMysqlConfig()
@@ -83,6 +84,7 @@ export async function query(raw,options={}) {
         stages.database_queue=queueMs
         options.onStage?.({stage:'database_queue',state:'completed',durationMs:queueMs})
         const executed=await stage('database',()=>ctx.adapter.run(plan.jobs,{deadlineAt,timeoutMs:request.execution.timeoutMs,consistent:true,onSpawn}))
+        redactSampledDescriptions(plan,executed.logs)
         options.onStage?.({stage:'database_result',state:executed.error?'failed':'completed',code:executed.error?.code,queryCount:executed.logs?.length??0,
           statements:(executed.logs??[]).map(log=>({id:log.id,completed:log.completed,serverElapsedMs:log.serverElapsedMs??null}))})
         const result=await stage('aggregation',()=>buildResult(request,plan,{...executed,startedAt}))

@@ -1,0 +1,4 @@
+interface:
+  display_name: "产教课程开发"
+  short_description: "JD 原文驱动课程开发：任务提炼、双向对齐、课证核对，成套交付课程包"
+  default_prompt: "使用 $course-development 基于培养方案任务包开发《Hadoop 大数据平台运维》完整课程（72 课时，面向数据平台运维岗位群）。"

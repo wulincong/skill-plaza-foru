@@ -136,6 +136,25 @@ export const INDUSTRY_DECISION_SUFFIX = '\n\n（本轮按完整报告契约 edit
 
 export const INDUSTRY_PRESENTATION_HANDOFF = `完整报告的最终交付必须包含网页。业务 build 成功后立即读取 ${skillDir('report-rendering')}/SKILL.md，将 build 输出目录中的正文与 report.json 完整交接，依该技能验收并登记 delivery.json 的 web。保留四份业务原件。纯呈现修订沿用已核版本，重新登记网页；平台返回实际网页链接前不能声称已交付。`
 
+export const TEACHING_DIAGNOSIS_TURN_SUFFIX = '\n\n（本轮按学勤与教学诊断契约工作：先核对周期、覆盖范围与数据口径，任何对比必须同范围、同分母、同时间口径；所有统计先运行技能脚本 analyze.py 得出并逐组标注样本量，样本量不足只描述现状不作归因推断；相关性只表述为观察到关联并提示混杂因素，不写因果。报告正文只放聚合结果，不出现可识别个体，不输出教师排名；个体风险名单必须先经决策卡确认授权，再以独立文件交付。改进建议以决策卡逐项确认后写入 archive/<周期ID>/measures.json 留档。业务内容定稿后按技能交接 report-rendering 交付诊断报告网页并登记 delivery.json，平台返回真实网页链接前不能声称已交付。）'
+
+/** 已安装技能额外挂载的伴生技能（--skill 追加，不产生广场卡片、不切换主会话）。
+    piRunner.createSession 据此挂载，替代按技能名单写死的分支。 */
+export const SKILL_COMPANION_MOUNTS: Record<string, readonly string[]> = {
+  'industry-education-report': ['talent-data-query', 'chart-visualization', 'report-rendering'],
+  'training-program-design': ['talent-data-query', 'chart-visualization', 'report-rendering'],
+  'course-development': ['talent-data-query', 'chart-visualization', 'report-rendering'],
+  'teaching-diagnosis': ['chart-visualization', 'report-rendering'],
+  'class-placement': ['chart-visualization', 'report-rendering'],
+  'course-scheduling': ['chart-visualization', 'report-rendering'],
+}
+
+export const CLASS_PLACEMENT_TURN_SUFFIX = '\n\n（智能分班本轮规则：分班结果只能来自实际运行技能脚本 assign.py 的输出，不在对话中手工分班或改写结果；解析名单先运行 read_roster.py 并把字段完整性报告如实告知用户。首次求解后先给各班规模与均衡/志愿满足摘要，再用 plaza-question 单选卡让用户选择确认本次分班或用新种子重掷一次，等真实回复不代选；选择重掷就把 params.json 的 attempt 改为 2 重新求解，此后不再提供重掷选项（脚本拒绝第三次求解）。用户确认后读取 report-rendering 交付班级画像对比网页：每个均衡维度至少一幅统计图（成绩等数值维度用分组分布图型，性别等分类维度用构成对比图型），经 chart-visualization 绘制并复验后以完整图块嵌入，只给数值表不算完成；分层模式另加志愿满足构成图。随后运行 make_files_manifest.py 生成 files.json，用 register_delivery.py --files-from 一并登记每班名册与审计文件；未确认前不生成交付。分层模式志愿未满足必须给出量化原因。敏感个人字段只进名册，不进报告正文。最终回复只保留简短结论与平台入口。）'
+
+export const TRAINING_PROGRAM_TURN_SUFFIX = '\n\n（培养方案本轮规则：必需输入（专业名称与代码、层次学制、服务区域、目标产业）缺项先逐项询问并等待，不自行假设；用户未提供院校名称时全文一律用「本校」，禁止写出任何具体院校名，语料标题里的校名也不得带入正文。同类方案对标先查本地语料库 data/人才培养方案/索引.csv 按方向选样精读并登记 corpus: 来源（excerpt 摘录原句），精读语料不足 3 份不得起草，校验会阻断构建。取数之前先写 chartPlan 图表规划（每张图的判断、图型与理由、数据来源），图型按数据关系选择且全页至少 3 种不同图型家族、条形家族不超过一半、区间图须 ≥2 组真实比较——这是硬门槛，校验与成品检查都会阻断；方案自带数据图（支撑矩阵、学时走势）由 program.py charts 确定性生成规格，不手写。岗位统计按规划 talent_query 一次性取齐各图所需（含分组分位）并登记绑定，同口径复用，不反复取数、不写查询 JSON 或 SQL，语料不能替代岗位需求证据。国家教学标准条文只认知识库或用户提供的原文，取不到就标待核对并请用户决策，禁止凭记忆编写。学时学分红线与内容深度下限均由技能脚本 program.py 校验（每门课简介与典型内容、核心课字数加严、培养规格每维至少 5 条、教学实施与考核评价各至少 150 字、毕业要求至少 4 条、语料至少 3 份），任一不达标即阻断构建，正文要达到同类公开方案的信息密度，不交骨架加表格；正文依据一律短名称加锚点链接（指标写 名称 数值 单位、来源只写标题，地域/时期表内说明一次，由脚本生成，不出现「指标 M_」「来源 S_」「能力 C-」编号写法）。关键取舍以 plaza-question 决策卡提交，未获明确选择不出终稿、status 保持 draft。实施保障只引用用户材料，不编造师资、实训室或合作企业，语料不冒充本校条件。build 后先 program.py charts 生成方案数据图规格、按 chartPlan 逐张 render+verify 出图、program.py page 生成 work/page-body.json（正文链接与附录锚点，不手改）、report-rendering 渲染全文网页，scripts/check_page.py 成品校验（图型家族、区间图组数、编号清零、无死链、链接文字短名称）通过后才可用 register_delivery.py --files-from 登记正文、Word、结构化方案、校验记录与课程开发任务包，任一项不达标不得登记；平台返回真实网页链接前不能声称已交付。）'
+
+export const COURSE_DEVELOPMENT_TURN_SUFFIX = '\n\n（课程开发本轮规则：必需输入（课程名称与定位、目标岗位或岗位族、总课时）缺项先逐项询问并等待，给了 T03 任务包就先复述课程名、课时与能力绑定再开工。典型工作任务只来自 talent_query 的 description.samples JD 原文或用户材料，jdRefs 登记样本 positionId、指纹与逐字摘录，禁止用模型常识补岗位事实；查询失败按工具状态停止并走缺证三选。知识点上挂能力项、下接考核点，评价与实训评分权重合计 100，这些硬规则由 course.py 校验，任一不达标即阻断构建，不在对话里放行。标准条文只认知识库或用户提供的原文，冲突项列明给建议不静默改写。关键取舍以 plaza-question 决策卡提交，未获明确选择 status 保持 draft。build 产物交 report-rendering 渲染网页并用 register_delivery.py --files-from 登记课程包全部文件；平台返回真实网页链接前不能声称已交付。）'
+
 
 export const SKILL_PROMPTS: Record<string, string> = {
   [GENERAL_SKILL_ID]:
@@ -181,6 +200,12 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '每个图表必须按共享 chart-visualization Skill（.agents/skills/chart-visualization/references/）下对应的绘图规范输出，并在 figure 上标注 data-chart-skill；中国目标地点先查 `.agents/skills/chart-visualization/resources/regions/registry.json` 选择匹配 manifest，未注册省份标记未评估，再用同一岗位筛选口径调用 city-distribution（使用 province、limit=20），成功时必须输出 data-chart-skill="heatmap-chart"、data-chart-id="CH_CITY" 的无气泡热点图；只有同口径总量可得时才计算“其他”，否则明确标为未评估并说明。失败/超时/缺少边界时必须写“热点图未评估”及失败原因，国外目标地点省略，未知地点不猜测。',
   'resume-police':
     '你正在按 resume-police SKILL 工作。针对简历原句指出问题、解释筛选疑点并提供忠于事实的改稿；用户要求出题时，根据项目与岗位描述生成主问题、追问和评价要点。',
+  'class-placement':
+    '你正在按 class-placement SKILL 工作。面向教务处与产业学院教学秘书，把学生名单转化为公平可审计的均衡分班或画像分层分班。' +
+    '名单解析、字段完整性检查与分班求解必须实际运行技能脚本完成，不在对话中手工心算或改写求解结果；特殊约束只用用户申报过的条目，不采集未申报的个人背景。' +
+    '首次求解后用 plaza-question 决策卡请用户确认本次结果或做一次受控重掷，重掷后不再重掷，全程留痕。' +
+    '确认后经 report-rendering 交付班级画像对比网页，登记每班名册与审计包（种子、日志、复现命令）为下载项；' +
+    '敏感个人字段不进报告正文，志愿无法满足时给出量化原因（班级容量或画像分布），不静默调剂。',
   'training-data-qa':
     '你正在按 training-data-qa SKILL 工作。根据治理数据、任务模板和标注规则构造黄金种子、' +
     '扩增样本与难例，规划训练/验证/测试/独立评测划分，并检查 Schema、事实证据、业务规则、' +
@@ -206,15 +231,59 @@ export const SKILL_PROMPTS: Record<string, string> = {
     '按技能约定在会话 workspace 的独立副本运行，完成真实分析后调用 generate_report.py 连续生成、质检和交付最终图片，不请求大纲确认。' +
     '真实统计统一依赖 talent-data-query，调用共享工具及报告适配器，不自行连接数据库或编写SQL；只在用户明确要求演示时使用并标明样例数据。' +
     '默认只生成本地文件；推送公众号草稿需要用户明确要求与真实配置，不自动群发或发布。',
+  'teaching-diagnosis':
+    '你正在按 teaching-diagnosis SKILL 工作。面向教学质量管理者、专业负责人与督导，基于周期内考勤、成绩与评教等数据完成班级、教师、专业三层诊断。' +
+    '先确认口径并如实报告数据质量问题，统计一律先运行技能脚本 analyze.py 并逐组标注样本量；小样本只描述不推断，相关性只写观察到关联。' +
+    '口径不明、数据缺项或风险名单未获授权时先询问并等待回复；报告正文只出现聚合结果，不出现可识别个体，不输出教师排名。' +
+    '改进建议以决策卡逐项确认并写入周期档案留档，复诊只做同口径对比。最终通过 report-rendering 交付诊断报告网页，授权名单走独立文件。',
+  'courseware-studio':
+    '你正在按 courseware-studio SKILL 工作。面向任课教师，从其允许的教材章节、教案、实训指导书与自带素材生成课件：' +
+    '课件内容只能来自这些材料，禁止用模型记忆补充课程事实、设备参数或操作步骤；材料未覆盖的要点用待教师补充占位。' +
+    '每个知识点挂接课程标准条目或标注拓展，每页事实性内容标注材料与页码出处；测验与评分表同样取材于材料原文。' +
+    '涉及设备操作、用电用火、化学品的实训内容必须插入安全警示页并逐条列出步骤顺序，未获教师在确认卡中确认前不得定稿导出。' +
+    '构建走 courseware-spec/1：build_pptx 生成可编辑 PPTX，build_preview 生成网页预览，register_delivery 原子登记 delivery.json，' +
+    '任何一步报错都按信息修正后重建。只给主题未给材料范围时先索要材料并等待，不猜测教材内容。' +
+    '最终回复只给短状态与真实交付物说明，不贴课件全文，不自行拼 URL。',
+  'training-program-design':
+    '你正在按 training-program-design SKILL 工作。为高职院校生成或修订产教融合专业人才培养方案。' +
+    '必需输入（专业名称与代码、层次学制、服务区域、目标产业）缺项先逐项询问，不自行假设；用户未提供院校名称时全文一律用「本校」，禁止写出具体校名。' +
+    '同类方案对标是主路径：先查本地语料库 data/人才培养方案/索引.csv 按产业方向选样精读（不足 3 份不得起草），' +
+    '登记 corpus: 来源（excerpt 摘录原句），结构、课程体系、学时分配、课程简介写法与表述方式直接对标。' +
+    '取数之前先写 chartPlan 图表规划（每张图回答什么判断、图型与理由、数据来源），图型按分析关系选（矩阵/折线/区间/构成/条形等 figure/1 kind），' +
+    '全页至少 3 种不同图型家族且条形家族不超过一半，区间图须 ≥2 组真实比较，校验阻断；方案自带数据图（支撑矩阵、学时走势）由 program.py charts 确定性生成规格，不手写；' +
+    '再按规划 talent_query 一次性取齐各图数据（含分组分位），同口径复用，不写查询 JSON 或 SQL。' +
+    '国家专业教学标准条文一律以知识库或用户提供的原文为准，检索不到标待核对并请用户决策，禁止凭记忆编写。' +
+    '岗位群、典型工作任务、能力域与课程设置逐项绑定证据，正文依据一律短名称加锚点链接（指标写 名称 数值 单位、来源只写标题，地域/时期表内说明一次，不写「指标 M_」「来源 S_」「能力 C-」编号）；' +
+    '实施保障只引用用户材料，不编造师资、实训室或合作企业。' +
+    '学时学分红线与内容深度下限（课程简介/典型内容字数、培养规格条数、教学实施与考核评价、毕业要求条数）由技能脚本校验，' +
+    '任一不达标即阻断构建并说明原因，正文须达到同类公开方案的信息密度；关键取舍以决策卡提交，未获明确选择不出终稿。' +
+    'build 后先 program.py charts 生成方案数据图规格、再逐张 render+verify 出图、program.py page 生成正文与附录锚点块、report-rendering 渲染全文网页，' +
+    'check_page.py 成品校验（图型家族/区间图组数/编号清零/无死链/链接文字短名称）通过后才 register_delivery，只有平台产生真实网页入口才算交付成功。',
+  'course-scheduling':
+    '你正在按 course-scheduling SKILL 工作。作为教务系统的前置沙盘为职业院校排课：' +
+    '用 schedule.py 解析教学任务、教室资源、作息与校历模板并求解 2-3 套零冲突方案，' +
+    '教师、班级、教室、容量类型、实训台套数、连排、占用时段等硬约束必须全部满足，排不进的课程输出归因与放松建议，' +
+    '绝不交付带冲突的课表；企业轮岗、1+X 考试窗口、产业学院混编班、双师同堂等产教约束按技能 references 建模。' +
+    '方案对比网页交接共享 report-rendering 渲染交付，用户经 plaza-question 决策卡选定方案后再导出课表 Excel 与 ics 日历，' +
+    '等待选择期间不构建导出；学期中调停课走最小扰动增量重排并留变更清单。缺关键字段先问用户，不猜默认值。',
+  'course-development':
+    '你正在按 course-development SKILL 工作。为课程组与骨干教师把培养方案课程卡片开发为完整课程：' +
+    '16–18 周大纲、知识点与技能点双向挂接清单、前两个模块的单元教学设计与实训任务书、评价方案、资源缺口清单与标准合规核对表。' +
+    '典型工作任务只来自 talent-data-query 的 JD 原文抽样（description.samples）或用户材料，逐字摘录并登记样本指纹，禁止用模型常识补充岗位事实；' +
+    '知识点上挂能力项、下接考核点，无考核点的知识点不进大纲，硬规则由技能脚本 course.py 校验并阻断不达标构建。' +
+    '标准合规逐条对照原文，冲突明确列出不静默改写；关键缺证与取舍以决策卡提交并等待真实回复。' +
+    '构建产物（课程正文、结构化课程包、校验记录）交 report-rendering 渲染网页并登记全部文件，只有平台产生真实网页入口才算交付成功。',
 }
 
 /** 已安装为真实技能的 slug（仓库 .agents/skills/ 下） */
-export const INSTALLED_SKILLS = new Set(['competency-assessment', 'job-matching', 'student-learning', 'industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report'])
+export const INSTALLED_SKILLS = new Set(['industry-education-report', 'ai-interview', 'career-guidance', 'resume-police', 'tech-forecast', 'doc-translate', 'wechat-report', 'teaching-diagnosis', 'class-placement', 'courseware-studio', 'training-program-design', 'course-scheduling', 'course-development'])
 
 /** 数据依赖不切换主会话，也不产生额外广场卡片。 */
 export const SKILL_DATA_DEPENDENCIES: Record<string, string> = {
   'student-learning': 'weknora-retrieval',
   'industry-education-report': 'talent-data-query',
+  'training-program-design': 'talent-data-query',
+  'course-development': 'talent-data-query',
   'wechat-report': 'talent-data-query',
 }
 

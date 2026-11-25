@@ -1,0 +1,9 @@
+{
+  "name": "plaza-sandbox-pi",
+  "private": true,
+  "version": "1.0.0",
+  "description": "离线沙箱镜像内的固定版本 Pi",
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.87.1"
+  }
+}

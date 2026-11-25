@@ -1,0 +1,2332 @@
+{
+  "checkedDate": "2026-11-23",
+  "environment": "test",
+  "scope": "当前业务库。单条只读查询独立执行。",
+  "visibleSchemas": 22,
+  "notes": {
+    "jd_fks": "仅保留与岗位聚类、画像、任务和发布直接相关的表；totalRows 为原查询返回行数。",
+    "inventory_csv": "全量表名和行数估计见表清单.csv。",
+    "largeMapping": "通过先按目录节点 ID 聚合映射行数，再连目录表核对。"
+  },
+  "queries": {
+    "time": {
+      "ok": true,
+      "sql": "SELECT DATABASE() AS db, VERSION() AS mysql_version, UTC_TIMESTAMP() AS checked_at_utc",
+      "elapsedMs": 47,
+      "columns": [
+        "db",
+        "mysql_version",
+        "checked_at_utc"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "db": "ai_crowd_souring_extend",
+          "mysql_version": "5.7.43-log",
+          "checked_at_utc": "2026-11-23 02:37:14"
+        }
+      ]
+    },
+    "start": {
+      "ok": true,
+      "sql": "SELECT DATABASE() AS db, VERSION() AS mysql_version, UTC_TIMESTAMP() AS checked_at_utc",
+      "elapsedMs": 46,
+      "columns": [
+        "db",
+        "mysql_version",
+        "checked_at_utc"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "db": "ai_crowd_souring_extend",
+          "mysql_version": "5.7.43-log",
+          "checked_at_utc": "2026-11-23 02:38:07"
+        }
+      ]
+    },
+    "overview": {
+      "ok": true,
+      "sql": "SELECT TABLE_TYPE,ENGINE,COUNT(*) AS table_count FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() GROUP BY TABLE_TYPE,ENGINE ORDER BY TABLE_TYPE,ENGINE",
+      "elapsedMs": 79,
+      "columns": [
+        "TABLE_TYPE",
+        "ENGINE",
+        "table_count"
+      ],
+      "rowCount": 2,
+      "totalRows": 2,
+      "truncated": false,
+      "rows": [
+        {
+          "TABLE_TYPE": "BASE TABLE",
+          "ENGINE": "InnoDB",
+          "table_count": "657"
+        },
+        {
+          "TABLE_TYPE": "VIEW",
+          "ENGINE": null,
+          "table_count": "1"
+        }
+      ]
+    },
+    "schema_size": {
+      "ok": true,
+      "sql": "SELECT (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE()) AS column_count, (SELECT COUNT(DISTINCT TABLE_NAME,INDEX_NAME) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE()) AS index_count, (SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA=DATABASE() AND CONSTRAINT_TYPE='FOREIGN KEY') AS declared_foreign_keys",
+      "elapsedMs": 733,
+      "columns": [
+        "column_count",
+        "index_count",
+        "declared_foreign_keys"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "column_count": "6006",
+          "index_count": "815",
+          "declared_foreign_keys": "134"
+        }
+      ]
+    },
+    "inventory_csv": {
+      "key": "inventory_csv",
+      "sql": "SELECT TABLE_NAME AS table_name,TABLE_TYPE AS table_type,ENGINE AS engine,TABLE_ROWS AS estimated_rows,TABLE_COMMENT AS table_comment FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME",
+      "elapsedMs": 98,
+      "rows": 658,
+      "first": "alembic_version",
+      "last": "xxl_job_qrtz_trigger_registry"
+    },
+    "important_sizes": {
+      "ok": true,
+      "sql": "SELECT TABLE_NAME,TABLE_ROWS AS estimated_rows FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('c_industry_chain_info','c_industry_chain_position','c_industry_chain_position_typical_task','c_industry_position_ref','c_position_chain','c_company_position','c_position_type','c_position_dictionary','c_position_skill_tag','c_professional_library','c_industry_chain_full_link','t_standard_job','t_standard_job_position') ORDER BY TABLE_NAME",
+      "elapsedMs": 63,
+      "columns": [
+        "TABLE_NAME",
+        "estimated_rows"
+      ],
+      "rowCount": 13,
+      "totalRows": 13,
+      "truncated": false,
+      "rows": [
+        {
+          "TABLE_NAME": "c_company_position",
+          "estimated_rows": "1911858"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "estimated_rows": "3542"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "estimated_rows": "13005"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "estimated_rows": "79364"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "estimated_rows": "63397"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "estimated_rows": "1015427"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "estimated_rows": "2215810"
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "estimated_rows": "1076"
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "estimated_rows": "1098"
+        },
+        {
+          "TABLE_NAME": "c_position_type",
+          "estimated_rows": "1676"
+        },
+        {
+          "TABLE_NAME": "c_professional_library",
+          "estimated_rows": "13389"
+        },
+        {
+          "TABLE_NAME": "t_standard_job",
+          "estimated_rows": "30"
+        },
+        {
+          "TABLE_NAME": "t_standard_job_position",
+          "estimated_rows": "2774"
+        }
+      ]
+    },
+    "columns": {
+      "ok": true,
+      "sql": "SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,IS_NULLABLE,COLUMN_KEY,COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('c_industry_chain_position','c_industry_chain_position_typical_task','c_industry_chain_info','c_industry_position_ref','c_position_chain','c_company_position','c_position_dictionary','c_position_skill_tag','c_industry_chain_full_link') ORDER BY TABLE_NAME,ORDINAL_POSITION",
+      "elapsedMs": 52,
+      "columns": [
+        "TABLE_NAME",
+        "COLUMN_NAME",
+        "COLUMN_TYPE",
+        "IS_NULLABLE",
+        "COLUMN_KEY",
+        "COLUMN_COMMENT"
+      ],
+      "rowCount": 104,
+      "totalRows": 104,
+      "truncated": false,
+      "rows": [
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": "岗位id;id"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "company_archive_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "企业id"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "company_address_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "公司地址id"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "岗位名称"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "description",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位描述"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "type",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位类型;字典类型：POSITION_TYPE"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "education",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "学历要求;字典类型：EDUCATION"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "experience",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "经验要求;字典类型：EXPERIENCE"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "min_salary",
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "薪资待遇最低"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "max_salary",
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "薪资待遇最高"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "publish_state",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "岗位发布状态;枚举类：PositionPublishState"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "views",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "浏览数"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "communicates",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "沟通数"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "interested",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "感兴趣数"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "show_sort",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "展示排序"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "position_type",
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位类型列表，以逗号分隔"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "ai_interview",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否开启ai初面；1-是；0-否"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "ai_interview_limit",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "ai面试次数限制，-1：不限制"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "ai_interview_resume",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否强制上传简历"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "position_group_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "岗位群的id"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "data_source",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "来源"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "version",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "乐观锁"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否删除;是否删除；1：是；0：否"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "创建人;创建人"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建时间;创建时间"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "update_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "更新人;更新人"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "COLUMN_NAME": "update_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "更新时间;更新时间"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "industry_chain_id",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "full_link_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "业务流程名称"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "school_type",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "sort",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "排序"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否删除"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建人"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_full_link",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建时间"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "产业链名"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "alias",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链别名"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "img_url",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链图片url"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "remark",
+          "COLUMN_TYPE": "varchar(6122)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链描述"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "pid",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "父id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "pids",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "父id列表，以英文逗号分隔"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "open_status",
+          "COLUMN_TYPE": "tinyint(2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "开放状态 0:删除 1:开放 2:不开放"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "position_type",
+          "COLUMN_TYPE": "int(2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位类型"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "sort",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "排序"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_info",
+          "COLUMN_NAME": "level",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "industry_chain_id",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "industry_chain_full_link_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "业务流程id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "position_name",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "名称"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "school_type",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "position_trend",
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "趋势"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "local_salary",
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位当地的平均月薪"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "pid",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "上级id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "position_group_portrait",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位群画像"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "profession_library_id",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "大屏-专业基本信息id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "industry_chain_position_type",
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业岗位类型：岗位群，岗位；专业群，专业"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否删除"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建人"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建时间"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "industry_chain_id",
+          "COLUMN_TYPE": "int(4)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "industry_chain_position_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "产业链岗位id"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "typical_task",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "典型工作任务"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "skill_demand",
+          "COLUMN_TYPE": "longtext",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "核心技能要求"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "update_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "COLUMN_NAME": "update_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": "主键"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "industry_chain_position_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "产业链下岗位id"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "position_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "岗位id"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "company_archive_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "企业id"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否删除"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建时间"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "创建人"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "COLUMN_NAME": "position_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "岗位id"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "COLUMN_NAME": "industry_chain_id",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "产业链id"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "是否删除;1：是；0：否"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "position_name",
+          "COLUMN_TYPE": "varchar(256)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位名"
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "parent_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "父岗位id"
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "store_status",
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "存储状态，PositionDictionaryStatusEnum"
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "position_type_id",
+          "COLUMN_TYPE": "int(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位分类id(c_position_type)"
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "update_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "update_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_dictionary",
+          "COLUMN_NAME": "relation_position_names",
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "关联的岗位名"
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "position_dictionary_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位字典id"
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "parent_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "岗位技能父id"
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "tag_name",
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": "技能标签名"
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "tag_score",
+          "COLUMN_TYPE": "int(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "deleted",
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "create_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "update_user",
+          "COLUMN_TYPE": "bigint(20)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "create_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "c_position_skill_tag",
+          "COLUMN_NAME": "update_time",
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        }
+      ]
+    },
+    "key_indexes": {
+      "ok": true,
+      "sql": "SELECT TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX,COLUMN_NAME,NON_UNIQUE FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('c_industry_chain_position','c_industry_chain_position_typical_task','c_industry_position_ref','c_position_chain','c_company_position') ORDER BY TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX",
+      "elapsedMs": 52,
+      "columns": [
+        "TABLE_NAME",
+        "INDEX_NAME",
+        "SEQ_IN_INDEX",
+        "COLUMN_NAME",
+        "NON_UNIQUE"
+      ],
+      "rowCount": 26,
+      "totalRows": 26,
+      "truncated": false,
+      "rows": [
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "cid",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "company_archive_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "fh1",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "company_archive_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "fh1",
+          "SEQ_IN_INDEX": "2",
+          "COLUMN_NAME": "publish_state",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "fh1",
+          "SEQ_IN_INDEX": "3",
+          "COLUMN_NAME": "deleted",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "fh1",
+          "SEQ_IN_INDEX": "4",
+          "COLUMN_NAME": "company_address_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "idx_create_user",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "create_user",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "name",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "name",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "position_group_id_index",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "position_group_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "PRIMARY",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "id",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "publish_state_index",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "publish_state",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "tj1",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "company_archive_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "tj1",
+          "SEQ_IN_INDEX": "2",
+          "COLUMN_NAME": "update_time",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_company_position",
+          "INDEX_NAME": "update_time",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "update_time",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position",
+          "INDEX_NAME": "PRIMARY",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "id",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_industry_chain_position_typical_task",
+          "INDEX_NAME": "PRIMARY",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "id",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "INDEX_NAME": "idx_icp",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "industry_chain_position_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "INDEX_NAME": "idx_pos",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "position_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_industry_position_ref",
+          "INDEX_NAME": "PRIMARY",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "id",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "a",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "position_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "chain_id",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "industry_chain_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "idx_chain_pos",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "industry_chain_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "idx_chain_pos",
+          "SEQ_IN_INDEX": "2",
+          "COLUMN_NAME": "position_id",
+          "NON_UNIQUE": "1"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "only",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "position_id",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "only",
+          "SEQ_IN_INDEX": "2",
+          "COLUMN_NAME": "industry_chain_id",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "only",
+          "SEQ_IN_INDEX": "3",
+          "COLUMN_NAME": "deleted",
+          "NON_UNIQUE": "0"
+        },
+        {
+          "TABLE_NAME": "c_position_chain",
+          "INDEX_NAME": "PRIMARY",
+          "SEQ_IN_INDEX": "1",
+          "COLUMN_NAME": "id",
+          "NON_UNIQUE": "0"
+        }
+      ]
+    },
+    "directory": {
+      "ok": true,
+      "sql": "SELECT p.industry_chain_position_type AS node_type, COUNT(*) AS total, COUNT(CASE WHEN p.deleted=0 THEN 1 END) AS active, COUNT(DISTINCT CASE WHEN p.deleted=0 THEN NULLIF(TRIM(p.position_name),'') END) AS active_names, COUNT(DISTINCT CASE WHEN p.deleted=0 THEN p.industry_chain_id END) AS industry_ids, COUNT(CASE WHEN p.deleted=0 AND i.id IS NULL THEN 1 END) AS missing_industry, COUNT(CASE WHEN p.deleted=0 AND NULLIF(TRIM(p.position_group_portrait),'') IS NOT NULL THEN 1 END) AS with_portrait, COUNT(CASE WHEN p.deleted=0 AND JSON_VALID(p.position_group_portrait)=1 THEN 1 END) AS valid_portrait_json, COUNT(CASE WHEN p.deleted=0 AND NULLIF(TRIM(p.school_type),'') IS NOT NULL THEN 1 END) AS with_school_type, COUNT(CASE WHEN p.deleted=0 AND p.profession_library_id>0 THEN 1 END) AS with_profession_id FROM c_industry_chain_position p LEFT JOIN c_industry_chain_info i ON i.id=p.industry_chain_id GROUP BY p.industry_chain_position_type ORDER BY node_type",
+      "elapsedMs": 1008,
+      "columns": [
+        "node_type",
+        "total",
+        "active",
+        "active_names",
+        "industry_ids",
+        "missing_industry",
+        "with_portrait",
+        "valid_portrait_json",
+        "with_school_type",
+        "with_profession_id"
+      ],
+      "rowCount": 5,
+      "totalRows": 5,
+      "truncated": false,
+      "rows": [
+        {
+          "node_type": "POSITION",
+          "total": "19401",
+          "active": "17444",
+          "active_names": "3904",
+          "industry_ids": "98",
+          "missing_industry": "0",
+          "with_portrait": "1",
+          "valid_portrait_json": "1",
+          "with_school_type": "17444",
+          "with_profession_id": "0"
+        },
+        {
+          "node_type": "POSITION_GROUP",
+          "total": "7698",
+          "active": "5665",
+          "active_names": "4194",
+          "industry_ids": "98",
+          "missing_industry": "0",
+          "with_portrait": "1305",
+          "valid_portrait_json": "1305",
+          "with_school_type": "5665",
+          "with_profession_id": "0"
+        },
+        {
+          "node_type": "PROFESSION",
+          "total": "7154",
+          "active": "6238",
+          "active_names": "2496",
+          "industry_ids": "67",
+          "missing_industry": "0",
+          "with_portrait": "0",
+          "valid_portrait_json": "0",
+          "with_school_type": "6238",
+          "with_profession_id": "6238"
+        },
+        {
+          "node_type": "PROFESSION_GROUP",
+          "total": "2078",
+          "active": "1818",
+          "active_names": "1337",
+          "industry_ids": "67",
+          "missing_industry": "0",
+          "with_portrait": "0",
+          "valid_portrait_json": "0",
+          "with_school_type": "1818",
+          "with_profession_id": "0"
+        },
+        {
+          "node_type": "SUB_POSITION",
+          "total": "57433",
+          "active": "57210",
+          "active_names": "24885",
+          "industry_ids": "98",
+          "missing_industry": "0",
+          "with_portrait": "0",
+          "valid_portrait_json": "0",
+          "with_school_type": "57210",
+          "with_profession_id": "0"
+        }
+      ]
+    },
+    "school": {
+      "ok": true,
+      "sql": "SELECT school_type,industry_chain_position_type AS node_type,COUNT(*) AS nodes,COUNT(DISTINCT NULLIF(TRIM(position_name),'')) AS distinct_names,COUNT(DISTINCT industry_chain_id) AS industries FROM c_industry_chain_position WHERE deleted=0 GROUP BY school_type,industry_chain_position_type ORDER BY school_type,node_type",
+      "elapsedMs": 997,
+      "columns": [
+        "school_type",
+        "node_type",
+        "nodes",
+        "distinct_names",
+        "industries"
+      ],
+      "rowCount": 22,
+      "totalRows": 22,
+      "truncated": false,
+      "rows": [
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "POSITION",
+          "nodes": "4004",
+          "distinct_names": "1685",
+          "industries": "98"
+        },
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1360",
+          "distinct_names": "1209",
+          "industries": "98"
+        },
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "PROFESSION",
+          "nodes": "1196",
+          "distinct_names": "631",
+          "industries": "67"
+        },
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "PROFESSION_GROUP",
+          "nodes": "355",
+          "distinct_names": "342",
+          "industries": "67"
+        },
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "SUB_POSITION",
+          "nodes": "12021",
+          "distinct_names": "7832",
+          "industries": "98"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "POSITION",
+          "nodes": "4012",
+          "distinct_names": "1663",
+          "industries": "98"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1375",
+          "distinct_names": "1233",
+          "industries": "98"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "PROFESSION",
+          "nodes": "1273",
+          "distinct_names": "938",
+          "industries": "67"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "PROFESSION_GROUP",
+          "nodes": "358",
+          "distinct_names": "351",
+          "industries": "67"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "SUB_POSITION",
+          "nodes": "10808",
+          "distinct_names": "7148",
+          "industries": "95"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "POSITION",
+          "nodes": "4695",
+          "distinct_names": "1534",
+          "industries": "98"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1445",
+          "distinct_names": "1274",
+          "industries": "98"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "PROFESSION",
+          "nodes": "1231",
+          "distinct_names": "315",
+          "industries": "67"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "PROFESSION_GROUP",
+          "nodes": "382",
+          "distinct_names": "123",
+          "industries": "67"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "SUB_POSITION",
+          "nodes": "18081",
+          "distinct_names": "10772",
+          "industries": "98"
+        },
+        {
+          "school_type": "UNDERGRADUATE_VOCATIONAL_EDUCATION",
+          "node_type": "PROFESSION",
+          "nodes": "1199",
+          "distinct_names": "639",
+          "industries": "67"
+        },
+        {
+          "school_type": "UNDERGRADUATE_VOCATIONAL_EDUCATION",
+          "node_type": "PROFESSION_GROUP",
+          "nodes": "363",
+          "distinct_names": "334",
+          "industries": "67"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "POSITION",
+          "nodes": "4733",
+          "distinct_names": "1672",
+          "industries": "98"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1485",
+          "distinct_names": "1306",
+          "industries": "98"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "PROFESSION",
+          "nodes": "1339",
+          "distinct_names": "646",
+          "industries": "67"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "PROFESSION_GROUP",
+          "nodes": "360",
+          "distinct_names": "349",
+          "industries": "67"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "SUB_POSITION",
+          "nodes": "16300",
+          "distinct_names": "10123",
+          "industries": "98"
+        }
+      ]
+    },
+    "parent": {
+      "ok": true,
+      "sql": "SELECT p.industry_chain_position_type AS node_type,CASE WHEN p.pid=0 THEN '(root)' WHEN g.id IS NULL THEN '(missing)' WHEN g.deleted<=>0 THEN g.industry_chain_position_type ELSE '(deleted parent)' END AS parent_type,COUNT(*) AS nodes,COUNT(CASE WHEN g.id IS NOT NULL AND NOT (p.industry_chain_id <=> g.industry_chain_id) THEN 1 END) AS cross_industry,COUNT(CASE WHEN g.id IS NOT NULL AND NOT (p.school_type <=> g.school_type) THEN 1 END) AS cross_school_type FROM c_industry_chain_position p LEFT JOIN c_industry_chain_position g ON g.id=p.pid WHERE p.deleted=0 GROUP BY node_type,parent_type ORDER BY node_type,parent_type",
+      "elapsedMs": 548,
+      "columns": [
+        "node_type",
+        "parent_type",
+        "nodes",
+        "cross_industry",
+        "cross_school_type"
+      ],
+      "rowCount": 6,
+      "totalRows": 6,
+      "truncated": false,
+      "rows": [
+        {
+          "node_type": "POSITION",
+          "parent_type": "POSITION_GROUP",
+          "nodes": "17444",
+          "cross_industry": "0",
+          "cross_school_type": "0"
+        },
+        {
+          "node_type": "POSITION_GROUP",
+          "parent_type": "(root)",
+          "nodes": "5665",
+          "cross_industry": "0",
+          "cross_school_type": "0"
+        },
+        {
+          "node_type": "PROFESSION",
+          "parent_type": "PROFESSION_GROUP",
+          "nodes": "6238",
+          "cross_industry": "0",
+          "cross_school_type": "0"
+        },
+        {
+          "node_type": "PROFESSION_GROUP",
+          "parent_type": "(root)",
+          "nodes": "1818",
+          "cross_industry": "0",
+          "cross_school_type": "0"
+        },
+        {
+          "node_type": "SUB_POSITION",
+          "parent_type": "(missing)",
+          "nodes": "759",
+          "cross_industry": "0",
+          "cross_school_type": "0"
+        },
+        {
+          "node_type": "SUB_POSITION",
+          "parent_type": "POSITION",
+          "nodes": "56451",
+          "cross_industry": "0",
+          "cross_school_type": "0"
+        }
+      ]
+    },
+    "orphan_by_school": {
+      "ok": true,
+      "sql": "SELECT p.school_type,COUNT(*) AS orphan_sub_positions,COUNT(DISTINCT p.pid) AS missing_parent_ids,COUNT(DISTINCT p.industry_chain_id) AS industries,COUNT(CASE WHEN p.pid IS NULL THEN 1 END) AS null_parent_ids,COUNT(CASE WHEN p.pid=0 THEN 1 END) AS zero_parent_ids FROM c_industry_chain_position p LEFT JOIN c_industry_chain_position parent ON parent.id=p.pid WHERE p.deleted=0 AND p.industry_chain_position_type='SUB_POSITION' AND parent.id IS NULL GROUP BY p.school_type ORDER BY p.school_type",
+      "elapsedMs": 415,
+      "columns": [
+        "school_type",
+        "orphan_sub_positions",
+        "missing_parent_ids",
+        "industries",
+        "null_parent_ids",
+        "zero_parent_ids"
+      ],
+      "rowCount": 4,
+      "totalRows": 4,
+      "truncated": false,
+      "rows": [
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "orphan_sub_positions": "26",
+          "missing_parent_ids": "8",
+          "industries": "8",
+          "null_parent_ids": "0",
+          "zero_parent_ids": "0"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "orphan_sub_positions": "26",
+          "missing_parent_ids": "7",
+          "industries": "7",
+          "null_parent_ids": "0",
+          "zero_parent_ids": "0"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "orphan_sub_positions": "689",
+          "missing_parent_ids": "159",
+          "industries": "47",
+          "null_parent_ids": "0",
+          "zero_parent_ids": "0"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "orphan_sub_positions": "18",
+          "missing_parent_ids": "5",
+          "industries": "5",
+          "null_parent_ids": "0",
+          "zero_parent_ids": "0"
+        }
+      ]
+    },
+    "portraits_by_school": {
+      "ok": true,
+      "sql": "SELECT school_type,industry_chain_position_type AS node_type,COUNT(*) AS nodes,COUNT(CASE WHEN NULLIF(TRIM(position_group_portrait),'') IS NOT NULL THEN 1 END) AS with_portrait FROM c_industry_chain_position WHERE deleted=0 AND industry_chain_position_type IN ('POSITION_GROUP','POSITION') GROUP BY school_type,node_type ORDER BY school_type,node_type",
+      "elapsedMs": 228,
+      "columns": [
+        "school_type",
+        "node_type",
+        "nodes",
+        "with_portrait"
+      ],
+      "rowCount": 8,
+      "totalRows": 8,
+      "truncated": false,
+      "rows": [
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "POSITION",
+          "nodes": "4004",
+          "with_portrait": "0"
+        },
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1360",
+          "with_portrait": "308"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "POSITION",
+          "nodes": "4012",
+          "with_portrait": "0"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1375",
+          "with_portrait": "310"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "POSITION",
+          "nodes": "4695",
+          "with_portrait": "0"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1445",
+          "with_portrait": "338"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "POSITION",
+          "nodes": "4733",
+          "with_portrait": "1"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "node_type": "POSITION_GROUP",
+          "nodes": "1485",
+          "with_portrait": "349"
+        }
+      ]
+    },
+    "tasks": {
+      "ok": true,
+      "sql": "SELECT COUNT(*) AS total,COUNT(CASE WHEN deleted=0 THEN 1 END) AS active,COUNT(CASE WHEN deleted=1 THEN 1 END) AS deleted_rows,COUNT(DISTINCT CASE WHEN deleted=0 THEN industry_chain_position_id END) AS active_distinct_node_ids,COUNT(CASE WHEN deleted=0 AND NULLIF(TRIM(typical_task),'') IS NOT NULL THEN 1 END) AS task_nonblank,COUNT(CASE WHEN deleted=0 AND NULLIF(TRIM(skill_demand),'') IS NOT NULL THEN 1 END) AS skill_nonblank,COUNT(CASE WHEN deleted=0 AND JSON_VALID(typical_task)=1 THEN 1 END) AS task_valid_json,COUNT(CASE WHEN deleted=0 AND JSON_VALID(skill_demand)=1 THEN 1 END) AS skill_valid_json,MIN(CASE WHEN deleted=0 THEN create_time END) AS earliest_create,MAX(CASE WHEN deleted=0 THEN create_time END) AS latest_create,MAX(CASE WHEN deleted=0 THEN update_time END) AS latest_update FROM c_industry_chain_position_typical_task",
+      "elapsedMs": 1549,
+      "columns": [
+        "total",
+        "active",
+        "deleted_rows",
+        "active_distinct_node_ids",
+        "task_nonblank",
+        "skill_nonblank",
+        "task_valid_json",
+        "skill_valid_json",
+        "earliest_create",
+        "latest_create",
+        "latest_update"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "total": "81158",
+          "active": "74654",
+          "deleted_rows": "6504",
+          "active_distinct_node_ids": "74654",
+          "task_nonblank": "74654",
+          "skill_nonblank": "74654",
+          "task_valid_json": "74654",
+          "skill_valid_json": "74654",
+          "earliest_create": "2026-11-15 15:08:26",
+          "latest_create": "2026-11-21 20:44:37",
+          "latest_update": null
+        }
+      ]
+    },
+    "task_links": {
+      "ok": true,
+      "sql": "SELECT CASE WHEN p.id IS NULL THEN '(missing)' WHEN p.deleted<=>0 THEN p.industry_chain_position_type ELSE '(deleted node)' END AS node_type,COUNT(*) AS task_rows,COUNT(DISTINCT t.industry_chain_position_id) AS node_ids,COUNT(CASE WHEN p.id IS NOT NULL AND NOT (p.industry_chain_id <=> t.industry_chain_id) THEN 1 END) AS cross_industry FROM c_industry_chain_position_typical_task t LEFT JOIN c_industry_chain_position p ON p.id=t.industry_chain_position_id WHERE t.deleted=0 GROUP BY node_type ORDER BY node_type",
+      "elapsedMs": 713,
+      "columns": [
+        "node_type",
+        "task_rows",
+        "node_ids",
+        "cross_industry"
+      ],
+      "rowCount": 2,
+      "totalRows": 2,
+      "truncated": false,
+      "rows": [
+        {
+          "node_type": "POSITION",
+          "task_rows": "17444",
+          "node_ids": "17444",
+          "cross_industry": "0"
+        },
+        {
+          "node_type": "SUB_POSITION",
+          "task_rows": "57210",
+          "node_ids": "57210",
+          "cross_industry": "0"
+        }
+      ]
+    },
+    "task_shape": {
+      "ok": true,
+      "sql": "SELECT JSON_TYPE(CASE WHEN JSON_VALID(typical_task) THEN typical_task END) AS task_json_type,JSON_TYPE(CASE WHEN JSON_VALID(skill_demand) THEN skill_demand END) AS skill_json_type,COUNT(*) AS task_rows,COUNT(CASE WHEN JSON_LENGTH(CASE WHEN JSON_VALID(typical_task) THEN typical_task END)=0 THEN 1 END) AS empty_tasks,COUNT(CASE WHEN JSON_LENGTH(CASE WHEN JSON_VALID(skill_demand) THEN skill_demand END)=0 THEN 1 END) AS empty_skills FROM c_industry_chain_position_typical_task WHERE deleted=0 GROUP BY task_json_type,skill_json_type",
+      "elapsedMs": 8154,
+      "columns": [
+        "task_json_type",
+        "skill_json_type",
+        "task_rows",
+        "empty_tasks",
+        "empty_skills"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "task_json_type": "ARRAY",
+          "skill_json_type": "ARRAY",
+          "task_rows": "74654",
+          "empty_tasks": "378",
+          "empty_skills": "680"
+        }
+      ]
+    },
+    "task_nonempty": {
+      "ok": true,
+      "sql": "SELECT COUNT(CASE WHEN JSON_LENGTH(CASE WHEN JSON_VALID(typical_task) THEN typical_task END)>0 AND JSON_LENGTH(CASE WHEN JSON_VALID(skill_demand) THEN skill_demand END)>0 THEN 1 END) AS both_arrays_nonempty FROM c_industry_chain_position_typical_task WHERE deleted=0",
+      "elapsedMs": 4220,
+      "columns": [
+        "both_arrays_nonempty"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "both_arrays_nonempty": "73972"
+        }
+      ]
+    },
+    "robotics": {
+      "ok": true,
+      "sql": "SELECT i.id AS industry_id,i.name AS industry_name,g.position_name AS group_name,p.position_name AS position_name,s.position_name AS sub_position_name,CAST(g.id AS CHAR) AS group_id,CAST(p.id AS CHAR) AS position_id,CAST(s.id AS CHAR) AS sub_position_id,p.school_type,JSON_LENGTH(t.typical_task) AS task_items,JSON_LENGTH(t.skill_demand) AS skill_items FROM c_industry_chain_position s JOIN c_industry_chain_position p ON p.id=s.pid AND p.deleted=0 AND p.industry_chain_position_type='POSITION' JOIN c_industry_chain_position g ON g.id=p.pid AND g.deleted=0 AND g.industry_chain_position_type='POSITION_GROUP' JOIN c_industry_chain_info i ON i.id=p.industry_chain_id JOIN c_industry_chain_position_typical_task t ON t.industry_chain_position_id=s.id AND t.deleted=0 WHERE s.deleted=0 AND s.industry_chain_position_type='SUB_POSITION' AND s.industry_chain_id=15 AND s.school_type='VOCATIONAL_TECHNICAL_COLLEGE' ORDER BY s.id LIMIT 3",
+      "elapsedMs": 4866,
+      "columns": [
+        "industry_id",
+        "industry_name",
+        "group_name",
+        "position_name",
+        "sub_position_name",
+        "group_id",
+        "position_id",
+        "sub_position_id",
+        "school_type",
+        "task_items",
+        "skill_items"
+      ],
+      "rowCount": 3,
+      "totalRows": 3,
+      "truncated": false,
+      "rows": [
+        {
+          "industry_id": "15",
+          "industry_name": "机器人",
+          "group_name": "现场实施与交付岗",
+          "position_name": "实施工程师",
+          "sub_position_name": "AGV 实施工程师",
+          "group_id": "4220018025000031253",
+          "position_id": "4200000000000021352",
+          "sub_position_id": "4220018025000031274",
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "task_items": "6",
+          "skill_items": "10"
+        },
+        {
+          "industry_id": "15",
+          "industry_name": "机器人",
+          "group_name": "售后运维与技术支持岗",
+          "position_name": "运维工程师",
+          "sub_position_name": "AMR 运维技师",
+          "group_id": "4220018025000031255",
+          "position_id": "4200000000000021568",
+          "sub_position_id": "4220018025000031275",
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "task_items": "0",
+          "skill_items": "0"
+        },
+        {
+          "industry_id": "15",
+          "industry_name": "机器人",
+          "group_name": "电气与嵌入式开发岗",
+          "position_name": "嵌入式软件工程师",
+          "sub_position_name": "Android 开发工程师",
+          "group_id": "4220018025000031245",
+          "position_id": "4200000000000021332",
+          "sub_position_id": "4220018025000031276",
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "task_items": "8",
+          "skill_items": "8"
+        }
+      ]
+    },
+    "pure_mapping": {
+      "ok": true,
+      "sql": "SELECT CASE WHEN p.id IS NULL THEN '(missing)' WHEN p.deleted<=>0 THEN p.industry_chain_position_type ELSE '(deleted node)' END AS mapped_node_type,SUM(r.mapping_rows) AS mapping_rows,COUNT(*) AS mapped_node_ids FROM (SELECT industry_chain_position_id,COUNT(*) AS mapping_rows FROM c_industry_position_ref WHERE deleted=0 GROUP BY industry_chain_position_id) r LEFT JOIN c_industry_chain_position p ON p.id=r.industry_chain_position_id GROUP BY mapped_node_type ORDER BY mapped_node_type",
+      "elapsedMs": 2875,
+      "columns": [
+        "mapped_node_type",
+        "mapping_rows",
+        "mapped_node_ids"
+      ],
+      "rowCount": 2,
+      "totalRows": 2,
+      "truncated": false,
+      "rows": [
+        {
+          "mapped_node_type": "(missing)",
+          "mapping_rows": "809466",
+          "mapped_node_ids": "13950"
+        },
+        {
+          "mapped_node_type": "POSITION",
+          "mapping_rows": "68540",
+          "mapped_node_ids": "1039"
+        }
+      ]
+    },
+    "valid_mapping": {
+      "ok": true,
+      "sql": "SELECT p.school_type,COUNT(*) AS mapping_rows,COUNT(DISTINCT p.id) AS catalog_nodes,COUNT(DISTINCT j.id) AS existing_recruitment_ids,COUNT(DISTINCT CASE WHEN j.deleted=0 AND j.publish_state='PUBLISHING' THEN j.id END) AS publishing_ids FROM c_industry_chain_position p JOIN c_industry_position_ref r ON r.industry_chain_position_id=p.id AND r.deleted=0 LEFT JOIN c_company_position j ON j.id=r.position_id WHERE p.deleted=0 AND p.industry_chain_position_type='POSITION' GROUP BY p.school_type WITH ROLLUP",
+      "elapsedMs": 993,
+      "columns": [
+        "school_type",
+        "mapping_rows",
+        "catalog_nodes",
+        "existing_recruitment_ids",
+        "publishing_ids"
+      ],
+      "rowCount": 5,
+      "totalRows": 5,
+      "truncated": false,
+      "rows": [
+        {
+          "school_type": "SECONDARY_VOCATIONAL_SCHOOL",
+          "mapping_rows": "10493",
+          "catalog_nodes": "250",
+          "existing_recruitment_ids": "5469",
+          "publishing_ids": "1066"
+        },
+        {
+          "school_type": "TECHNICIAN_SCHOOL",
+          "mapping_rows": "10072",
+          "catalog_nodes": "254",
+          "existing_recruitment_ids": "4028",
+          "publishing_ids": "733"
+        },
+        {
+          "school_type": "UNDERGRADUATE_GENERAL_EDUCATION",
+          "mapping_rows": "28561",
+          "catalog_nodes": "266",
+          "existing_recruitment_ids": "23465",
+          "publishing_ids": "12771"
+        },
+        {
+          "school_type": "VOCATIONAL_TECHNICAL_COLLEGE",
+          "mapping_rows": "19414",
+          "catalog_nodes": "269",
+          "existing_recruitment_ids": "14404",
+          "publishing_ids": "4776"
+        },
+        {
+          "school_type": null,
+          "mapping_rows": "68540",
+          "catalog_nodes": "1039",
+          "existing_recruitment_ids": "45386",
+          "publishing_ids": "18841"
+        }
+      ]
+    },
+    "example_map": {
+      "ok": true,
+      "sql": "SELECT CAST(p.id AS CHAR) AS node_id,p.industry_chain_position_type AS node_type,COUNT(r.id) AS mapping_rows,COUNT(DISTINCT CASE WHEN j.deleted=0 AND j.publish_state='PUBLISHING' THEN j.id END) AS publishing_positions FROM c_industry_chain_position p LEFT JOIN c_industry_position_ref r ON r.industry_chain_position_id=p.id AND r.deleted=0 LEFT JOIN c_company_position j ON j.id=r.position_id WHERE p.id IN (4200000000000021352,4220018025000031274) GROUP BY p.id,p.industry_chain_position_type ORDER BY p.id",
+      "elapsedMs": 308,
+      "columns": [
+        "node_id",
+        "node_type",
+        "mapping_rows",
+        "publishing_positions"
+      ],
+      "rowCount": 2,
+      "totalRows": 2,
+      "truncated": false,
+      "rows": [
+        {
+          "node_id": "4200000000000021352",
+          "node_type": "POSITION",
+          "mapping_rows": "269",
+          "publishing_positions": "259"
+        },
+        {
+          "node_id": "4220018025000031274",
+          "node_type": "SUB_POSITION",
+          "mapping_rows": "0",
+          "publishing_positions": "0"
+        }
+      ]
+    },
+    "recruiting_counts": {
+      "ok": true,
+      "sql": "SELECT COUNT(*) AS total_rows,COUNT(CASE WHEN deleted=0 THEN 1 END) AS nondeleted_rows,COUNT(CASE WHEN deleted=0 AND publish_state='PUBLISHING' THEN 1 END) AS publishing_rows FROM c_company_position",
+      "elapsedMs": 2229,
+      "columns": [
+        "total_rows",
+        "nondeleted_rows",
+        "publishing_rows"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "total_rows": "2225275",
+          "nondeleted_rows": "2214298",
+          "publishing_rows": "687092"
+        }
+      ]
+    },
+    "exact_basics": {
+      "ok": true,
+      "sql": "SELECT (SELECT COUNT(*) FROM c_industry_chain_info) AS industry_nodes, (SELECT COUNT(*) FROM c_industry_chain_info WHERE level=0) AS level_zero_industries, (SELECT COUNT(*) FROM c_position_type) AS position_type_rows, (SELECT COUNT(*) FROM c_position_dictionary WHERE deleted=0) AS position_dictionary_active, (SELECT COUNT(*) FROM c_position_skill_tag WHERE deleted=0) AS position_skill_tag_active",
+      "elapsedMs": 392,
+      "columns": [
+        "industry_nodes",
+        "level_zero_industries",
+        "position_type_rows",
+        "position_dictionary_active",
+        "position_skill_tag_active"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "industry_nodes": "13328",
+          "level_zero_industries": "98",
+          "position_type_rows": "1685",
+          "position_dictionary_active": "1180",
+          "position_skill_tag_active": "1170"
+        }
+      ]
+    },
+    "jd_counts": {
+      "ok": true,
+      "sql": "SELECT (SELECT COUNT(*) FROM jd_agent_position_taxonomy_version) AS taxonomy_versions,(SELECT COUNT(*) FROM jd_agent_position_cluster) AS clusters,(SELECT COUNT(*) FROM jd_agent_position_cluster_membership) AS memberships,(SELECT COUNT(*) FROM jd_agent_position_title_mapping) AS title_mappings,(SELECT COUNT(*) FROM jd_agent_typical_work_task) AS typical_tasks,(SELECT COUNT(*) FROM jd_agent_portrait_report) AS portrait_reports,(SELECT COUNT(DISTINCT position_cluster_id) FROM jd_agent_portrait_report) AS clusters_with_portraits,(SELECT COUNT(*) FROM jd_agent_publish_version) AS published_versions,(SELECT COUNT(*) FROM jd_std_clean_jd) AS standard_clean_jds,(SELECT COUNT(*) FROM jd_std_position) AS standard_positions",
+      "elapsedMs": 599,
+      "columns": [
+        "taxonomy_versions",
+        "clusters",
+        "memberships",
+        "title_mappings",
+        "typical_tasks",
+        "portrait_reports",
+        "clusters_with_portraits",
+        "published_versions",
+        "standard_clean_jds",
+        "standard_positions"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "taxonomy_versions": "13",
+          "clusters": "194",
+          "memberships": "631",
+          "title_mappings": "184",
+          "typical_tasks": "1742",
+          "portrait_reports": "127",
+          "clusters_with_portraits": "119",
+          "published_versions": "0",
+          "standard_clean_jds": "169715",
+          "standard_positions": "677"
+        }
+      ]
+    },
+    "jd_std_key_columns": {
+      "ok": true,
+      "sql": "SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE,COLUMN_KEY,COLUMN_COMMENT FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND ((TABLE_NAME IN ('jd_std_position','jd_std_clean_jd') AND COLUMN_NAME IN ('id','industry_chain_position_id','standard_role_id','position_id')) OR (TABLE_NAME='jd_agent_position_cluster_membership' AND COLUMN_NAME='jd_id') OR (TABLE_NAME='jd_agent_project' AND COLUMN_NAME IN ('source_table','source_config_json','source_type','data_source'))) ORDER BY TABLE_NAME,COLUMN_NAME",
+      "elapsedMs": 66,
+      "columns": [
+        "TABLE_NAME",
+        "COLUMN_NAME",
+        "COLUMN_TYPE",
+        "COLUMN_KEY",
+        "COLUMN_COMMENT"
+      ],
+      "rowCount": 8,
+      "totalRows": 8,
+      "truncated": false,
+      "rows": [
+        {
+          "TABLE_NAME": "jd_agent_position_cluster_membership",
+          "COLUMN_NAME": "jd_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "jd_agent_project",
+          "COLUMN_NAME": "source_table",
+          "COLUMN_TYPE": "varchar(128)",
+          "COLUMN_KEY": "",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "jd_std_clean_jd",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": ""
+        },
+        {
+          "TABLE_NAME": "jd_std_clean_jd",
+          "COLUMN_NAME": "industry_chain_position_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "标准岗位id -> jd_std_position.id"
+        },
+        {
+          "TABLE_NAME": "jd_std_clean_jd",
+          "COLUMN_NAME": "position_id",
+          "COLUMN_TYPE": "bigint(20)",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "真实JD id（c_company_position.id）"
+        },
+        {
+          "TABLE_NAME": "jd_std_clean_jd",
+          "COLUMN_NAME": "standard_role_id",
+          "COLUMN_TYPE": "varchar(64)",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "标准岗位稳定编号"
+        },
+        {
+          "TABLE_NAME": "jd_std_position",
+          "COLUMN_NAME": "id",
+          "COLUMN_TYPE": "bigint(20)",
+          "COLUMN_KEY": "PRI",
+          "COLUMN_COMMENT": "岗位id"
+        },
+        {
+          "TABLE_NAME": "jd_std_position",
+          "COLUMN_NAME": "standard_role_id",
+          "COLUMN_TYPE": "varchar(64)",
+          "COLUMN_KEY": "MUL",
+          "COLUMN_COMMENT": "标准岗位稳定编号（仅POSITION有）"
+        }
+      ]
+    },
+    "jd_std_target": {
+      "ok": true,
+      "sql": "SELECT s.position_type,COUNT(*) AS rows_in_std,COUNT(p.id) AS also_in_industry_catalog,COUNT(CASE WHEN p.deleted=0 THEN 1 END) AS active_in_industry_catalog,COUNT(CASE WHEN NULLIF(TRIM(s.position_group_portrait),'') IS NOT NULL THEN 1 END) AS with_portrait FROM jd_std_position s LEFT JOIN c_industry_chain_position p ON p.id=s.id GROUP BY s.position_type",
+      "elapsedMs": 593,
+      "columns": [
+        "position_type",
+        "rows_in_std",
+        "also_in_industry_catalog",
+        "active_in_industry_catalog",
+        "with_portrait"
+      ],
+      "rowCount": 2,
+      "totalRows": 2,
+      "truncated": false,
+      "rows": [
+        {
+          "position_type": "POSITION",
+          "rows_in_std": "634",
+          "also_in_industry_catalog": "0",
+          "active_in_industry_catalog": "0",
+          "with_portrait": "634"
+        },
+        {
+          "position_type": "POSITION_GROUP",
+          "rows_in_std": "43",
+          "also_in_industry_catalog": "0",
+          "active_in_industry_catalog": "0",
+          "with_portrait": "43"
+        }
+      ]
+    },
+    "jd_std_ref": {
+      "ok": true,
+      "sql": "SELECT COUNT(*) AS clean_rows,COUNT(catalog.id) AS catalog_id_matches,COUNT(std.id) AS standard_id_matches,COUNT(j.id) AS recruitment_id_matches FROM jd_std_clean_jd d LEFT JOIN c_industry_chain_position catalog ON catalog.id=d.industry_chain_position_id LEFT JOIN jd_std_position std ON std.id=d.industry_chain_position_id LEFT JOIN c_company_position j ON j.id=d.position_id",
+      "elapsedMs": 1459,
+      "columns": [
+        "clean_rows",
+        "catalog_id_matches",
+        "standard_id_matches",
+        "recruitment_id_matches"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "clean_rows": "169715",
+          "catalog_id_matches": "0",
+          "standard_id_matches": "169715",
+          "recruitment_id_matches": "169715"
+        }
+      ]
+    },
+    "jd_member_ref": {
+      "ok": true,
+      "sql": "SELECT COUNT(*) AS membership_rows,COUNT(DISTINCT m.jd_id) AS distinct_jd_ids,COUNT(j.id) AS company_position_id_matches,COUNT(d.id) AS standard_clean_jd_pk_matches FROM jd_agent_position_cluster_membership m LEFT JOIN c_company_position j ON j.id=m.jd_id LEFT JOIN jd_std_clean_jd d ON d.id=m.jd_id",
+      "elapsedMs": 228,
+      "columns": [
+        "membership_rows",
+        "distinct_jd_ids",
+        "company_position_id_matches",
+        "standard_clean_jd_pk_matches"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "membership_rows": "631",
+          "distinct_jd_ids": "320",
+          "company_position_id_matches": "631",
+          "standard_clean_jd_pk_matches": "0"
+        }
+      ]
+    },
+    "jd_member_overlap": {
+      "ok": true,
+      "sql": "SELECT COUNT(*) AS memberships,COUNT(CASE WHEN EXISTS(SELECT 1 FROM jd_std_clean_jd d WHERE d.position_id=m.jd_id) THEN 1 END) AS membership_rows_sharing_a_recruitment_id FROM jd_agent_position_cluster_membership m",
+      "elapsedMs": 49,
+      "columns": [
+        "memberships",
+        "membership_rows_sharing_a_recruitment_id"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "memberships": "631",
+          "membership_rows_sharing_a_recruitment_id": "4"
+        }
+      ]
+    },
+    "jd_project_sources": {
+      "ok": true,
+      "sql": "SELECT source_table,COUNT(*) AS projects FROM jd_agent_project GROUP BY source_table ORDER BY projects DESC",
+      "elapsedMs": 47,
+      "columns": [
+        "source_table",
+        "projects"
+      ],
+      "rowCount": 1,
+      "totalRows": 1,
+      "truncated": false,
+      "rows": [
+        {
+          "source_table": "c_company_position",
+          "projects": "16"
+        }
+      ]
+    },
+    "shared_chain_fks": {
+      "ok": true,
+      "sql": "SELECT TABLE_NAME,COLUMN_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL AND (TABLE_NAME IN ('c_industry_chain_info','c_industry_chain_position','c_industry_chain_position_typical_task','c_industry_position_ref','c_position_chain','c_company_position','jd_std_position','jd_std_clean_jd') OR REFERENCED_TABLE_NAME IN ('c_industry_chain_info','c_industry_chain_position','c_industry_chain_position_typical_task','c_industry_position_ref','c_position_chain','c_company_position','jd_std_position','jd_std_clean_jd')) ORDER BY TABLE_NAME,COLUMN_NAME",
+      "elapsedMs": 96,
+      "columns": [],
+      "rowCount": 0,
+      "totalRows": 0,
+      "truncated": false,
+      "rows": []
+    },
+    "jd_fks": {
+      "ok": true,
+      "sql": "SELECT TABLE_NAME,COLUMN_NAME,REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA=DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL AND (LEFT(TABLE_NAME,9)='jd_agent_' OR LEFT(TABLE_NAME,7)='jd_std_' OR LEFT(REFERENCED_TABLE_NAME,9)='jd_agent_' OR LEFT(REFERENCED_TABLE_NAME,7)='jd_std_' OR TABLE_NAME IN ('c_industry_chain_position_typical_task','c_industry_chain_position','c_industry_position_ref')) ORDER BY TABLE_NAME,COLUMN_NAME",
+      "elapsedMs": 91,
+      "columns": [
+        "TABLE_NAME",
+        "COLUMN_NAME",
+        "REFERENCED_TABLE_NAME",
+        "REFERENCED_COLUMN_NAME"
+      ],
+      "rowCount": 124,
+      "totalRows": 124,
+      "truncated": false,
+      "rows": [
+        {
+          "TABLE_NAME": "jd_agent_portrait_report",
+          "COLUMN_NAME": "position_cluster_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_cluster",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_portrait_report",
+          "COLUMN_NAME": "project_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_project",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_portrait_report",
+          "COLUMN_NAME": "run_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_workflow_run",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_portrait_report",
+          "COLUMN_NAME": "stage_attempt_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_stage_attempt",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_portrait_report",
+          "COLUMN_NAME": "taxonomy_version_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_taxonomy_version",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_cluster",
+          "COLUMN_NAME": "taxonomy_version_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_taxonomy_version",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_cluster_membership",
+          "COLUMN_NAME": "batch_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_run_batch",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_cluster_membership",
+          "COLUMN_NAME": "position_cluster_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_cluster",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_cluster_membership",
+          "COLUMN_NAME": "run_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_workflow_run",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_cluster_membership",
+          "COLUMN_NAME": "taxonomy_version_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_taxonomy_version",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_title_mapping",
+          "COLUMN_NAME": "position_cluster_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_cluster",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_position_title_mapping",
+          "COLUMN_NAME": "taxonomy_version_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_taxonomy_version",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_publish_version",
+          "COLUMN_NAME": "portrait_report_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_portrait_report",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_publish_version",
+          "COLUMN_NAME": "position_cluster_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_cluster",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_publish_version",
+          "COLUMN_NAME": "project_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_project",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_publish_version",
+          "COLUMN_NAME": "quality_report_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_quality_check_report",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_publish_version",
+          "COLUMN_NAME": "run_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_workflow_run",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_publish_version",
+          "COLUMN_NAME": "taxonomy_version_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_taxonomy_version",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_typical_work_task",
+          "COLUMN_NAME": "position_cluster_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_position_cluster",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_typical_work_task",
+          "COLUMN_NAME": "project_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_project",
+          "REFERENCED_COLUMN_NAME": "id"
+        },
+        {
+          "TABLE_NAME": "jd_agent_typical_work_task",
+          "COLUMN_NAME": "run_id",
+          "REFERENCED_TABLE_NAME": "jd_agent_workflow_run",
+          "REFERENCED_COLUMN_NAME": "id"
+        }
+      ]
+    }
+  }
+}
