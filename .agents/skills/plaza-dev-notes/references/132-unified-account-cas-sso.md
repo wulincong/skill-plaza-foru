@@ -1,6 +1,20 @@
 # 132 · 优才知路与技能广场的统一账户和双向单点登录
 
-**状态**　设计建议，待接入。2026-11-25 已只读核对认证库结构、索引和汇总值，并在干净浏览器中从优才知路首页点开统一登录页。真实账号验票、业务会话建立、退出通知及两站互免登录都待联调。
+**状态**　2026-11-26 登录闭环代码已实现，HTTP 模拟上游测试及生产构建通过；真实平台登录待联调。用户明确本期只做登录、回调、展示、恢复和退出，并复用教育平台原 appId；下文独立应用登记、任务归属及双向免登录方案作为历史设计保留，不代表本期交付。
+
+## 2026-11-26 本期实现
+
+动机：用实际统一登录替代演示手机号弹窗。用户明确聊天记录绑定用户留待后续。
+
+约定：`web/server/lib/unifiedAuth.ts:14` 独立处理 `/api/auth/login|callback|me|logout`，`web/server/index.ts:288` 在普通 API 前接入。复用教育项目 `pages/unionLogin.vue` 的 `{code: st, skipLoginCache: true}` 换票契约和 `/gateway/user/auth/users/view` 资料接口；上游请求头为 `token: Bearer ...`。`PLAZA_ENV=test` 默认采用教育项目 `.env.test` 的 appId，缺省正式；development ID 可通过 `PLAZA_AUTH_APP_ID` 显式覆盖。其他配置、schema 和部署要求见 `web/docs/unified-login.md`。
+
+`web/src/composables/session.ts:15` 恢复真实用户资料，页头展示昵称与头像；删除 LoginModal 和配套样式。token 不交给 Vue，保存在 host-only HttpOnly/SameSite=Lax Cookie，HTTPS 使用 Secure，路径限 `/api/auth`；登录使用十分钟、进程内一次性 state 与浏览器 Cookie 绑定，返回地址仅限本站。失败后清理票据 URL 并回到页面提示重试；上游资料请求暂不可用不删除有效 Cookie。
+
+成本与取舍：采用限定后端接口而非复制 Nuxt 前端 TOKEN Cookie，避免引入父域凭据共享；复用原 appId 而非另申请应用，仍需平台允许新回调地址。没有新增用户表、稳定身份映射或聊天授权。本机未配置 web/.env 且没有 systemctl，未启动替代开发服务，未重启既有服务。
+
+验证：登录 HTTP 模拟上游覆盖事务绑定、重复回调、换票字段、资料恢复、退出、测试/正式 appId、HTTPS Cookie、站外返回阻断、失效清理和上游故障；与既有 SSE 测试合计 8 项通过。前端 vue-tsc + Vite build 通过。真实平台回调登记、账号票据、上游连通、浏览器端到端和中心退出效果均待联调，不能据此声称现网登录成功。
+
+后续：先完成真实环境登录验收；再单独设计聊天归属和统一退出通知。多实例部署需共享登录事务或粘性会话。下文较大范围方案不自动成为本期要求。
 
 ## 目标与现状
 

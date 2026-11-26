@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import SiteHead from './components/SiteHead.vue'
 import SiteFoot from './components/SiteFoot.vue'
-import LoginModal from './components/LoginModal.vue'
 import { toasts } from './composables/toast'
 import { useRoute } from 'vue-router'
 import { computed } from 'vue'
@@ -186,7 +185,6 @@ const hideFoot = computed(() => admin.value || route.name === 'experience' || ro
 
   <SiteFoot v-if="!hideFoot" />
 
-  <LoginModal v-if="!admin" />
 
   <div class="toast-host" id="toast-host" aria-live="polite">
     <div v-for="t in toasts" :key="t.id" class="toast">{{ t.message }}</div>

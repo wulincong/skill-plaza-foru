@@ -9,7 +9,7 @@ const isDark = ref(document.documentElement.getAttribute('data-mode') === 'dark'
 const navToggle = ref<HTMLButtonElement | null>(null)
 const menuOpen = ref(false)
 const scrolled = ref(false)
-const { user, openLogin, logout } = useSession()
+const { user, loading, openLogin, logout } = useSession()
 
 /* 滚动后头部切换为液态玻璃；首屏顶部保持透明 */
 function onScroll() { scrolled.value = window.scrollY > 12 }
@@ -101,17 +101,17 @@ watch(() => route.fullPath, () => { closeNav(); closeMenu() })
           <template v-if="user">
             <div class="user-wrap" @keydown.escape="closeMenu">
               <button type="button" class="user-btn" :aria-expanded="menuOpen" aria-haspopup="menu" @click="toggleMenu">
-                <span class="user-avatar" aria-hidden="true">{{ user.nickname.slice(-1) }}</span>
+                <span class="user-avatar" aria-hidden="true"><img v-if="user.avatar" :src="user.avatar" alt="" referrerpolicy="no-referrer" @error="user.avatar = ''" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"><template v-else>{{ user.nickname.slice(-1) }}</template></span>
                 <span class="user-name">{{ user.nickname }}</span>
                 <svg class="ic" width="14" height="14" aria-hidden="true"><use href="#i-chev-down" /></svg>
               </button>
               <div v-if="menuOpen" class="user-menu" role="menu">
-                <p class="user-menu-phone">{{ maskedPhone() }}</p>
+                <p v-if="user.phone" class="user-menu-phone">{{ maskedPhone() }}</p>
                 <button type="button" class="user-menu-item" role="menuitem" @click="onLogout">退出登录</button>
               </div>
             </div>
           </template>
-          <button v-else type="button" class="login-btn" @click="openLogin">登录</button>
+          <button v-else type="button" class="login-btn" :disabled="loading" @click="openLogin">{{ loading ? '加载中' : '登录' }}</button>
         </div>
       </div>
     </div>

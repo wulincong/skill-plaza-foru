@@ -8,6 +8,7 @@
    ============================================================ */
 
 import { createHash } from 'node:crypto'
+import { createUnifiedAuth } from './lib/unifiedAuth.ts'
 import { catalog, localReportReply, registerReport, reviewDelivery } from './lib/reportLibrary.ts'
 import { needsReportFollowThrough,reportTurnIntent,reportRevisionRequested,reportScopeQuestion,continuationMarker,sumUsage,reportRuntimeHint } from './lib/reportFollowThrough.ts'
 import { readWechatDelivery } from './lib/wechatDelivery.ts'
@@ -284,7 +285,20 @@ function readBody(req: any, limit: number = MAX_BODY_BYTES): Promise<Buffer> {
   })
 }
 
+const handleAuth = createUnifiedAuth({
+  env: process.env.PLAZA_ENV,
+  appId: process.env.PLAZA_AUTH_APP_ID,
+  platformUrl: process.env.PLAZA_AUTH_PLATFORM_URL,
+  gatewayUrl: process.env.PLAZA_AUTH_GATEWAY_URL,
+  centerUrl: process.env.PLAZA_AUTH_CENTER_URL,
+  originAllowed,
+})
+
 const server = createServer((req, res) => {
+  if (req.url?.startsWith('/api/auth/')) {
+    void handleAuth(req, res)
+    return
+  }
   if (handleLearningMaterial(req, res)) return
   if (handleDelivery(req, res, DELIVERIES_DIR)) return
   let path: string

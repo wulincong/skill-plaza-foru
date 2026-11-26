@@ -1,34 +1,48 @@
 import { ref } from 'vue'
+import { toast } from './toast'
 
-/* 演示级会话：仅前端状态 + localStorage 持久化，无真实后端 */
 export interface SessionUser {
+  id: string
   phone: string
   nickname: string
+  avatar: string
 }
-
-const KEY = 'skill-plaza:user'
 const user = ref<SessionUser | null>(null)
-const loginOpen = ref(false)
-
-try {
-  const raw = localStorage.getItem(KEY)
-  if (raw) user.value = JSON.parse(raw)
-} catch { /* 忽略损坏数据 */ }
+const loading = ref(true)
+let initialized = false
 
 export function useSession() {
-  function openLogin() { loginOpen.value = true }
-  function closeLogin() { loginOpen.value = false }
-
-  function loginWithPhone(phone: string) {
-    user.value = { phone, nickname: `用户${phone.slice(-4)}` }
-    try { localStorage.setItem(KEY, JSON.stringify(user.value)) } catch { /* 忽略 */ }
-    loginOpen.value = false
+  async function restore() {
+    if (initialized) return
+    initialized = true
+    try { localStorage.removeItem('skill-plaza:user') } catch { /* storage may be disabled */ }
+    const url = new URL(location.href)
+    if (url.searchParams.has('login_error')) {
+      url.searchParams.delete('login_error')
+      history.replaceState(history.state, '', url.pathname + url.search + url.hash)
+      toast('登录未成功，请重试')
+    }
+    try {
+      const response = await fetch('/api/auth/me', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(20_000) })
+      if (response.status === 401) { user.value = null; return }
+      if (!response.ok) throw new Error()
+      const data = await response.json()
+      user.value = data.user
+    } catch { toast('暂时无法获取用户信息，请稍后刷新') }
+    finally { loading.value = false }
   }
-
-  function logout() {
-    user.value = null
-    try { localStorage.removeItem(KEY) } catch { /* 忽略 */ }
+  function openLogin() {
+    const params = new URLSearchParams({ origin: location.origin, returnTo: location.pathname + location.search + location.hash })
+    location.assign(`/api/auth/login?${params}`)
   }
-
-  return { user, loginOpen, openLogin, closeLogin, loginWithPhone, logout }
+  async function logout() {
+    try {
+      const response = await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin', signal: AbortSignal.timeout(20_000), headers: { 'X-Plaza-Auth': '1' } })
+      if (!response.ok) throw new Error()
+      const data = await response.json()
+      user.value = null
+      location.assign(data.url)
+    } catch { toast('退出未成功，请重试') }
+  }
+  return { user, loading, restore, openLogin, logout }
 }

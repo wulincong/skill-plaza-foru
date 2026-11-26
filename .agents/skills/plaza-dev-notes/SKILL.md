@@ -177,7 +177,7 @@ description: 技能广场仓库（skill-plaza-foru）的开发手记，沉淀本
 | 092 | 主仓库远程迁移、技能全部内置与普通克隆 | 已实现（GitHub wlc 已发布，三个技能树及普通远端克隆验证通过） | [092-main-repository-remote-migration.md](references/092-main-repository-remote-migration.md) |
 | 105 | 本机前后端的独立 systemd 用户服务与重启约定 | 已实现（端口、独立重启、用户权限与公网热更新验证） | [105-systemd-user-services.md](references/105-systemd-user-services.md) |
 | 104 | 独立管理后台、技能发布、密钥轮换与测试人员共享续聊 | 已实现（浏览器、双协议、真实 Pi 沙箱和现存索引验收） | [104-admin-console.md](references/104-admin-console.md) |
-| 132 | 优才知路与技能广场共用统一认证中心，双向单点登录与任务归属 | 设计建议；认证库和官网入口已核对，广场应用登记、服务端验票与双向登录待联调 | [132-unified-account-cas-sso.md](references/132-unified-account-cas-sso.md) |
+| 132 | 统一平台登录闭环与后续双向单点登录、任务归属 | 登录闭环代码和模拟上游测试已完成，真实平台待联调；任务归属留待后续 | [132-unified-account-cas-sso.md](references/132-unified-account-cas-sso.md) |
 | 048 | 广场技能列表动态化：/api/skills 与幽灵卡移除 | 已实现（API 实测 6 技能；浏览器页面回归待用户） | [048-plaza-skill-list-dynamic.md](references/048-plaza-skill-list-dynamic.md) |
 | 057 | 公网入口 origin 白名单 PLAZA_ALLOWED_ORIGINS | 已实现（curl 四场景验证；公网浏览器回归待确认） | [057-public-origin-allowlist.md](references/057-public-origin-allowlist.md) |
 | 076 | 开发手记重组：清除运行观察、合并同主题、分区索引（删并映射表） | 已实现 | [076-dev-notes-reorg.md](references/076-dev-notes-reorg.md) |
