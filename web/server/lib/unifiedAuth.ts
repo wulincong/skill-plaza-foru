@@ -13,7 +13,7 @@ interface Options {
 
 export function createUnifiedAuth(options: Options) {
   const test = options.env === 'test'
-  const appId = options.appId || (test ? '69543990ecb048a88f76ef9279e82fc5' : 'dc8d609d021711ef8e910242ac120010')
+  const appId = options.appId || (test ? '3f363349005111ef808d0242ac110006' : 'dc8d609d021711ef8e910242ac120010')
   const platform = (options.platformUrl || (test ? 'http://192.168.8.2:19000' : 'http://192.168.8.1:18800')).replace(/\/$/, '')
   const gateway = (options.gatewayUrl || `${platform}/gateway`).replace(/\/$/, '')
   const center = (options.centerUrl || 'https://login.tringai.cn').replace(/\/$/, '')
